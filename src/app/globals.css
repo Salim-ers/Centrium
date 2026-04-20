@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light tokens (non utilisés en dark-first, fallback) */
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 270 91% 65%;           /* violet QuadCore */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 328 85% 50%;             /* magenta */
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 51%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 270 91% 65%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 228 38% 6%;          /* #0a0b14 */
+    --foreground: 210 40% 98%;
+
+    --card: 230 30% 9%;                /* #0f1119 */
+    --card-foreground: 210 40% 98%;
+
+    --popover: 230 30% 9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 270 91% 65%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 231 18% 16%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 231 18% 16%;
+    --muted-foreground: 217 10% 65%;
+
+    --accent: 328 85% 50%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 51%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 231 18% 18%;
+    --input: 231 18% 18%;
+    --ring: 270 91% 65%;
+  }
+
+  * { @apply border-border; }
+  html { color-scheme: dark; }
+  body { @apply bg-background text-foreground antialiased; }
+}
+
+@layer utilities {
+  .qc-gradient-text {
+    @apply bg-qc-gradient bg-clip-text text-transparent;
+  }
+  .qc-card {
+    @apply bg-card/50 backdrop-blur border border-white/5;
+  }
+  .qc-card-hover {
+    @apply transition-all hover:border-violet-glow/40 hover:shadow-glow;
+  }
+}
+
+/* === Print CSS pour CV / Factures / CRA QuadCore === */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+  html, body {
+    background: white !important;
+    color: black !important;
+  }
+  /* Masque tout par défaut */
+  body * { visibility: hidden !important; }
+  /* Ne laisse visibles que les conteneurs explicitement imprimables */
+  .print-only, .print-only * { visibility: visible !important; }
+  /* Sort le conteneur imprimable du flux de l'AppShell */
+  .print-only {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+  .no-print { display: none !important; }
+  .cv-print-page, .qc-print-doc {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    margin: 0 auto !important;
+  }
+}

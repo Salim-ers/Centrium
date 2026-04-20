@@ -1,0 +1,79 @@
+import { createClient } from '@/lib/supabase/client';
+import type { Consultant, JobOffer, ConsultantSkill, ServiceResult } from '@/types';
+import { computeMatching } from '@/lib/ai/cv-generator';
+
+export type MatchResult = {
+  consultant: Consultant;
+  score: number;
+  matchedSkills: string[];
+  missingSkills: string[];
+  recommendation: 'recommend' | 'maybe' | 'not_recommended';
+};
+
+export const matchingService = {
+  async matchConsultantsToOffer(
+    offerId: string
+  ): Promise<ServiceResult<MatchResult[]>> {
+    const supabase = createClient();
+
+    const { data: offer, error: offerErr } = await supabase
+      .from('job_offers')
+      .select('*')
+      .eq('id', offerId)
+      .single();
+    if (offerErr || !offer) {
+      return { data: null, error: offerErr ?? new Error('Offre introuvable') };
+    }
+
+    // Récupérer consultants actifs (disponibles ou bientôt dispo en priorité)
+    const { data: consultants, error: cErr } = await supabase
+      .from('consultants')
+      .select('*')
+      .eq('archived', false)
+      .in('status', ['available', 'soon_available', 'on_mission']);
+    if (cErr) return { data: null, error: cErr };
+
+    const consultantIds = (consultants ?? []).map((c) => c.id);
+    const { data: skills } = await supabase
+      .from('consultant_skills')
+      .select('*')
+      .in('consultant_id', consultantIds);
+
+    const skillsByConsultant = new Map<string, ConsultantSkill[]>();
+    for (const s of (skills ?? []) as ConsultantSkill[]) {
+      const arr = skillsByConsultant.get(s.consultant_id) ?? [];
+      arr.push(s);
+      skillsByConsultant.set(s.consultant_id, arr);
+    }
+
+    const results: MatchResult[] = (consultants as Consultant[]).map((c) => {
+      const consultantSkills = skillsByConsultant.get(c.id) ?? [];
+      const matching = computeMatching(consultantSkills, offer as JobOffer);
+      return {
+        consultant: c,
+        score: matching.score,
+        matchedSkills: matching.matchedSkills,
+        missingSkills: matching.missingSkills,
+        recommendation:
+          matching.score >= 80
+            ? 'recommend'
+            : matching.score >= 60
+              ? 'maybe'
+              : 'not_recommended',
+      };
+    });
+
+    // Tri : score desc, puis dispo
+    results.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      const availRank: Record<string, number> = {
+        available: 0,
+        soon_available: 1,
+        on_mission: 2,
+      };
+      return (availRank[a.consultant.status] ?? 3) - (availRank[b.consultant.status] ?? 3);
+    });
+
+    return { data: results, error: null };
+  },
+};
