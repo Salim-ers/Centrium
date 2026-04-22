@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { Suspense, useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
@@ -53,6 +53,14 @@ type LoadedConsultant = {
 };
 
 export default function CVOptimizerPage() {
+  return (
+    <Suspense fallback={null}>
+      <CVOptimizerPageInner />
+    </Suspense>
+  );
+}
+
+function CVOptimizerPageInner() {
   const params = useSearchParams();
   const initialId = params?.get('consultantId') ?? '';
   const initialOfferId = params?.get('offerId') ?? '';
