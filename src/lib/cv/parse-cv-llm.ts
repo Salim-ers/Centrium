@@ -23,12 +23,18 @@ export type ParseResult = {
 export async function parseCVSmart(text: string): Promise<ParseResult> {
   const warnings: string[] = [];
 
-  // Essai LLM d'abord
+  // Essai LLM d'abord — avec timeout client pour éviter de geler l'UI
+  // si l'API Anthropic ou le réseau est lent. Fallback heuristique au-delà.
+  const CLIENT_TIMEOUT_MS = 75_000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), CLIENT_TIMEOUT_MS);
+
   try {
     const res = await fetch('/api/cv/parse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
+      signal: controller.signal,
     });
 
     if (res.ok) {
@@ -53,9 +59,14 @@ export async function parseCVSmart(text: string): Promise<ParseResult> {
       );
     }
   } catch (e) {
+    const isAbort = e instanceof Error && e.name === 'AbortError';
     warnings.push(
-      `Appel IA échoué : ${e instanceof Error ? e.message : 'erreur réseau'} — bascule en extraction heuristique.`,
+      isAbort
+        ? `IA trop lente (> ${Math.round(CLIENT_TIMEOUT_MS / 1000)}s) — bascule en extraction heuristique.`
+        : `Appel IA échoué : ${e instanceof Error ? e.message : 'erreur réseau'} — bascule en extraction heuristique.`,
     );
+  } finally {
+    clearTimeout(timer);
   }
 
   // Fallback : parseur local
