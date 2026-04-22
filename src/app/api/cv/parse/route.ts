@@ -76,10 +76,26 @@ const ParsedCVSchema = z.object({
   languages: z.array(
     z.object({
       code: z.string(),
-      level: z.enum(['Natif', 'Bilingue', 'Professionnel', 'Intermédiaire', 'Notions']),
+      // Le LLM renvoie parfois "Courant", "Fluent", "B2", "C1"… On accepte
+      // une chaîne libre ici et on normalise côté serveur après parse.
+      level: z.string(),
     }),
   ),
 });
+
+type LanguageLevel = 'Natif' | 'Bilingue' | 'Professionnel' | 'Intermédiaire' | 'Notions';
+
+function normalizeLanguageLevel(raw: string): LanguageLevel {
+  const v = raw.trim().toLowerCase();
+  if (!v) return 'Professionnel';
+  if (/(^|\b)(natif|native|maternelle|mother tongue|c2)(\b|$)/i.test(v)) return 'Natif';
+  if (/(^|\b)(bilingue|bilingual|fluent|courant|fluently)(\b|$)/i.test(v)) return 'Bilingue';
+  if (/(^|\b)(professionnel|professional|business|avancé|advanced|c1|b2)(\b|$)/i.test(v))
+    return 'Professionnel';
+  if (/(^|\b)(intermédiaire|intermediate|moyen|b1|a2)(\b|$)/i.test(v)) return 'Intermédiaire';
+  if (/(^|\b)(notions|basic|débutant|beginner|elementary|a1)(\b|$)/i.test(v)) return 'Notions';
+  return 'Professionnel';
+}
 
 // Prompt système stable → candidat idéal pour prompt caching
 const SYSTEM_PROMPT = `Tu es un expert RH chargé d'extraire des données structurées depuis un CV en français (ou anglais) pour une ESN spécialisée en consulting IT.
@@ -215,8 +231,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Normalise les niveaux de langue : le LLM peut renvoyer "Courant",
+    // "Fluent", "B2"… qui ne sont pas dans notre enum applicatif final.
+    const parsed = response.parsed_output as {
+      languages?: Array<{ code: string; level: string }>;
+      [k: string]: unknown;
+    };
+    if (Array.isArray(parsed.languages)) {
+      parsed.languages = parsed.languages.map((l) => ({
+        code: l.code,
+        level: normalizeLanguageLevel(l.level),
+      }));
+    }
+
     return NextResponse.json({
-      parsed: response.parsed_output,
+      parsed,
       mode: 'llm',
       model: response.model,
       usage: {
