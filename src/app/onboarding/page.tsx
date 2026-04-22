@@ -50,24 +50,35 @@ export default function OnboardingPage() {
 
   async function onSubmit(values: OrganizationInput) {
     setLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20_000);
     try {
       const res = await fetch('/api/orgs/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(values),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         toast.error(body.message ?? 'Création impossible');
         setLoading(false);
         return;
       }
-      await reload();
       toast.success('Organisation créée 🎉');
+      // Ne pas bloquer la navigation sur reload() — si le contexte stall,
+      // le /dashboard re-chargera son propre état via son provider.
+      void reload().catch(() => undefined);
       router.push('/dashboard');
       router.refresh();
-    } catch {
-      toast.error('Erreur réseau');
+    } catch (e) {
+      clearTimeout(timeoutId);
+      if ((e as Error).name === 'AbortError') {
+        toast.error('Délai dépassé — réessaie dans un instant');
+      } else {
+        toast.error('Erreur réseau');
+      }
       setLoading(false);
     }
   }

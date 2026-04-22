@@ -51,11 +51,20 @@ export default function LoginPage() {
       return;
     }
 
-    const { data: profile } = await supabase
+    // Timeout sur le fetch profile pour ne pas bloquer la redirection
+    // si Supabase stall. Le middleware résoudra le bon redirect de toute façon.
+    const profilePromise = supabase
       .from('profiles')
       .select('role')
       .eq('id', authRes.user.id)
       .maybeSingle();
+    const timeoutPromise = new Promise<{ data: null }>((resolve) =>
+      setTimeout(() => resolve({ data: null }), 5000),
+    );
+    const { data: profile } = (await Promise.race([
+      profilePromise,
+      timeoutPromise,
+    ])) as { data: { role: string } | null };
 
     setLoading(false);
     toast.success('Connexion réussie');

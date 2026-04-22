@@ -71,9 +71,19 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
       if (hadFreshCache) return;
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      // Timeout de sécurité : si Supabase stall, on ne veut pas que l'UI
+      // reste en loading=true indéfiniment.
+      const withTimeout = <T,>(p: Promise<T>, ms: number, fallback: T) =>
+        Promise.race([
+          p,
+          new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+        ]);
+
+      const { data: { session } } = await withTimeout(
+        supabase.auth.getSession(),
+        8000,
+        { data: { session: null } } as Awaited<ReturnType<typeof supabase.auth.getSession>>,
+      );
       const user = session?.user ?? null;
 
       if (!user) {
@@ -86,9 +96,19 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         return;
       }
 
-      const [profileRes, memberRes] = await Promise.all([
+      // Les PostgrestBuilder sont thenable ; Promise.resolve suffit pour les
+      // "terminer". Fallback = objet minimal avec juste .data, c'est tout ce
+      // qu'on lit ensuite.
+      const profileQ = Promise.resolve(
         supabase.from('profiles').select('organization_id').eq('id', user.id).single(),
+      ) as Promise<{ data: { organization_id: string | null } | null }>;
+      const memberQ = Promise.resolve(
         supabase.from('my_organizations').select('id, name, slug, role'),
+      ) as Promise<{ data: Membership[] | null }>;
+
+      const [profileRes, memberRes] = await Promise.all([
+        withTimeout(profileQ, 8000, { data: null } as { data: { organization_id: string | null } | null }),
+        withTimeout(memberQ, 8000, { data: [] } as { data: Membership[] | null }),
       ]);
 
       const memberships = (memberRes.data ?? []) as Membership[];
