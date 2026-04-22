@@ -223,16 +223,29 @@ export function ConsultantFormDialog({
       }
     }
 
+    // Supabase rejette '' pour les colonnes DATE/nullable ; normalise avant envoi.
+    const normalized = Object.fromEntries(
+      Object.entries(values).map(([k, v]) => [k, v === '' ? null : v]),
+    ) as Partial<ConsultantInput>;
+
     setSaving(true);
     try {
       if (isEdit) {
-        const res = await consultantService.update(consultant!.id, values);
+        const res = await Promise.race([
+          consultantService.update(consultant!.id, normalized),
+          new Promise<{ data: null; error: { message: string } }>((resolve) =>
+            setTimeout(
+              () => resolve({ data: null, error: { message: 'Délai dépassé (20s)' } }),
+              20_000,
+            ),
+          ),
+        ]);
         if (res.error) {
           toast.error('Erreur : ' + res.error.message);
           return;
         }
         toast.success('Consultant mis à jour');
-        onSaved?.(res.data);
+        onSaved?.(res.data!);
       } else {
         // Création via API — gère optionnellement la création du compte portail
         const body = {
@@ -313,7 +326,13 @@ export function ConsultantFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
+        <form
+          onSubmit={handleSubmit(onSubmit, (errs) => {
+            const first = Object.values(errs)[0] as { message?: string } | undefined;
+            toast.error(first?.message ?? 'Formulaire invalide — vérifie les champs');
+          })}
+          className="space-y-4 pt-2"
+        >
           {/* Import CV — uniquement en création */}
           {!isEdit && (
             <div className="rounded-lg border border-violet-brand/25 bg-violet-brand/5 p-4 space-y-3">
