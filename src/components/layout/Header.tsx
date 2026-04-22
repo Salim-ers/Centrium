@@ -1,10 +1,30 @@
 'use client';
 
-import { Search, Bell, User } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { Search, Bell, User, LogOut } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useOrganizationSafe } from '@/lib/auth/context';
 
 export function Header() {
+  const org = useOrganizationSafe();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [menuOpen]);
+
+  const activeMembership = org?.memberships.find((m) => m.id === org.activeOrgId);
+
   return (
     <header className="fixed top-0 right-0 left-0 md:left-64 z-20 h-16 border-b border-white/5 bg-midnight-300/60 backdrop-blur-xl">
       <div className="flex h-full items-center justify-between gap-4 px-6">
@@ -17,13 +37,63 @@ export function Header() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
-            <Bell className="h-4 w-4" />
-            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-magenta shadow-glow-magenta" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative"
+            aria-label="Notifications"
+            asChild
+          >
+            <Link href="/alerts">
+              <Bell className="h-4 w-4" />
+              <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-magenta shadow-glow-magenta" />
+            </Link>
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Profil">
-            <User className="h-4 w-4" />
-          </Button>
+
+          <div className="relative" ref={menuRef}>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Profil"
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              <User className="h-4 w-4" />
+            </Button>
+
+            {menuOpen && (
+              <div className="absolute right-0 mt-2 w-64 rounded-lg border border-white/10 bg-midnight-200/95 backdrop-blur-xl shadow-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-white/5">
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Connecté en tant que
+                  </div>
+                  <div className="text-sm font-medium truncate mt-0.5">
+                    {org?.user?.email ?? '—'}
+                  </div>
+                  {activeMembership && (
+                    <div className="text-xs text-muted-foreground mt-1 truncate">
+                      {activeMembership.name} · {activeMembership.role}
+                    </div>
+                  )}
+                </div>
+                <Link
+                  href="/settings"
+                  onClick={() => setMenuOpen(false)}
+                  className="block px-4 py-2.5 text-sm hover:bg-white/5 transition"
+                >
+                  Paramètres
+                </Link>
+                <form action="/api/auth/logout" method="POST">
+                  <button
+                    type="submit"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-300 hover:bg-red-500/10 hover:text-red-200 transition border-t border-white/5"
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                    Déconnexion
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

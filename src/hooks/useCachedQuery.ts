@@ -85,11 +85,12 @@ export function useCachedQuery<T>(
 
   useEffect(() => {
     if (!enabled) return;
-    const existing = readCache<T>(key);
-    if (!existing || Date.now() - existing.ts > ttlMs) {
-      run();
-    }
-  }, [enabled, key, ttlMs, run]);
+    // Toujours refetch au mount : le cache sert à afficher instantanément
+    // le dernier snapshot, mais la donnée doit être fraîche à chaque visite
+    // sinon les updates faites par un autre compte n'apparaissent pas.
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, key]);
 
   const setData = useCallback(
     (updater: T | ((prev: T | null) => T)) => {
