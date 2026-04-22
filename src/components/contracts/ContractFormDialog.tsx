@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Briefcase } from 'lucide-react';
 
 import {
   Dialog,
@@ -22,8 +22,19 @@ import { Select } from '@/components/ui/select';
 import { contractSchema, type ContractInput } from '@/lib/validators/contract';
 import { contractService } from '@/lib/services/contract.service';
 import { consultantService } from '@/lib/services/consultant.service';
+import { createClient } from '@/lib/supabase/client';
 import type { Consultant, Contract } from '@/types';
 import { useState } from 'react';
+
+type MissionOption = {
+  id: string;
+  title: string;
+  consultant_id: string;
+  daily_rate_eur: number;
+  start_date: string;
+  end_date: string | null;
+  status: string;
+};
 
 type Props = {
   open: boolean;
@@ -41,6 +52,8 @@ export function ContractFormDialog({
   onSaved,
 }: Props) {
   const [consultants, setConsultants] = useState<Consultant[]>([]);
+  const [missions, setMissions] = useState<MissionOption[]>([]);
+  const [selectedMissionId, setSelectedMissionId] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const isEdit = !!contract;
 
@@ -73,6 +86,17 @@ export function ContractFormDialog({
       consultantService.list().then((res) => {
         if (res.data) setConsultants(res.data);
       });
+      // Charge les missions actives + proposées (pour pre-fill du contrat)
+      const supabase = createClient();
+      supabase
+        .from('missions')
+        .select('id, title, consultant_id, daily_rate_eur, start_date, end_date, status')
+        .in('status', ['proposed', 'active'])
+        .order('start_date', { ascending: false })
+        .then(({ data }) => {
+          setMissions((data as MissionOption[]) ?? []);
+        });
+      setSelectedMissionId(contract?.mission_id ?? '');
       if (contract) {
         reset({
           contract_number: contract.contract_number,
@@ -117,6 +141,34 @@ export function ContractFormDialog({
       }
     }
   }, [consultantId, consultants, setValue, watch]);
+
+  // Auto-fill depuis mission sélectionnée : consultant, TJM, dates, mission_id, mission_title
+  function applyMission(missionId: string) {
+    setSelectedMissionId(missionId);
+    if (!missionId) {
+      setValue('mission_id', null);
+      setValue('mission_title', null);
+      return;
+    }
+    const m = missions.find((x) => x.id === missionId);
+    if (!m) return;
+    setValue('mission_id', m.id);
+    setValue('mission_title', m.title);
+    setValue('consultant_id', m.consultant_id);
+    setValue('daily_rate_eur', m.daily_rate_eur);
+    setValue('start_date', m.start_date);
+    if (m.end_date) {
+      const months = Math.max(
+        1,
+        Math.round(
+          (new Date(m.end_date).getTime() - new Date(m.start_date).getTime()) /
+            (1000 * 60 * 60 * 24 * 30),
+        ),
+      );
+      setValue('duration_months', months);
+    }
+    if (!watch('title')) setValue('title', `Contrat AT – ${m.title}`);
+  }
 
   async function onSubmit(values: ContractInput) {
     setSaving(true);
@@ -180,6 +232,34 @@ export function ContractFormDialog({
               )}
             </div>
           </section>
+
+          {/* Section 1bis : Mission rattachée (pre-fill auto) */}
+          {!isEdit && missions.length > 0 && (
+            <section className="rounded-lg border border-violet-brand/20 bg-violet-brand/5 p-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3 flex items-center gap-2">
+                <Briefcase className="h-3.5 w-3.5" />
+                Lier à une mission existante (optionnel)
+              </h3>
+              <Select
+                value={selectedMissionId}
+                onChange={(e) => applyMission(e.target.value)}
+              >
+                <option value="">— Aucune mission rattachée —</option>
+                {missions.map((m) => {
+                  const consultant = consultants.find((c) => c.id === m.consultant_id);
+                  return (
+                    <option key={m.id} value={m.id}>
+                      [{m.status}] {m.title}
+                      {consultant ? ` — ${consultant.first_name} ${consultant.last_name}` : ''}
+                    </option>
+                  );
+                })}
+              </Select>
+              <p className="text-[10px] text-muted-foreground mt-2">
+                Sélectionner une mission pré-remplit le consultant, le TJM et les dates ci-dessous.
+              </p>
+            </section>
+          )}
 
           {/* Section 2 : Consultant */}
           <section>

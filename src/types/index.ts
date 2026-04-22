@@ -9,7 +9,8 @@ export type UserRole =
   | 'business_manager'
   | 'recruiter'
   | 'finance'
-  | 'viewer';
+  | 'viewer'
+  | 'consultant';
 
 export type ConsultantStatus =
   | 'available'
@@ -143,6 +144,7 @@ export type Consultant = {
   summary: string | null;
   internal_notes: string | null;
   archived: boolean;
+  is_prospect: boolean;
   created_at: string;
   updated_at: string;
 };

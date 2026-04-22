@@ -17,13 +17,13 @@ import {
 } from '@/components/ui/table';
 import { ContactFormDialog } from '@/components/crm/ContactFormDialog';
 import { contactService } from '@/lib/services';
+import { useOrganization } from '@/lib/auth/context';
 import type { Contact } from '@/types';
 import { CONTACT_TYPE_LABEL } from '@/constants';
 import { relativeDate } from '@/lib/utils';
 
-const ORG_ID = '11111111-1111-1111-1111-111111111111';
-
 export default function ContactsPage() {
+  const { activeOrgId } = useOrganization();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -84,7 +84,7 @@ export default function ContactsPage() {
           setDialogOpen(v);
           if (!v) setEditingContact(null);
         }}
-        organizationId={ORG_ID}
+        organizationId={activeOrgId ?? ''}
         contact={editingContact}
         onSaved={() => reload()}
       />

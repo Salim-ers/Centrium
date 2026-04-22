@@ -22,7 +22,14 @@
       "Bash(ls *)",
       "Bash(cat *)",
       "Bash(find *)",
-      "Bash(grep *)"
+      "Bash(grep *)",
+      "Bash(npx tsx *)",
+      "mcp__supabase__list_projects",
+      "Read(//c/Users/Salim/Desktop/quadcore-platform/**)",
+      "Read(//c/Users/Salim/**)",
+      "Read(//c/Users/Salim/.claude/**)",
+      "Read(//c/Users/Salim/.claude/projects/c--Users-Salim-Desktop-quadcore-platform/**)",
+      "Bash(npm uninstall *)"
     ],
     "deny": [
       "Write(.env*)",
@@ -31,6 +38,9 @@
       "Bash(rm -rf *)",
       "Bash(sudo *)",
       "Bash(curl *sudo*)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\Salim\\Desktop\\quadcore-platform\\.next"
     ]
   },
   "hooks": {

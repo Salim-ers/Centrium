@@ -29,7 +29,7 @@ CREATE POLICY consultant_docs_select ON storage.objects
   FOR SELECT TO authenticated
   USING (
     bucket_id = 'consultant-documents'
-    AND (storage.foldername(name))[1] = auth.organization_id()::text
+    AND (storage.foldername(name))[1] = public.organization_id()::text
   );
 
 DROP POLICY IF EXISTS consultant_docs_insert ON storage.objects;
@@ -37,8 +37,8 @@ CREATE POLICY consultant_docs_insert ON storage.objects
   FOR INSERT TO authenticated
   WITH CHECK (
     bucket_id = 'consultant-documents'
-    AND (storage.foldername(name))[1] = auth.organization_id()::text
-    AND auth.user_role() IN ('admin', 'business_manager', 'recruiter')
+    AND (storage.foldername(name))[1] = public.organization_id()::text
+    AND public.user_role() IN ('admin', 'business_manager', 'recruiter')
   );
 
 DROP POLICY IF EXISTS consultant_docs_delete ON storage.objects;
@@ -46,6 +46,6 @@ CREATE POLICY consultant_docs_delete ON storage.objects
   FOR DELETE TO authenticated
   USING (
     bucket_id = 'consultant-documents'
-    AND (storage.foldername(name))[1] = auth.organization_id()::text
-    AND auth.user_role() IN ('admin', 'business_manager', 'recruiter')
+    AND (storage.foldername(name))[1] = public.organization_id()::text
+    AND public.user_role() IN ('admin', 'business_manager', 'recruiter')
   );

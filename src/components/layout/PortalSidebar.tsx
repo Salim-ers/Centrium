@@ -10,14 +10,14 @@ import {
   FileText,
   UserCircle,
   LogOut,
+  Briefcase,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { createClient } from '@/lib/supabase/client';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 
 const PORTAL_NAV = [
   { label: 'Accueil', href: '/portal/dashboard', icon: LayoutDashboard },
+  { label: 'Mes missions', href: '/portal/missions', icon: Briefcase },
   { label: 'Mes CRA', href: '/portal/cra', icon: ClipboardCheck },
   { label: 'Mes factures', href: '/portal/invoices', icon: Receipt },
   { label: 'Mes contrats', href: '/portal/contracts', icon: FileSignature },
@@ -27,16 +27,6 @@ const PORTAL_NAV = [
 
 export function PortalSidebar() {
   const pathname = usePathname();
-
-  async function signOut() {
-    const supabase = createClient();
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error('Erreur à la déconnexion');
-      return;
-    }
-    window.location.href = '/login';
-  }
 
   return (
     <aside className="hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-white/5 bg-midnight-200/80 backdrop-blur-xl">
@@ -71,14 +61,15 @@ export function PortalSidebar() {
       </nav>
 
       <div className="border-t border-white/5 p-3">
-        <button
-          type="button"
-          onClick={signOut}
-          className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-white/[0.03] hover:text-foreground transition-all"
-        >
-          <LogOut className="h-4 w-4 shrink-0" />
-          Se déconnecter
-        </button>
+        <form action="/api/auth/logout" method="POST">
+          <button
+            type="submit"
+            className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-white/[0.03] hover:text-foreground transition-all"
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            Se déconnecter
+          </button>
+        </form>
       </div>
     </aside>
   );

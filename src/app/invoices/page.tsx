@@ -20,12 +20,12 @@ import {
 import { InvoiceFormDialog } from '@/components/invoices/InvoiceFormDialog';
 
 import { invoiceService, type InvoiceListItem } from '@/lib/services';
+import { useOrganization } from '@/lib/auth/context';
 import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE } from '@/constants';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
-const ORG_ID = '11111111-1111-1111-1111-111111111111';
-
 export default function InvoicesPage() {
+  const { activeOrgId } = useOrganization();
   const [invoices, setInvoices] = useState<InvoiceListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -94,7 +94,7 @@ export default function InvoicesPage() {
       <InvoiceFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        organizationId={ORG_ID}
+        organizationId={activeOrgId ?? ''}
         onSaved={() => reload()}
       />
 

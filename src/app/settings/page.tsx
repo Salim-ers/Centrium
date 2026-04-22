@@ -1,24 +1,12 @@
 'use client';
 
-import { Settings as SettingsIcon } from 'lucide-react';
-import { toast } from 'sonner';
+import { Settings as SettingsIcon, LogOut } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
 
 export default function SettingsPage() {
-  const router = useRouter();
-  async function logout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    toast.success('Déconnexion');
-    router.push('/login');
-    router.refresh();
-  }
-
   return (
     <AppShell>
       <div className="mb-8">
@@ -45,9 +33,17 @@ export default function SettingsPage() {
             <CardTitle className="text-base">Compte</CardTitle>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" onClick={logout}>
-              Se déconnecter
-            </Button>
+            {/*
+              Le logout passe par /api/auth/logout côté serveur pour nettoyer
+              tous les cookies (Supabase httpOnly + notre cache qc_profile)
+              avant de rediriger vers /login.
+            */}
+            <form action="/api/auth/logout" method="POST">
+              <Button type="submit" variant="outline">
+                <LogOut className="h-4 w-4" />
+                Se déconnecter
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </div>

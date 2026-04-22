@@ -18,8 +18,8 @@ DROP POLICY IF EXISTS docs_self_insert ON consultant_documents;
 CREATE POLICY docs_self_insert ON consultant_documents
   FOR INSERT
   WITH CHECK (
-    auth.user_role() = 'consultant'
-    AND consultant_id = auth.consultant_id()
+    public.user_role() = 'consultant'
+    AND consultant_id = public.consultant_id()
     AND uploaded_by = auth.uid()
     AND kind <> 'contract'                -- pas de contrat uploadé par le consultant
     AND visible_to_consultant = true      -- ses propres docs lui sont visibles
@@ -30,8 +30,8 @@ DROP POLICY IF EXISTS docs_self_delete ON consultant_documents;
 CREATE POLICY docs_self_delete ON consultant_documents
   FOR DELETE
   USING (
-    auth.user_role() = 'consultant'
-    AND consultant_id = auth.consultant_id()
+    public.user_role() = 'consultant'
+    AND consultant_id = public.consultant_id()
     AND uploaded_by = auth.uid()
   );
 
@@ -42,9 +42,9 @@ CREATE POLICY consultant_docs_insert_self ON storage.objects
   FOR INSERT TO authenticated
   WITH CHECK (
     bucket_id = 'consultant-documents'
-    AND auth.user_role() = 'consultant'
-    AND (storage.foldername(name))[1] = auth.organization_id()::text
-    AND (storage.foldername(name))[2] = auth.consultant_id()::text
+    AND public.user_role() = 'consultant'
+    AND (storage.foldername(name))[1] = public.organization_id()::text
+    AND (storage.foldername(name))[2] = public.consultant_id()::text
   );
 
 -- === Storage : objects DELETE pour consultant (ses propres fichiers) ===
@@ -53,8 +53,8 @@ CREATE POLICY consultant_docs_delete_self ON storage.objects
   FOR DELETE TO authenticated
   USING (
     bucket_id = 'consultant-documents'
-    AND auth.user_role() = 'consultant'
-    AND (storage.foldername(name))[1] = auth.organization_id()::text
-    AND (storage.foldername(name))[2] = auth.consultant_id()::text
+    AND public.user_role() = 'consultant'
+    AND (storage.foldername(name))[1] = public.organization_id()::text
+    AND (storage.foldername(name))[2] = public.consultant_id()::text
     AND owner = auth.uid()   -- seulement les fichiers uploadés par lui
   );

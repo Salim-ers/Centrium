@@ -11,9 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TimesheetDocument } from '@/components/timesheets/TimesheetDocument';
 import { timesheetService } from '@/lib/services';
+import { useOrganization } from '@/lib/auth/context';
 import type { Timesheet, Mission, Consultant, Company } from '@/types';
-
-const ORG_ID = '11111111-1111-1111-1111-111111111111';
 
 type TimesheetDay = {
   id: string;
@@ -46,6 +45,7 @@ const STATUS_LABEL: Record<Timesheet['status'], string> = {
 };
 
 export default function TimesheetDetailPage() {
+  const { activeOrgId } = useOrganization();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [detail, setDetail] = useState<Detail | null>(null);
@@ -66,7 +66,11 @@ export default function TimesheetDetailPage() {
 
   async function validateAndInvoice() {
     if (!detail) return;
-    const res = await timesheetService.validateAndInvoice(detail.timesheet.id, ORG_ID);
+    if (!activeOrgId) {
+      toast.error('Organisation active manquante');
+      return;
+    }
+    const res = await timesheetService.validateAndInvoice(detail.timesheet.id, activeOrgId);
     if (res.error || !res.data) {
       toast.error('Erreur : ' + (res.error?.message ?? 'inconnue'));
       return;

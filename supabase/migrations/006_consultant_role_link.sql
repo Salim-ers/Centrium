@@ -21,23 +21,13 @@ ALTER TABLE profiles
 COMMENT ON COLUMN profiles.consultant_id IS
   'Si le profile est un compte consultant, pointe vers sa fiche. NULL pour les rôles admin/BM/recruiter/finance/viewer.';
 
--- 3. Contrainte : consultant_id ne peut être non-NULL que si role = 'consultant'
-ALTER TABLE profiles
-  ADD CONSTRAINT profiles_consultant_role_match
-  CHECK (
-    (role = 'consultant' AND consultant_id IS NOT NULL)
-    OR (role <> 'consultant' AND consultant_id IS NULL)
-  ) NOT VALID; -- NOT VALID pour ne pas casser les profiles existants
-
--- Les profiles existants ont role != 'consultant' et consultant_id = NULL, ils passent la contrainte.
--- On peut la valider maintenant :
-ALTER TABLE profiles VALIDATE CONSTRAINT profiles_consultant_role_match;
-
-CREATE INDEX IF NOT EXISTS idx_profiles_consultant_id
-  ON profiles(consultant_id)
-  WHERE consultant_id IS NOT NULL;
-
--- 4. Helper SQL : récupérer le consultant_id du user courant
-CREATE OR REPLACE FUNCTION auth.consultant_id() RETURNS UUID AS $$
+-- 3. Helper SQL : récupérer le consultant_id du user courant
+CREATE OR REPLACE FUNCTION public.consultant_id() RETURNS UUID AS $$
   SELECT consultant_id FROM public.profiles WHERE id = auth.uid();
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
+
+-- NOTE : la contrainte CHECK sur (role='consultant' <=> consultant_id NOT NULL)
+-- est déportée dans la migration 006a_consultant_role_constraint.sql.
+-- Raison : Postgres 12+ refuse d'utiliser une valeur d'enum dans la même
+-- transaction que son ADD VALUE. Supabase wrappe chaque migration dans une
+-- transaction → on split en deux fichiers.

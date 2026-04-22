@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 
 import { opportunityService } from '@/lib/services';
 import { OpportunityFormDialog } from '@/components/crm/OpportunityFormDialog';
+import { useOrganization } from '@/lib/auth/context';
 import { Select } from '@/components/ui/select';
 import type { Opportunity, OpportunityStatus } from '@/types';
 import { OPPORTUNITY_STATUS_LABEL, OPPORTUNITY_STATUS_ORDER } from '@/constants';
@@ -39,9 +40,8 @@ const COLUMN_DOT: Record<OpportunityStatus, string> = {
   on_hold: 'bg-slate-500',
 };
 
-const ORG_ID = '11111111-1111-1111-1111-111111111111';
-
 export default function CRMPage() {
+  const { activeOrgId } = useOrganization();
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -123,7 +123,7 @@ export default function CRMPage() {
           setDialogOpen(v);
           if (!v) setEditingOpp(null);
         }}
-        organizationId={ORG_ID}
+        organizationId={activeOrgId ?? ''}
         opportunity={editingOpp}
         onSaved={() => reload()}
       />

@@ -31,10 +31,9 @@ import {
 
 import { ContractFormDialog } from '@/components/contracts/ContractFormDialog';
 import { contractService } from '@/lib/services/contract.service';
+import { useOrganization } from '@/lib/auth/context';
 import type { Contract, ContractStatus } from '@/types';
 import { formatDate, formatCurrency } from '@/lib/utils';
-
-const ORG_ID = '11111111-1111-1111-1111-111111111111'; // demo org — normalement récupéré du profil user
 
 const STATUS_LABEL: Record<ContractStatus, string> = {
   draft: 'Brouillon',
@@ -61,6 +60,7 @@ const STATUS_STYLE: Record<ContractStatus, string> = {
 type View = 'active' | 'archived';
 
 export default function ContractsPage() {
+  const { activeOrgId } = useOrganization();
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -312,7 +312,7 @@ export default function ContractsPage() {
           setDialogOpen(o);
           if (!o) setEditing(undefined);
         }}
-        organizationId={ORG_ID}
+        organizationId={activeOrgId ?? ''}
         contract={editing}
         onSaved={() => reload()}
       />

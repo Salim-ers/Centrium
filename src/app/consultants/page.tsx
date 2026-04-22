@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Plus, Search, Eye, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, Eye, Pencil, Trash2, ArchiveRestore, Archive, X, Target } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,8 +19,15 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ConsultantFormDialog } from '@/components/consultants/ConsultantFormDialog';
+import { AssignMissionDialog } from '@/components/missions/AssignMissionDialog';
+import { Select } from '@/components/ui/select';
 
-import { consultantService } from '@/lib/services/consultant.service';
+import {
+  consultantService,
+  type ConsultantListItem,
+  type ConsultantOwner,
+} from '@/lib/services/consultant.service';
+import { useOrganization } from '@/lib/auth/context';
 import type { Consultant } from '@/types';
 import {
   CONSULTANT_STATUS_LABEL,
@@ -29,17 +36,22 @@ import {
 } from '@/constants';
 import { formatCurrency } from '@/lib/utils';
 
-const ORG_ID = '11111111-1111-1111-1111-111111111111';
-
 export default function ConsultantsPage() {
-  const [consultants, setConsultants] = useState<Consultant[]>([]);
+  const { activeOrgId } = useOrganization();
+  const [consultants, setConsultants] = useState<ConsultantListItem[]>([]);
+  const [owners, setOwners] = useState<ConsultantOwner[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingConsultant, setEditingConsultant] = useState<Consultant | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [assignTo, setAssignTo] = useState<ConsultantListItem | null>(null);
 
   async function reload() {
-    const res = await consultantService.list({ search: search || undefined });
+    const res = await consultantService.list({
+      search: search || undefined,
+      archived: showArchived,
+    });
     if (res.data) setConsultants(res.data);
     setLoading(false);
   }
@@ -47,7 +59,62 @@ export default function ConsultantsPage() {
   useEffect(() => {
     const timer = setTimeout(reload, 200);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, showArchived]);
+
+  useEffect(() => {
+    if (!activeOrgId) return;
+    consultantService.listOrgOwners(activeOrgId).then((res) => {
+      if (res.data) setOwners(res.data);
+    });
+  }, [activeOrgId]);
+
+  async function handleOwnerChange(consultantId: string, ownerId: string) {
+    const next = ownerId || null;
+    const prev = consultants;
+    setConsultants((list) =>
+      list.map((c) =>
+        c.id === consultantId
+          ? { ...c, owner: next ? owners.find((o) => o.id === next) ?? null : null, owner_id: next }
+          : c,
+      ),
+    );
+    const res = await consultantService.updateOwner(consultantId, next);
+    if (res.error) {
+      toast.error('Impossible de mettre à jour le référent');
+      setConsultants(prev);
+    }
+  }
+
+  function ownerLabel(o: ConsultantOwner) {
+    const name = [o.first_name, o.last_name].filter(Boolean).join(' ').trim();
+    return name || o.email;
+  }
+
+  async function removeMission(consultantId: string, missionId: string, missionTitle: string) {
+    if (
+      !confirm(
+        `Retirer la mission "${missionTitle}" de ce consultant ? La mission sera supprimée.`,
+      )
+    ) {
+      return;
+    }
+    const prev = consultants;
+    setConsultants((list) =>
+      list.map((c) =>
+        c.id === consultantId
+          ? { ...c, active_missions: c.active_missions.filter((m) => m.id !== missionId) }
+          : c,
+      ),
+    );
+    const res = await fetch(`/api/missions/${missionId}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      toast.error(body.message ?? 'Suppression impossible');
+      setConsultants(prev);
+      return;
+    }
+    toast.success('Mission retirée');
+  }
 
   function openCreate() {
     setEditingConsultant(null);
@@ -76,22 +143,55 @@ export default function ConsultantsPage() {
     setConsultants((prev) => prev.filter((c) => c.id !== consultant.id));
   }
 
+  async function unarchiveConsultant(consultant: Consultant) {
+    const res = await consultantService.unarchive(consultant.id);
+    if (res.error) {
+      toast.error('Erreur : ' + res.error.message);
+      return;
+    }
+    toast.success(`${consultant.first_name} ${consultant.last_name} restauré`);
+    setConsultants((prev) => prev.filter((c) => c.id !== consultant.id));
+  }
+
   return (
     <AppShell>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight">
-            Bibliothèque consultants
+            {showArchived ? 'Consultants archivés' : 'Bibliothèque consultants'}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {consultants.length} consultant{consultants.length > 1 ? 's' : ''} référencé
-            {consultants.length > 1 ? 's' : ''}
+            {consultants.length}{' '}
+            {showArchived
+              ? `archivé${consultants.length > 1 ? 's' : ''}`
+              : `consultant${consultants.length > 1 ? 's' : ''} référencé${consultants.length > 1 ? 's' : ''}`}
           </p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" />
-          Nouveau consultant
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowArchived((v) => !v)}
+            title={showArchived ? 'Revenir à la liste active' : 'Afficher les archivés'}
+          >
+            {showArchived ? (
+              <>
+                <ArchiveRestore className="h-4 w-4" />
+                Voir les actifs
+              </>
+            ) : (
+              <>
+                <Archive className="h-4 w-4" />
+                Voir les archivés
+              </>
+            )}
+          </Button>
+          {!showArchived && (
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              Nouveau consultant
+            </Button>
+          )}
+        </div>
       </div>
 
       <ConsultantFormDialog
@@ -100,9 +200,27 @@ export default function ConsultantsPage() {
           setDialogOpen(v);
           if (!v) setEditingConsultant(null);
         }}
-        organizationId={ORG_ID}
+        organizationId={activeOrgId ?? ''}
         consultant={editingConsultant}
         onSaved={() => reload()}
+      />
+
+      <AssignMissionDialog
+        open={!!assignTo}
+        onOpenChange={(v) => {
+          if (!v) setAssignTo(null);
+        }}
+        consultant={
+          assignTo
+            ? {
+                id: assignTo.id,
+                first_name: assignTo.first_name,
+                last_name: assignTo.last_name,
+                daily_rate_eur: assignTo.daily_rate_eur,
+              }
+            : null
+        }
+        onAssigned={() => reload()}
       />
 
       <Card className="mb-6">
@@ -128,7 +246,8 @@ export default function ConsultantsPage() {
                 <TableHead>Séniorité</TableHead>
                 <TableHead>TJM</TableHead>
                 <TableHead>Statut</TableHead>
-                <TableHead>Dispo</TableHead>
+                <TableHead>Mission / AO</TableHead>
+                <TableHead>Pris en charge par</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -136,15 +255,15 @@ export default function ConsultantsPage() {
               {loading ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={6}>
+                    <TableCell colSpan={7}>
                       <div className="h-10 rounded-md bg-white/[0.02] animate-pulse" />
                     </TableCell>
                   </TableRow>
                 ))
               ) : consultants.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
-                    Aucun consultant
+                  <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                    {showArchived ? 'Aucun consultant archivé' : 'Aucun consultant'}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -175,8 +294,68 @@ export default function ConsultantsPage() {
                         {CONSULTANT_STATUS_LABEL[c.status]}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-xs">
-                      {c.available_from ?? '—'}
+                    <TableCell className="max-w-[260px]">
+                      <div className="space-y-1.5">
+                        {c.active_missions.length === 0 && showArchived ? (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        ) : (
+                          c.active_missions.map((m) => (
+                            <div
+                              key={m.id}
+                              className="group flex items-start gap-1.5 text-xs"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium truncate">{m.title}</div>
+                                {m.job_offer_title && (
+                                  <div className="text-muted-foreground truncate">
+                                    AO · {m.job_offer_title}
+                                  </div>
+                                )}
+                              </div>
+                              {!showArchived && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeMission(c.id, m.id, m.title)}
+                                  title="Retirer la mission"
+                                  className="opacity-0 group-hover:opacity-100 transition text-muted-foreground hover:text-red-400 mt-0.5"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          ))
+                        )}
+                        {!showArchived && (
+                          <button
+                            type="button"
+                            onClick={() => setAssignTo(c)}
+                            className="inline-flex items-center gap-1 text-[11px] text-violet-300 hover:text-violet-200 hover:underline"
+                          >
+                            <Target className="h-3 w-3" />
+                            Affecter une mission
+                          </button>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {showArchived ? (
+                        <span className="text-xs text-muted-foreground">
+                          {c.owner ? ownerLabel(c.owner) : '—'}
+                        </span>
+                      ) : (
+                        <Select
+                          value={c.owner?.id ?? ''}
+                          onChange={(e) => handleOwnerChange(c.id, e.target.value)}
+                          className="h-8 text-xs max-w-[180px]"
+                        >
+                          <option value="">— Non assigné</option>
+                          {owners.map((o) => (
+                            <option key={o.id} value={o.id}>
+                              {ownerLabel(o)}
+                            </option>
+                          ))}
+                        </Select>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -186,22 +365,37 @@ export default function ConsultantsPage() {
                             Voir
                           </Link>
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEdit(c)}
-                          title="Éditer"
-                        >
-                          <Pencil className="h-3.5 w-3.5 text-violet-glow" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => archiveConsultant(c)}
-                          title="Archiver"
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-red-400" />
-                        </Button>
+                        {showArchived ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => unarchiveConsultant(c)}
+                            title="Restaurer"
+                            className="text-emerald-300 hover:text-emerald-200"
+                          >
+                            <ArchiveRestore className="h-3.5 w-3.5" />
+                            Restaurer
+                          </Button>
+                        ) : (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEdit(c)}
+                              title="Éditer"
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-violet-glow" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => archiveConsultant(c)}
+                              title="Archiver"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

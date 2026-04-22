@@ -12,9 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TimesheetFormDialog } from '@/components/timesheets/TimesheetFormDialog';
 import { timesheetService } from '@/lib/services';
+import { useOrganization } from '@/lib/auth/context';
 import type { Timesheet } from '@/types';
-
-const ORG_ID = '11111111-1111-1111-1111-111111111111';
 
 const MONTHS = [
   'Janv',
@@ -32,6 +31,7 @@ const MONTHS = [
 ];
 
 export default function TimesheetsPage() {
+  const { activeOrgId } = useOrganization();
   const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -47,7 +47,11 @@ export default function TimesheetsPage() {
   }, []);
 
   async function validate(id: string) {
-    const res = await timesheetService.validateAndInvoice(id, ORG_ID);
+    if (!activeOrgId) {
+      toast.error('Organisation active manquante');
+      return;
+    }
+    const res = await timesheetService.validateAndInvoice(id, activeOrgId);
     if (res.error || !res.data) {
       toast.error('Erreur : ' + (res.error?.message ?? 'inconnue'));
       return;
@@ -85,7 +89,7 @@ export default function TimesheetsPage() {
       <TimesheetFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        organizationId={ORG_ID}
+        organizationId={activeOrgId ?? ''}
         onSaved={() => reload()}
       />
 

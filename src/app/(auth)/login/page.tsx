@@ -1,19 +1,19 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail, Lock } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { loginSchema, type LoginInput } from '@/lib/validators';
 import { createClient } from '@/lib/supabase/client';
-import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
+import { AuthShell } from '@/components/auth/AuthShell';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,11 +37,20 @@ export default function LoginPage() {
 
     if (error || !authRes.user) {
       setLoading(false);
-      toast.error('Identifiants invalides');
+      const msg = error?.message?.toLowerCase() ?? '';
+      if (msg.includes('email not confirmed') || msg.includes('not confirmed')) {
+        toast.error(
+          'Email non confirmé. Vérifie ta boîte mail (et les spams) pour valider ton compte avant de te connecter.',
+          { duration: 6000 },
+        );
+      } else {
+        toast.error('Identifiants invalides. Si tu viens de t\'inscrire, pense à valider ton email depuis le lien reçu par mail.', {
+          duration: 6000,
+        });
+      }
       return;
     }
 
-    // Routage selon le rôle du profile
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -57,41 +66,68 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-midnight-300 p-6">
-      <div className="absolute inset-0 bg-gradient-radial opacity-30 pointer-events-none" />
-      <Card className="w-full max-w-md relative">
-        <CardHeader className="text-center space-y-3">
-          <div className="flex justify-center">
-            <QuadCoreLogo size="lg" variant="dark" />
+    <AuthShell
+      title="Bon retour"
+      subtitle="Connecte-toi à ton espace QuadCore"
+      footer={
+        <>
+          Pas encore de compte ?{' '}
+          <Link href="/signup" className="text-magenta hover:text-magenta-neon transition font-medium">
+            Créer une organisation
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <div className="space-y-2">
+          <Label htmlFor="email" className="text-xs font-semibold tracking-wider uppercase text-white/60">
+            Email
+          </Label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder="vous@quadcore.fr"
+              className="pl-9"
+              {...register('email')}
+            />
           </div>
-          <CardDescription>Plateforme IT Services &amp; Consulting</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="vous@quadcore.fr" {...register('email')} />
-              {errors.email && (
-                <p className="text-xs text-red-400">{errors.email.message}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
-              <Input id="password" type="password" {...register('password')} />
-              {errors.password && (
-                <p className="text-xs text-red-400">{errors.password.message}</p>
-              )}
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              Se connecter
-            </Button>
-          </form>
-          <p className="mt-6 text-center text-xs text-muted-foreground">
-            Plateforme réservée aux collaborateurs QuadCore.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+          {errors.email && (
+            <p className="text-xs text-red-400">{errors.email.message}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="password" className="text-xs font-semibold tracking-wider uppercase text-white/60">
+            Mot de passe
+          </Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />
+            <Input
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              className="pl-9"
+              {...register('password')}
+            />
+          </div>
+          {errors.password && (
+            <p className="text-xs text-red-400">{errors.password.message}</p>
+          )}
+        </div>
+
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full bg-qc-gradient hover:opacity-90 shadow-glow-magenta"
+          disabled={loading}
+        >
+          {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+          Se connecter
+        </Button>
+      </form>
+    </AuthShell>
   );
 }

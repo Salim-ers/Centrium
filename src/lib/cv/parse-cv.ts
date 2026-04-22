@@ -14,6 +14,27 @@
 // =========================================================================
 
 export type ParsedCV = {
+  /** Identité extraite du CV — tous les champs sont nullables (best-effort). */
+  identity?: {
+    first_name: string | null;
+    last_name: string | null;
+    job_title: string | null;
+    sub_title: string | null;
+    city: string | null;
+    country: string | null;
+    seniority:
+      | 'junior'
+      | 'confirmed'
+      | 'senior'
+      | 'expert'
+      | 'lead'
+      | 'architect'
+      | null;
+    years_experience: number | null;
+    email: string | null;
+    phone: string | null;
+    linkedin_url: string | null;
+  } | null;
   summary: string | null;
   skills: Array<{ category: string; name: string; is_highlighted: boolean }>;
   experiences: Array<{

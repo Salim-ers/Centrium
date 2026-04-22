@@ -30,8 +30,10 @@ import { Badge } from '@/components/ui/badge';
 
 import { CVRenderer } from '@/components/cv/CVRenderer';
 import { consultantService } from '@/lib/services/consultant.service';
+import { jobOfferService } from '@/lib/services';
 import { generateCVContent } from '@/lib/ai/cv-generator';
 import { generateCVDocx } from '@/lib/cv/export-docx';
+import { exportCVToPdf } from '@/lib/cv/export-pdf';
 import type {
   Consultant,
   ConsultantSkill,
@@ -53,12 +55,15 @@ type LoadedConsultant = {
 export default function CVOptimizerPage() {
   const params = useSearchParams();
   const initialId = params?.get('consultantId') ?? '';
+  const initialOfferId = params?.get('offerId') ?? '';
 
   const [consultants, setConsultants] = useState<Consultant[]>([]);
   const [selectedId, setSelectedId] = useState<string>(initialId);
   const [loaded, setLoaded] = useState<LoadedConsultant | null>(null);
   const [loadingData, setLoadingData] = useState(false);
 
+  const [offers, setOffers] = useState<JobOffer[]>([]);
+  const [selectedOfferId, setSelectedOfferId] = useState<string>(initialOfferId);
   const [offerTitle, setOfferTitle] = useState('');
   const [offerDescription, setOfferDescription] = useState('');
   const [offerSkills, setOfferSkills] = useState('');
@@ -91,10 +96,39 @@ export default function CVOptimizerPage() {
   const [addingSkill, setAddingSkill] = useState<string | null>(null);
 
   useEffect(() => {
-    consultantService.list().then((res) => {
+    consultantService.list({ is_prospect: 'all' }).then((res) => {
       if (res.data) setConsultants(res.data);
     });
+    // Offres ouvertes — pour pouvoir aligner le wording du CV dessus
+    jobOfferService.list('open').then((res) => {
+      if (res.data) setOffers(res.data);
+    });
   }, []);
+
+  // Quand on sélectionne une offre existante, on pré-remplit les 3 champs
+  function pickOffer(id: string) {
+    setSelectedOfferId(id);
+    if (!id) {
+      setOfferTitle('');
+      setOfferSkills('');
+      setOfferDescription('');
+      return;
+    }
+    const o = offers.find((x) => x.id === id);
+    if (!o) return;
+    setOfferTitle(o.title ?? '');
+    const skills = [...(o.required_skills ?? []), ...(o.nice_to_have ?? [])];
+    setOfferSkills(skills.join(', '));
+    setOfferDescription(o.description ?? '');
+  }
+
+  // Auto-remplissage si ?offerId=... et que les offres sont chargées
+  useEffect(() => {
+    if (initialOfferId && offers.length > 0 && !offerTitle) {
+      pickOffer(initialOfferId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offers, initialOfferId]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -178,19 +212,34 @@ export default function CVOptimizerPage() {
     }
   }
 
-  async function addSuggestedSkill(s: SkillSuggestion) {
-    if (!loaded) return;
+  async function addSuggestedSkill(s: SkillSuggestion, force = false) {
+    if (!loaded) {
+      toast.error('Sélectionne d\'abord un consultant');
+      return;
+    }
+    if (s.verdict === 'unsupported' && !force) {
+      const ok = confirm(
+        `"${s.skill}" n'est étayée par aucun élément du profil.\n` +
+          'Veux-tu quand même l\'ajouter (ajout forcé) ?',
+      );
+      if (!ok) return;
+    }
     setAddingSkill(s.skill);
     try {
       const res = await consultantService.addSkills(loaded.consultant.id, [
-        { category: s.suggested_category, name: s.skill, is_highlighted: false },
+        {
+          category: s.suggested_category || 'tools',
+          name: s.skill,
+          is_highlighted: false,
+        },
       ]);
       if (res.error) {
-        toast.error('Erreur : ' + res.error.message);
+        console.error('[addSuggestedSkill] addSkills error', res.error);
+        toast.error('Erreur : ' + (res.error.message ?? 'ajout impossible'));
         return;
       }
       if (res.data === 0) {
-        toast.info('Cette compétence était déjà dans le profil.');
+        toast.info('Cette compétence est déjà dans le profil.');
       } else {
         toast.success(`✓ "${s.skill}" ajoutée au profil consultant`);
       }
@@ -199,6 +248,11 @@ export default function CVOptimizerPage() {
       if (reload.data) setLoaded(reload.data);
       // Retire la suggestion de la liste visible
       setSuggestions((prev) => prev?.filter((x) => x.skill !== s.skill) ?? null);
+    } catch (e) {
+      console.error('[addSuggestedSkill] unexpected error', e);
+      toast.error(
+        `Ajout impossible : ${e instanceof Error ? e.message : 'erreur inconnue'}`,
+      );
     } finally {
       setAddingSkill(null);
     }
@@ -243,17 +297,31 @@ export default function CVOptimizerPage() {
     };
   }, [loaded, parsedOffer, templateId]);
 
-  function handlePrintPDF() {
-    if (!generated) {
+  async function handleDownloadPDF() {
+    if (!generated || !loaded) {
       toast.error('Aucun CV à exporter');
       return;
     }
     setExporting('pdf');
-    // Timing trick so the spinner shows + print dialog opens cleanly
-    setTimeout(() => {
-      window.print();
+    try {
+      const safeName = `${loaded.consultant.first_name}_${loaded.consultant.last_name}`.replace(
+        /[^a-zA-Z0-9_-]/g,
+        '',
+      );
+      await exportCVToPdf(generated, {
+        filename: `CV_QuadCore_${safeName}`,
+        templateId,
+        logoSrc: `${window.location.origin}/brand/quadcore-logo-dark.png`,
+      });
+      toast.success('PDF téléchargé');
+    } catch (e) {
+      console.error(e);
+      toast.error(
+        `Erreur export PDF : ${e instanceof Error ? e.message : 'inconnue'}`,
+      );
+    } finally {
       setExporting(null);
-    }, 100);
+    }
   }
 
   async function handleDownloadDOCX() {
@@ -318,13 +386,13 @@ export default function CVOptimizerPage() {
             )}
             Word (.docx)
           </Button>
-          <Button onClick={handlePrintPDF} disabled={!generated || exporting !== null}>
+          <Button onClick={handleDownloadPDF} disabled={!generated || exporting !== null}>
             {exporting === 'pdf' ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Download className="h-4 w-4" />
             )}
-            PDF (Imprimer)
+            PDF
           </Button>
         </div>
       </div>
@@ -350,6 +418,7 @@ export default function CVOptimizerPage() {
                 <option value="">— Choisir un consultant —</option>
                 {consultants.map((c) => (
                   <option key={c.id} value={c.id}>
+                    {c.is_prospect ? '★ [Vivier] ' : ''}
                     {c.first_name} {c.last_name} — {c.job_title}
                   </option>
                 ))}
@@ -405,6 +474,30 @@ export default function CVOptimizerPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
+              <div>
+                <Label className="text-xs">Choisir une offre existante</Label>
+                <Select
+                  value={selectedOfferId}
+                  onChange={(e) => pickOffer(e.target.value)}
+                  className="mt-1 text-sm"
+                >
+                  <option value="">— Saisie manuelle —</option>
+                  {offers.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.title}
+                      {o.required_skills?.length > 0
+                        ? ` · ${o.required_skills.slice(0, 3).join(', ')}${o.required_skills.length > 3 ? '…' : ''}`
+                        : ''}
+                    </option>
+                  ))}
+                </Select>
+                {selectedOfferId && (
+                  <p className="text-[11px] text-violet-300/80 mt-1">
+                    Offre sélectionnée — les champs ci-dessous sont pré-remplis et restent éditables.
+                  </p>
+                )}
+              </div>
+
               <div>
                 <Label className="text-xs">Intitulé</Label>
                 <input
@@ -555,9 +648,10 @@ export default function CVOptimizerPage() {
                                     ))}
                                   </ul>
                                 )}
-                                <div className="mt-2 flex gap-1">
-                                  {s.verdict !== 'unsupported' && (
+                                <div className="mt-2 flex gap-1 flex-wrap">
+                                  {s.verdict !== 'unsupported' ? (
                                     <Button
+                                      type="button"
                                       size="sm"
                                       variant="outline"
                                       className="h-6 text-[10px] px-2"
@@ -571,8 +665,26 @@ export default function CVOptimizerPage() {
                                       )}
                                       Ajouter au profil
                                     </Button>
+                                  ) : (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-6 text-[10px] px-2 border-amber-500/40 text-amber-300 hover:bg-amber-500/10"
+                                      onClick={() => addSuggestedSkill(s, true)}
+                                      disabled={addingSkill === s.skill}
+                                      title="Ajouter malgré l'absence d'évidence dans le profil"
+                                    >
+                                      {addingSkill === s.skill ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <Plus className="h-3 w-3" />
+                                      )}
+                                      Forcer l&apos;ajout
+                                    </Button>
                                   )}
                                   <Button
+                                    type="button"
                                     size="sm"
                                     variant="ghost"
                                     className="h-6 text-[10px] px-2 text-muted-foreground"
@@ -693,7 +805,7 @@ export default function CVOptimizerPage() {
         </section>
       </div>
 
-      {/* Version imprimable plein écran */}
+      {/* Version imprimable plein écran (Ctrl+P natif, export via React-PDF). */}
       <div className="print-only hidden print:block">
         {generated && <CVRenderer content={generated} templateId={templateId} />}
       </div>

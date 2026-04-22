@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import {
   ArrowLeft,
   Mail,
@@ -14,6 +15,9 @@ import {
   Languages as LangIcon,
   FileText,
   Pencil,
+  Plus,
+  Archive,
+  ArchiveRestore,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -23,6 +27,12 @@ import { Badge } from '@/components/ui/badge';
 import { consultantService } from '@/lib/services/consultant.service';
 import { ConsultantDocuments } from '@/components/consultants/ConsultantDocuments';
 import { ConsultantFormDialog } from '@/components/consultants/ConsultantFormDialog';
+import { ConsultantMissionsList } from '@/components/missions/ConsultantMissionsList';
+import { ExperienceEditDialog } from '@/components/consultants/ExperienceEditDialog';
+import { EducationEditDialog } from '@/components/consultants/EducationEditDialog';
+import { SkillsEditDialog } from '@/components/consultants/SkillsEditDialog';
+import { LanguagesEditDialog } from '@/components/consultants/LanguagesEditDialog';
+import { TextBlockEditDialog } from '@/components/consultants/TextBlockEditDialog';
 import type {
   Consultant,
   ConsultantSkill,
@@ -51,6 +61,20 @@ export default function ConsultantDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
+  // Sous-dialogs d'édition par bloc
+  const [expDialog, setExpDialog] = useState<{ open: boolean; exp: ConsultantExperience | null }>({
+    open: false,
+    exp: null,
+  });
+  const [eduDialog, setEduDialog] = useState<{ open: boolean; edu: ConsultantEducation | null }>({
+    open: false,
+    edu: null,
+  });
+  const [skillsDialog, setSkillsDialog] = useState(false);
+  const [langDialog, setLangDialog] = useState(false);
+  const [summaryDialog, setSummaryDialog] = useState(false);
+  const [mobilityDialog, setMobilityDialog] = useState(false);
+
   async function reload() {
     if (!params?.id) return;
     const res = await consultantService.getById(params.id);
@@ -60,6 +84,37 @@ export default function ConsultantDetailPage() {
       setDetail(res.data);
     }
     setLoading(false);
+  }
+
+  async function handleArchive() {
+    if (!detail) return;
+    const { consultant: c } = detail;
+    if (
+      !confirm(
+        `Archiver ${c.first_name} ${c.last_name} ? Le consultant disparaît de la bibliothèque mais ses données (CRA, factures, CV) sont conservées.`,
+      )
+    ) {
+      return;
+    }
+    const res = await consultantService.archive(c.id);
+    if (res.error) {
+      toast.error('Erreur : ' + res.error.message);
+      return;
+    }
+    toast.success('Consultant archivé');
+    router.push('/consultants');
+  }
+
+  async function handleUnarchive() {
+    if (!detail) return;
+    const { consultant: c } = detail;
+    const res = await consultantService.unarchive(c.id);
+    if (res.error) {
+      toast.error('Erreur : ' + res.error.message);
+      return;
+    }
+    toast.success(`${c.first_name} ${c.last_name} restauré`);
+    reload();
   }
 
   useEffect(() => {
@@ -110,6 +165,57 @@ export default function ConsultantDetailPage() {
         onOpenChange={setEditOpen}
         organizationId={c.organization_id}
         consultant={c}
+        onSaved={() => reload()}
+      />
+
+      <ExperienceEditDialog
+        open={expDialog.open}
+        onOpenChange={(o) => setExpDialog({ open: o, exp: o ? expDialog.exp : null })}
+        consultantId={c.id}
+        experience={expDialog.exp}
+        onSaved={() => reload()}
+      />
+      <EducationEditDialog
+        open={eduDialog.open}
+        onOpenChange={(o) => setEduDialog({ open: o, edu: o ? eduDialog.edu : null })}
+        consultantId={c.id}
+        education={eduDialog.edu}
+        onSaved={() => reload()}
+      />
+      <SkillsEditDialog
+        open={skillsDialog}
+        onOpenChange={setSkillsDialog}
+        consultantId={c.id}
+        skills={skills}
+        onSaved={() => reload()}
+      />
+      <LanguagesEditDialog
+        open={langDialog}
+        onOpenChange={setLangDialog}
+        consultantId={c.id}
+        languages={c.languages ?? []}
+        onSaved={() => reload()}
+      />
+      <TextBlockEditDialog
+        open={summaryDialog}
+        onOpenChange={setSummaryDialog}
+        title="Résumé exécutif"
+        initialValue={c.summary}
+        maxLength={2000}
+        rows={8}
+        placeholder="3-5 phrases décrivant le parcours, les expertises clés et la valeur ajoutée…"
+        onSave={(v) => consultantService.updateSummary(c.id, v)}
+        onSaved={() => reload()}
+      />
+      <TextBlockEditDialog
+        open={mobilityDialog}
+        onOpenChange={setMobilityDialog}
+        title="Mobilité"
+        initialValue={c.mobility}
+        maxLength={200}
+        rows={2}
+        placeholder="Île-de-France, full remote, déplacements ponctuels…"
+        onSave={(v) => consultantService.updateMobility(c.id, v)}
         onSaved={() => reload()}
       />
 
@@ -170,6 +276,25 @@ export default function ConsultantDetailPage() {
                 <Pencil className="h-4 w-4" />
                 Éditer
               </Button>
+              {c.archived ? (
+                <Button
+                  variant="outline"
+                  onClick={handleUnarchive}
+                  className="border-emerald-400/40 text-emerald-300 hover:text-emerald-200 hover:bg-emerald-400/10"
+                >
+                  <ArchiveRestore className="h-4 w-4" />
+                  Restaurer
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={handleArchive}
+                  className="border-red-400/40 text-red-300 hover:text-red-200 hover:bg-red-400/10"
+                >
+                  <Archive className="h-4 w-4" />
+                  Archiver
+                </Button>
+              )}
             </div>
           </div>
 
@@ -211,40 +336,65 @@ export default function ConsultantDetailPage() {
 
       <div className="grid gap-6 md:grid-cols-3">
         <div className="md:col-span-2 space-y-6">
-          {c.summary && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Résumé exécutif</CardTitle>
-              </CardHeader>
-              <CardContent>
+          <Card>
+            <CardHeader className="flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-lg">Résumé exécutif</CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => setSummaryDialog(true)}>
+                <Pencil className="h-3.5 w-3.5" />
+                {c.summary ? 'Éditer' : 'Ajouter'}
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {c.summary ? (
                 <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
                   {c.summary}
                 </p>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <p className="text-sm text-muted-foreground italic">Aucun résumé renseigné</p>
+              )}
+            </CardContent>
+          </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex-row items-center justify-between space-y-0">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Briefcase className="h-5 w-5 text-violet-glow" />
                 Expériences professionnelles
               </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setExpDialog({ open: true, exp: null })}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Ajouter
+              </Button>
             </CardHeader>
             <CardContent className="space-y-5">
               {experiences.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Aucune expérience renseignée</p>
               ) : (
                 experiences.map((exp) => (
-                  <div key={exp.id} className="relative pl-5 border-l border-white/10">
+                  <div key={exp.id} className="relative pl-5 border-l border-white/10 group">
                     <div className="absolute -left-1.5 top-1 h-3 w-3 rounded-full bg-qc-gradient" />
                     <div className="flex items-baseline justify-between gap-3 flex-wrap">
-                      <div>
+                      <div className="flex-1">
                         <div className="font-semibold">{exp.client_name}</div>
                         <div className="text-sm text-muted-foreground">{exp.role}</div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatMonthYear(exp.start_date)} — {formatMonthYear(exp.end_date)}
+                      <div className="flex items-center gap-2">
+                        <div className="text-xs text-muted-foreground">
+                          {formatMonthYear(exp.start_date)} — {formatMonthYear(exp.end_date)}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="opacity-0 group-hover:opacity-100 transition"
+                          onClick={() => setExpDialog({ open: true, exp })}
+                          title="Éditer"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
                       </div>
                     </div>
                     {exp.context && (
@@ -278,25 +428,42 @@ export default function ConsultantDetailPage() {
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex-row items-center justify-between space-y-0">
               <CardTitle className="text-lg flex items-center gap-2">
                 <GraduationCap className="h-5 w-5 text-violet-glow" />
                 Formation
               </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEduDialog({ open: true, edu: null })}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Ajouter
+              </Button>
             </CardHeader>
             <CardContent className="space-y-2">
               {educations.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Aucune formation renseignée</p>
               ) : (
                 educations.map((ed) => (
-                  <div key={ed.id} className="flex items-baseline gap-4">
+                  <div key={ed.id} className="flex items-baseline gap-4 group">
                     <span className="text-xs text-muted-foreground w-12">{ed.year}</span>
-                    <div>
+                    <div className="flex-1">
                       <div className="font-medium text-sm">{ed.degree}</div>
                       {ed.institution && (
                         <div className="text-xs text-muted-foreground">{ed.institution}</div>
                       )}
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="opacity-0 group-hover:opacity-100 transition"
+                      onClick={() => setEduDialog({ open: true, edu: ed })}
+                      title="Éditer"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
                   </div>
                 ))
               )}
@@ -306,8 +473,12 @@ export default function ConsultantDetailPage() {
 
         <div className="space-y-6">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex-row items-center justify-between space-y-0">
               <CardTitle className="text-lg">Compétences</CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => setSkillsDialog(true)}>
+                <Pencil className="h-3.5 w-3.5" />
+                Gérer
+              </Button>
             </CardHeader>
             <CardContent className="space-y-4">
               {Object.keys(skillsByCategory).length === 0 ? (
@@ -340,14 +511,18 @@ export default function ConsultantDetailPage() {
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex-row items-center justify-between space-y-0">
               <CardTitle className="text-lg flex items-center gap-2">
                 <LangIcon className="h-5 w-5 text-violet-glow" />
                 Langues
               </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => setLangDialog(true)}>
+                <Pencil className="h-3.5 w-3.5" />
+                Gérer
+              </Button>
             </CardHeader>
             <CardContent className="space-y-2">
-              {c.languages.length === 0 ? (
+              {!c.languages || c.languages.length === 0 ? (
                 <p className="text-sm text-muted-foreground">—</p>
               ) : (
                 c.languages.map((l) => (
@@ -362,16 +537,24 @@ export default function ConsultantDetailPage() {
             </CardContent>
           </Card>
 
-          {c.mobility && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Mobilité</CardTitle>
-              </CardHeader>
-              <CardContent>
+          <Card>
+            <CardHeader className="flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-lg">Mobilité</CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => setMobilityDialog(true)}>
+                <Pencil className="h-3.5 w-3.5" />
+                {c.mobility ? 'Éditer' : 'Ajouter'}
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {c.mobility ? (
                 <p className="text-sm text-muted-foreground">{c.mobility}</p>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <p className="text-sm text-muted-foreground italic">Non renseignée</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <ConsultantMissionsList consultantId={c.id} canManage />
 
           <ConsultantDocuments
             consultantId={c.id}

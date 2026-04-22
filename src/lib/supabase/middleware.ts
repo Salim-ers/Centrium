@@ -1,7 +1,39 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const PUBLIC_PATHS = ['/login', '/register', '/'];
+// Paths accessibles sans session (signup self-serve, invitations, pricing public)
+const PUBLIC_PATHS = ['/login', '/signup', '/register', '/pricing', '/'];
+const PUBLIC_PREFIXES = ['/invite/']; // /invite/accept?token=…
+
+// Cookie cache pour role + organization_id : évite une query profile à chaque navigation.
+// Le RLS applique toujours la vraie sécurité côté DB, le cookie ne guide que le routing.
+const PROFILE_COOKIE = 'qc_profile';
+const PROFILE_COOKIE_TTL_SEC = 300; // 5 min
+
+type ProfileCache = { role: string | null; orgId: string | null; ts: number };
+
+function readProfileCookie(req: NextRequest): ProfileCache | null {
+  const raw = req.cookies.get(PROFILE_COOKIE)?.value;
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as ProfileCache;
+    if (Date.now() - parsed.ts > PROFILE_COOKIE_TTL_SEC * 1000) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeProfileCookie(res: NextResponse, data: Omit<ProfileCache, 'ts'>) {
+  res.cookies.set({
+    name: PROFILE_COOKIE,
+    value: JSON.stringify({ ...data, ts: Date.now() }),
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: PROFILE_COOKIE_TTL_SEC,
+  });
+}
 
 /**
  * Routing basé sur le rôle du user.
@@ -42,8 +74,11 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
-  const isPublic = PUBLIC_PATHS.some((p) => pathname === p);
+  const isPublic =
+    PUBLIC_PATHS.some((p) => pathname === p) ||
+    PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
   const isPortal = pathname.startsWith('/portal');
+  const isOnboarding = pathname === '/onboarding';
 
   // Utilisateur non connecté : tout sauf les paths publics → login
   if (!user) {
@@ -53,19 +88,39 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Utilisateur connecté : on doit connaître son rôle
-  // (evite de requêter à chaque tick ? pour l'instant on requête — c'est léger)
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle();
+  // Utilisateur connecté : on doit connaître son rôle + org
+  // Lecture depuis le cookie cache (0 DB call). On ne cache QUE si orgId est
+  // renseigné, sinon on boucle /dashboard → /onboarding le temps du TTL.
+  const cached = readProfileCookie(request);
+  let role: string | null;
+  let orgId: string | null;
+  if (cached && cached.orgId) {
+    role = cached.role;
+    orgId = cached.orgId;
+  } else {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, organization_id')
+      .eq('id', user.id)
+      .maybeSingle();
+    role = (profile?.role as string | undefined) ?? null;
+    orgId = (profile?.organization_id as string | undefined) ?? null;
+    if (orgId) writeProfileCookie(response, { role, orgId });
+  }
 
-  const role = (profile?.role as string | undefined) ?? null;
   const isConsultant = role === 'consultant';
+  const hasOrg = !!orgId;
 
-  // Redirection au login
-  if (pathname === '/login' || pathname === '/') {
+  // Pas d'org active (vient de signer up) → onboarding obligatoire
+  //   Exceptions : l'onboarding lui-même et l'acceptation d'invitation
+  if (!hasOrg && !isOnboarding && !pathname.startsWith('/invite/')) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/onboarding';
+    return NextResponse.redirect(url);
+  }
+
+  // User avec org active qui arrive sur une page publique → home appropriée
+  if (hasOrg && (pathname === '/login' || pathname === '/signup' || pathname === '/')) {
     const url = request.nextUrl.clone();
     url.pathname = isConsultant ? '/portal/dashboard' : '/dashboard';
     return NextResponse.redirect(url);

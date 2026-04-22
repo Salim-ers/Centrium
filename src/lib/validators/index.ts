@@ -160,6 +160,42 @@ export const loginSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
+// ========== Signup ==========
+
+export const signupSchema = z.object({
+  email: z.string().email('Email invalide'),
+  password: z.string().min(8, 'Mot de passe : 8 caractères minimum'),
+  first_name: z.string().min(1, 'Prénom requis').max(100),
+  last_name: z.string().min(1, 'Nom requis').max(100),
+});
+
+export type SignupInput = z.infer<typeof signupSchema>;
+
+// ========== Organization ==========
+
+export const organizationSchema = z.object({
+  name: z.string().min(2, 'Nom requis').max(100),
+  slug: z
+    .string()
+    .min(2)
+    .max(60)
+    .regex(/^[a-z0-9-]+$/, 'Lettres minuscules, chiffres et tirets uniquement'),
+  siren: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  postal_code: z.string().optional().nullable(),
+});
+
+export type OrganizationInput = z.infer<typeof organizationSchema>;
+
+// ========== Invitation ==========
+
+export const invitationSchema = z.object({
+  email: z.string().email('Email invalide'),
+  role: z.enum(['admin', 'business_manager', 'recruiter', 'finance', 'viewer']),
+});
+
+export type InvitationInput = z.infer<typeof invitationSchema>;
+
 // ========== Contract ==========
 
 export * from './contract';

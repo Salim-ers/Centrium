@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { Target, TrendingUp } from 'lucide-react';
+import { Target, TrendingUp, Plus, Briefcase, Pencil } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,26 +15,46 @@ import { Label } from '@/components/ui/label';
 
 import { createClient } from '@/lib/supabase/client';
 import { matchingService, type MatchResult } from '@/lib/services/matching.service';
-import type { JobOffer } from '@/types';
+import { JobOfferFormDialog } from '@/components/offers/JobOfferFormDialog';
+import { AssignMissionDialog } from '@/components/missions/AssignMissionDialog';
+import { useOrganization } from '@/lib/auth/context';
+import type { JobOffer, Consultant } from '@/types';
 import { CONSULTANT_STATUS_LABEL, CONSULTANT_STATUS_STYLE } from '@/constants';
 import { formatCurrency } from '@/lib/utils';
 
-export default function MatchingPage() {
+function MatchingInner() {
+  const { activeOrgId } = useOrganization();
+  const searchParams = useSearchParams();
   const [offers, setOffers] = useState<JobOffer[]>([]);
   const [offerId, setOfferId] = useState<string>('');
   const [results, setResults] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<JobOffer | null>(null);
+  const [assignDialog, setAssignDialog] = useState<{
+    open: boolean;
+    consultant: Pick<Consultant, 'id' | 'first_name' | 'last_name' | 'daily_rate_eur'> | null;
+  }>({ open: false, consultant: null });
 
-  useEffect(() => {
+  async function loadOffers() {
     const supabase = createClient();
-    supabase
+    const { data } = await supabase
       .from('job_offers')
       .select('*')
       .eq('status', 'open')
-      .then(({ data }) => {
-        if (data) setOffers(data as JobOffer[]);
-      });
+      .order('updated_at', { ascending: false });
+    if (data) setOffers(data as JobOffer[]);
+  }
+
+  useEffect(() => {
+    loadOffers();
   }, []);
+
+  // Pré-sélection depuis ?offerId=...
+  useEffect(() => {
+    const param = searchParams.get('offerId');
+    if (param) setOfferId(param);
+  }, [searchParams]);
 
   async function runMatching() {
     if (!offerId) {
@@ -49,21 +71,54 @@ export default function MatchingPage() {
 
   return (
     <AppShell>
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-          <Target className="h-7 w-7 text-violet-glow" />
-          Matching consultant ↔ mission
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Trouve les meilleurs profils pour chaque offre client
-        </p>
+      <JobOfferFormDialog
+        open={dialogOpen}
+        onOpenChange={(v) => {
+          setDialogOpen(v);
+          if (!v) setEditing(null);
+        }}
+        organizationId={activeOrgId ?? ''}
+        offer={editing}
+        onSaved={(saved) => {
+          loadOffers();
+          setOfferId(saved.id);
+        }}
+      />
+
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
+            <Target className="h-7 w-7 text-violet-glow" />
+            Matching consultant ↔ mission
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Trouve les meilleurs profils pour chaque offre client
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button variant="outline" asChild>
+            <Link href="/offers" className="inline-flex items-center gap-1.5">
+              <Briefcase className="h-4 w-4" />
+              Gérer les offres
+            </Link>
+          </Button>
+          <Button
+            onClick={() => {
+              setEditing(null);
+              setDialogOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            Nouvelle offre
+          </Button>
+        </div>
       </div>
 
       <Card className="mb-6">
         <CardHeader>
           <CardTitle className="text-base">Sélection de l'offre</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-[1fr_auto] items-end">
+        <CardContent className="grid gap-4 md:grid-cols-[1fr_auto_auto] items-end">
           <div>
             <Label>Offre</Label>
             <Select value={offerId} onChange={(e) => setOfferId(e.target.value)}>
@@ -84,6 +139,18 @@ export default function MatchingPage() {
               </div>
             )}
           </div>
+          {selectedOffer && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditing(selectedOffer);
+                setDialogOpen(true);
+              }}
+            >
+              <Pencil className="h-4 w-4" />
+              Éditer
+            </Button>
+          )}
           <Button onClick={runMatching} disabled={loading || !offerId}>
             <TrendingUp className="h-4 w-4" />
             Lancer le matching
@@ -105,8 +172,16 @@ export default function MatchingPage() {
                     {r.consultant.last_name[0]}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold">
+                    <h3 className="font-semibold flex items-center gap-2 flex-wrap">
                       {r.consultant.first_name} {r.consultant.last_name}
+                      {r.consultant.is_prospect && (
+                        <Badge
+                          variant="outline"
+                          className="border-amber-400/40 bg-amber-400/10 text-amber-300 text-[10px]"
+                        >
+                          Vivier
+                        </Badge>
+                      )}
                     </h3>
                     <p className="text-xs text-muted-foreground">{r.consultant.job_title}</p>
                     <div className="flex gap-2 flex-wrap mt-1">
@@ -155,16 +230,53 @@ export default function MatchingPage() {
                   )}
                 </div>
 
-                <Button variant="outline" size="sm" asChild>
-                  <a href={`/cv-optimizer?consultantId=${r.consultant.id}&offerId=${offerId}`}>
-                    Générer CV
-                  </a>
-                </Button>
+                <div className="flex flex-col gap-1.5 shrink-0">
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      setAssignDialog({
+                        open: true,
+                        consultant: {
+                          id: r.consultant.id,
+                          first_name: r.consultant.first_name,
+                          last_name: r.consultant.last_name,
+                          daily_rate_eur: r.consultant.daily_rate_eur,
+                        },
+                      })
+                    }
+                  >
+                    <Target className="h-3.5 w-3.5" />
+                    Affecter
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={`/cv-optimizer?consultantId=${r.consultant.id}&offerId=${offerId}`}>
+                      Générer CV
+                    </a>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      <AssignMissionDialog
+        open={assignDialog.open}
+        onOpenChange={(v) => setAssignDialog({ ...assignDialog, open: v })}
+        offer={selectedOffer ?? null}
+        consultant={assignDialog.consultant}
+        onAssigned={() => {
+          // rien à recharger ici, mais on pourrait toast ou marquer le profil comme proposé
+        }}
+      />
     </AppShell>
+  );
+}
+
+export default function MatchingPage() {
+  return (
+    <Suspense fallback={null}>
+      <MatchingInner />
+    </Suspense>
   );
 }

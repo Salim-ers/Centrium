@@ -2,6 +2,48 @@
 
 // Client-only text extraction from PDF / DOCX.
 
+/**
+ * Extraction serveur prioritaire (plus fiable que pdfjs-dist côté navigateur),
+ * avec repli automatique sur l'extracteur client si le serveur est injoignable.
+ *
+ * Utilisé partout où on upload un CV depuis l'UI.
+ */
+export async function extractTextSmart(file: File): Promise<string> {
+  let serverReached = false;
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('name', file.name);
+    const res = await fetch('/api/cv/extract', { method: 'POST', body: form });
+    serverReached = true;
+
+    if (res.ok) {
+      const data = (await res.json()) as { text?: string };
+      if (data.text) return data.text;
+      return '';
+    }
+
+    const body = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      message?: string;
+    };
+
+    if (res.status === 404) {
+      // Route non compilée — on tente le client
+      console.warn('[QC CV] /api/cv/extract 404 — fallback client');
+    } else {
+      // Erreur explicite côté serveur → on remonte
+      throw new Error(
+        body.message ?? `Serveur a rejeté l'extraction (HTTP ${res.status})`,
+      );
+    }
+  } catch (e) {
+    if (serverReached) throw e;
+    console.warn('[QC CV] Serveur injoignable — fallback client', e);
+  }
+  return extractTextFromFile(file);
+}
+
 export async function extractTextFromFile(file: File): Promise<string> {
   const name = file.name.toLowerCase();
   if (file.type === 'application/pdf' || name.endsWith('.pdf')) {

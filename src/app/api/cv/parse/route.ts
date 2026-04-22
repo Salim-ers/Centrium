@@ -15,8 +15,26 @@ import { z } from 'zod/v4';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-// Schéma de sortie — aligné avec ParsedCV côté client (heuristique)
+// Schéma de sortie — aligné avec ParsedCV côté client (heuristique).
+// Note : identity est un objet requis (non nullable) ; seuls ses champs
+// internes sont nullables, ce qui produit un JSON-Schema simple que
+// l'Anthropic SDK convertit sans crasher.
 const ParsedCVSchema = z.object({
+  identity: z.object({
+    first_name: z.string().nullable(),
+    last_name: z.string().nullable(),
+    job_title: z.string().nullable(),
+    sub_title: z.string().nullable(),
+    city: z.string().nullable(),
+    country: z.string().nullable(),
+    seniority: z
+      .enum(['junior', 'confirmed', 'senior', 'expert', 'lead', 'architect'])
+      .nullable(),
+    years_experience: z.number().int().min(0).max(60).nullable(),
+    email: z.string().nullable(),
+    phone: z.string().nullable(),
+    linkedin_url: z.string().nullable(),
+  }),
   summary: z.string().nullable(),
   skills: z.array(
     z.object({
@@ -72,6 +90,29 @@ RÈGLES ABSOLUES (garde-fous) :
 - Si une date est ambiguë, mets-la à null plutôt que de deviner.
 
 FORMAT DES CHAMPS :
+
+0. identity (objet requis, chaque champ nullable) — carte d'identité du candidat, lue principalement dans l'entête et le bloc coordonnées :
+   - first_name / last_name : prénom / nom du candidat. Cherche en tête de CV, puis dans les coordonnées. Si le CV n'affiche que des initiales, retourne null.
+   - job_title : intitulé de poste principal (ex: "QA Automation Confirmé", "Ingénieure QA & Test Manager", "Tech Lead DevOps"). Regarde le titre du CV, le sous-titre, et la plus récente expérience.
+   - sub_title : sous-titre bref (3-6 mots) résumant la stack / le domaine (ex: "Playwright · TypeScript · CI/CD").
+   - city : ville de résidence ou ville principale de mission actuelle.
+   - country : code ISO 2 lettres ("FR", "BE", "CH", "LU", "MA", "DE", "UK"…). Déduis-le de la ville ou de la mention du pays. Par défaut "FR" si le CV est en français et que la ville est française.
+   - seniority : déduction combinée du nombre d'années d'expérience ET des mots-clés du titre :
+       • "junior"   : 0-2 ans OU titre contient "Junior"
+       • "confirmed": 3-5 ans OU titre contient "Confirmé"
+       • "senior"   : 6-9 ans OU titre contient "Senior"
+       • "expert"   : 10+ ans OU titre contient "Expert"
+       • "lead"     : titre contient "Lead" / "Tech Lead" / "Team Lead" (prioritaire sur l'ancienneté)
+       • "architect": titre contient "Architecte" / "Architect"
+     Si aucun signal clair → null.
+   - years_experience : nombre d'années d'expérience professionnelle. Priorité absolue :
+       1) phrase explicite "X ans d'expérience" / "X years of experience" / "avec plus de X ans" → X
+       2) sinon, calcule la somme des durées des expériences listées (arrondi entier)
+       3) sinon null.
+   - email : email professionnel du candidat.
+   - phone : numéro de téléphone (format libre).
+   - linkedin_url : URL LinkedIn complète.
+   Tous ces champs sont INDIVIDUELLEMENT nullables. Ne jamais inventer.
 
 1. summary (string | null)
    - Résumé exécutif : reprends le paragraphe "profil" / "à propos" / "résumé" du CV s'il existe.

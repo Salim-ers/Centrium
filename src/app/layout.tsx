@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import { Toaster } from 'sonner';
 import './globals.css';
+import { OrganizationProvider } from '@/lib/auth/context';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const spaceGrotesk = Space_Grotesk({
@@ -23,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`dark ${inter.variable} ${spaceGrotesk.variable}`}>
       <body className="font-sans">
-        {children}
+        <OrganizationProvider>{children}</OrganizationProvider>
         <Toaster
           position="bottom-right"
           theme="dark"

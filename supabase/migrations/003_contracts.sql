@@ -122,19 +122,19 @@ ALTER TABLE contracts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contract_versions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY contracts_select ON contracts
-  FOR SELECT USING (organization_id = auth.organization_id());
+  FOR SELECT USING (organization_id = public.organization_id());
 
 CREATE POLICY contracts_write ON contracts
   FOR ALL USING (
-    organization_id = auth.organization_id()
-    AND auth.user_role() IN ('admin', 'business_manager')
+    organization_id = public.organization_id()
+    AND public.user_role() IN ('admin', 'business_manager')
   );
 
 CREATE POLICY contract_versions_org ON contract_versions
   FOR ALL USING (
     EXISTS (SELECT 1 FROM contracts c
             WHERE c.id = contract_id
-            AND c.organization_id = auth.organization_id())
+            AND c.organization_id = public.organization_id())
   );
 
 -- Seed des contrats de démo dans supabase/seed.sql (pas dans la migration)

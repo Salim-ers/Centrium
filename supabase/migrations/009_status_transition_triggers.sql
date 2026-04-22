@@ -32,10 +32,10 @@ AS $$
 DECLARE
   v_role user_role;
 BEGIN
-  -- auth.user_role() peut être NULL en contexte service_role (migrations, seed, Edge Functions)
+  -- public.user_role() peut être NULL en contexte service_role (migrations, seed, Edge Functions)
   -- On bypass toutes les vérifs dans ce cas.
   BEGIN
-    v_role := auth.user_role();
+    v_role := public.user_role();
   EXCEPTION WHEN OTHERS THEN
     v_role := NULL;
   END;
@@ -109,7 +109,7 @@ DECLARE
   v_role user_role;
 BEGIN
   BEGIN
-    v_role := auth.user_role();
+    v_role := public.user_role();
   EXCEPTION WHEN OTHERS THEN
     v_role := NULL;
   END;

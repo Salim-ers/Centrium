@@ -12,11 +12,11 @@ import { Badge } from '@/components/ui/badge';
 import { QuadCoreContractAT } from '@/components/contracts/QuadCoreContractAT';
 import { ContractFormDialog } from '@/components/contracts/ContractFormDialog';
 import { contractService } from '@/lib/services/contract.service';
+import { useOrganization } from '@/lib/auth/context';
 import type { Contract, ContractStatus } from '@/types';
 
-const ORG_ID = '11111111-1111-1111-1111-111111111111';
-
 export default function ContractDetailPage() {
+  const { activeOrgId } = useOrganization();
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;
@@ -122,7 +122,7 @@ export default function ContractDetailPage() {
       <ContractFormDialog
         open={editOpen}
         onOpenChange={setEditOpen}
-        organizationId={ORG_ID}
+        organizationId={activeOrgId ?? ''}
         contract={contract}
         onSaved={(c) => setContract(c)}
       />

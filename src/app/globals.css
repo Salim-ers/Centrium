@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Zoom global +20% — toutes les tailles Tailwind sont en rem, donc tout
+   scale automatiquement (typo, espacements, padding…). Override possible
+   via prefers-reduced-motion ou un toggle utilisateur plus tard. */
+html {
+  font-size: 120%;
+  scroll-behavior: smooth;
+}
+
+/* Laisse un espace pour le header fixe lors d'un scroll vers un anchor */
+section[id] {
+  scroll-margin-top: 96px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
 @layer base {
   :root {
     /* Light tokens (non utilisés en dark-first, fallback) */
@@ -82,6 +99,21 @@
     @apply transition-all hover:border-violet-glow/40 hover:shadow-glow;
   }
 }
+
+/* Corps des documents légaux (modales) */
+.legal-body h2 {
+  @apply font-display text-white text-lg font-semibold mt-7 mb-3;
+}
+.legal-body h3 {
+  @apply text-white text-base font-semibold mt-5 mb-2;
+}
+.legal-body p { @apply mb-3; }
+.legal-body ul { @apply list-disc pl-6 my-3 space-y-1.5; }
+.legal-body ol { @apply list-decimal pl-6 my-3 space-y-1.5; }
+.legal-body strong { @apply text-white font-semibold; }
+.legal-body a { @apply text-magenta hover:underline; }
+.legal-body hr { @apply border-white/10 my-6; }
+.legal-body :first-child { margin-top: 0; }
 
 /* === Print CSS pour CV / Factures / CRA QuadCore === */
 @media print {

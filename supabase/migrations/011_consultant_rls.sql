@@ -23,8 +23,8 @@ DROP POLICY IF EXISTS consultants_self_select ON consultants;
 CREATE POLICY consultants_self_select ON consultants
   FOR SELECT
   USING (
-    auth.user_role() = 'consultant'
-    AND id = auth.consultant_id()
+    public.user_role() = 'consultant'
+    AND id = public.consultant_id()
   );
 
 -- Pas de INSERT/DELETE/UPDATE côté consultant sur sa propre fiche (V1 lecture seule).
@@ -37,22 +37,22 @@ CREATE POLICY consultants_self_select ON consultants
 DROP POLICY IF EXISTS skills_self_select ON consultant_skills;
 CREATE POLICY skills_self_select ON consultant_skills
   FOR SELECT USING (
-    auth.user_role() = 'consultant'
-    AND consultant_id = auth.consultant_id()
+    public.user_role() = 'consultant'
+    AND consultant_id = public.consultant_id()
   );
 
 DROP POLICY IF EXISTS exp_self_select ON consultant_experiences;
 CREATE POLICY exp_self_select ON consultant_experiences
   FOR SELECT USING (
-    auth.user_role() = 'consultant'
-    AND consultant_id = auth.consultant_id()
+    public.user_role() = 'consultant'
+    AND consultant_id = public.consultant_id()
   );
 
 DROP POLICY IF EXISTS edu_self_select ON consultant_educations;
 CREATE POLICY edu_self_select ON consultant_educations
   FOR SELECT USING (
-    auth.user_role() = 'consultant'
-    AND consultant_id = auth.consultant_id()
+    public.user_role() = 'consultant'
+    AND consultant_id = public.consultant_id()
   );
 
 -- =========================================================================
@@ -62,8 +62,8 @@ CREATE POLICY edu_self_select ON consultant_educations
 DROP POLICY IF EXISTS docs_self_select ON consultant_documents;
 CREATE POLICY docs_self_select ON consultant_documents
   FOR SELECT USING (
-    auth.user_role() = 'consultant'
-    AND consultant_id = auth.consultant_id()
+    public.user_role() = 'consultant'
+    AND consultant_id = public.consultant_id()
     AND visible_to_consultant = true
   );
 
@@ -75,11 +75,11 @@ CREATE POLICY consultant_docs_select_self ON storage.objects
   FOR SELECT TO authenticated
   USING (
     bucket_id = 'consultant-documents'
-    AND auth.user_role() = 'consultant'
+    AND public.user_role() = 'consultant'
     AND EXISTS (
       SELECT 1 FROM public.consultant_documents d
       WHERE d.storage_path = name
-        AND d.consultant_id = auth.consultant_id()
+        AND d.consultant_id = public.consultant_id()
         AND d.visible_to_consultant = true
     )
   );
@@ -91,8 +91,8 @@ CREATE POLICY consultant_docs_select_self ON storage.objects
 DROP POLICY IF EXISTS missions_self_select ON missions;
 CREATE POLICY missions_self_select ON missions
   FOR SELECT USING (
-    auth.user_role() = 'consultant'
-    AND consultant_id = auth.consultant_id()
+    public.user_role() = 'consultant'
+    AND consultant_id = public.consultant_id()
   );
 
 -- =========================================================================
@@ -111,8 +111,8 @@ BEGIN
     EXECUTE $POL$
       CREATE POLICY contracts_self_select ON contracts
         FOR SELECT USING (
-          auth.user_role() = 'consultant'
-          AND consultant_id = auth.consultant_id()
+          public.user_role() = 'consultant'
+          AND consultant_id = public.consultant_id()
         )
     $POL$;
   ELSIF EXISTS (
@@ -123,9 +123,9 @@ BEGIN
     EXECUTE $POL$
       CREATE POLICY contracts_self_select ON contracts
         FOR SELECT USING (
-          auth.user_role() = 'consultant'
+          public.user_role() = 'consultant'
           AND mission_id IN (
-            SELECT id FROM missions WHERE consultant_id = auth.consultant_id()
+            SELECT id FROM missions WHERE consultant_id = public.consultant_id()
           )
         )
     $POL$;
@@ -139,20 +139,20 @@ END $$;
 DROP POLICY IF EXISTS timesheets_self_select ON timesheets;
 CREATE POLICY timesheets_self_select ON timesheets
   FOR SELECT USING (
-    auth.user_role() = 'consultant'
-    AND consultant_id = auth.consultant_id()
+    public.user_role() = 'consultant'
+    AND consultant_id = public.consultant_id()
   );
 
 DROP POLICY IF EXISTS timesheets_self_insert ON timesheets;
 CREATE POLICY timesheets_self_insert ON timesheets
   FOR INSERT
   WITH CHECK (
-    auth.user_role() = 'consultant'
-    AND consultant_id = auth.consultant_id()
+    public.user_role() = 'consultant'
+    AND consultant_id = public.consultant_id()
     AND status = 'draft'
     -- Le consultant ne peut créer un CRA que pour une de ses missions
     AND mission_id IN (
-      SELECT id FROM missions WHERE consultant_id = auth.consultant_id()
+      SELECT id FROM missions WHERE consultant_id = public.consultant_id()
     )
   );
 
@@ -161,14 +161,14 @@ CREATE POLICY timesheets_self_update ON timesheets
   FOR UPDATE
   USING (
     -- Lignes éditables par le consultant : ses CRA en draft ou rejected
-    auth.user_role() = 'consultant'
-    AND consultant_id = auth.consultant_id()
+    public.user_role() = 'consultant'
+    AND consultant_id = public.consultant_id()
     AND status IN ('draft', 'rejected')
   )
   WITH CHECK (
     -- Après update : toujours son CRA, statut cible draft (édition) ou submitted (soumission)
-    auth.user_role() = 'consultant'
-    AND consultant_id = auth.consultant_id()
+    public.user_role() = 'consultant'
+    AND consultant_id = public.consultant_id()
     AND status IN ('draft', 'submitted')
   );
 
@@ -181,11 +181,11 @@ CREATE POLICY timesheets_self_update ON timesheets
 DROP POLICY IF EXISTS timesheet_days_self_select ON timesheet_days;
 CREATE POLICY timesheet_days_self_select ON timesheet_days
   FOR SELECT USING (
-    auth.user_role() = 'consultant'
+    public.user_role() = 'consultant'
     AND EXISTS (
       SELECT 1 FROM timesheets t
       WHERE t.id = timesheet_id
-        AND t.consultant_id = auth.consultant_id()
+        AND t.consultant_id = public.consultant_id()
     )
   );
 
@@ -193,20 +193,20 @@ DROP POLICY IF EXISTS timesheet_days_self_write ON timesheet_days;
 CREATE POLICY timesheet_days_self_write ON timesheet_days
   FOR ALL
   USING (
-    auth.user_role() = 'consultant'
+    public.user_role() = 'consultant'
     AND EXISTS (
       SELECT 1 FROM timesheets t
       WHERE t.id = timesheet_id
-        AND t.consultant_id = auth.consultant_id()
+        AND t.consultant_id = public.consultant_id()
         AND t.status IN ('draft', 'rejected')
     )
   )
   WITH CHECK (
-    auth.user_role() = 'consultant'
+    public.user_role() = 'consultant'
     AND EXISTS (
       SELECT 1 FROM timesheets t
       WHERE t.id = timesheet_id
-        AND t.consultant_id = auth.consultant_id()
+        AND t.consultant_id = public.consultant_id()
         AND t.status IN ('draft', 'rejected', 'submitted')
     )
   );
@@ -218,10 +218,10 @@ CREATE POLICY timesheet_days_self_write ON timesheet_days
 DROP POLICY IF EXISTS invoices_self_select ON invoices;
 CREATE POLICY invoices_self_select ON invoices
   FOR SELECT USING (
-    auth.user_role() = 'consultant'
+    public.user_role() = 'consultant'
     AND status = 'paid'
     AND mission_id IN (
-      SELECT id FROM missions WHERE consultant_id = auth.consultant_id()
+      SELECT id FROM missions WHERE consultant_id = public.consultant_id()
     )
   );
 
@@ -234,13 +234,13 @@ CREATE POLICY invoices_self_select ON invoices
 DROP POLICY IF EXISTS invoice_items_self_select ON invoice_items;
 CREATE POLICY invoice_items_self_select ON invoice_items
   FOR SELECT USING (
-    auth.user_role() = 'consultant'
+    public.user_role() = 'consultant'
     AND EXISTS (
       SELECT 1 FROM invoices i
       WHERE i.id = invoice_id
         AND i.status = 'paid'
         AND i.mission_id IN (
-          SELECT id FROM missions WHERE consultant_id = auth.consultant_id()
+          SELECT id FROM missions WHERE consultant_id = public.consultant_id()
         )
     )
   );
@@ -252,5 +252,5 @@ CREATE POLICY invoice_items_self_select ON invoice_items
 --  profiles_select_same_org déjà en place.)
 
 -- Pas de nouvelle policy à créer : la policy existante
---   profiles_select_same_org USING (organization_id = auth.organization_id() OR id = auth.uid())
+--   profiles_select_same_org USING (organization_id = public.organization_id() OR id = auth.uid())
 -- couvre déjà le cas consultant (il voit son propre profile via id = auth.uid()).

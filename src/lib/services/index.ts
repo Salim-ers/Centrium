@@ -12,12 +12,14 @@ import type {
   Timesheet,
   Mission,
   Consultant,
+  JobOffer,
 } from '@/types';
 import type {
   OpportunityInput,
   ContactInput,
   InvoiceInput,
   TimesheetInput,
+  JobOfferInput,
 } from '@/lib/validators';
 
 // =========================================================================
@@ -90,6 +92,72 @@ export const opportunityService = {
     const { error } = await supabase.from('opportunities').delete().eq('id', id);
     if (error) return { data: null, error };
     return { data: true, error: null };
+  },
+};
+
+// =========================================================================
+// Job offers (missions clients — ce qu'on matche avec les consultants)
+// =========================================================================
+
+export const jobOfferService = {
+  // List reste en lecture directe Supabase (RLS SELECT OK, plus rapide)
+  async list(statusFilter?: 'open' | 'closed' | 'won' | 'lost' | 'all'): Promise<ServiceResult<JobOffer[]>> {
+    const supabase = createClient();
+    let query = supabase.from('job_offers').select('*');
+    if (statusFilter && statusFilter !== 'all') {
+      query = query.eq('status', statusFilter);
+    }
+    const { data, error } = await query.order('updated_at', { ascending: false });
+    if (error) return { data: null, error };
+    return { data: data as JobOffer[], error: null };
+  },
+
+  // Mutations via route handlers serveur — plus robuste, messages d'erreurs lisibles
+  async create(input: JobOfferInput): Promise<ServiceResult<JobOffer>> {
+    try {
+      const res = await fetch('/api/offers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return { data: null, error: { message: body.message ?? body.error ?? 'Création impossible' } as any };
+      }
+      return { data: body.data as JobOffer, error: null };
+    } catch (e) {
+      return { data: null, error: { message: (e as Error).message } as any };
+    }
+  },
+
+  async update(id: string, input: Partial<JobOfferInput> & { status?: string }): Promise<ServiceResult<JobOffer>> {
+    try {
+      const res = await fetch(`/api/offers/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return { data: null, error: { message: body.message ?? body.error ?? 'Mise à jour impossible' } as any };
+      }
+      return { data: body.data as JobOffer, error: null };
+    } catch (e) {
+      return { data: null, error: { message: (e as Error).message } as any };
+    }
+  },
+
+  async remove(id: string): Promise<ServiceResult<boolean>> {
+    try {
+      const res = await fetch(`/api/offers/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        return { data: null, error: { message: body.message ?? 'Suppression impossible' } as any };
+      }
+      return { data: true, error: null };
+    } catch (e) {
+      return { data: null, error: { message: (e as Error).message } as any };
+    }
   },
 };
 

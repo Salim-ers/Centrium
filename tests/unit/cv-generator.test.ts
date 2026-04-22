@@ -43,6 +43,7 @@ const consultant: Consultant = {
   summary: null,
   internal_notes: null,
   archived: false,
+  is_prospect: false,
   created_at: '',
   updated_at: '',
 };
