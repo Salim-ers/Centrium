@@ -20,7 +20,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { consultantSchema, type ConsultantInput } from '@/lib/validators';
-import { consultantService } from '@/lib/services/consultant.service';
 import { extractTextSmart } from '@/lib/cv/extract-text';
 import { parseCVSmart } from '@/lib/cv/parse-cv-llm';
 import { applyParsedCV } from '@/lib/cv/apply-parsed-cv';
@@ -231,21 +230,33 @@ export function ConsultantFormDialog({
     setSaving(true);
     try {
       if (isEdit) {
-        const res = await Promise.race([
-          consultantService.update(consultant!.id, normalized),
-          new Promise<{ data: null; error: { message: string } }>((resolve) =>
-            setTimeout(
-              () => resolve({ data: null, error: { message: 'Délai dépassé (20s)' } }),
-              20_000,
-            ),
-          ),
-        ]);
-        if (res.error) {
-          toast.error('Erreur : ' + res.error.message);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20_000);
+        let res: Response;
+        try {
+          res = await fetch(`/api/consultants/${consultant!.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(normalized),
+            signal: controller.signal,
+          });
+        } catch (e) {
+          if ((e as Error).name === 'AbortError') {
+            toast.error('Délai dépassé — réessaie dans un instant');
+          } else {
+            toast.error('Erreur réseau : ' + (e as Error).message);
+          }
+          return;
+        } finally {
+          clearTimeout(timeoutId);
+        }
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          toast.error(payload.message ?? payload.error ?? 'Mise à jour impossible');
           return;
         }
         toast.success('Consultant mis à jour');
-        onSaved?.(res.data!);
+        onSaved?.(payload.data as Consultant);
       } else {
         // Création via API — gère optionnellement la création du compte portail
         const body = {
