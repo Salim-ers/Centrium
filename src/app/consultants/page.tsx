@@ -28,6 +28,7 @@ import {
   type ConsultantOwner,
 } from '@/lib/services/consultant.service';
 import { useOrganization } from '@/lib/auth/context';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import type { Consultant } from '@/types';
 import {
   CONSULTANT_STATUS_LABEL,
@@ -38,28 +39,36 @@ import { formatCurrency } from '@/lib/utils';
 
 export default function ConsultantsPage() {
   const { activeOrgId } = useOrganization();
-  const [consultants, setConsultants] = useState<ConsultantListItem[]>([]);
   const [owners, setOwners] = useState<ConsultantOwner[]>([]);
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingConsultant, setEditingConsultant] = useState<Consultant | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [assignTo, setAssignTo] = useState<ConsultantListItem | null>(null);
 
-  async function reload() {
-    const res = await consultantService.list({
-      search: search || undefined,
-      archived: showArchived,
-    });
-    if (res.data) setConsultants(res.data);
-    setLoading(false);
-  }
-
   useEffect(() => {
-    const timer = setTimeout(reload, 200);
-    return () => clearTimeout(timer);
-  }, [search, showArchived]);
+    const t = setTimeout(() => setDebouncedSearch(search), 200);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const {
+    data: consultantsData,
+    loading,
+    reload,
+    setData: setConsultants,
+  } = useCachedQuery<ConsultantListItem[]>(
+    `consultants:${activeOrgId ?? 'none'}:${showArchived ? 'arch' : 'active'}:${debouncedSearch}`,
+    async () => {
+      const res = await consultantService.list({
+        search: debouncedSearch || undefined,
+        archived: showArchived,
+      });
+      return res.data ?? [];
+    },
+    { enabled: !!activeOrgId },
+  );
+  const consultants = consultantsData ?? [];
 
   useEffect(() => {
     if (!activeOrgId) return;
@@ -72,7 +81,7 @@ export default function ConsultantsPage() {
     const next = ownerId || null;
     const prev = consultants;
     setConsultants((list) =>
-      list.map((c) =>
+      (list ?? []).map((c) =>
         c.id === consultantId
           ? { ...c, owner: next ? owners.find((o) => o.id === next) ?? null : null, owner_id: next }
           : c,
@@ -100,7 +109,7 @@ export default function ConsultantsPage() {
     }
     const prev = consultants;
     setConsultants((list) =>
-      list.map((c) =>
+      (list ?? []).map((c) =>
         c.id === consultantId
           ? { ...c, active_missions: c.active_missions.filter((m) => m.id !== missionId) }
           : c,
@@ -140,7 +149,7 @@ export default function ConsultantsPage() {
       return;
     }
     toast.success('Consultant archivé');
-    setConsultants((prev) => prev.filter((c) => c.id !== consultant.id));
+    setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
   }
 
   async function unarchiveConsultant(consultant: Consultant) {
@@ -150,7 +159,7 @@ export default function ConsultantsPage() {
       return;
     }
     toast.success(`${consultant.first_name} ${consultant.last_name} restauré`);
-    setConsultants((prev) => prev.filter((c) => c.id !== consultant.id));
+    setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
   }
 
   return (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { FileText, Download, Upload, Loader2, Trash2, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -8,7 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { createClient } from '@/lib/supabase/client';
+import { useOrganization } from '@/lib/auth/context';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { formatDate } from '@/lib/utils';
+import { usePortalConsultant } from '../portal-context';
 
 type DocRow = {
   id: string;
@@ -36,47 +39,29 @@ const DOC_KIND_LABEL: Record<string, string> = {
 const UPLOADABLE_KINDS = ['cv_source', 'certification', 'id', 'other'] as const;
 
 export default function PortalDocumentsPage() {
-  const [docs, setDocs] = useState<DocRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { consultantId, userId } = usePortalConsultant();
+  const { activeOrgId: orgId } = useOrganization();
   const [uploading, setUploading] = useState(false);
   const [kind, setKind] = useState<string>('cv_source');
-  const [userId, setUserId] = useState<string | null>(null);
-  const [consultantId, setConsultantId] = useState<string | null>(null);
-  const [orgId, setOrgId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  async function reload() {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from('consultant_documents')
-      .select('*')
-      .order('uploaded_at', { ascending: false });
-    setDocs((data ?? []) as DocRow[]);
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    (async () => {
+  const {
+    data: docsData,
+    loading,
+    reload,
+    setData: setDocs,
+  } = useCachedQuery<DocRow[]>(
+    `portal-documents:${consultantId}`,
+    async () => {
       const supabase = createClient();
-      const { data: userRes } = await supabase.auth.getUser();
-      const uid = userRes.user?.id;
-      if (!uid) {
-        setLoading(false);
-        return;
-      }
-      setUserId(uid);
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('consultant_id, organization_id')
-        .eq('id', uid)
-        .maybeSingle();
-      setConsultantId(profile?.consultant_id ?? null);
-      setOrgId(profile?.organization_id ?? null);
-
-      await reload();
-    })();
-  }, []);
+      const { data } = await supabase
+        .from('consultant_documents')
+        .select('*')
+        .order('uploaded_at', { ascending: false });
+      return (data ?? []) as DocRow[];
+    },
+  );
+  const docs = docsData ?? [];
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

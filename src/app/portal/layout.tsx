@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { PortalShell } from '@/components/layout/PortalShell';
+import { PortalProvider } from './portal-context';
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -21,5 +22,9 @@ export default async function PortalLayout({ children }: { children: React.React
     redirect('/dashboard');
   }
 
-  return <PortalShell>{children}</PortalShell>;
+  return (
+    <PortalProvider consultantId={profile.consultant_id} userId={user.id}>
+      <PortalShell>{children}</PortalShell>
+    </PortalProvider>
+  );
 }

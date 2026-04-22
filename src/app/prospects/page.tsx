@@ -22,31 +22,41 @@ import { ConsultantFormDialog } from '@/components/consultants/ConsultantFormDia
 
 import { consultantService } from '@/lib/services/consultant.service';
 import { useOrganization } from '@/lib/auth/context';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import type { Consultant } from '@/types';
 import { SENIORITY_LABEL } from '@/constants';
 import { formatCurrency } from '@/lib/utils';
 
 export default function ProspectsPage() {
   const { activeOrgId } = useOrganization();
-  const [prospects, setProspects] = useState<Consultant[]>([]);
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Consultant | null>(null);
 
-  async function reload() {
-    const res = await consultantService.list({
-      is_prospect: true,
-      search: search || undefined,
-    });
-    if (res.data) setProspects(res.data);
-    setLoading(false);
-  }
-
   useEffect(() => {
-    const timer = setTimeout(reload, 200);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => setDebouncedSearch(search), 200);
+    return () => clearTimeout(t);
   }, [search]);
+
+  const {
+    data: prospects,
+    loading,
+    reload,
+    setData: setProspects,
+  } = useCachedQuery<Consultant[]>(
+    `prospects:${activeOrgId ?? 'none'}:${debouncedSearch}`,
+    async () => {
+      const res = await consultantService.list({
+        is_prospect: true,
+        search: debouncedSearch || undefined,
+      });
+      return res.data ?? [];
+    },
+    { enabled: !!activeOrgId },
+  );
+
+  const prospectsList = prospects ?? [];
 
   function openCreate() {
     setEditing(null);
@@ -72,7 +82,7 @@ export default function ProspectsPage() {
       return;
     }
     toast.success(`${c.first_name} ${c.last_name} est désormais consultant actif`);
-    setProspects((prev) => prev.filter((p) => p.id !== c.id));
+    setProspects((prev) => (prev ?? []).filter((p) => p.id !== c.id));
   }
 
   async function archiveProspect(c: Consultant) {
@@ -83,7 +93,7 @@ export default function ProspectsPage() {
       return;
     }
     toast.success('Prospect retiré du vivier');
-    setProspects((prev) => prev.filter((p) => p.id !== c.id));
+    setProspects((prev) => (prev ?? []).filter((p) => p.id !== c.id));
   }
 
   return (
@@ -94,8 +104,8 @@ export default function ProspectsPage() {
             Prospection consultants
           </h1>
           <p className="text-muted-foreground mt-1">
-            {prospects.length} profil{prospects.length > 1 ? 's' : ''} en vivier — non compté
-            {prospects.length > 1 ? 's' : ''} dans l&apos;effectif
+            {prospectsList.length} profil{prospectsList.length > 1 ? 's' : ''} en vivier — non compté
+            {prospectsList.length > 1 ? 's' : ''} dans l&apos;effectif
           </p>
         </div>
         <Button onClick={openCreate}>
@@ -151,14 +161,14 @@ export default function ProspectsPage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : prospects.length === 0 ? (
+              ) : prospectsList.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
                     Aucun prospect. Ajoute un profil repéré pour l&apos;avoir sous le coude.
                   </TableCell>
                 </TableRow>
               ) : (
-                prospects.map((c) => (
+                prospectsList.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">

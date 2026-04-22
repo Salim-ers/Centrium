@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import {
   CONSULTANT_STATUS_LABEL,
@@ -29,6 +30,7 @@ import {
   SENIORITY_LABEL,
 } from '@/constants';
 import type { Consultant } from '@/types';
+import { usePortalConsultant } from '../portal-context';
 
 type EditableForm = {
   email: string;
@@ -45,52 +47,41 @@ function emptyForm(): EditableForm {
 }
 
 export default function PortalProfilePage() {
-  const [consultant, setConsultant] = useState<Consultant | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { consultantId } = usePortalConsultant();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<EditableForm>(emptyForm());
 
-  async function loadProfile() {
-    const supabase = createClient();
-    const { data: userRes } = await supabase.auth.getUser();
-    const uid = userRes.user?.id;
-    if (!uid) {
-      setLoading(false);
-      return;
-    }
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('consultant_id')
-      .eq('id', uid)
-      .maybeSingle();
-    if (!profile?.consultant_id) {
-      setLoading(false);
-      return;
-    }
-    const { data } = await supabase
-      .from('consultants')
-      .select('*')
-      .eq('id', profile.consultant_id)
-      .maybeSingle();
-    setConsultant(data as Consultant | null);
-    if (data) {
-      setForm({
-        email: data.email ?? '',
-        phone: data.phone ?? '',
-        linkedin_url: data.linkedin_url ?? '',
-        city: data.city ?? '',
-        country: data.country ?? 'FR',
-        mobility: data.mobility ?? '',
-        summary: data.summary ?? '',
-      });
-    }
-    setLoading(false);
-  }
+  const {
+    data: consultant,
+    loading,
+    setData: setConsultant,
+  } = useCachedQuery<Consultant | null>(
+    `portal-profile:${consultantId}`,
+    async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('consultants')
+        .select('*')
+        .eq('id', consultantId)
+        .maybeSingle();
+      return (data as Consultant | null) ?? null;
+    },
+  );
 
   useEffect(() => {
-    loadProfile();
-  }, []);
+    if (consultant && !editing) {
+      setForm({
+        email: consultant.email ?? '',
+        phone: consultant.phone ?? '',
+        linkedin_url: consultant.linkedin_url ?? '',
+        city: consultant.city ?? '',
+        country: consultant.country ?? 'FR',
+        mobility: consultant.mobility ?? '',
+        summary: consultant.summary ?? '',
+      });
+    }
+  }, [consultant, editing]);
 
   async function save() {
     setSaving(true);

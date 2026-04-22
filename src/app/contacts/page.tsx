@@ -18,26 +18,30 @@ import {
 import { ContactFormDialog } from '@/components/crm/ContactFormDialog';
 import { contactService } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import type { Contact } from '@/types';
 import { CONTACT_TYPE_LABEL } from '@/constants';
 import { relativeDate } from '@/lib/utils';
 
 export default function ContactsPage() {
   const { activeOrgId } = useOrganization();
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
 
-  async function reload() {
-    const res = await contactService.list();
-    if (res.data) setContacts(res.data);
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    reload();
-  }, []);
+  const {
+    data: contactsData,
+    loading,
+    reload,
+    setData: setContacts,
+  } = useCachedQuery<Contact[]>(
+    `contacts:${activeOrgId ?? 'none'}`,
+    async () => {
+      const res = await contactService.list();
+      return res.data ?? [];
+    },
+    { enabled: !!activeOrgId },
+  );
+  const contacts = contactsData ?? [];
 
   function openCreate() {
     setEditingContact(null);
@@ -57,7 +61,7 @@ export default function ContactsPage() {
       return;
     }
     toast.success('Contact supprimé');
-    setContacts((prev) => prev.filter((c) => c.id !== contact.id));
+    setContacts((prev) => (prev ?? []).filter((c) => c.id !== contact.id));
   }
 
   return (

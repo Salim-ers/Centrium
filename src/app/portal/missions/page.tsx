@@ -1,32 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Briefcase } from 'lucide-react';
 
 import { ConsultantMissionsList } from '@/components/missions/ConsultantMissionsList';
-import { createClient } from '@/lib/supabase/client';
+import { usePortalConsultant } from '../portal-context';
 
 export default function PortalMissionsPage() {
-  const [consultantId, setConsultantId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      const supabase = createClient();
-      const { data: userRes } = await supabase.auth.getUser();
-      if (!userRes.user) {
-        setLoading(false);
-        return;
-      }
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('consultant_id')
-        .eq('id', userRes.user.id)
-        .maybeSingle();
-      setConsultantId(profile?.consultant_id ?? null);
-      setLoading(false);
-    })();
-  }, []);
+  const { consultantId } = usePortalConsultant();
 
   return (
     <div>
@@ -40,13 +20,7 @@ export default function PortalMissionsPage() {
         </p>
       </div>
 
-      {loading ? (
-        <div className="h-32 rounded-xl bg-white/[0.02] animate-pulse" />
-      ) : !consultantId ? (
-        <p className="text-muted-foreground">Profil consultant introuvable.</p>
-      ) : (
-        <ConsultantMissionsList consultantId={consultantId} canManage={false} />
-      )}
+      <ConsultantMissionsList consultantId={consultantId} canManage={false} />
     </div>
   );
 }

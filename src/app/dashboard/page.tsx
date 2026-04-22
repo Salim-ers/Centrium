@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   Users,
@@ -18,27 +17,33 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { dashboardService, type DashboardKPIs, alertService } from '@/lib/services';
+import { useOrganization } from '@/lib/auth/context';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import type { Alert } from '@/types';
 import { formatCurrency, relativeDate } from '@/lib/utils';
 import { ALERT_PRIORITY_STYLE } from '@/constants';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 
-export default function DashboardPage() {
-  const [kpis, setKPIs] = useState<DashboardKPIs | null>(null);
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [loading, setLoading] = useState(true);
+type DashboardData = { kpis: DashboardKPIs | null; alerts: Alert[] };
 
-  useEffect(() => {
-    (async () => {
+export default function DashboardPage() {
+  const { activeOrgId } = useOrganization();
+  const { data, loading } = useCachedQuery<DashboardData>(
+    `dashboard:${activeOrgId ?? 'none'}`,
+    async () => {
       const [kpisRes, alertsRes] = await Promise.all([
         dashboardService.getKPIs(),
         alertService.list('new'),
       ]);
-      if (kpisRes.data) setKPIs(kpisRes.data);
-      if (alertsRes.data) setAlerts(alertsRes.data.slice(0, 5));
-      setLoading(false);
-    })();
-  }, []);
+      return {
+        kpis: kpisRes.data ?? null,
+        alerts: alertsRes.data ? alertsRes.data.slice(0, 5) : [],
+      };
+    },
+    { enabled: !!activeOrgId },
+  );
+  const kpis = data?.kpis ?? null;
+  const alerts = data?.alerts ?? [];
 
   return (
     <AppShell>

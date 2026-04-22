@@ -21,6 +21,7 @@ import { Select } from '@/components/ui/select';
 import { JobOfferFormDialog } from '@/components/offers/JobOfferFormDialog';
 import { jobOfferService } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import type { JobOffer } from '@/types';
 import { formatCurrency, relativeDate } from '@/lib/utils';
 
@@ -49,22 +50,24 @@ const SENIORITY_LABEL: Record<string, string> = {
 
 export default function OffersPage() {
   const { activeOrgId } = useOrganization();
-  const [offers, setOffers] = useState<JobOffer[]>([]);
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<JobOffer | null>(null);
   const [statusFilter, setStatusFilter] = useState<'open' | 'closed' | 'won' | 'lost' | 'all'>('open');
 
-  async function reload() {
-    const res = await jobOfferService.list(statusFilter);
-    if (res.data) setOffers(res.data);
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter]);
+  const {
+    data: offersData,
+    loading,
+    reload,
+    setData: setOffers,
+  } = useCachedQuery<JobOffer[]>(
+    `offers:${activeOrgId ?? 'none'}:${statusFilter}`,
+    async () => {
+      const res = await jobOfferService.list(statusFilter);
+      return res.data ?? [];
+    },
+    { enabled: !!activeOrgId },
+  );
+  const offers = offersData ?? [];
 
   function openCreate() {
     setEditing(null);
@@ -84,7 +87,7 @@ export default function OffersPage() {
       return;
     }
     toast.success('Offre supprimée');
-    setOffers((prev) => prev.filter((x) => x.id !== o.id));
+    setOffers((prev) => (prev ?? []).filter((x) => x.id !== o.id));
   }
 
   async function changeStatus(o: JobOffer, newStatus: 'open' | 'closed' | 'won' | 'lost') {

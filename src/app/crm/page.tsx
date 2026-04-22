@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { opportunityService } from '@/lib/services';
 import { OpportunityFormDialog } from '@/components/crm/OpportunityFormDialog';
 import { useOrganization } from '@/lib/auth/context';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { Select } from '@/components/ui/select';
 import type { Opportunity, OpportunityStatus } from '@/types';
 import { OPPORTUNITY_STATUS_LABEL, OPPORTUNITY_STATUS_ORDER } from '@/constants';
@@ -42,20 +43,23 @@ const COLUMN_DOT: Record<OpportunityStatus, string> = {
 
 export default function CRMPage() {
   const { activeOrgId } = useOrganization();
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingOpp, setEditingOpp] = useState<Opportunity | null>(null);
 
-  async function reload() {
-    const res = await opportunityService.list();
-    if (res.data) setOpportunities(res.data);
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    reload();
-  }, []);
+  const {
+    data: opportunitiesData,
+    loading,
+    reload,
+    setData: setOpportunities,
+  } = useCachedQuery<Opportunity[]>(
+    `opportunities:${activeOrgId ?? 'none'}`,
+    async () => {
+      const res = await opportunityService.list();
+      return res.data ?? [];
+    },
+    { enabled: !!activeOrgId },
+  );
+  const opportunities = opportunitiesData ?? [];
 
   function openEdit(opp: Opportunity) {
     setEditingOpp(opp);
@@ -83,7 +87,7 @@ export default function CRMPage() {
       return;
     }
     setOpportunities((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, status: newStatus } : o))
+      (prev ?? []).map((o) => (o.id === id ? { ...o, status: newStatus } : o))
     );
     toast.success('Statut mis à jour');
   }
@@ -95,7 +99,7 @@ export default function CRMPage() {
       toast.error('Erreur : ' + res.error.message);
       return;
     }
-    setOpportunities((prev) => prev.filter((o) => o.id !== id));
+    setOpportunities((prev) => (prev ?? []).filter((o) => o.id !== id));
     toast.success('Opportunité supprimée');
   }
 

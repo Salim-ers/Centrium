@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { BellRing, Check, X } from 'lucide-react';
 
@@ -11,34 +11,41 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 import { alertService } from '@/lib/services';
+import { useOrganization } from '@/lib/auth/context';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import type { Alert, AlertStatus } from '@/types';
 import { ALERT_PRIORITY_STYLE, ALERT_STATUS_LABEL } from '@/constants';
 import { relativeDate } from '@/lib/utils';
 
 export default function AlertsPage() {
-  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const { activeOrgId } = useOrganization();
   const [filter, setFilter] = useState<AlertStatus>('new');
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    setLoading(true);
-    alertService.list(filter).then((res) => {
-      if (res.data) setAlerts(res.data);
-      setLoading(false);
-    });
-  }, [filter]);
+  const {
+    data: alertsData,
+    loading,
+    setData: setAlerts,
+  } = useCachedQuery<Alert[]>(
+    `alerts:${activeOrgId ?? 'none'}:${filter}`,
+    async () => {
+      const res = await alertService.list(filter);
+      return res.data ?? [];
+    },
+    { enabled: !!activeOrgId },
+  );
+  const alerts = alertsData ?? [];
 
   async function resolve(id: string) {
     const res = await alertService.markResolved(id);
     if (res.error) return toast.error('Erreur');
-    setAlerts((prev) => prev.filter((a) => a.id !== id));
+    setAlerts((prev) => (prev ?? []).filter((a) => a.id !== id));
     toast.success('Alerte résolue');
   }
 
   async function dismiss(id: string) {
     const res = await alertService.dismiss(id);
     if (res.error) return toast.error('Erreur');
-    setAlerts((prev) => prev.filter((a) => a.id !== id));
+    setAlerts((prev) => (prev ?? []).filter((a) => a.id !== id));
     toast.success('Alerte ignorée');
   }
 

@@ -33,6 +33,10 @@ type OrgContextValue = State & {
 
 const OrgContext = createContext<OrgContextValue | null>(null);
 
+const AUTH_CACHE_TTL_MS = 60_000;
+const AUTH_CACHE_KEY = 'qc_auth_state';
+const AUTH_CACHE_TS_KEY = 'qc_auth_ts';
+
 export function OrganizationProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<State>({
     user: null,
@@ -44,60 +48,72 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
   const supabase = useMemo(() => createClient(), []);
 
-  const load = useCallback(async () => {
-    // Hydrate instantanément depuis sessionStorage pour éviter le flash "loading".
-    // Le refetch réseau derrière met à jour si quelque chose a bougé.
-    if (typeof window !== 'undefined') {
-      const cached = window.sessionStorage.getItem('qc_auth_state');
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached) as Omit<State, 'loading'>;
-          setState({ ...parsed, loading: false });
-        } catch {
-          // ignore
+  const load = useCallback(
+    async (options: { force?: boolean } = {}) => {
+      const { force = false } = options;
+
+      let hadFreshCache = false;
+      if (typeof window !== 'undefined') {
+        const cached = window.sessionStorage.getItem(AUTH_CACHE_KEY);
+        const ts = Number(window.sessionStorage.getItem(AUTH_CACHE_TS_KEY) ?? '0');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached) as Omit<State, 'loading'>;
+            setState({ ...parsed, loading: false });
+            if (!force && Date.now() - ts < AUTH_CACHE_TTL_MS) {
+              hadFreshCache = true;
+            }
+          } catch {
+            // ignore
+          }
         }
       }
-    }
 
-    // getSession() lit le cookie local : 0 appel réseau (vs getUser() qui valide côté auth server).
-    // Le middleware serveur garde getUser() pour la vraie validation de session.
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const user = session?.user ?? null;
+      if (hadFreshCache) return;
 
-    if (!user) {
-      const next = { user: null, activeOrgId: null, role: null, memberships: [] };
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
+
+      if (!user) {
+        const next = { user: null, activeOrgId: null, role: null, memberships: [] };
+        setState({ ...next, loading: false });
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.removeItem(AUTH_CACHE_KEY);
+          window.sessionStorage.removeItem(AUTH_CACHE_TS_KEY);
+        }
+        return;
+      }
+
+      const [profileRes, memberRes] = await Promise.all([
+        supabase.from('profiles').select('organization_id').eq('id', user.id).single(),
+        supabase.from('my_organizations').select('id, name, slug, role'),
+      ]);
+
+      const memberships = (memberRes.data ?? []) as Membership[];
+      const profileOrg = profileRes.data?.organization_id as string | null | undefined;
+      const activeOrgId = profileOrg ?? memberships[0]?.id ?? null;
+      const activeRole = memberships.find((m) => m.id === activeOrgId)?.role ?? null;
+
+      const next = {
+        user: { id: user.id, email: user.email ?? '' },
+        activeOrgId,
+        role: activeRole,
+        memberships,
+      };
       setState({ ...next, loading: false });
-      if (typeof window !== 'undefined') window.sessionStorage.removeItem('qc_auth_state');
-      return;
-    }
-
-    const [profileRes, memberRes] = await Promise.all([
-      supabase.from('profiles').select('organization_id').eq('id', user.id).single(),
-      supabase.from('my_organizations').select('id, name, slug, role'),
-    ]);
-
-    const memberships = (memberRes.data ?? []) as Membership[];
-    const profileOrg = profileRes.data?.organization_id as string | null | undefined;
-    const activeOrgId = profileOrg ?? memberships[0]?.id ?? null;
-    const activeRole = memberships.find((m) => m.id === activeOrgId)?.role ?? null;
-
-    const next = {
-      user: { id: user.id, email: user.email ?? '' },
-      activeOrgId,
-      role: activeRole,
-      memberships,
-    };
-    setState({ ...next, loading: false });
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.setItem('qc_auth_state', JSON.stringify(next));
-    }
-  }, [supabase]);
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(next));
+        window.sessionStorage.setItem(AUTH_CACHE_TS_KEY, String(Date.now()));
+      }
+    },
+    [supabase],
+  );
 
   useEffect(() => {
     load();
-    const { data: sub } = supabase.auth.onAuthStateChange(() => load());
+    const { data: sub } = supabase.auth.onAuthStateChange(() => load({ force: true }));
     return () => sub.subscription.unsubscribe();
   }, [load, supabase]);
 
@@ -119,9 +135,11 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
     [supabase, state.user, state.memberships],
   );
 
+  const reload = useCallback(() => load({ force: true }), [load]);
+
   const value = useMemo(
-    () => ({ ...state, switchOrg, reload: load }),
-    [state, switchOrg, load],
+    () => ({ ...state, switchOrg, reload }),
+    [state, switchOrg, reload],
   );
 
   return <OrgContext.Provider value={value}>{children}</OrgContext.Provider>;

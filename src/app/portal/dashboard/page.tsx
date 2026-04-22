@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   ClipboardCheck,
@@ -15,35 +14,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { createClient } from '@/lib/supabase/client';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { formatCurrency } from '@/lib/utils';
 import type { Consultant, Timesheet, Invoice } from '@/types';
+import { usePortalConsultant } from '../portal-context';
+
+type PortalDashboardData = {
+  consultant: Consultant | null;
+  timesheets: Timesheet[];
+  invoices: Invoice[];
+};
 
 export default function PortalDashboardPage() {
-  const [consultant, setConsultant] = useState<Consultant | null>(null);
-  const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { consultantId } = usePortalConsultant();
 
-  useEffect(() => {
-    (async () => {
+  const { data, loading } = useCachedQuery<PortalDashboardData>(
+    `portal-dashboard:${consultantId}`,
+    async () => {
       const supabase = createClient();
-      const { data: userRes } = await supabase.auth.getUser();
-      const uid = userRes.user?.id;
-      if (!uid) {
-        setLoading(false);
-        return;
-      }
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('consultant_id')
-        .eq('id', uid)
-        .maybeSingle();
-      const consultantId = profile?.consultant_id;
-      if (!consultantId) {
-        setLoading(false);
-        return;
-      }
-
       const [{ data: c }, { data: t }, { data: i }] = await Promise.all([
         supabase.from('consultants').select('*').eq('id', consultantId).maybeSingle(),
         supabase
@@ -60,12 +48,17 @@ export default function PortalDashboardPage() {
           .order('payment_date', { ascending: false })
           .limit(5),
       ]);
-      setConsultant(c as Consultant | null);
-      setTimesheets((t ?? []) as Timesheet[]);
-      setInvoices((i ?? []) as Invoice[]);
-      setLoading(false);
-    })();
-  }, []);
+      return {
+        consultant: (c as Consultant | null) ?? null,
+        timesheets: ((t ?? []) as Timesheet[]),
+        invoices: ((i ?? []) as Invoice[]),
+      };
+    },
+  );
+
+  const consultant = data?.consultant ?? null;
+  const timesheets = data?.timesheets ?? [];
+  const invoices = data?.invoices ?? [];
 
   const byStatus = timesheets.reduce<Record<string, number>>((acc, t) => {
     acc[t.status] = (acc[t.status] ?? 0) + 1;
