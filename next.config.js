@@ -8,7 +8,13 @@ const nextConfig = {
     ],
   },
   experimental: {
-    serverActions: { allowedOrigins: ['localhost:3000'] },
+    serverActions: {
+      allowedOrigins: [
+        'localhost:3000',
+        'quad-core-platform.fr',
+        'www.quad-core-platform.fr',
+      ],
+    },
     staleTimes: {
       dynamic: 30,
       static: 180,
