@@ -262,6 +262,9 @@ export function ConsultantFormDialog({
               experiencesAdded: r.experiencesAdded,
               educationsAdded: r.educationsAdded,
             };
+            for (const w of r.warnings) {
+              toast.warning(w, { duration: 8000 });
+            }
           } catch (e) {
             toast.warning(
               `Fiche créée mais l'import CV a partiellement échoué : ${e instanceof Error ? e.message : 'erreur'}.`,

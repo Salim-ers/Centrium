@@ -221,6 +221,10 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
       const applied = await applyParsedCV(consultantId, parsed);
       console.log('[QC CV] Résultat DB :', applied);
 
+      for (const w of applied.warnings) {
+        toast.warning(w, { duration: 8000 });
+      }
+
       const parts: string[] = [];
       if (applied.skillsAdded > 0) parts.push(`${applied.skillsAdded} compétences`);
       if (applied.experiencesAdded > 0) parts.push(`${applied.experiencesAdded} expériences`);

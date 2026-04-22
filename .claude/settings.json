@@ -29,7 +29,11 @@
       "Read(//c/Users/Salim/**)",
       "Read(//c/Users/Salim/.claude/**)",
       "Read(//c/Users/Salim/.claude/projects/c--Users-Salim-Desktop-quadcore-platform/**)",
-      "Bash(npm uninstall *)"
+      "Bash(npm uninstall *)",
+      "Bash(git commit -m 'chore: allow prod domain as Server Actions origin *)",
+      "Bash(git commit -m 'chore\\(build\\): exclude vitest config and scripts from Next.js typecheck *)",
+      "Bash(git commit -m 'fix\\(build\\): wrap useSearchParams in Suspense for billing and cv-optimizer *)",
+      "Bash(git commit -m 'fix\\(cv-import\\): surface insert errors and normalize experience dates *)"
     ],
     "deny": [
       "Write(.env*)",
