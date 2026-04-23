@@ -18,7 +18,7 @@ type Props = {
 export function QuadCoreCVStandard({ content, showConfidential = true }: Props) {
   return (
     <div className="cv-print-page bg-white text-neutral-900 shadow-2xl mx-auto"
-         style={{ width: '210mm', minHeight: '297mm', fontFamily: 'Georgia, serif' }}>
+         style={{ width: '210mm', fontFamily: 'Georgia, serif' }}>
       {/* ============ HEADER ============ */}
       <header className="relative px-12 pt-10 pb-6">
         <div className="flex items-start justify-between gap-6">
@@ -130,11 +130,12 @@ export function QuadCoreCVStandard({ content, showConfidential = true }: Props) 
       </section>
 
       {/* ============ EXPERIENCES ============ */}
-      <section className="px-12 py-4 border-t border-neutral-200">
+      {content.experiences.length > 0 && (
+      <section className="px-12 py-4 border-t border-neutral-200 cv-section">
         <SectionTitle>Expériences professionnelles</SectionTitle>
         <div className="mt-4 space-y-5">
           {content.experiences.map((exp) => (
-            <article key={exp.id}>
+            <article key={exp.id} className="cv-article">
               <div className="flex items-baseline justify-between gap-4">
                 <h3 className="font-sans font-bold text-[13px] text-neutral-900">
                   {exp.client_name}
@@ -179,6 +180,7 @@ export function QuadCoreCVStandard({ content, showConfidential = true }: Props) 
           ))}
         </div>
       </section>
+      )}
 
       {/* ============ EDUCATION ============ */}
       {content.educations.length > 0 && (
@@ -201,7 +203,7 @@ export function QuadCoreCVStandard({ content, showConfidential = true }: Props) 
       )}
 
       {/* ============ FOOTER ============ */}
-      <footer className="mt-auto px-12 pt-6 pb-8 border-t border-neutral-200">
+      <footer className="px-12 pt-6 pb-8 border-t border-neutral-200">
         <div className="flex items-center justify-between text-[9px] text-neutral-400 font-sans">
           <span>QuadCore — IT Services &amp; Consulting</span>
           <span className="uppercase tracking-[0.18em]">Document confidentiel</span>

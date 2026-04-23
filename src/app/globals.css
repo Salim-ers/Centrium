@@ -145,4 +145,18 @@ section[id] {
     box-shadow: none !important;
     margin: 0 auto !important;
   }
+  /* Évite qu'un bloc (expérience, diplôme) soit coupé en deux
+     entre deux pages — chaque article reste solidaire. */
+  .cv-print-page article,
+  .cv-print-page .cv-article {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  /* Titres de section : ne jamais laisser un titre orphelin en bas
+     de page sans son contenu qui suit. */
+  .cv-print-page h2,
+  .cv-print-page h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
 }

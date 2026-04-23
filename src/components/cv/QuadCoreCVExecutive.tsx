@@ -14,7 +14,7 @@ export function QuadCoreCVExecutive({ content, showConfidential = true }: Props)
   return (
     <div
       className="cv-print-page bg-white text-neutral-900 shadow-2xl mx-auto font-sans"
-      style={{ width: '210mm', minHeight: '297mm' }}
+      style={{ width: '210mm' }}
     >
       {/* Header large et majestueux */}
       <header className="px-14 pt-14 pb-10 relative">
@@ -77,7 +77,8 @@ export function QuadCoreCVExecutive({ content, showConfidential = true }: Props)
       </section>
 
       {/* Expériences – mise en avant */}
-      <section className="px-14 py-8">
+      {content.experiences.length > 0 && (
+      <section className="px-14 py-8 cv-section">
         <div className="flex items-center gap-4 mb-5">
           <h2 className="text-[12px] font-bold uppercase tracking-[0.22em]">
             Parcours
@@ -90,7 +91,7 @@ export function QuadCoreCVExecutive({ content, showConfidential = true }: Props)
 
         <div className="space-y-6">
           {content.experiences.map((exp) => (
-            <article key={exp.id} className="grid grid-cols-[120px_1fr] gap-6">
+            <article key={exp.id} className="cv-article grid grid-cols-[120px_1fr] gap-6">
               <div>
                 <div className="text-[10px] uppercase tracking-wider text-neutral-500">
                   {formatMonthYear(exp.start_date)}
@@ -127,6 +128,7 @@ export function QuadCoreCVExecutive({ content, showConfidential = true }: Props)
           ))}
         </div>
       </section>
+      )}
 
       {/* Compétences clés (compactes) */}
       <section className="px-14 py-6 bg-neutral-50 border-t border-neutral-200">

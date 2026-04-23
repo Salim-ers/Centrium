@@ -14,7 +14,7 @@ export function QuadCoreCVDense({ content, showConfidential = true }: Props) {
   return (
     <div
       className="cv-print-page bg-white text-neutral-900 shadow-2xl mx-auto font-sans"
-      style={{ width: '210mm', minHeight: '297mm' }}
+      style={{ width: '210mm' }}
     >
       {/* Header bandeau sombre */}
       <header
@@ -131,10 +131,11 @@ export function QuadCoreCVDense({ content, showConfidential = true }: Props) {
             </div>
           </DenseSection>
 
+          {content.experiences.length > 0 && (
           <DenseSection title="Expériences">
             <div className="space-y-3.5">
               {content.experiences.map((exp) => (
-                <div key={exp.id}>
+                <div key={exp.id} className="cv-article">
                   <div className="flex items-baseline justify-between gap-3">
                     <h3 className="text-[12px] font-bold text-neutral-900">
                       {exp.client_name}
@@ -174,6 +175,7 @@ export function QuadCoreCVDense({ content, showConfidential = true }: Props) {
               ))}
             </div>
           </DenseSection>
+          )}
         </div>
       </div>
 
