@@ -3,14 +3,13 @@
 import type { CVContent } from '@/types';
 import { formatMonthYear } from '@/lib/utils';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
+import { Editable } from './Editable';
 import type { CVBrand } from '@/lib/cv/branding';
 import { resolveBrand } from '@/lib/cv/branding';
 
 type Props = {
   content: CVContent;
   showConfidential?: boolean;
-  /** Accepté pour interop CVRenderer — l'édition inline est câblée seulement
-   *  sur le template Standard pour l'instant. */
   editable?: boolean;
   onEdit?: (path: string, value: string) => void;
   brand?: CVBrand;
@@ -20,7 +19,13 @@ type Props = {
  * QuadCore Dense — template compact, deux colonnes latérales
  * Pour seniors avec beaucoup d'expériences. Maxi 2 pages.
  */
-export function QuadCoreCVDense({ content, showConfidential = true, brand }: Props) {
+export function QuadCoreCVDense({
+  content,
+  showConfidential = true,
+  editable = false,
+  onEdit,
+  brand,
+}: Props) {
   const b = brand ?? resolveBrand(null);
   return (
     <div
@@ -45,12 +50,35 @@ export function QuadCoreCVDense({ content, showConfidential = true, brand }: Pro
         </div>
 
         <div className="mt-4 text-white">
-          <h1 className="text-[28px] font-bold leading-none">{content.header.displayName}</h1>
-          <p className="mt-1.5 text-[14px]" style={{ color: b.accent }}>
-            {content.header.jobTitle}
-          </p>
-          {content.header.subTitle && (
-            <p className="text-[11px] text-white/70 mt-0.5">{content.header.subTitle}</p>
+          <Editable
+            as="h1"
+            path="header.displayName"
+            value={content.header.displayName}
+            editable={editable}
+            onEdit={onEdit}
+            placeholder="Nom du consultant"
+            className="block text-[28px] font-bold leading-none"
+          />
+          <Editable
+            as="p"
+            path="header.jobTitle"
+            value={content.header.jobTitle}
+            editable={editable}
+            onEdit={onEdit}
+            placeholder="Intitulé de poste"
+            className="block mt-1.5 text-[14px]"
+            style={{ color: b.accent }}
+          />
+          {(content.header.subTitle || editable) && (
+            <Editable
+              as="p"
+              path="header.subTitle"
+              value={content.header.subTitle ?? ''}
+              editable={editable}
+              onEdit={onEdit}
+              placeholder="Sous-titre (stack, spécialité…)"
+              className="block text-[11px] text-white/70 mt-0.5"
+            />
           )}
         </div>
       </header>
@@ -59,9 +87,16 @@ export function QuadCoreCVDense({ content, showConfidential = true, brand }: Pro
         {/* Sidebar gauche */}
         <aside className="bg-neutral-50 px-6 py-6 border-r border-neutral-200">
           <SideBlock title="Profil" color={b.primary}>
-            <p className="text-[10.5px] leading-[1.5] text-neutral-700">
-              {content.summary}
-            </p>
+            <Editable
+              as="p"
+              path="summary"
+              value={content.summary}
+              editable={editable}
+              onEdit={onEdit}
+              placeholder="Résumé exécutif…"
+              multiline
+              className="block text-[10.5px] leading-[1.5] text-neutral-700 whitespace-pre-wrap"
+            />
           </SideBlock>
 
           <SideBlock title="Infos" color={b.primary}>
@@ -149,19 +184,41 @@ export function QuadCoreCVDense({ content, showConfidential = true, brand }: Pro
                 <div key={exp.id} className="cv-article">
                   <div className="flex items-baseline justify-between gap-3">
                     <h3 className="text-[12px] font-bold text-neutral-900">
-                      {exp.client_name}
+                      <Editable
+                        as="span"
+                        path={`experience.${exp.id}.client_name`}
+                        value={exp.client_name}
+                        editable={editable}
+                        onEdit={onEdit}
+                        placeholder="Client"
+                      />
                       <span className="font-normal text-neutral-500 ml-1.5">
-                        — {exp.role}
+                        —{' '}
+                        <Editable
+                          as="span"
+                          path={`experience.${exp.id}.role`}
+                          value={exp.role}
+                          editable={editable}
+                          onEdit={onEdit}
+                          placeholder="Rôle"
+                        />
                       </span>
                     </h3>
                     <span className="text-[9px] uppercase tracking-wider text-neutral-500 whitespace-nowrap">
                       {formatMonthYear(exp.start_date)} → {formatMonthYear(exp.end_date)}
                     </span>
                   </div>
-                  {exp.context && (
-                    <p className="text-[10.5px] text-neutral-600 italic leading-[1.45] mt-0.5">
-                      {exp.context}
-                    </p>
+                  {(exp.context || editable) && (
+                    <Editable
+                      as="p"
+                      path={`experience.${exp.id}.context`}
+                      value={exp.context ?? ''}
+                      editable={editable}
+                      onEdit={onEdit}
+                      placeholder="Contexte de la mission…"
+                      multiline
+                      className="block text-[10.5px] text-neutral-600 italic leading-[1.45] mt-0.5 whitespace-pre-wrap"
+                    />
                   )}
                   {exp.tasks && exp.tasks.length > 0 && (
                     <ul className="mt-1 space-y-0.5">
@@ -171,7 +228,16 @@ export function QuadCoreCVDense({ content, showConfidential = true, brand }: Pro
                             className="mt-[6px] h-[3px] w-[3px] shrink-0 rounded-full"
                             style={{ backgroundColor: b.accent }}
                           />
-                          <span>{t}</span>
+                          <Editable
+                            as="span"
+                            path={`experience.${exp.id}.task.${i}`}
+                            value={t}
+                            editable={editable}
+                            onEdit={onEdit}
+                            placeholder="Tâche / responsabilité"
+                            multiline
+                            className="flex-1 whitespace-pre-wrap"
+                          />
                         </li>
                       ))}
                     </ul>

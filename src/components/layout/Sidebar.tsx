@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
+import { useOrganizationSafe } from '@/lib/auth/context';
 
 type NavItem = { label: string; href: string; icon: React.ElementType };
 type NavGroup = { id: string; label: string; icon: React.ElementType; items: NavItem[] };
@@ -92,6 +93,9 @@ const STORAGE_KEY = 'quadcore-sidebar-open-groups';
 
 export function Sidebar() {
   const pathname = usePathname();
+  const org = useOrganizationSafe();
+  const logoSrc = org?.branding?.logoUrl ?? null;
+  const brandName = org?.branding?.brandName ?? undefined;
 
   // État ouvert/fermé par groupe (persisté en localStorage).
   // Par défaut tout est fermé ; seul le groupe contenant la page active est ouvert.
@@ -142,7 +146,7 @@ export function Sidebar() {
         href="/dashboard"
         className="flex h-28 items-center justify-center border-b border-white/5 px-2 hover:opacity-80 transition shrink-0"
       >
-        <QuadCoreLogo size="lg" variant="dark" />
+        <QuadCoreLogo size="lg" variant="dark" src={logoSrc} alt={brandName} />
       </Link>
 
       {/* Nav */}

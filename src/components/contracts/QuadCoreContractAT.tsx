@@ -4,13 +4,52 @@ import type { Contract } from '@/types';
 import { formatDate } from '@/lib/utils';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 
-type Props = { contract: Contract };
+export type ContractIssuer = {
+  brandName: string;
+  legalName: string;
+  legalForm: string | null;
+  capitalEur: number | null;
+  address: string | null;
+  city: string | null;
+  postalCode: string | null;
+  country: string | null;
+  rcs: string | null;
+  representativeName: string | null;
+  representativeTitle: string | null;
+  logoUrl: string | null;
+  footerTagline: string | null;
+  billingEmailFallback?: string | null;
+};
 
-/**
- * Contrat d'Assistance Technique QuadCore
- * Reproduction fidèle du modèle fourni, imprimable A4.
- */
-export function QuadCoreContractAT({ contract }: Props) {
+const DEFAULT_ISSUER: ContractIssuer = {
+  brandName: 'QuadCore',
+  legalName: 'QuadCore',
+  legalForm: 'SAS',
+  capitalEur: 1000,
+  address: '5 Rue du Docteur Roux',
+  city: 'Nogent Sur Oise',
+  postalCode: '60180',
+  country: 'FR',
+  rcs: '101 694 016 R.C.S. Compiègne',
+  representativeName: 'MOUHAMAD Moustakine',
+  representativeTitle: 'Président',
+  logoUrl: null,
+  footerTagline: 'IT Services & Consulting',
+};
+
+type Props = { contract: Contract; issuer?: ContractIssuer | null };
+
+export function QuadCoreContractAT({ contract, issuer }: Props) {
+  const iss = issuer ?? DEFAULT_ISSUER;
+  const issuerCityLine = [iss.postalCode, iss.city].filter(Boolean).join(', ');
+  const issuerRcsLine = iss.rcs
+    ? `Immatriculée sous le N° RCS ${iss.rcs}`
+    : null;
+  const issuerCapital =
+    iss.capitalEur != null
+      ? `${iss.legalForm ?? 'SAS'} au Capital de ${iss.capitalEur.toLocaleString('fr-FR')} €`
+      : iss.legalForm ?? null;
+  const signedIn = iss.city ?? 'Nogent Sur Oise';
   const {
     contract_number,
     supplier_company_name,
@@ -46,9 +85,9 @@ export function QuadCoreContractAT({ contract }: Props) {
         lineHeight: 1.5,
       }}
     >
-      {/* Logo QuadCore en haut à gauche */}
+      {/* Logo émetteur en haut à gauche */}
       <div className="mb-8 flex items-start justify-between">
-        <QuadCoreLogo size="lg" variant="light" />
+        <QuadCoreLogo size="lg" variant="light" src={iss.logoUrl} alt={iss.brandName} />
       </div>
 
       {/* Titre */}
@@ -64,23 +103,37 @@ export function QuadCoreContractAT({ contract }: Props) {
 
       <div className="ml-10 mb-6">
         <p>
-          La Société <strong>QuadCore</strong>
+          La Société <strong>{iss.legalName}</strong>
+          {issuerCapital && (
+            <>
+              <br />
+              {issuerCapital}
+            </>
+          )}
           <br />
-          SAS au Capital de 1000 €<br />
           Ayant son Siège Social au :
         </p>
-        <p className="ml-6 my-2">
-          5 Rue du Docteur Roux
-          <br />
-          60180, Nogent Sur Oise
-        </p>
-        <p>
-          Immatriculée sous le N° RCS 101 694 016 R.C.S. Compiègne
-          <br />
-          Représentée par MOUHAMAD Moustakine
-        </p>
+        {(iss.address || issuerCityLine) && (
+          <p className="ml-6 my-2">
+            {iss.address}
+            {iss.address && issuerCityLine && <br />}
+            {issuerCityLine}
+          </p>
+        )}
+        {(issuerRcsLine || iss.representativeName) && (
+          <p>
+            {issuerRcsLine}
+            {issuerRcsLine && iss.representativeName && <br />}
+            {iss.representativeName && (
+              <>
+                Représentée par {iss.representativeName}
+                {iss.representativeTitle ? `, ${iss.representativeTitle}` : ''}
+              </>
+            )}
+          </p>
+        )}
         <p className="mt-4">
-          Désignée ci-après <strong>« QuadCore »</strong>,
+          Désignée ci-après <strong>« {iss.brandName} »</strong>,
         </p>
       </div>
 
@@ -122,7 +175,7 @@ export function QuadCoreContractAT({ contract }: Props) {
       {/* Articles */}
       <Article num="1" title="OBJET DU PRÉSENT CONTRAT">
         <p>
-          Le Fournisseur s'engage par le présent contrat à fournir à QuadCore son
+          Le Fournisseur s'engage par le présent contrat {`à fournir à ${iss.brandName} son`}
           assistance technique dans le cadre de prestations définies ci-après.
         </p>
         <p className="mt-2">
@@ -170,7 +223,7 @@ export function QuadCoreContractAT({ contract }: Props) {
         <p className="mt-3">
           Pendant toute la durée d'exécution des travaux, le Fournisseur s'engage à
           maintenir en place l'équipe initialement prévue sauf demande contraire expresse
-          de QuadCore.
+          de {iss.brandName}.
         </p>
         <p className="mt-2">
           Le personnel du Fournisseur amené à exécuter des prestations dans les locaux de{' '}
@@ -284,8 +337,8 @@ export function QuadCoreContractAT({ contract }: Props) {
           détenue par le Client et à ne pas procéder à des copies non autorisées.
         </p>
         <p className="mt-2">
-          QuadCore serait fondé à engager des poursuites judiciaires à l'encontre du
-          Fournisseur et de tous coauteurs et complices et à réclamer des dommages et
+          {iss.brandName} serait fondé à engager des poursuites judiciaires à l'encontre
+          du Fournisseur et de tous coauteurs et complices et à réclamer des dommages et
           intérêts pour le cas où ces engagements n'auraient pas été tenus pour quelque
           cause que ce soit.
         </p>
@@ -299,14 +352,14 @@ export function QuadCoreContractAT({ contract }: Props) {
       <Article num="10" title="NON CONCURRENCE">
         <p>
           Le Fournisseur reconnaît qu'il n'est pas actuellement fournisseur de{' '}
-          {client_name || '[Nom du client]'}. Seul QuadCore assure la relation avec le
-          client final.
+          {client_name || '[Nom du client]'}. Seul {iss.brandName} assure la relation avec
+          le client final.
         </p>
         <p className="mt-2">
           Le Fournisseur ne pourra proposer ses services, ou ceux d'autres prestataires,
           à {client_name || '[Nom du client]'}, directement, pendant un délai de{' '}
           <strong>{non_compete_months}</strong> mois après la fin de ce contrat sauf
-          accord écrit préalable de QuadCore.
+          accord écrit préalable de {iss.brandName}.
         </p>
         <p className="mt-2">
           En cas de manquement à ces obligations la partie en faute versera à l'autre une
@@ -334,9 +387,9 @@ export function QuadCoreContractAT({ contract }: Props) {
           suivante :
         </p>
         <div className="ml-8 my-3">
-          <p>QuadCore</p>
-          <p>5 Rue du Docteur Roux</p>
-          <p>60180, Nogent Sur Oise</p>
+          <p>{iss.brandName}</p>
+          {iss.address && <p>{iss.address}</p>}
+          {issuerCityLine && <p>{issuerCityLine}</p>}
           {billing_email && (
             <p className="mt-1">
               Ou par mail : <strong>{billing_email}</strong>
@@ -357,8 +410,8 @@ export function QuadCoreContractAT({ contract }: Props) {
           contractuelles, quasi-contractuelles.
         </p>
         <p className="mt-2">
-          QuadCore se réserve le droit de demander à tout moment la justification de cette
-          assurance.
+          {iss.brandName} se réserve le droit de demander à tout moment la justification
+          de cette assurance.
         </p>
       </Article>
 
@@ -373,15 +426,17 @@ export function QuadCoreContractAT({ contract }: Props) {
       {/* Signatures */}
       <div className="mt-10">
         <p>
-          Fait à Nogent Sur Oise, le{' '}
+          Fait à {signedIn}, le{' '}
           <strong>{formatDate(new Date().toISOString())}</strong>
         </p>
         <p className="mt-1">en double exemplaire.</p>
 
         <div className="grid grid-cols-2 gap-12 mt-10">
           <div className="border-t border-black pt-2">
-            <p className="font-bold">Pour QuadCore</p>
-            <p className="text-[9pt] text-neutral-600 mt-0.5">MOUHAMAD Moustakine</p>
+            <p className="font-bold">Pour {iss.brandName}</p>
+            {iss.representativeName && (
+              <p className="text-[9pt] text-neutral-600 mt-0.5">{iss.representativeName}</p>
+            )}
             <div style={{ height: '60px' }} />
           </div>
           <div className="border-t border-black pt-2">
@@ -396,8 +451,15 @@ export function QuadCoreContractAT({ contract }: Props) {
 
       {/* Footer */}
       <div className="mt-10 pt-3 border-t border-neutral-300 text-center text-[9px] text-neutral-400 font-sans">
-        QuadCore — IT Services &amp; Consulting · 5 Rue du Docteur Roux, 60180 Nogent Sur
-        Oise · RCS Compiègne 101 694 016
+        {[
+          iss.footerTagline
+            ? `${iss.brandName} — ${iss.footerTagline}`
+            : iss.brandName,
+          [iss.address, issuerCityLine].filter(Boolean).join(', ') || null,
+          iss.rcs ? `RCS ${iss.rcs}` : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
       </div>
     </div>
   );

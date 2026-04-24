@@ -6,11 +6,42 @@ import { Search, Bell, User, LogOut } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useOrganizationSafe } from '@/lib/auth/context';
+import { createClient } from '@/lib/supabase/client';
 
 export function Header() {
   const org = useOrganizationSafe();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unreadAlerts, setUnreadAlerts] = useState(0);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!org?.activeOrgId) {
+      setUnreadAlerts(0);
+      return;
+    }
+    let cancelled = false;
+    const supabase = createClient();
+    const load = async () => {
+      const { count } = await supabase
+        .from('alerts')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'new');
+      if (!cancelled) setUnreadAlerts(count ?? 0);
+    };
+    load();
+    const channel = supabase
+      .channel('alerts-header-badge')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'alerts' },
+        () => load(),
+      )
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [org?.activeOrgId]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -46,7 +77,12 @@ export function Header() {
           >
             <Link href="/alerts">
               <Bell className="h-4 w-4" />
-              <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-magenta shadow-glow-magenta" />
+              {unreadAlerts > 0 && (
+                <span
+                  aria-label={`${unreadAlerts} alerte${unreadAlerts > 1 ? 's' : ''} non lue${unreadAlerts > 1 ? 's' : ''}`}
+                  className="absolute top-2 right-2 h-2 w-2 rounded-full bg-magenta shadow-glow-magenta"
+                />
+              )}
             </Link>
           </Button>
 

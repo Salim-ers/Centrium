@@ -3,14 +3,13 @@
 import type { CVContent } from '@/types';
 import { formatMonthYear } from '@/lib/utils';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
+import { Editable } from './Editable';
 import type { CVBrand } from '@/lib/cv/branding';
 import { resolveBrand } from '@/lib/cv/branding';
 
 type Props = {
   content: CVContent;
   showConfidential?: boolean;
-  /** Accepté pour interop CVRenderer — l'édition inline est câblée seulement
-   *  sur le template Standard pour l'instant. */
   editable?: boolean;
   onEdit?: (path: string, value: string) => void;
   brand?: CVBrand;
@@ -20,7 +19,13 @@ type Props = {
  * QuadCore Executive — Pour directeurs, leads, architectes.
  * Met en avant le résumé exécutif et le pilotage plutôt que la technique.
  */
-export function QuadCoreCVExecutive({ content, showConfidential = true, brand }: Props) {
+export function QuadCoreCVExecutive({
+  content,
+  showConfidential = true,
+  editable = false,
+  onEdit,
+  brand,
+}: Props) {
   const b = brand ?? resolveBrand(null);
   return (
     <div
@@ -40,20 +45,36 @@ export function QuadCoreCVExecutive({ content, showConfidential = true, brand }:
         </div>
 
         <div className="mt-10 max-w-2xl">
-          <h1
-            className="text-[44px] font-bold leading-[0.95] tracking-tight"
+          <Editable
+            as="h1"
+            path="header.displayName"
+            value={content.header.displayName}
+            editable={editable}
+            onEdit={onEdit}
+            placeholder="Nom du consultant"
+            className="block text-[44px] font-bold leading-[0.95] tracking-tight"
             style={{ letterSpacing: '-0.03em' }}
-          >
-            {content.header.displayName}
-          </h1>
-          <p
-            className="text-[19px] font-semibold mt-3"
+          />
+          <Editable
+            as="p"
+            path="header.jobTitle"
+            value={content.header.jobTitle}
+            editable={editable}
+            onEdit={onEdit}
+            placeholder="Intitulé de poste"
+            className="block text-[19px] font-semibold mt-3"
             style={{ color: b.primary }}
-          >
-            {content.header.jobTitle}
-          </p>
-          {content.header.subTitle && (
-            <p className="text-[13px] text-neutral-500 mt-1">{content.header.subTitle}</p>
+          />
+          {(content.header.subTitle || editable) && (
+            <Editable
+              as="p"
+              path="header.subTitle"
+              value={content.header.subTitle ?? ''}
+              editable={editable}
+              onEdit={onEdit}
+              placeholder="Sous-titre (stack, spécialité…)"
+              className="block text-[13px] text-neutral-500 mt-1"
+            />
           )}
         </div>
 
@@ -70,7 +91,16 @@ export function QuadCoreCVExecutive({ content, showConfidential = true, brand }:
             <div className="text-[10px] uppercase tracking-[0.22em] text-neutral-500 mb-2">
               Résumé exécutif
             </div>
-            <p className="text-[13px] leading-[1.65] text-neutral-800">{content.summary}</p>
+            <Editable
+              as="p"
+              path="summary"
+              value={content.summary}
+              editable={editable}
+              onEdit={onEdit}
+              placeholder="Résumé exécutif du profil…"
+              multiline
+              className="block text-[13px] leading-[1.65] text-neutral-800 whitespace-pre-wrap"
+            />
           </div>
           <div className="text-right border-l border-neutral-300 pl-8 space-y-3">
             <KeyValue label="Expérience" value={`${content.header.yearsExperience} ans`} highlight highlightColor={b.primary} />
@@ -112,14 +142,36 @@ export function QuadCoreCVExecutive({ content, showConfidential = true, brand }:
                 </div>
               </div>
               <div>
-                <h3 className="text-[14px] font-bold text-neutral-900">{exp.client_name}</h3>
-                <p className="text-[12px] font-semibold" style={{ color: b.primary }}>
-                  {exp.role}
-                </p>
-                {exp.context && (
-                  <p className="text-[11px] text-neutral-600 mt-1 leading-[1.5] italic">
-                    {exp.context}
-                  </p>
+                <Editable
+                  as="h3"
+                  path={`experience.${exp.id}.client_name`}
+                  value={exp.client_name}
+                  editable={editable}
+                  onEdit={onEdit}
+                  placeholder="Client"
+                  className="block text-[14px] font-bold text-neutral-900"
+                />
+                <Editable
+                  as="p"
+                  path={`experience.${exp.id}.role`}
+                  value={exp.role}
+                  editable={editable}
+                  onEdit={onEdit}
+                  placeholder="Rôle"
+                  className="block text-[12px] font-semibold"
+                  style={{ color: b.primary }}
+                />
+                {(exp.context || editable) && (
+                  <Editable
+                    as="p"
+                    path={`experience.${exp.id}.context`}
+                    value={exp.context ?? ''}
+                    editable={editable}
+                    onEdit={onEdit}
+                    placeholder="Contexte de la mission…"
+                    multiline
+                    className="block text-[11px] text-neutral-600 mt-1 leading-[1.5] italic whitespace-pre-wrap"
+                  />
                 )}
                 {exp.tasks && exp.tasks.length > 0 && (
                   <ul className="mt-2 space-y-0.5">
@@ -129,7 +181,16 @@ export function QuadCoreCVExecutive({ content, showConfidential = true, brand }:
                           className="mt-[6px] h-[4px] w-[4px] shrink-0"
                           style={{ backgroundColor: b.accent }}
                         />
-                        <span>{t}</span>
+                        <Editable
+                          as="span"
+                          path={`experience.${exp.id}.task.${i}`}
+                          value={t}
+                          editable={editable}
+                          onEdit={onEdit}
+                          placeholder="Tâche / responsabilité"
+                          multiline
+                          className="flex-1 whitespace-pre-wrap"
+                        />
                       </li>
                     ))}
                   </ul>

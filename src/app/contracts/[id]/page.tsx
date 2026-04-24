@@ -9,11 +9,52 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { QuadCoreContractAT } from '@/components/contracts/QuadCoreContractAT';
+import {
+  QuadCoreContractAT,
+  type ContractIssuer,
+} from '@/components/contracts/QuadCoreContractAT';
 import { ContractFormDialog } from '@/components/contracts/ContractFormDialog';
 import { contractService } from '@/lib/services/contract.service';
 import { useOrganization } from '@/lib/auth/context';
 import type { Contract, ContractStatus } from '@/types';
+
+type IdentityRow = {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  brand_name: string | null;
+  footer_tagline: string | null;
+  address: string | null;
+  city: string | null;
+  postal_code: string | null;
+  country: string | null;
+  siren: string | null;
+  siret: string | null;
+  vat_number: string | null;
+  rcs: string | null;
+  capital_eur: number | string | null;
+  legal_form: string | null;
+  representative_name: string | null;
+  representative_title: string | null;
+};
+
+function toIssuer(row: IdentityRow): ContractIssuer {
+  return {
+    brandName: row.brand_name ?? row.name,
+    legalName: row.name,
+    legalForm: row.legal_form,
+    capitalEur: row.capital_eur == null ? null : Number(row.capital_eur),
+    address: row.address,
+    city: row.city,
+    postalCode: row.postal_code,
+    country: row.country,
+    rcs: row.rcs,
+    representativeName: row.representative_name,
+    representativeTitle: row.representative_title,
+    logoUrl: row.logo_url,
+    footerTagline: row.footer_tagline,
+  };
+}
 
 export default function ContractDetailPage() {
   const { activeOrgId } = useOrganization();
@@ -21,6 +62,7 @@ export default function ContractDetailPage() {
   const router = useRouter();
   const id = params?.id as string;
   const [contract, setContract] = useState<Contract | null>(null);
+  const [issuer, setIssuer] = useState<ContractIssuer | null>(null);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
 
@@ -31,6 +73,22 @@ export default function ContractDetailPage() {
       setLoading(false);
     });
   }, [id]);
+
+  useEffect(() => {
+    if (!activeOrgId) return;
+    let cancelled = false;
+    fetch('/api/organizations/identity', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body: { data: IdentityRow } | null) => {
+        if (!cancelled && body?.data) setIssuer(toIssuer(body.data));
+      })
+      .catch(() => {
+        // fallback = issuer QuadCore par défaut (géré côté composant)
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeOrgId]);
 
   async function updateStatus(status: ContractStatus) {
     if (!contract) return;
@@ -111,12 +169,12 @@ export default function ContractDetailPage() {
 
       {/* Preview du contrat */}
       <div className="overflow-auto bg-neutral-200 p-6 rounded-xl no-print">
-        <QuadCoreContractAT contract={contract} />
+        <QuadCoreContractAT contract={contract} issuer={issuer} />
       </div>
 
       {/* Version print plein écran */}
       <div className="hidden print:block">
-        <QuadCoreContractAT contract={contract} />
+        <QuadCoreContractAT contract={contract} issuer={issuer} />
       </div>
 
       <ContractFormDialog

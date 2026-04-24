@@ -147,6 +147,17 @@ export default function BrandingSettingsPage() {
       setLogoUrl(url);
       await reloadBranding();
       toast.success('Logo mis à jour.');
+
+      if (url) {
+        const palette = await extractPaletteFromImage(file).catch(() => null);
+        if (palette) {
+          setPrimary(palette.primary);
+          setAccent(palette.accent);
+          toast.info(
+            'Couleurs suggérées depuis le logo. Ajustez-les avant d\'enregistrer si besoin.',
+          );
+        }
+      }
     } catch (e) {
       toast.error(`Upload du logo échoué${e instanceof Error ? ` : ${e.message}` : ''}.`);
     } finally {
@@ -452,6 +463,94 @@ export default function BrandingSettingsPage() {
       )}
     </AppShell>
   );
+}
+
+type RGB = { r: number; g: number; b: number };
+
+function rgbToHex({ r, g, b }: RGB) {
+  const hex = (v: number) => v.toString(16).padStart(2, '0');
+  return `#${hex(r)}${hex(g)}${hex(b)}`;
+}
+
+function hue({ r, g, b }: RGB) {
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max === min) return 0;
+  const d = max - min;
+  let h = 0;
+  if (max === r) h = ((g - b) / d) % 6;
+  else if (max === g) h = (b - r) / d + 2;
+  else h = (r - g) / d + 4;
+  return (h * 60 + 360) % 360;
+}
+
+async function extractPaletteFromImage(
+  file: File,
+): Promise<{ primary: string; accent: string } | null> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error('image load failed'));
+      el.src = url;
+    });
+
+    const MAX = 96;
+    const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, w, h);
+    const { data } = ctx.getImageData(0, 0, w, h);
+
+    const buckets = new Map<string, { count: number; r: number; g: number; b: number }>();
+    for (let i = 0; i < data.length; i += 4) {
+      const a = data[i + 3];
+      if (a < 200) continue;
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const mx = Math.max(r, g, b);
+      const mn = Math.min(r, g, b);
+      const sat = mx === 0 ? 0 : (mx - mn) / mx;
+      const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      if (sat < 0.18) continue;
+      if (lum < 0.08 || lum > 0.92) continue;
+      const key = `${r >> 5}-${g >> 5}-${b >> 5}`;
+      const bucket = buckets.get(key) ?? { count: 0, r: 0, g: 0, b: 0 };
+      bucket.count += 1;
+      bucket.r += r;
+      bucket.g += g;
+      bucket.b += b;
+      buckets.set(key, bucket);
+    }
+    if (buckets.size === 0) return null;
+
+    const ranked = [...buckets.values()]
+      .map((b) => ({
+        count: b.count,
+        r: Math.round(b.r / b.count),
+        g: Math.round(b.g / b.count),
+        b: Math.round(b.b / b.count),
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    const first = ranked[0];
+    const firstHue = hue(first);
+    const second =
+      ranked.find((c, idx) => idx > 0 && Math.abs(hue(c) - firstHue) > 25) ??
+      ranked[1] ??
+      first;
+
+    return { primary: rgbToHex(first), accent: rgbToHex(second) };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 function ColorField({

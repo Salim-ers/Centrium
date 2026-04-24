@@ -517,13 +517,6 @@ function CVOptimizerPageInner() {
         </div>
       </div>
 
-      {editMode && templateId !== 'standard' && (
-        <div className="no-print mb-3 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-200 flex items-center gap-2">
-          <Info className="h-3.5 w-3.5 shrink-0" />
-          L'édition inline est pour l'instant câblée sur le template{' '}
-          <strong>Standard</strong>. Bascule sur Standard pour éditer directement sur le preview.
-        </div>
-      )}
       {editMode && hasOverrides && (
         <div className="no-print mb-3 text-[11px] text-violet-300/80">
           {Object.keys(overrides).length} modification
