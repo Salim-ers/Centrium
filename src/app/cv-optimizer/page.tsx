@@ -15,6 +15,7 @@ import {
   Info,
   Plus,
   X,
+  Trash2,
   CheckCircle2,
   HelpCircle,
   MinusCircle,
@@ -102,6 +103,18 @@ function CVOptimizerPageInner() {
   const [analyzing, setAnalyzing] = useState(false);
   const [ignoredSkills, setIgnoredSkills] = useState<Set<string>>(new Set());
   const [addingSkill, setAddingSkill] = useState<string | null>(null);
+  const [removingSkill, setRemovingSkill] = useState<string | null>(null);
+
+  // Set des noms de skills (lowercased) présents dans le profil consultant,
+  // utilisé pour afficher "Retirer" au lieu de "Ajouter" sur les suggestions
+  // déjà ajoutées.
+  const profileSkillNames = useMemo(
+    () =>
+      new Set(
+        (loaded?.skills ?? []).map((s) => (s.name ?? '').trim().toLowerCase()),
+      ),
+    [loaded],
+  );
 
   useEffect(() => {
     consultantService.list({ is_prospect: 'all' }).then((res) => {
@@ -252,10 +265,9 @@ function CVOptimizerPageInner() {
         toast.success(`✓ "${s.skill}" ajoutée au profil consultant`);
       }
       // Recharge le profil → le matching se recalcule automatiquement
+      // et la suggestion bascule en "Retirer".
       const reload = await consultantService.getById(loaded.consultant.id);
       if (reload.data) setLoaded(reload.data);
-      // Retire la suggestion de la liste visible
-      setSuggestions((prev) => prev?.filter((x) => x.skill !== s.skill) ?? null);
     } catch (e) {
       console.error('[addSuggestedSkill] unexpected error', e);
       toast.error(
@@ -263,6 +275,36 @@ function CVOptimizerPageInner() {
       );
     } finally {
       setAddingSkill(null);
+    }
+  }
+
+  async function removeSuggestedSkill(s: SkillSuggestion) {
+    if (!loaded) return;
+    setRemovingSkill(s.skill);
+    try {
+      const res = await consultantService.removeSkillByName(loaded.consultant.id, {
+        name: s.skill,
+        category: s.suggested_category || undefined,
+      });
+      if (res.error) {
+        console.error('[removeSuggestedSkill] error', res.error);
+        toast.error('Erreur : ' + (res.error.message ?? 'suppression impossible'));
+        return;
+      }
+      if ((res.data ?? 0) === 0) {
+        toast.info('Aucune compétence à retirer (déjà absente du profil).');
+      } else {
+        toast.success(`✓ "${s.skill}" retirée du profil consultant`);
+      }
+      const reload = await consultantService.getById(loaded.consultant.id);
+      if (reload.data) setLoaded(reload.data);
+    } catch (e) {
+      console.error('[removeSuggestedSkill] unexpected error', e);
+      toast.error(
+        `Suppression impossible : ${e instanceof Error ? e.message : 'erreur inconnue'}`,
+      );
+    } finally {
+      setRemovingSkill(null);
     }
   }
 
@@ -657,7 +699,24 @@ function CVOptimizerPageInner() {
                                   </ul>
                                 )}
                                 <div className="mt-2 flex gap-1 flex-wrap">
-                                  {s.verdict !== 'unsupported' ? (
+                                  {profileSkillNames.has(s.skill.trim().toLowerCase()) ? (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-6 text-[10px] px-2 border-red-500/40 text-red-300 hover:bg-red-500/10"
+                                      onClick={() => removeSuggestedSkill(s)}
+                                      disabled={removingSkill === s.skill}
+                                      title="Retirer cette compétence du profil consultant"
+                                    >
+                                      {removingSkill === s.skill ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="h-3 w-3" />
+                                      )}
+                                      Retirer du profil
+                                    </Button>
+                                  ) : s.verdict !== 'unsupported' ? (
                                     <Button
                                       type="button"
                                       size="sm"

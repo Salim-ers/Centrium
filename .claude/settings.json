@@ -1,6 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "model": "claude-opus-4-7",
+  "env": {
+    "NODE_ENV": "development"
+  },
   "permissions": {
     "allow": [
       "Read(**)",
@@ -33,7 +35,14 @@
       "Bash(git commit -m 'chore: allow prod domain as Server Actions origin *)",
       "Bash(git commit -m 'chore\\(build\\): exclude vitest config and scripts from Next.js typecheck *)",
       "Bash(git commit -m 'fix\\(build\\): wrap useSearchParams in Suspense for billing and cv-optimizer *)",
-      "Bash(git commit -m 'fix\\(cv-import\\): surface insert errors and normalize experience dates *)"
+      "Bash(git commit -m 'fix\\(cv-import\\): surface insert errors and normalize experience dates *)",
+      "Bash(node -e \"const {Anthropic} = require\\('@anthropic-ai/sdk'\\); const c = new Anthropic\\({apiKey:'fake'}\\); console.log\\(typeof c.messages.parse\\)\")",
+      "Bash(git commit -m 'fix\\(cv-parse\\): add 75s client timeout to prevent infinite spinner *)",
+      "Bash(vercel ls *)",
+      "WebFetch(domain:quadcore-platform.vercel.app)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(git stash *)",
+      "Bash(echo \"---exit:$?\")"
     ],
     "deny": [
       "Write(.env*)",
@@ -47,15 +56,18 @@
       "C:\\Users\\Salim\\Desktop\\quadcore-platform\\.next"
     ]
   },
+  "model": "claude-opus-4-7",
   "hooks": {
     "PreToolUse": [
       {
         "matcher": "Bash",
-        "command": ".claude/hooks/validate-bash.sh"
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/validate-bash.sh"
+          }
+        ]
       }
     ]
-  },
-  "env": {
-    "NODE_ENV": "development"
   }
 }

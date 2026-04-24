@@ -448,4 +448,28 @@ export const consultantService = {
       return { data: null, error: { message: (e as Error).message } as any };
     }
   },
+
+  async removeSkillByName(
+    consultantId: string,
+    opts: { name: string; category?: string },
+  ): Promise<ServiceResult<number>> {
+    try {
+      const qs = new URLSearchParams({ name: opts.name });
+      if (opts.category) qs.set('category', opts.category);
+      const res = await fetch(
+        `/api/consultants/${consultantId}/skills?${qs.toString()}`,
+        { method: 'DELETE' },
+      );
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return {
+          data: null,
+          error: { message: body.message ?? body.error ?? 'Suppression impossible' } as any,
+        };
+      }
+      return { data: body.removed ?? 0, error: null };
+    } catch (e) {
+      return { data: null, error: { message: (e as Error).message } as any };
+    }
+  },
 };

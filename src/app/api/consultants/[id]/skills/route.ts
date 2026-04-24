@@ -89,3 +89,56 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   return NextResponse.json({ added: toInsert.length }, { status: 201 });
 }
+
+// =========================================================================
+// DELETE /api/consultants/:id/skills?name=<name>&category=<category>
+// -------------------------------------------------------------------------
+// Retire une compétence du consultant (match case-insensitive sur name,
+// avec category optionnelle pour désambiguïser si plusieurs catégories
+// portent le même nom). Retourne { removed: number }.
+// =========================================================================
+
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  const ctx = await requireOrg();
+  if (!['admin', 'business_manager', 'recruiter'].includes(ctx.role)) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  }
+
+  const url = new URL(req.url);
+  const name = url.searchParams.get('name')?.trim();
+  const category = url.searchParams.get('category')?.trim();
+  if (!name) {
+    return NextResponse.json({ error: 'missing_name' }, { status: 400 });
+  }
+
+  const admin = createAdminClient();
+
+  const { data: consultant } = await admin
+    .from('consultants')
+    .select('organization_id')
+    .eq('id', params.id)
+    .maybeSingle();
+  if (!consultant) {
+    return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  }
+  if (consultant.organization_id !== ctx.organizationId) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  }
+
+  let query = admin
+    .from('consultant_skills')
+    .delete()
+    .eq('consultant_id', params.id)
+    .ilike('name', name);
+  if (category) query = query.eq('category', category);
+
+  const { data: deleted, error } = await query.select('id');
+  if (error) {
+    return NextResponse.json(
+      { error: 'delete_failed', message: error.message },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({ removed: deleted?.length ?? 0 }, { status: 200 });
+}
