@@ -10,6 +10,10 @@ type Props = {
   className?: string;
   /** Choisit la variante du PNG. Cascade de fallback automatique. */
   variant?: 'light' | 'dark';
+  /** Override pour le logo de l'organisation cliente. Fallback = cascade QuadCore. */
+  src?: string | null;
+  /** Texte alternatif personnalisable (branding client). */
+  alt?: string;
 };
 
 const HEIGHT = {
@@ -44,8 +48,12 @@ export function QuadCoreLogo({
   showTagline: _showTagline,
   className,
   variant,
+  src: overrideSrc,
+  alt,
 }: Props) {
-  const cascade = CASCADES[variant ?? 'default'];
+  const cascade = overrideSrc
+    ? [overrideSrc, ...CASCADES[variant ?? 'default']]
+    : CASCADES[variant ?? 'default'];
   const [idx, setIdx] = useState(0);
   const src = cascade[idx];
 
@@ -53,10 +61,9 @@ export function QuadCoreLogo({
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
-      alt="QuadCore — IT Services & Consulting"
+      alt={alt ?? 'QuadCore — IT Services & Consulting'}
       className={cn(HEIGHT[size], 'w-auto object-contain select-none', className)}
       onError={() => {
-        // Essaie le fichier suivant dans la cascade
         if (idx < cascade.length - 1) setIdx(idx + 1);
       }}
       draggable={false}

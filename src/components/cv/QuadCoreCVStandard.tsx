@@ -4,12 +4,16 @@ import type { CVContent } from '@/types';
 import { formatMonthYear } from '@/lib/utils';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { Editable } from './Editable';
+import type { CVBrand } from '@/lib/cv/branding';
+import { resolveBrand } from '@/lib/cv/branding';
 
 type Props = {
   content: CVContent;
   showConfidential?: boolean;
   editable?: boolean;
   onEdit?: (path: string, value: string) => void;
+  /** Branding de l'org. Si omis, fallback QuadCore. */
+  brand?: CVBrand;
 };
 
 /**
@@ -23,14 +27,21 @@ export function QuadCoreCVStandard({
   showConfidential = true,
   editable = false,
   onEdit,
+  brand,
 }: Props) {
+  const b = brand ?? resolveBrand(null);
   return (
     <div className="cv-print-page bg-white text-neutral-900 shadow-2xl mx-auto"
          style={{ width: '210mm', fontFamily: 'Georgia, serif' }}>
       {/* ============ HEADER ============ */}
       <header className="relative px-12 pt-10 pb-6">
         <div className="flex items-start justify-between gap-6">
-          <QuadCoreLogo size="md" variant="light" />
+          <QuadCoreLogo
+            size="md"
+            variant="light"
+            src={b.logoUrl}
+            alt={`${b.brandName} — ${b.footerTagline}`}
+          />
 
           {showConfidential && (
             <div className="text-right">
@@ -47,8 +58,7 @@ export function QuadCoreCVStandard({
         <div
           className="mt-5 h-[2px] w-full"
           style={{
-            background:
-              'linear-gradient(90deg, #6d28d9 0%, #e11d74 55%, transparent 100%)',
+            background: `linear-gradient(90deg, ${b.primary} 0%, ${b.accent} 55%, transparent 100%)`,
           }}
         />
       </header>
@@ -73,7 +83,7 @@ export function QuadCoreCVStandard({
           onEdit={onEdit}
           placeholder="Intitulé de poste"
           className="block font-sans text-[17px] font-semibold mt-1"
-          style={{ color: '#6d28d9' }}
+          style={{ color: b.primary }}
         />
         {(content.header.subTitle || editable) && (
           <Editable
@@ -111,7 +121,7 @@ export function QuadCoreCVStandard({
 
       {/* ============ EXECUTIVE SUMMARY ============ */}
       <section className="px-12 py-4 border-t border-neutral-200">
-        <SectionTitle>Résumé exécutif</SectionTitle>
+        <SectionTitle color={b.primary}>Résumé exécutif</SectionTitle>
         <Editable
           as="p"
           path="summary"
@@ -126,7 +136,7 @@ export function QuadCoreCVStandard({
 
       {/* ============ TECH SKILLS ============ */}
       <section className="px-12 py-4 border-t border-neutral-200">
-        <SectionTitle>Compétences techniques</SectionTitle>
+        <SectionTitle color={b.primary}>Compétences techniques</SectionTitle>
         <div className="mt-3 space-y-1.5">
           {content.skillCategories.map((cat) => (
             <div key={cat.name} className="flex gap-3 text-[11.5px] font-sans">
@@ -142,7 +152,7 @@ export function QuadCoreCVStandard({
                     <span key={item}>
                       <span
                         className={highlighted ? 'font-bold' : ''}
-                        style={highlighted ? { color: '#6d28d9' } : undefined}
+                        style={highlighted ? { color: b.primary } : undefined}
                       >
                         {item}
                       </span>
@@ -161,7 +171,7 @@ export function QuadCoreCVStandard({
       {/* ============ EXPERIENCES ============ */}
       {content.experiences.length > 0 && (
       <section className="px-12 py-4 border-t border-neutral-200 cv-section">
-        <SectionTitle>Expériences professionnelles</SectionTitle>
+        <SectionTitle color={b.primary}>Expériences professionnelles</SectionTitle>
         <div className="mt-4 space-y-5">
           {content.experiences.map((exp) => (
             <article key={exp.id} className="cv-article">
@@ -211,7 +221,7 @@ export function QuadCoreCVStandard({
                     <li key={i} className="flex gap-2 text-[11px] leading-[1.55] text-neutral-800">
                       <span
                         className="mt-[7px] h-[3px] w-[3px] shrink-0 rounded-full"
-                        style={{ backgroundColor: '#e11d74' }}
+                        style={{ backgroundColor: b.accent }}
                       />
                       <Editable
                         as="span"
@@ -245,7 +255,7 @@ export function QuadCoreCVStandard({
       {/* ============ EDUCATION ============ */}
       {content.educations.length > 0 && (
         <section className="px-12 py-4 border-t border-neutral-200">
-          <SectionTitle>Formation</SectionTitle>
+          <SectionTitle color={b.primary}>Formation</SectionTitle>
           <div className="mt-3 space-y-1.5 font-sans">
             {content.educations.map((edu) => (
               <div key={edu.id} className="flex items-baseline gap-3 text-[11.5px]">
@@ -283,7 +293,7 @@ export function QuadCoreCVStandard({
       {/* ============ FOOTER ============ */}
       <footer className="px-12 pt-6 pb-8 border-t border-neutral-200">
         <div className="flex items-center justify-between text-[9px] text-neutral-400 font-sans">
-          <span>QuadCore — IT Services &amp; Consulting</span>
+          <span>{b.brandName} — {b.footerTagline}</span>
           <span className="uppercase tracking-[0.18em]">Document confidentiel</span>
         </div>
       </footer>
@@ -291,7 +301,7 @@ export function QuadCoreCVStandard({
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SectionTitle({ children, color }: { children: React.ReactNode; color?: string }) {
   return (
     <div className="flex items-center gap-3">
       <h2
@@ -302,7 +312,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
       <div
         className="h-[1px] flex-1"
         style={{
-          background: 'linear-gradient(90deg, #6d28d9 0%, transparent 100%)',
+          background: `linear-gradient(90deg, ${color ?? '#6d28d9'} 0%, transparent 100%)`,
         }}
       />
     </div>

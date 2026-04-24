@@ -3,6 +3,8 @@
 import type { CVContent } from '@/types';
 import { formatMonthYear } from '@/lib/utils';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
+import type { CVBrand } from '@/lib/cv/branding';
+import { resolveBrand } from '@/lib/cv/branding';
 
 type Props = {
   content: CVContent;
@@ -11,13 +13,15 @@ type Props = {
    *  sur le template Standard pour l'instant. */
   editable?: boolean;
   onEdit?: (path: string, value: string) => void;
+  brand?: CVBrand;
 };
 
 /**
  * QuadCore Executive — Pour directeurs, leads, architectes.
  * Met en avant le résumé exécutif et le pilotage plutôt que la technique.
  */
-export function QuadCoreCVExecutive({ content, showConfidential = true }: Props) {
+export function QuadCoreCVExecutive({ content, showConfidential = true, brand }: Props) {
+  const b = brand ?? resolveBrand(null);
   return (
     <div
       className="cv-print-page bg-white text-neutral-900 shadow-2xl mx-auto font-sans"
@@ -26,7 +30,7 @@ export function QuadCoreCVExecutive({ content, showConfidential = true }: Props)
       {/* Header large et majestueux */}
       <header className="px-14 pt-14 pb-10 relative">
         <div className="flex items-start justify-between gap-6">
-          <QuadCoreLogo size="lg" variant="light" />
+          <QuadCoreLogo size="lg" variant="light" src={b.logoUrl} alt={b.brandName} />
           {showConfidential && (
             <div className="text-right text-[9px] uppercase tracking-[0.22em] text-neutral-400">
               <div>Profil Executive</div>
@@ -44,7 +48,7 @@ export function QuadCoreCVExecutive({ content, showConfidential = true }: Props)
           </h1>
           <p
             className="text-[19px] font-semibold mt-3"
-            style={{ color: '#6d28d9' }}
+            style={{ color: b.primary }}
           >
             {content.header.jobTitle}
           </p>
@@ -55,7 +59,7 @@ export function QuadCoreCVExecutive({ content, showConfidential = true }: Props)
 
         <div
           className="mt-8 h-[3px] w-24"
-          style={{ background: 'linear-gradient(90deg,#6d28d9,#e11d74)' }}
+          style={{ background: `linear-gradient(90deg, ${b.primary}, ${b.accent})` }}
         />
       </header>
 
@@ -69,7 +73,7 @@ export function QuadCoreCVExecutive({ content, showConfidential = true }: Props)
             <p className="text-[13px] leading-[1.65] text-neutral-800">{content.summary}</p>
           </div>
           <div className="text-right border-l border-neutral-300 pl-8 space-y-3">
-            <KeyValue label="Expérience" value={`${content.header.yearsExperience} ans`} highlight />
+            <KeyValue label="Expérience" value={`${content.header.yearsExperience} ans`} highlight highlightColor={b.primary} />
             {content.header.location && (
               <KeyValue label="Base" value={content.header.location} />
             )}
@@ -92,7 +96,7 @@ export function QuadCoreCVExecutive({ content, showConfidential = true }: Props)
           </h2>
           <div
             className="h-[1px] flex-1"
-            style={{ background: 'linear-gradient(90deg,#6d28d9 0%, transparent 100%)' }}
+            style={{ background: `linear-gradient(90deg, ${b.primary} 0%, transparent 100%)` }}
           />
         </div>
 
@@ -109,7 +113,7 @@ export function QuadCoreCVExecutive({ content, showConfidential = true }: Props)
               </div>
               <div>
                 <h3 className="text-[14px] font-bold text-neutral-900">{exp.client_name}</h3>
-                <p className="text-[12px] font-semibold" style={{ color: '#6d28d9' }}>
+                <p className="text-[12px] font-semibold" style={{ color: b.primary }}>
                   {exp.role}
                 </p>
                 {exp.context && (
@@ -123,7 +127,7 @@ export function QuadCoreCVExecutive({ content, showConfidential = true }: Props)
                       <li key={i} className="flex gap-2 text-[11px] leading-[1.55] text-neutral-800">
                         <span
                           className="mt-[6px] h-[4px] w-[4px] shrink-0"
-                          style={{ backgroundColor: '#e11d74' }}
+                          style={{ backgroundColor: b.accent }}
                         />
                         <span>{t}</span>
                       </li>
@@ -145,7 +149,7 @@ export function QuadCoreCVExecutive({ content, showConfidential = true }: Props)
           </h2>
           <div
             className="h-[1px] flex-1"
-            style={{ background: 'linear-gradient(90deg,#6d28d9 0%, transparent 100%)' }}
+            style={{ background: `linear-gradient(90deg, ${b.primary} 0%, transparent 100%)` }}
           />
         </div>
         <div className="flex flex-wrap gap-2">
@@ -155,8 +159,8 @@ export function QuadCoreCVExecutive({ content, showConfidential = true }: Props)
                 key={`${cat.name}-${item}`}
                 className="text-[10.5px] font-semibold px-3 py-1 rounded-full border"
                 style={{
-                  borderColor: '#6d28d9',
-                  color: cat.highlighted?.includes(item) ? '#e11d74' : '#6d28d9',
+                  borderColor: b.primary,
+                  color: cat.highlighted?.includes(item) ? b.accent : b.primary,
                 }}
               >
                 {item}
@@ -199,7 +203,7 @@ export function QuadCoreCVExecutive({ content, showConfidential = true }: Props)
       </section>
 
       <footer className="px-14 py-4 border-t border-neutral-200 flex justify-between text-[9px] text-neutral-400">
-        <span>QuadCore — IT Services &amp; Consulting</span>
+        <span>{b.brandName} — {b.footerTagline}</span>
         <span className="uppercase tracking-[0.2em]">Document confidentiel</span>
       </footer>
     </div>
@@ -210,17 +214,19 @@ function KeyValue({
   label,
   value,
   highlight = false,
+  highlightColor,
 }: {
   label: string;
   value: string;
   highlight?: boolean;
+  highlightColor?: string;
 }) {
   return (
     <div>
       <div className="text-[9px] uppercase tracking-wider text-neutral-500">{label}</div>
       <div
         className="text-[12px] font-semibold"
-        style={highlight ? { color: '#6d28d9' } : undefined}
+        style={highlight ? { color: highlightColor ?? '#6d28d9' } : undefined}
       >
         {value}
       </div>

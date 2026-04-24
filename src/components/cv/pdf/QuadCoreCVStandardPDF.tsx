@@ -14,17 +14,16 @@ import {
 
 import type { CVContent } from '@/types';
 import { formatMonthYear } from '@/lib/utils';
+import type { CVBrand } from '@/lib/cv/branding';
+import { resolveBrand } from '@/lib/cv/branding';
 
 // =========================================================================
 // QuadCore CV — Standard (React-PDF)
 // Template imprimable A4, vectoriel, textes sélectionnables.
 // =========================================================================
 
-// Couleurs QuadCore
-const C = {
-  violet: '#6d28d9',
-  magenta: '#e11d74',
-  black: '#111111',
+// Neutres (indépendants du branding)
+const N = {
   neutral900: '#171717',
   neutral800: '#262626',
   neutral700: '#404040',
@@ -37,198 +36,190 @@ const C = {
 // On garde les polices Helvetica de base (intégrées dans react-pdf) pour
 // éviter un téléchargement réseau à l'export.
 
-const styles = StyleSheet.create({
-  page: {
-    backgroundColor: C.white,
-    color: C.neutral900,
-    fontFamily: 'Helvetica',
-    paddingTop: 36,
-    paddingBottom: 36,
-    paddingHorizontal: 40,
-    fontSize: 10,
-    lineHeight: 1.45,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  logo: { width: 64, height: 64, objectFit: 'contain', borderRadius: 6 },
-  confidential: {
-    fontSize: 7,
-    color: C.neutral400,
-    letterSpacing: 1.2,
-    textAlign: 'right',
-    textTransform: 'uppercase',
-  },
-  confidentialSub: { fontSize: 7, color: C.neutral400, textAlign: 'right' },
-  accentWrap: {
-    marginTop: 10,
-    marginBottom: 14,
-  },
-  name: {
-    fontSize: 24,
-    fontFamily: 'Helvetica-Bold',
-    color: C.neutral900,
-    letterSpacing: -0.6,
-    lineHeight: 1.15,
-    marginBottom: 3,
-  },
-  jobTitle: {
-    fontSize: 13,
-    fontFamily: 'Helvetica-Bold',
-    color: C.violet,
-    lineHeight: 1.25,
-  },
-  subTitle: { fontSize: 9.5, color: C.neutral700, marginTop: 1 },
-  infoRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 10,
-    fontSize: 8.5,
-  },
-  infoItem: { marginRight: 14, color: C.neutral700 },
-  infoLabel: { color: C.neutral500, marginRight: 3 },
-  sectionWrap: {
-    marginTop: 14,
-    paddingTop: 10,
-    borderTop: `0.6pt solid ${C.neutral200}`,
-  },
-  sectionTitleRow: { flexDirection: 'row', alignItems: 'center' },
-  sectionTitle: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    letterSpacing: 2,
-    color: C.neutral900,
-    textTransform: 'uppercase',
-  },
-  sectionRule: { height: 0.6, flexGrow: 1, marginLeft: 8, backgroundColor: C.violet, opacity: 0.5 },
-  summary: {
-    marginTop: 7,
-    fontSize: 9.5,
-    lineHeight: 1.55,
-    color: C.neutral800,
-  },
-  skillRow: {
-    flexDirection: 'row',
-    marginBottom: 3,
-  },
-  skillCat: {
-    width: 95,
-    fontSize: 8,
-    color: C.neutral700,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    fontFamily: 'Helvetica-Bold',
-  },
-  skillItems: {
-    flex: 1,
-    fontSize: 9.5,
-    color: C.neutral800,
-  },
-  skillHighlight: { color: C.violet, fontFamily: 'Helvetica-Bold' },
-  skillSep: { color: C.neutral400 },
-  experience: { marginTop: 8 },
-  expHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  expClient: {
-    fontSize: 10.5,
-    fontFamily: 'Helvetica-Bold',
-    color: C.neutral900,
-    flex: 1,
-  },
-  expRole: { color: C.neutral500, fontFamily: 'Helvetica' },
-  expDates: {
-    fontSize: 7.5,
-    color: C.neutral500,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginLeft: 10,
-  },
-  expContext: {
-    fontSize: 8.5,
-    color: C.neutral700,
-    fontStyle: 'italic',
-    marginTop: 2,
-  },
-  taskItem: {
-    flexDirection: 'row',
-    marginTop: 2,
-    fontSize: 9,
-    color: C.neutral800,
-    lineHeight: 1.45,
-  },
-  bullet: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: C.magenta,
-    marginTop: 4,
-    marginRight: 5,
-  },
-  taskText: { flex: 1 },
-  expEnv: {
-    marginTop: 4,
-    fontSize: 8,
-    color: C.neutral500,
-  },
-  expEnvLabel: {
-    fontFamily: 'Helvetica-Bold',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  eduRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginTop: 3,
-    fontSize: 9,
-  },
-  eduYear: {
-    width: 32,
-    fontFamily: 'Helvetica-Bold',
-    color: C.neutral500,
-    fontSize: 9,
-  },
-  eduDegree: { fontFamily: 'Helvetica-Bold', color: C.neutral900 },
-  eduInstitution: { color: C.neutral500, marginLeft: 4 },
-  footer: {
-    position: 'absolute',
-    left: 40,
-    right: 40,
-    bottom: 18,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    fontSize: 7,
-    color: C.neutral400,
-    paddingTop: 6,
-    borderTop: `0.5pt solid ${C.neutral200}`,
-  },
-});
+function buildStyles(primary: string, accent: string) {
+  return StyleSheet.create({
+    page: {
+      backgroundColor: N.white,
+      color: N.neutral900,
+      fontFamily: 'Helvetica',
+      paddingTop: 36,
+      paddingBottom: 36,
+      paddingHorizontal: 40,
+      fontSize: 10,
+      lineHeight: 1.45,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 8,
+    },
+    logo: { width: 64, height: 64, objectFit: 'contain', borderRadius: 6 },
+    confidential: {
+      fontSize: 7,
+      color: N.neutral400,
+      letterSpacing: 1.2,
+      textAlign: 'right',
+      textTransform: 'uppercase',
+    },
+    confidentialSub: { fontSize: 7, color: N.neutral400, textAlign: 'right' },
+    accentWrap: { marginTop: 10, marginBottom: 14 },
+    name: {
+      fontSize: 24,
+      fontFamily: 'Helvetica-Bold',
+      color: N.neutral900,
+      letterSpacing: -0.6,
+      lineHeight: 1.15,
+      marginBottom: 3,
+    },
+    jobTitle: {
+      fontSize: 13,
+      fontFamily: 'Helvetica-Bold',
+      color: primary,
+      lineHeight: 1.25,
+    },
+    subTitle: { fontSize: 9.5, color: N.neutral700, marginTop: 1 },
+    infoRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: 10,
+      fontSize: 8.5,
+    },
+    infoItem: { marginRight: 14, color: N.neutral700 },
+    infoLabel: { color: N.neutral500, marginRight: 3 },
+    sectionWrap: {
+      marginTop: 14,
+      paddingTop: 10,
+      borderTop: `0.6pt solid ${N.neutral200}`,
+    },
+    sectionTitleRow: { flexDirection: 'row', alignItems: 'center' },
+    sectionTitle: {
+      fontSize: 9,
+      fontFamily: 'Helvetica-Bold',
+      letterSpacing: 2,
+      color: N.neutral900,
+      textTransform: 'uppercase',
+    },
+    sectionRule: { height: 0.6, flexGrow: 1, marginLeft: 8, backgroundColor: primary, opacity: 0.5 },
+    summary: {
+      marginTop: 7,
+      fontSize: 9.5,
+      lineHeight: 1.55,
+      color: N.neutral800,
+    },
+    skillRow: { flexDirection: 'row', marginBottom: 3 },
+    skillCat: {
+      width: 95,
+      fontSize: 8,
+      color: N.neutral700,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      fontFamily: 'Helvetica-Bold',
+    },
+    skillItems: { flex: 1, fontSize: 9.5, color: N.neutral800 },
+    skillHighlight: { color: primary, fontFamily: 'Helvetica-Bold' },
+    skillSep: { color: N.neutral400 },
+    experience: { marginTop: 8 },
+    expHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    expClient: {
+      fontSize: 10.5,
+      fontFamily: 'Helvetica-Bold',
+      color: N.neutral900,
+      flex: 1,
+    },
+    expRole: { color: N.neutral500, fontFamily: 'Helvetica' },
+    expDates: {
+      fontSize: 7.5,
+      color: N.neutral500,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      marginLeft: 10,
+    },
+    expContext: {
+      fontSize: 8.5,
+      color: N.neutral700,
+      fontStyle: 'italic',
+      marginTop: 2,
+    },
+    taskItem: {
+      flexDirection: 'row',
+      marginTop: 2,
+      fontSize: 9,
+      color: N.neutral800,
+      lineHeight: 1.45,
+    },
+    bullet: {
+      width: 3,
+      height: 3,
+      borderRadius: 1.5,
+      backgroundColor: accent,
+      marginTop: 4,
+      marginRight: 5,
+    },
+    taskText: { flex: 1 },
+    expEnv: { marginTop: 4, fontSize: 8, color: N.neutral500 },
+    expEnvLabel: {
+      fontFamily: 'Helvetica-Bold',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+    },
+    eduRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      marginTop: 3,
+      fontSize: 9,
+    },
+    eduYear: {
+      width: 32,
+      fontFamily: 'Helvetica-Bold',
+      color: N.neutral500,
+      fontSize: 9,
+    },
+    eduDegree: { fontFamily: 'Helvetica-Bold', color: N.neutral900 },
+    eduInstitution: { color: N.neutral500, marginLeft: 4 },
+    footer: {
+      position: 'absolute',
+      left: 40,
+      right: 40,
+      bottom: 18,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      fontSize: 7,
+      color: N.neutral400,
+      paddingTop: 6,
+      borderTop: `0.5pt solid ${N.neutral200}`,
+    },
+  });
+}
 
 type Props = {
   content: CVContent;
   logoSrc?: string;
   showConfidential?: boolean;
+  brand?: CVBrand;
 };
 
 export function QuadCoreCVStandardPDF({
   content,
   logoSrc,
   showConfidential = true,
+  brand,
 }: Props) {
+  const b = brand ?? resolveBrand(null);
+  const styles = buildStyles(b.primary, b.accent);
   const { header, skillCategories, experiences, educations, languages, summary } =
     content;
 
   return (
     <Document
-      author="QuadCore"
+      author={b.brandName}
       title={`CV — ${header.displayName}`}
       subject={`CV ${header.jobTitle}`}
-      creator="QuadCore Platform"
+      creator={`${b.brandName} Platform`}
     >
       <Page size="A4" style={styles.page} wrap>
         {/* ============ HEADER ============ */}
@@ -249,9 +240,9 @@ export function QuadCoreCVStandardPDF({
           <Svg height={2.4} width={515}>
             <Defs>
               <LinearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
-                <Stop offset="0" stopColor={C.violet} stopOpacity={1} />
-                <Stop offset="0.55" stopColor={C.magenta} stopOpacity={1} />
-                <Stop offset="1" stopColor={C.magenta} stopOpacity={0} />
+                <Stop offset="0" stopColor={b.primary} stopOpacity={1} />
+                <Stop offset="0.55" stopColor={b.accent} stopOpacity={1} />
+                <Stop offset="1" stopColor={b.accent} stopOpacity={0} />
               </LinearGradient>
             </Defs>
             <Rect x={0} y={0} width={515} height={2.4} fill="url(#accent)" />
@@ -391,7 +382,7 @@ export function QuadCoreCVStandardPDF({
 
         {/* ============ FOOTER (sur chaque page) ============ */}
         <View style={styles.footer} fixed>
-          <Text>QuadCore — IT Services &amp; Consulting</Text>
+          <Text>{b.brandName} — {b.footerTagline}</Text>
           <Text
             render={({ pageNumber, totalPages }) =>
               `Page ${pageNumber} / ${totalPages}`
@@ -401,13 +392,13 @@ export function QuadCoreCVStandardPDF({
       </Page>
     </Document>
   );
-}
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <View style={styles.sectionTitleRow}>
-      <Text style={styles.sectionTitle}>{children}</Text>
-      <View style={styles.sectionRule} />
-    </View>
-  );
+  function SectionTitle({ children }: { children: React.ReactNode }) {
+    return (
+      <View style={styles.sectionTitleRow}>
+        <Text style={styles.sectionTitle}>{children}</Text>
+        <View style={styles.sectionRule} />
+      </View>
+    );
+  }
 }

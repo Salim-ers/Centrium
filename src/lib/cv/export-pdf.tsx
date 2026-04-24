@@ -13,6 +13,8 @@
 // =========================================================================
 
 import type { CVContent, CVTemplateId } from '@/types';
+import type { CVBrand } from './branding';
+import { resolveBrand } from './branding';
 
 type ExportOptions = {
   /** Nom du fichier (sans extension) */
@@ -23,11 +25,13 @@ type ExportOptions = {
   logoSrc?: string;
   /** Bandeau "Document confidentiel" (défaut true) */
   showConfidential?: boolean;
+  /** Branding résolu de l'organisation. Fallback = QuadCore. */
+  brand?: CVBrand;
 };
 
 export async function exportCVToPdf(
   content: CVContent,
-  { filename, templateId, logoSrc, showConfidential = true }: ExportOptions,
+  { filename, templateId, logoSrc, showConfidential = true, brand }: ExportOptions,
 ): Promise<void> {
   const [{ pdf }, standard, dense, executive] = await Promise.all([
     import('@react-pdf/renderer'),
@@ -43,11 +47,15 @@ export async function exportCVToPdf(
         ? executive.QuadCoreCVExecutivePDF
         : standard.QuadCoreCVStandardPDF;
 
+  const resolved = brand ?? resolveBrand(null);
+  const effectiveLogo = logoSrc ?? resolved.logoUrl ?? undefined;
+
   const doc = (
     <DocForTemplate
       content={content}
-      logoSrc={logoSrc}
+      logoSrc={effectiveLogo}
       showConfidential={showConfidential}
+      brand={resolved}
     />
   );
 

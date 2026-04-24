@@ -9,6 +9,8 @@ import {
 
 import type { CVContent } from '@/types';
 import { formatMonthYear } from '@/lib/utils';
+import type { CVBrand } from '@/lib/cv/branding';
+import { resolveBrand } from '@/lib/cv/branding';
 
 // =========================================================================
 // QuadCore CV — Executive (React-PDF)
@@ -16,9 +18,7 @@ import { formatMonthYear } from '@/lib/utils';
 // accent violet sobre, idéal pour profils lead / architectes.
 // =========================================================================
 
-const C = {
-  violet: '#6d28d9',
-  magenta: '#e11d74',
+const N = {
   neutral900: '#0b0b0f',
   neutral800: '#262626',
   neutral700: '#404040',
@@ -28,10 +28,11 @@ const C = {
   white: '#ffffff',
 };
 
-const styles = StyleSheet.create({
+function buildStyles(primary: string, _accent: string) {
+  return StyleSheet.create({
   page: {
-    backgroundColor: C.white,
-    color: C.neutral900,
+    backgroundColor: N.white,
+    color: N.neutral900,
     fontFamily: 'Helvetica',
     fontSize: 10,
     lineHeight: 1.5,
@@ -47,7 +48,7 @@ const styles = StyleSheet.create({
   logo: { width: 90, height: 28, objectFit: 'contain' },
   confidential: {
     fontSize: 7,
-    color: C.neutral400,
+    color: N.neutral400,
     textTransform: 'uppercase',
     letterSpacing: 2,
     textAlign: 'right',
@@ -55,54 +56,54 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 28,
     fontFamily: 'Helvetica-Bold',
-    color: C.neutral900,
+    color: N.neutral900,
     marginTop: 24,
     letterSpacing: -0.7,
   },
   jobTitle: {
     fontSize: 13,
-    color: C.violet,
+    color: primary,
     marginTop: 2,
     fontFamily: 'Helvetica-Bold',
   },
-  subTitle: { fontSize: 10, color: C.neutral700, marginTop: 2 },
+  subTitle: { fontSize: 10, color: N.neutral700, marginTop: 2 },
   metaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: 12,
     fontSize: 9,
-    color: C.neutral700,
+    color: N.neutral700,
   },
   metaItem: { marginRight: 16 },
-  metaLabel: { color: C.neutral500, marginRight: 3 },
+  metaLabel: { color: N.neutral500, marginRight: 3 },
   accent: {
     height: 2,
     width: 56,
-    backgroundColor: C.violet,
+    backgroundColor: primary,
     marginTop: 18,
   },
   sectionWrap: { marginTop: 18 },
   sectionTitle: {
     fontSize: 10,
     fontFamily: 'Helvetica-Bold',
-    color: C.neutral900,
+    color: N.neutral900,
     textTransform: 'uppercase',
     letterSpacing: 3,
     marginBottom: 8,
   },
-  summary: { fontSize: 10.5, color: C.neutral800, lineHeight: 1.6 },
+  summary: { fontSize: 10.5, color: N.neutral800, lineHeight: 1.6 },
   skillRow: { flexDirection: 'row', marginBottom: 4 },
   skillCat: {
     width: 110,
     fontSize: 8.5,
     fontFamily: 'Helvetica-Bold',
-    color: C.neutral700,
+    color: N.neutral700,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
   },
-  skillItems: { flex: 1, fontSize: 10, color: C.neutral800 },
-  skillHighlight: { color: C.violet, fontFamily: 'Helvetica-Bold' },
-  skillSep: { color: C.neutral400 },
+  skillItems: { flex: 1, fontSize: 10, color: N.neutral800 },
+  skillHighlight: { color: primary, fontFamily: 'Helvetica-Bold' },
+  skillSep: { color: N.neutral400 },
   experience: { marginTop: 12 },
   expHeaderRow: {
     flexDirection: 'row',
@@ -112,20 +113,20 @@ const styles = StyleSheet.create({
   expClient: {
     fontSize: 11.5,
     fontFamily: 'Helvetica-Bold',
-    color: C.neutral900,
+    color: N.neutral900,
     flex: 1,
   },
-  expRole: { color: C.neutral500, fontFamily: 'Helvetica' },
+  expRole: { color: N.neutral500, fontFamily: 'Helvetica' },
   expDates: {
     fontSize: 8,
-    color: C.neutral500,
+    color: N.neutral500,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     marginLeft: 12,
   },
   expContext: {
     fontSize: 9.5,
-    color: C.neutral700,
+    color: N.neutral700,
     fontStyle: 'italic',
     marginTop: 3,
   },
@@ -133,19 +134,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: 3,
     fontSize: 9.5,
-    color: C.neutral800,
+    color: N.neutral800,
     lineHeight: 1.55,
   },
   bullet: {
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: C.violet,
+    backgroundColor: primary,
     marginTop: 5,
     marginRight: 6,
   },
   taskText: { flex: 1 },
-  expEnv: { marginTop: 5, fontSize: 8.5, color: C.neutral500 },
+  expEnv: { marginTop: 5, fontSize: 8.5, color: N.neutral500 },
   expEnvLabel: {
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
@@ -157,9 +158,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 10,
   },
-  eduYear: { width: 40, fontFamily: 'Helvetica-Bold', color: C.neutral500 },
-  eduDegree: { fontFamily: 'Helvetica-Bold', color: C.neutral900 },
-  eduInstitution: { color: C.neutral500, marginLeft: 5 },
+  eduYear: { width: 40, fontFamily: 'Helvetica-Bold', color: N.neutral500 },
+  eduDegree: { fontFamily: 'Helvetica-Bold', color: N.neutral900 },
+  eduInstitution: { color: N.neutral500, marginLeft: 5 },
   footer: {
     position: 'absolute',
     left: 54,
@@ -168,31 +169,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     fontSize: 7.5,
-    color: C.neutral400,
+    color: N.neutral400,
     paddingTop: 8,
-    borderTop: `0.6pt solid ${C.neutral200}`,
+    borderTop: `0.6pt solid ${N.neutral200}`,
   },
-});
+  });
+}
 
 type Props = {
   content: CVContent;
   logoSrc?: string;
   showConfidential?: boolean;
+  brand?: CVBrand;
 };
 
 export function QuadCoreCVExecutivePDF({
   content,
   logoSrc,
   showConfidential = true,
+  brand,
 }: Props) {
+  const b = brand ?? resolveBrand(null);
+  const styles = buildStyles(b.primary, b.accent);
   const { header, skillCategories, experiences, educations, languages, summary } =
     content;
 
   return (
     <Document
-      author="QuadCore"
+      author={b.brandName}
       title={`CV — ${header.displayName}`}
-      creator="QuadCore Platform"
+      creator={`${b.brandName} Platform`}
     >
       <Page size="A4" style={styles.page} wrap>
         {/* ============ HEADER ============ */}
@@ -337,7 +343,7 @@ export function QuadCoreCVExecutivePDF({
         ) : null}
 
         <View style={styles.footer} fixed>
-          <Text>QuadCore — IT Services &amp; Consulting</Text>
+          <Text>{b.brandName} — {b.footerTagline}</Text>
           <Text
             render={({ pageNumber, totalPages }) =>
               `Page ${pageNumber} / ${totalPages}`

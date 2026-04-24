@@ -1,9 +1,10 @@
 'use client';
 
-import { Settings as SettingsIcon, LogOut } from 'lucide-react';
+import Link from 'next/link';
+import { Settings as SettingsIcon, LogOut, Palette, Users } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 export default function SettingsPage() {
@@ -16,7 +17,37 @@ export default function SettingsPage() {
         </h1>
       </div>
 
-      <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <Link href="/settings/branding" className="group">
+          <Card className="h-full transition-colors group-hover:border-violet-glow/50">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Palette className="h-4 w-4 text-violet-glow" />
+                Identité visuelle
+              </CardTitle>
+              <CardDescription>
+                Logo, couleurs et nom de marque affichés sur les CV générés.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link href="/settings/team" className="group">
+          <Card className="h-full transition-colors group-hover:border-violet-glow/50">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="h-4 w-4 text-violet-glow" />
+                Équipe
+              </CardTitle>
+              <CardDescription>
+                Membres, invitations et rôles de l'organisation.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+      </div>
+
+      <div className="space-y-4 mt-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Organisation</CardTitle>

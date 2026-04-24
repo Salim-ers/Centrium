@@ -18,17 +18,29 @@ export type Membership = {
   role: UserRole;
 };
 
+export type OrgBranding = {
+  id: string;
+  name: string;
+  logoUrl: string | null;
+  brandName: string | null;
+  footerTagline: string | null;
+  primaryColor: string | null;
+  accentColor: string | null;
+};
+
 type State = {
   user: { id: string; email: string } | null;
   activeOrgId: string | null;
   role: UserRole | null;
   memberships: Membership[];
+  branding: OrgBranding | null;
   loading: boolean;
 };
 
 type OrgContextValue = State & {
   switchOrg: (orgId: string) => Promise<void>;
   reload: () => Promise<void>;
+  reloadBranding: () => Promise<void>;
 };
 
 const OrgContext = createContext<OrgContextValue | null>(null);
@@ -43,6 +55,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
     activeOrgId: null,
     role: null,
     memberships: [],
+    branding: null,
     loading: true,
   });
 
@@ -87,7 +100,13 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
       const user = session?.user ?? null;
 
       if (!user) {
-        const next = { user: null, activeOrgId: null, role: null, memberships: [] };
+        const next = {
+          user: null,
+          activeOrgId: null,
+          role: null,
+          memberships: [],
+          branding: null,
+        };
         setState({ ...next, loading: false });
         if (typeof window !== 'undefined') {
           window.sessionStorage.removeItem(AUTH_CACHE_KEY);
@@ -102,25 +121,56 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
       const profileQ = Promise.resolve(
         supabase.from('profiles').select('organization_id').eq('id', user.id).single(),
       ) as Promise<{ data: { organization_id: string | null } | null }>;
+      // my_organizations expose aussi les colonnes de branding depuis 020.
+      type MembershipRow = Membership & {
+        logo_url: string | null;
+        brand_name: string | null;
+        footer_tagline: string | null;
+        brand_primary_color: string | null;
+        brand_accent_color: string | null;
+      };
       const memberQ = Promise.resolve(
-        supabase.from('my_organizations').select('id, name, slug, role'),
-      ) as Promise<{ data: Membership[] | null }>;
+        supabase
+          .from('my_organizations')
+          .select(
+            'id, name, slug, role, logo_url, brand_name, footer_tagline, brand_primary_color, brand_accent_color',
+          ),
+      ) as Promise<{ data: MembershipRow[] | null }>;
 
       const [profileRes, memberRes] = await Promise.all([
         withTimeout(profileQ, 8000, { data: null } as { data: { organization_id: string | null } | null }),
-        withTimeout(memberQ, 8000, { data: [] } as { data: Membership[] | null }),
+        withTimeout(memberQ, 8000, { data: [] } as { data: MembershipRow[] | null }),
       ]);
 
-      const memberships = (memberRes.data ?? []) as Membership[];
+      const rows = (memberRes.data ?? []) as MembershipRow[];
+      const memberships: Membership[] = rows.map(({ id, name, slug, role }) => ({
+        id,
+        name,
+        slug,
+        role,
+      }));
       const profileOrg = profileRes.data?.organization_id as string | null | undefined;
       const activeOrgId = profileOrg ?? memberships[0]?.id ?? null;
       const activeRole = memberships.find((m) => m.id === activeOrgId)?.role ?? null;
+      const activeRow = rows.find((m) => m.id === activeOrgId) ?? null;
+      const branding: OrgBranding | null = activeRow
+        ? {
+            id: activeRow.id,
+            name: activeRow.name,
+            logoUrl: activeRow.logo_url,
+            brandName: activeRow.brand_name,
+            footerTagline: activeRow.footer_tagline,
+            primaryColor: activeRow.brand_primary_color,
+            accentColor: activeRow.brand_accent_color,
+          }
+        : null;
 
       const next = {
         user: { id: user.id, email: user.email ?? '' },
         activeOrgId,
         role: activeRole,
         memberships,
+        branding,
       };
       setState({ ...next, loading: false });
       if (typeof window !== 'undefined') {
@@ -157,9 +207,54 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
   const reload = useCallback(() => load({ force: true }), [load]);
 
+  const reloadBranding = useCallback(async () => {
+    if (!state.activeOrgId) return;
+    try {
+      const res = await fetch('/api/organizations/branding', { cache: 'no-store' });
+      if (!res.ok) return;
+      const { data } = (await res.json()) as {
+        data: {
+          id: string;
+          name: string;
+          logo_url: string | null;
+          brand_name: string | null;
+          footer_tagline: string | null;
+          brand_primary_color: string | null;
+          brand_accent_color: string | null;
+        };
+      };
+      const branding: OrgBranding = {
+        id: data.id,
+        name: data.name,
+        logoUrl: data.logo_url,
+        brandName: data.brand_name,
+        footerTagline: data.footer_tagline,
+        primaryColor: data.brand_primary_color,
+        accentColor: data.brand_accent_color,
+      };
+      setState((s) => {
+        const next = { ...s, branding };
+        if (typeof window !== 'undefined') {
+          const payload = {
+            user: next.user,
+            activeOrgId: next.activeOrgId,
+            role: next.role,
+            memberships: next.memberships,
+            branding: next.branding,
+          };
+          window.sessionStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(payload));
+          window.sessionStorage.setItem(AUTH_CACHE_TS_KEY, String(Date.now()));
+        }
+        return next;
+      });
+    } catch {
+      // silent — branding est non critique
+    }
+  }, [state.activeOrgId]);
+
   const value = useMemo(
-    () => ({ ...state, switchOrg, reload }),
-    [state, switchOrg, reload],
+    () => ({ ...state, switchOrg, reload, reloadBranding }),
+    [state, switchOrg, reload, reloadBranding],
   );
 
   return <OrgContext.Provider value={value}>{children}</OrgContext.Provider>;

@@ -11,22 +11,27 @@ import {
 } from 'docx';
 import type { CVContent } from '@/types';
 import { formatMonthYear } from '@/lib/utils';
+import type { CVBrand } from './branding';
+import { resolveBrand } from './branding';
 
-const QC_VIOLET = '6D28D9';
-const QC_PINK = 'E11D74';
 const NEUTRAL_DARK = '111827';
 const NEUTRAL_MUTED = '6B7280';
 
-function rule() {
+/** DOCX color hex doesn't include the leading '#'. */
+function hex(c: string): string {
+  return c.replace(/^#/, '').toUpperCase();
+}
+
+function rule(accent: string) {
   return new Paragraph({
     spacing: { before: 80, after: 120 },
     border: {
-      bottom: { color: QC_PINK, space: 1, style: BorderStyle.SINGLE, size: 12 },
+      bottom: { color: accent, space: 1, style: BorderStyle.SINGLE, size: 12 },
     },
   });
 }
 
-function sectionTitle(text: string) {
+function sectionTitle(text: string, primary: string) {
   return new Paragraph({
     spacing: { before: 240, after: 80 },
     children: [
@@ -34,7 +39,7 @@ function sectionTitle(text: string) {
         text: text.toUpperCase(),
         bold: true,
         size: 18,
-        color: QC_VIOLET,
+        color: primary,
         characterSpacing: 40,
       }),
     ],
@@ -59,18 +64,23 @@ function labelValue(label: string, value: string) {
   });
 }
 
-export async function generateCVDocx(content: CVContent): Promise<Blob> {
+export async function generateCVDocx(
+  content: CVContent,
+  options: { brand?: CVBrand } = {},
+): Promise<Blob> {
+  const b = options.brand ?? resolveBrand(null);
+  const QC_VIOLET = hex(b.primary);
+  const QC_PINK = hex(b.accent);
   const children: Paragraph[] = [];
 
-  // Header : QuadCore brand
+  // Header : brand
   children.push(
     new Paragraph({
       alignment: AlignmentType.LEFT,
       children: [
-        new TextRun({ text: 'Quad', bold: true, size: 28, color: NEUTRAL_DARK }),
-        new TextRun({ text: 'Core', bold: true, size: 28, color: QC_PINK }),
+        new TextRun({ text: b.brandName, bold: true, size: 28, color: NEUTRAL_DARK }),
         new TextRun({
-          text: '   IT Services & Consulting',
+          text: `   ${b.footerTagline}`,
           size: 14,
           color: NEUTRAL_MUTED,
           characterSpacing: 40,
@@ -78,7 +88,7 @@ export async function generateCVDocx(content: CVContent): Promise<Blob> {
       ],
     }),
   );
-  children.push(rule());
+  children.push(rule(QC_PINK));
 
   // Identity
   children.push(
@@ -161,7 +171,7 @@ export async function generateCVDocx(content: CVContent): Promise<Blob> {
 
   // Summary
   if (content.summary) {
-    children.push(sectionTitle('Résumé exécutif'));
+    children.push(sectionTitle('Résumé exécutif', QC_VIOLET));
     children.push(
       new Paragraph({
         spacing: { after: 120 },
@@ -172,7 +182,7 @@ export async function generateCVDocx(content: CVContent): Promise<Blob> {
 
   // Skills
   if (content.skillCategories.length > 0) {
-    children.push(sectionTitle('Compétences techniques'));
+    children.push(sectionTitle('Compétences techniques', QC_VIOLET));
     for (const cat of content.skillCategories) {
       const highlighted = new Set((cat.highlighted ?? []).map((h) => h.toLowerCase()));
       const runs: TextRun[] = [];
@@ -203,7 +213,7 @@ export async function generateCVDocx(content: CVContent): Promise<Blob> {
 
   // Experiences
   if (content.experiences.length > 0) {
-    children.push(sectionTitle('Expériences professionnelles'));
+    children.push(sectionTitle('Expériences professionnelles', QC_VIOLET));
     for (const exp of content.experiences) {
       children.push(
         new Paragraph({
@@ -286,7 +296,7 @@ export async function generateCVDocx(content: CVContent): Promise<Blob> {
 
   // Education
   if (content.educations.length > 0) {
-    children.push(sectionTitle('Formation'));
+    children.push(sectionTitle('Formation', QC_VIOLET));
     for (const ed of content.educations) {
       children.push(
         new Paragraph({
@@ -309,13 +319,13 @@ export async function generateCVDocx(content: CVContent): Promise<Blob> {
   }
 
   // Footer confidentiality
-  children.push(rule());
+  children.push(rule(QC_PINK));
   children.push(
     new Paragraph({
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
-          text: 'DOCUMENT CONFIDENTIEL — QuadCore IT Services & Consulting',
+          text: `DOCUMENT CONFIDENTIEL — ${b.brandName} ${b.footerTagline}`,
           size: 14,
           color: NEUTRAL_MUTED,
           characterSpacing: 40,
@@ -325,7 +335,7 @@ export async function generateCVDocx(content: CVContent): Promise<Blob> {
   );
 
   const doc = new Document({
-    creator: 'QuadCore Platform',
+    creator: `${b.brandName} Platform`,
     title: `CV ${content.header.displayName}`,
     styles: {
       default: {

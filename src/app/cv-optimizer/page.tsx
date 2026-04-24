@@ -38,6 +38,8 @@ import { generateCVContent } from '@/lib/ai/cv-generator';
 import { generateCVDocx } from '@/lib/cv/export-docx';
 import { exportCVToPdf } from '@/lib/cv/export-pdf';
 import { applyOverrides, type CVOverrides } from '@/lib/cv/overrides';
+import { resolveBrand } from '@/lib/cv/branding';
+import { useOrganization } from '@/lib/auth/context';
 import type {
   Consultant,
   ConsultantSkill,
@@ -68,6 +70,8 @@ function CVOptimizerPageInner() {
   const params = useSearchParams();
   const initialId = params?.get('consultantId') ?? '';
   const initialOfferId = params?.get('offerId') ?? '';
+  const { branding } = useOrganization();
+  const brand = useMemo(() => resolveBrand(branding), [branding]);
 
   const [consultants, setConsultants] = useState<Consultant[]>([]);
   const [selectedId, setSelectedId] = useState<string>(initialId);
@@ -387,10 +391,13 @@ function CVOptimizerPageInner() {
         /[^a-zA-Z0-9_-]/g,
         '',
       );
+      const logoSrc = brand.logoUrl ?? `${window.location.origin}/brand/quadcore-logo-dark.png`;
+      const brandSlug = (brand.brandName || 'CV').replace(/[^a-zA-Z0-9_-]/g, '');
       await exportCVToPdf(displayed, {
-        filename: `CV_QuadCore_${safeName}`,
+        filename: `CV_${brandSlug}_${safeName}`,
         templateId,
-        logoSrc: `${window.location.origin}/brand/quadcore-logo-dark.png`,
+        logoSrc,
+        brand,
       });
       toast.success('PDF téléchargé');
     } catch (e) {
@@ -410,7 +417,7 @@ function CVOptimizerPageInner() {
     }
     setExporting('docx');
     try {
-      const blob = await generateCVDocx(displayed);
+      const blob = await generateCVDocx(displayed, { brand });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -418,7 +425,8 @@ function CVOptimizerPageInner() {
         /[^a-zA-Z0-9_-]/g,
         '',
       );
-      a.download = `CV_QuadCore_${safeName}.docx`;
+      const brandSlug = brand.brandName.replace(/[^a-zA-Z0-9]/g, '') || 'CV';
+      a.download = `CV_${brandSlug}_${safeName}.docx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

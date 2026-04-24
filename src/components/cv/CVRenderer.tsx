@@ -4,6 +4,8 @@ import type { CVContent, CVTemplateId } from '@/types';
 import { QuadCoreCVStandard } from './QuadCoreCVStandard';
 import { QuadCoreCVDense } from './QuadCoreCVDense';
 import { QuadCoreCVExecutive } from './QuadCoreCVExecutive';
+import { resolveBrand } from '@/lib/cv/branding';
+import { useOrganizationSafe } from '@/lib/auth/context';
 
 type Props = {
   content: CVContent;
@@ -19,6 +21,9 @@ type Props = {
 };
 
 export function CVRenderer({ content, templateId, showConfidential, editable, onEdit }: Props) {
+  const org = useOrganizationSafe();
+  const brand = resolveBrand(org?.branding ?? null);
+
   if (templateId === 'dense') {
     return (
       <QuadCoreCVDense
@@ -26,6 +31,7 @@ export function CVRenderer({ content, templateId, showConfidential, editable, on
         showConfidential={showConfidential}
         editable={editable}
         onEdit={onEdit}
+        brand={brand}
       />
     );
   }
@@ -36,6 +42,7 @@ export function CVRenderer({ content, templateId, showConfidential, editable, on
         showConfidential={showConfidential}
         editable={editable}
         onEdit={onEdit}
+        brand={brand}
       />
     );
   }
@@ -45,6 +52,7 @@ export function CVRenderer({ content, templateId, showConfidential, editable, on
       showConfidential={showConfidential}
       editable={editable}
       onEdit={onEdit}
+      brand={brand}
     />
   );
 }

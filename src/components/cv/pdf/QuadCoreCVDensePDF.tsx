@@ -9,6 +9,8 @@ import {
 
 import type { CVContent } from '@/types';
 import { formatMonthYear } from '@/lib/utils';
+import type { CVBrand } from '@/lib/cv/branding';
+import { resolveBrand } from '@/lib/cv/branding';
 
 // =========================================================================
 // QuadCore CV — Dense (React-PDF)
@@ -16,9 +18,7 @@ import { formatMonthYear } from '@/lib/utils';
 // seniors avec 8+ missions sur 2 pages max.
 // =========================================================================
 
-const C = {
-  violet: '#6d28d9',
-  magenta: '#e11d74',
+const N = {
   neutral900: '#171717',
   neutral800: '#262626',
   neutral700: '#404040',
@@ -29,17 +29,18 @@ const C = {
   white: '#ffffff',
 };
 
-const styles = StyleSheet.create({
+function buildStyles(primary: string, accent: string) {
+  return StyleSheet.create({
   page: {
-    backgroundColor: C.white,
-    color: C.neutral900,
+    backgroundColor: N.white,
+    color: N.neutral900,
     fontFamily: 'Helvetica',
     fontSize: 8.5,
     lineHeight: 1.4,
     paddingBottom: 32,
   },
   header: {
-    backgroundColor: C.darkHeader,
+    backgroundColor: N.darkHeader,
     paddingHorizontal: 36,
     paddingVertical: 22,
   },
@@ -47,7 +48,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    color: C.white,
+    color: N.white,
     marginBottom: 10,
   },
   logo: { width: 70, height: 22, objectFit: 'contain' },
@@ -61,12 +62,12 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 20,
     fontFamily: 'Helvetica-Bold',
-    color: C.white,
+    color: N.white,
     letterSpacing: -0.5,
   },
   jobTitle: {
     fontSize: 11,
-    color: C.magenta,
+    color: accent,
     marginTop: 2,
     fontFamily: 'Helvetica-Bold',
   },
@@ -83,29 +84,29 @@ const styles = StyleSheet.create({
   sectionWrap: {
     marginTop: 10,
     paddingTop: 7,
-    borderTop: `0.5pt solid ${C.neutral200}`,
+    borderTop: `0.5pt solid ${N.neutral200}`,
   },
   sectionTitle: {
     fontSize: 8,
     fontFamily: 'Helvetica-Bold',
-    color: C.violet,
+    color: primary,
     textTransform: 'uppercase',
     letterSpacing: 2,
     marginBottom: 5,
   },
-  summary: { fontSize: 8.5, color: C.neutral800, lineHeight: 1.5 },
+  summary: { fontSize: 8.5, color: N.neutral800, lineHeight: 1.5 },
   skillRow: { flexDirection: 'row', marginBottom: 2 },
   skillCat: {
     width: 80,
     fontSize: 7,
     fontFamily: 'Helvetica-Bold',
-    color: C.neutral700,
+    color: N.neutral700,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  skillItems: { flex: 1, fontSize: 8.5, color: C.neutral800 },
-  skillHighlight: { color: C.violet, fontFamily: 'Helvetica-Bold' },
-  skillSep: { color: C.neutral400 },
+  skillItems: { flex: 1, fontSize: 8.5, color: N.neutral800 },
+  skillHighlight: { color: primary, fontFamily: 'Helvetica-Bold' },
+  skillSep: { color: N.neutral400 },
   experience: { marginTop: 6 },
   expHeaderRow: {
     flexDirection: 'row',
@@ -115,35 +116,35 @@ const styles = StyleSheet.create({
   expClient: {
     fontSize: 9.5,
     fontFamily: 'Helvetica-Bold',
-    color: C.neutral900,
+    color: N.neutral900,
     flex: 1,
   },
-  expRole: { color: C.neutral500, fontFamily: 'Helvetica' },
+  expRole: { color: N.neutral500, fontFamily: 'Helvetica' },
   expDates: {
     fontSize: 7,
-    color: C.neutral500,
+    color: N.neutral500,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
     marginLeft: 8,
   },
-  expContext: { fontSize: 8, color: C.neutral700, fontStyle: 'italic', marginTop: 1 },
+  expContext: { fontSize: 8, color: N.neutral700, fontStyle: 'italic', marginTop: 1 },
   taskItem: {
     flexDirection: 'row',
     marginTop: 1.5,
     fontSize: 8.2,
-    color: C.neutral800,
+    color: N.neutral800,
     lineHeight: 1.4,
   },
   bullet: {
     width: 2.5,
     height: 2.5,
     borderRadius: 1.25,
-    backgroundColor: C.magenta,
+    backgroundColor: accent,
     marginTop: 4,
     marginRight: 4,
   },
   taskText: { flex: 1 },
-  expEnv: { marginTop: 3, fontSize: 7.5, color: C.neutral500 },
+  expEnv: { marginTop: 3, fontSize: 7.5, color: N.neutral500 },
   expEnvLabel: {
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
@@ -155,9 +156,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 8.2,
   },
-  eduYear: { width: 28, fontFamily: 'Helvetica-Bold', color: C.neutral500 },
-  eduDegree: { fontFamily: 'Helvetica-Bold', color: C.neutral900 },
-  eduInstitution: { color: C.neutral500, marginLeft: 3 },
+  eduYear: { width: 28, fontFamily: 'Helvetica-Bold', color: N.neutral500 },
+  eduDegree: { fontFamily: 'Helvetica-Bold', color: N.neutral900 },
+  eduInstitution: { color: N.neutral500, marginLeft: 3 },
   footer: {
     position: 'absolute',
     left: 36,
@@ -166,31 +167,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     fontSize: 6.5,
-    color: C.neutral400,
+    color: N.neutral400,
     paddingTop: 5,
-    borderTop: `0.5pt solid ${C.neutral200}`,
+    borderTop: `0.5pt solid ${N.neutral200}`,
   },
-});
+  });
+}
 
 type Props = {
   content: CVContent;
   logoSrc?: string;
   showConfidential?: boolean;
+  brand?: CVBrand;
 };
 
 export function QuadCoreCVDensePDF({
   content,
   logoSrc,
   showConfidential = true,
+  brand,
 }: Props) {
+  const b = brand ?? resolveBrand(null);
+  const styles = buildStyles(b.primary, b.accent);
   const { header, skillCategories, experiences, educations, languages, summary } =
     content;
 
   return (
     <Document
-      author="QuadCore"
+      author={b.brandName}
       title={`CV — ${header.displayName}`}
-      creator="QuadCore Platform"
+      creator={`${b.brandName} Platform`}
     >
       <Page size="A4" style={styles.page} wrap>
         {/* ============ HEADER BANDEAU ============ */}
@@ -326,7 +332,7 @@ export function QuadCoreCVDensePDF({
         </View>
 
         <View style={styles.footer} fixed>
-          <Text>QuadCore — IT Services &amp; Consulting</Text>
+          <Text>{b.brandName} — {b.footerTagline}</Text>
           <Text
             render={({ pageNumber, totalPages }) =>
               `Page ${pageNumber} / ${totalPages}`
