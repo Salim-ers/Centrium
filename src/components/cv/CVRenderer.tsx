@@ -9,14 +9,42 @@ type Props = {
   content: CVContent;
   templateId: CVTemplateId;
   showConfidential?: boolean;
+  /**
+   * Si true, les champs textuels clés (titre, résumé, rôle, bullet points…)
+   * deviennent éditables directement sur le preview. onEdit reçoit alors
+   * chaque modification (path, nouvelle valeur).
+   */
+  editable?: boolean;
+  onEdit?: (path: string, value: string) => void;
 };
 
-export function CVRenderer({ content, templateId, showConfidential }: Props) {
+export function CVRenderer({ content, templateId, showConfidential, editable, onEdit }: Props) {
   if (templateId === 'dense') {
-    return <QuadCoreCVDense content={content} showConfidential={showConfidential} />;
+    return (
+      <QuadCoreCVDense
+        content={content}
+        showConfidential={showConfidential}
+        editable={editable}
+        onEdit={onEdit}
+      />
+    );
   }
   if (templateId === 'executive') {
-    return <QuadCoreCVExecutive content={content} showConfidential={showConfidential} />;
+    return (
+      <QuadCoreCVExecutive
+        content={content}
+        showConfidential={showConfidential}
+        editable={editable}
+        onEdit={onEdit}
+      />
+    );
   }
-  return <QuadCoreCVStandard content={content} showConfidential={showConfidential} />;
+  return (
+    <QuadCoreCVStandard
+      content={content}
+      showConfidential={showConfidential}
+      editable={editable}
+      onEdit={onEdit}
+    />
+  );
 }

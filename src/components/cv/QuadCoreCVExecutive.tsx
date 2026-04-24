@@ -4,7 +4,14 @@ import type { CVContent } from '@/types';
 import { formatMonthYear } from '@/lib/utils';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 
-type Props = { content: CVContent; showConfidential?: boolean };
+type Props = {
+  content: CVContent;
+  showConfidential?: boolean;
+  /** Accepté pour interop CVRenderer — l'édition inline est câblée seulement
+   *  sur le template Standard pour l'instant. */
+  editable?: boolean;
+  onEdit?: (path: string, value: string) => void;
+};
 
 /**
  * QuadCore Executive — Pour directeurs, leads, architectes.

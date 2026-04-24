@@ -19,6 +19,8 @@ import {
   CheckCircle2,
   HelpCircle,
   MinusCircle,
+  Pencil,
+  RotateCcw,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -35,6 +37,7 @@ import { jobOfferService } from '@/lib/services';
 import { generateCVContent } from '@/lib/ai/cv-generator';
 import { generateCVDocx } from '@/lib/cv/export-docx';
 import { exportCVToPdf } from '@/lib/cv/export-pdf';
+import { applyOverrides, type CVOverrides } from '@/lib/cv/overrides';
 import type {
   Consultant,
   ConsultantSkill,
@@ -90,6 +93,25 @@ function CVOptimizerPageInner() {
     flaggedClaims: string[];
   } | null>(null);
   const [exporting, setExporting] = useState<'pdf' | 'docx' | null>(null);
+
+  // === Édition inline "à la Canva" sur le preview ===
+  const [editMode, setEditMode] = useState(false);
+  const [overrides, setOverrides] = useState<CVOverrides>({});
+  const displayed = useMemo(
+    () => (generated ? applyOverrides(generated, overrides) : null),
+    [generated, overrides],
+  );
+  const hasOverrides = Object.keys(overrides).length > 0;
+
+  function handleInlineEdit(path: string, value: string) {
+    setOverrides((prev) => ({ ...prev, [path]: value }));
+  }
+  function resetOverrides() {
+    if (!hasOverrides) return;
+    const ok = confirm('Annuler toutes les modifications manuelles sur ce CV ?');
+    if (!ok) return;
+    setOverrides({});
+  }
 
   // === Suggestions IA pour skills manquantes ===
   type SkillSuggestion = {
@@ -312,6 +334,13 @@ function CVOptimizerPageInner() {
     setIgnoredSkills((prev) => new Set(prev).add(skill));
   }
 
+  // Dès que le consultant, l'offre ou le template change, les overrides
+  // manuels précédents ne sont plus cohérents (ids d'expériences, textes
+  // régénérés…). On les efface pour repartir propre.
+  useEffect(() => {
+    setOverrides({});
+  }, [selectedId, templateId, parsedOffer?.title, parsedOffer?.required_skills?.join('|')]);
+
   // Auto-preview : dès que consultant chargé + template changent
   useEffect(() => {
     if (!loaded) {
@@ -348,7 +377,7 @@ function CVOptimizerPageInner() {
   }, [loaded, parsedOffer, templateId]);
 
   async function handleDownloadPDF() {
-    if (!generated || !loaded) {
+    if (!displayed || !loaded) {
       toast.error('Aucun CV à exporter');
       return;
     }
@@ -358,7 +387,7 @@ function CVOptimizerPageInner() {
         /[^a-zA-Z0-9_-]/g,
         '',
       );
-      await exportCVToPdf(generated, {
+      await exportCVToPdf(displayed, {
         filename: `CV_QuadCore_${safeName}`,
         templateId,
         logoSrc: `${window.location.origin}/brand/quadcore-logo-dark.png`,
@@ -375,13 +404,13 @@ function CVOptimizerPageInner() {
   }
 
   async function handleDownloadDOCX() {
-    if (!generated || !loaded) {
+    if (!displayed || !loaded) {
       toast.error('Aucun CV à exporter');
       return;
     }
     setExporting('docx');
     try {
-      const blob = await generateCVDocx(generated);
+      const blob = await generateCVDocx(displayed);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -423,7 +452,27 @@ function CVOptimizerPageInner() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant={editMode ? 'default' : 'outline'}
+            onClick={() => setEditMode((v) => !v)}
+            disabled={!generated}
+            title={editMode ? 'Sortir du mode édition' : 'Éditer directement sur le CV'}
+            className={editMode ? 'bg-violet-glow text-white hover:bg-violet-500' : ''}
+          >
+            <Pencil className="h-4 w-4" />
+            {editMode ? 'Édition active' : 'Éditer le CV'}
+          </Button>
+          {hasOverrides && (
+            <Button
+              variant="outline"
+              onClick={resetOverrides}
+              title="Annuler toutes les modifications manuelles"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Réinitialiser
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={handleDownloadDOCX}
@@ -446,6 +495,22 @@ function CVOptimizerPageInner() {
           </Button>
         </div>
       </div>
+
+      {editMode && templateId !== 'standard' && (
+        <div className="no-print mb-3 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-200 flex items-center gap-2">
+          <Info className="h-3.5 w-3.5 shrink-0" />
+          L'édition inline est pour l'instant câblée sur le template{' '}
+          <strong>Standard</strong>. Bascule sur Standard pour éditer directement sur le preview.
+        </div>
+      )}
+      {editMode && hasOverrides && (
+        <div className="no-print mb-3 text-[11px] text-violet-300/80">
+          {Object.keys(overrides).length} modification
+          {Object.keys(overrides).length > 1 ? 's' : ''} manuelle
+          {Object.keys(overrides).length > 1 ? 's' : ''} appliquée
+          {Object.keys(overrides).length > 1 ? 's' : ''} — elles seront incluses dans l'export.
+        </div>
+      )}
 
       <div className="no-print grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-6">
         {/* Sidebar config */}
@@ -855,12 +920,22 @@ function CVOptimizerPageInner() {
                 </CardContent>
               </Card>
               <div className="overflow-auto bg-neutral-200 p-6 rounded-xl">
-                <CVRenderer content={generated} templateId={templateId} />
+                <CVRenderer
+                  content={displayed ?? generated}
+                  templateId={templateId}
+                  editable={editMode}
+                  onEdit={handleInlineEdit}
+                />
               </div>
             </>
           ) : generated ? (
             <div className="overflow-auto bg-neutral-200 p-6 rounded-xl">
-              <CVRenderer content={generated} templateId={templateId} />
+              <CVRenderer
+                content={displayed ?? generated}
+                templateId={templateId}
+                editable={editMode}
+                onEdit={handleInlineEdit}
+              />
             </div>
           ) : (
             <Card>
@@ -874,7 +949,7 @@ function CVOptimizerPageInner() {
 
       {/* Version imprimable plein écran (Ctrl+P natif, export via React-PDF). */}
       <div className="print-only hidden print:block">
-        {generated && <CVRenderer content={generated} templateId={templateId} />}
+        {displayed && <CVRenderer content={displayed} templateId={templateId} />}
       </div>
     </AppShell>
   );

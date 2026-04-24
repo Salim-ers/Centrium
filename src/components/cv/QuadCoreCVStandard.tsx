@@ -3,10 +3,13 @@
 import type { CVContent } from '@/types';
 import { formatMonthYear } from '@/lib/utils';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
+import { Editable } from './Editable';
 
 type Props = {
   content: CVContent;
   showConfidential?: boolean;
+  editable?: boolean;
+  onEdit?: (path: string, value: string) => void;
 };
 
 /**
@@ -15,7 +18,12 @@ type Props = {
  * Fond blanc. Accents QuadCore violet/magenta uniquement sur les séparateurs.
  * Rendu parfait pour envoi client final.
  */
-export function QuadCoreCVStandard({ content, showConfidential = true }: Props) {
+export function QuadCoreCVStandard({
+  content,
+  showConfidential = true,
+  editable = false,
+  onEdit,
+}: Props) {
   return (
     <div className="cv-print-page bg-white text-neutral-900 shadow-2xl mx-auto"
          style={{ width: '210mm', fontFamily: 'Georgia, serif' }}>
@@ -47,22 +55,36 @@ export function QuadCoreCVStandard({ content, showConfidential = true }: Props) 
 
       {/* ============ IDENTITY ============ */}
       <section className="px-12 pt-2 pb-4">
-        <h1
-          className="font-sans text-[32px] font-bold leading-tight tracking-tight text-neutral-900"
+        <Editable
+          as="h1"
+          path="header.displayName"
+          value={content.header.displayName}
+          editable={editable}
+          onEdit={onEdit}
+          placeholder="Nom du consultant"
+          className="block font-sans text-[32px] font-bold leading-tight tracking-tight text-neutral-900"
           style={{ letterSpacing: '-0.02em' }}
-        >
-          {content.header.displayName}
-        </h1>
-        <p
-          className="font-sans text-[17px] font-semibold mt-1"
+        />
+        <Editable
+          as="p"
+          path="header.jobTitle"
+          value={content.header.jobTitle}
+          editable={editable}
+          onEdit={onEdit}
+          placeholder="Intitulé de poste"
+          className="block font-sans text-[17px] font-semibold mt-1"
           style={{ color: '#6d28d9' }}
-        >
-          {content.header.jobTitle}
-        </p>
-        {content.header.subTitle && (
-          <p className="font-sans text-[13px] text-neutral-600 mt-0.5">
-            {content.header.subTitle}
-          </p>
+        />
+        {(content.header.subTitle || editable) && (
+          <Editable
+            as="p"
+            path="header.subTitle"
+            value={content.header.subTitle ?? ''}
+            editable={editable}
+            onEdit={onEdit}
+            placeholder="Sous-titre (stack, spécialité…)"
+            className="block font-sans text-[13px] text-neutral-600 mt-0.5"
+          />
         )}
 
         <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-[11px] text-neutral-700 font-sans">
@@ -90,9 +112,16 @@ export function QuadCoreCVStandard({ content, showConfidential = true }: Props) 
       {/* ============ EXECUTIVE SUMMARY ============ */}
       <section className="px-12 py-4 border-t border-neutral-200">
         <SectionTitle>Résumé exécutif</SectionTitle>
-        <p className="mt-2 text-[12px] leading-[1.65] text-neutral-800 font-sans">
-          {content.summary}
-        </p>
+        <Editable
+          as="p"
+          path="summary"
+          value={content.summary}
+          editable={editable}
+          onEdit={onEdit}
+          placeholder="Résumé exécutif du profil…"
+          multiline
+          className="block mt-2 text-[12px] leading-[1.65] text-neutral-800 font-sans whitespace-pre-wrap"
+        />
       </section>
 
       {/* ============ TECH SKILLS ============ */}
@@ -138,9 +167,24 @@ export function QuadCoreCVStandard({ content, showConfidential = true }: Props) 
             <article key={exp.id} className="cv-article">
               <div className="flex items-baseline justify-between gap-4">
                 <h3 className="font-sans font-bold text-[13px] text-neutral-900">
-                  {exp.client_name}
+                  <Editable
+                    as="span"
+                    path={`experience.${exp.id}.client_name`}
+                    value={exp.client_name}
+                    editable={editable}
+                    onEdit={onEdit}
+                    placeholder="Client"
+                  />
                   <span className="font-normal text-neutral-500 ml-2">
-                    — {exp.role}
+                    —{' '}
+                    <Editable
+                      as="span"
+                      path={`experience.${exp.id}.role`}
+                      value={exp.role}
+                      editable={editable}
+                      onEdit={onEdit}
+                      placeholder="Rôle"
+                    />
                   </span>
                 </h3>
                 <div className="text-[10px] uppercase tracking-wider text-neutral-500 whitespace-nowrap font-sans">
@@ -148,10 +192,17 @@ export function QuadCoreCVStandard({ content, showConfidential = true }: Props) 
                 </div>
               </div>
 
-              {exp.context && (
-                <p className="mt-1 text-[11px] leading-[1.55] text-neutral-600 italic font-sans">
-                  {exp.context}
-                </p>
+              {(exp.context || editable) && (
+                <Editable
+                  as="p"
+                  path={`experience.${exp.id}.context`}
+                  value={exp.context ?? ''}
+                  editable={editable}
+                  onEdit={onEdit}
+                  placeholder="Contexte de la mission…"
+                  multiline
+                  className="block mt-1 text-[11px] leading-[1.55] text-neutral-600 italic font-sans whitespace-pre-wrap"
+                />
               )}
 
               {exp.tasks && exp.tasks.length > 0 && (
@@ -162,7 +213,16 @@ export function QuadCoreCVStandard({ content, showConfidential = true }: Props) 
                         className="mt-[7px] h-[3px] w-[3px] shrink-0 rounded-full"
                         style={{ backgroundColor: '#e11d74' }}
                       />
-                      <span>{task}</span>
+                      <Editable
+                        as="span"
+                        path={`experience.${exp.id}.task.${i}`}
+                        value={task}
+                        editable={editable}
+                        onEdit={onEdit}
+                        placeholder="Tâche / responsabilité"
+                        multiline
+                        className="flex-1 whitespace-pre-wrap"
+                      />
                     </li>
                   ))}
                 </ul>
@@ -192,9 +252,27 @@ export function QuadCoreCVStandard({ content, showConfidential = true }: Props) 
                 <span className="w-14 shrink-0 font-semibold text-neutral-500">
                   {edu.year}
                 </span>
-                <span className="font-semibold text-neutral-900">{edu.degree}</span>
-                {edu.institution && (
-                  <span className="text-neutral-500">— {edu.institution}</span>
+                <Editable
+                  as="span"
+                  path={`education.${edu.id}.degree`}
+                  value={edu.degree}
+                  editable={editable}
+                  onEdit={onEdit}
+                  placeholder="Diplôme"
+                  className="font-semibold text-neutral-900"
+                />
+                {(edu.institution || editable) && (
+                  <span className="text-neutral-500">
+                    —{' '}
+                    <Editable
+                      as="span"
+                      path={`education.${edu.id}.institution`}
+                      value={edu.institution ?? ''}
+                      editable={editable}
+                      onEdit={onEdit}
+                      placeholder="École / université"
+                    />
+                  </span>
                 )}
               </div>
             ))}
