@@ -80,7 +80,7 @@ CREATE POLICY org_assets_delete ON storage.objects
 DROP VIEW IF EXISTS public.my_organizations;
 CREATE OR REPLACE VIEW public.my_organizations AS
 SELECT
-  o.id,
+  m.organization_id AS id,
   o.name,
   o.slug,
   o.logo_url,
@@ -88,14 +88,12 @@ SELECT
   o.footer_tagline,
   o.brand_primary_color,
   o.brand_accent_color,
-  o.plan,
   m.role,
-  m.status,
   m.joined_at
 FROM organization_members m
 JOIN organizations o ON o.id = m.organization_id
 WHERE m.user_id = auth.uid()
-  AND m.status = 'active';
+ORDER BY m.joined_at ASC;
 
 GRANT SELECT ON public.my_organizations TO authenticated;
 
