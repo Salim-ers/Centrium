@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState, useMemo } from 'react';
+import { Suspense, useEffect, useRef, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
@@ -85,6 +85,19 @@ function CVOptimizerPageInner() {
   const [offerSkills, setOfferSkills] = useState('');
 
   const [templateId, setTemplateId] = useState<CVTemplateId>('standard');
+  // Tant que l'utilisateur n'a pas explicitement changé le template, on suit le
+  // défaut configuré par l'organisation dans /settings/branding.
+  const templateTouchedRef = useRef(false);
+  useEffect(() => {
+    if (templateTouchedRef.current) return;
+    const pref = branding?.defaultCvTemplate;
+    if (pref && pref !== templateId) setTemplateId(pref);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branding?.defaultCvTemplate]);
+  const handleTemplateChange = (value: CVTemplateId) => {
+    templateTouchedRef.current = true;
+    setTemplateId(value);
+  };
   const [generated, setGenerated] = useState<CVContent | null>(null);
   const [matching, setMatching] = useState<{
     score: number;
@@ -575,7 +588,7 @@ function CVOptimizerPageInner() {
             <CardContent>
               <Select
                 value={templateId}
-                onChange={(e) => setTemplateId(e.target.value as CVTemplateId)}
+                onChange={(e) => handleTemplateChange(e.target.value as CVTemplateId)}
               >
                 <option value="standard">{CV_TEMPLATE_LABEL.standard}</option>
                 <option value="dense">{CV_TEMPLATE_LABEL.dense}</option>

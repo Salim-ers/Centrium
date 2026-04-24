@@ -17,7 +17,11 @@ const putSchema = z.object({
   brand_primary_color: hexColor.nullable().optional(),
   brand_accent_color: hexColor.nullable().optional(),
   logo_url: z.string().url().nullable().optional(),
+  default_cv_template: z.enum(['standard', 'dense', 'executive']).nullable().optional(),
 });
+
+const SELECT_COLS =
+  'id, name, logo_url, brand_name, footer_tagline, brand_primary_color, brand_accent_color, default_cv_template';
 
 export async function GET() {
   const ctx = await requireOrg();
@@ -25,9 +29,7 @@ export async function GET() {
 
   const { data, error } = await admin
     .from('organizations')
-    .select(
-      'id, name, logo_url, brand_name, footer_tagline, brand_primary_color, brand_accent_color',
-    )
+    .select(SELECT_COLS)
     .eq('id', ctx.organizationId)
     .maybeSingle();
 
@@ -60,9 +62,7 @@ export async function PUT(req: NextRequest) {
     .from('organizations')
     .update(parsed.data)
     .eq('id', ctx.organizationId)
-    .select(
-      'id, name, logo_url, brand_name, footer_tagline, brand_primary_color, brand_accent_color',
-    )
+    .select(SELECT_COLS)
     .single();
 
   if (error) {

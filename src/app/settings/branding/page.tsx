@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Palette, Upload, Trash2, Loader2, RotateCcw } from 'lucide-react';
+import { Palette, Upload, Trash2, Loader2, RotateCcw, LayoutTemplate } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,6 +15,33 @@ import { useOrganization } from '@/lib/auth/context';
 const DEFAULT_PRIMARY = '#6d28d9';
 const DEFAULT_ACCENT = '#e11d74';
 
+type TemplateId = 'standard' | 'dense' | 'executive';
+
+const TEMPLATE_OPTIONS: Array<{
+  id: TemplateId;
+  name: string;
+  description: string;
+}> = [
+  {
+    id: 'standard',
+    name: 'Standard',
+    description:
+      'Équilibré, lisible. Bon défaut pour la majorité des profils. Édition inline supportée.',
+  },
+  {
+    id: 'dense',
+    name: 'Dense',
+    description:
+      'Typographie serrée, header sombre. Idéal pour les profils seniors avec 8+ missions.',
+  },
+  {
+    id: 'executive',
+    name: 'Executive',
+    description:
+      'Très aéré, typo large. Conseillé pour les profils lead, architectes, direction.',
+  },
+];
+
 type Branding = {
   id: string;
   name: string;
@@ -23,6 +50,7 @@ type Branding = {
   footer_tagline: string | null;
   brand_primary_color: string | null;
   brand_accent_color: string | null;
+  default_cv_template: TemplateId | null;
 };
 
 export default function BrandingSettingsPage() {
@@ -40,6 +68,7 @@ export default function BrandingSettingsPage() {
   const [primary, setPrimary] = useState(DEFAULT_PRIMARY);
   const [accent, setAccent] = useState(DEFAULT_ACCENT);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [defaultTemplate, setDefaultTemplate] = useState<TemplateId>('standard');
 
   const fileRef = useRef<HTMLInputElement | null>(null);
 
@@ -50,6 +79,7 @@ export default function BrandingSettingsPage() {
     setPrimary(b.brand_primary_color ?? DEFAULT_PRIMARY);
     setAccent(b.brand_accent_color ?? DEFAULT_ACCENT);
     setLogoUrl(b.logo_url);
+    setDefaultTemplate(b.default_cv_template ?? 'standard');
   }, []);
 
   useEffect(() => {
@@ -80,6 +110,7 @@ export default function BrandingSettingsPage() {
         footer_tagline: footerTagline.trim() || null,
         brand_primary_color: primary || null,
         brand_accent_color: accent || null,
+        default_cv_template: defaultTemplate,
       };
       const res = await fetch('/api/organizations/branding', {
         method: 'PUT',
@@ -151,7 +182,8 @@ export default function BrandingSettingsPage() {
     (brandName !== (initial.brand_name ?? '') ||
       footerTagline !== (initial.footer_tagline ?? '') ||
       primary !== (initial.brand_primary_color ?? DEFAULT_PRIMARY) ||
-      accent !== (initial.brand_accent_color ?? DEFAULT_ACCENT));
+      accent !== (initial.brand_accent_color ?? DEFAULT_ACCENT) ||
+      defaultTemplate !== (initial.default_cv_template ?? 'standard'));
 
   return (
     <AppShell>
@@ -317,6 +349,49 @@ export default function BrandingSettingsPage() {
                   onChange={setAccent}
                   disabled={!isAdmin}
                 />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <LayoutTemplate className="h-4 w-4" />
+                  Template CV par défaut
+                </CardTitle>
+                <CardDescription>
+                  Layout présélectionné à l'ouverture du CV Optimizer. Chaque utilisateur peut
+                  toujours changer ponctuellement.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {TEMPLATE_OPTIONS.map((opt) => {
+                  const selected = defaultTemplate === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      disabled={!isAdmin}
+                      onClick={() => setDefaultTemplate(opt.id)}
+                      className={[
+                        'w-full rounded-md border px-4 py-3 text-left transition-colors',
+                        'disabled:cursor-not-allowed disabled:opacity-60',
+                        selected
+                          ? 'border-violet-glow/70 bg-violet-glow/10'
+                          : 'border-border hover:border-border/80 hover:bg-muted/30',
+                      ].join(' ')}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-sm">{opt.name}</span>
+                        {selected && (
+                          <span className="text-[10px] uppercase tracking-wider text-violet-glow font-bold">
+                            Sélectionné
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{opt.description}</p>
+                    </button>
+                  );
+                })}
               </CardContent>
             </Card>
 

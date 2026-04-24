@@ -18,6 +18,8 @@ export type Membership = {
   role: UserRole;
 };
 
+export type CVTemplatePref = 'standard' | 'dense' | 'executive';
+
 export type OrgBranding = {
   id: string;
   name: string;
@@ -26,6 +28,7 @@ export type OrgBranding = {
   footerTagline: string | null;
   primaryColor: string | null;
   accentColor: string | null;
+  defaultCvTemplate: CVTemplatePref | null;
 };
 
 type State = {
@@ -128,12 +131,13 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         footer_tagline: string | null;
         brand_primary_color: string | null;
         brand_accent_color: string | null;
+        default_cv_template: CVTemplatePref | null;
       };
       const memberQ = Promise.resolve(
         supabase
           .from('my_organizations')
           .select(
-            'id, name, slug, role, logo_url, brand_name, footer_tagline, brand_primary_color, brand_accent_color',
+            'id, name, slug, role, logo_url, brand_name, footer_tagline, brand_primary_color, brand_accent_color, default_cv_template',
           ),
       ) as Promise<{ data: MembershipRow[] | null }>;
 
@@ -162,6 +166,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
             footerTagline: activeRow.footer_tagline,
             primaryColor: activeRow.brand_primary_color,
             accentColor: activeRow.brand_accent_color,
+            defaultCvTemplate: activeRow.default_cv_template,
           }
         : null;
 
@@ -221,6 +226,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
           footer_tagline: string | null;
           brand_primary_color: string | null;
           brand_accent_color: string | null;
+          default_cv_template: CVTemplatePref | null;
         };
       };
       const branding: OrgBranding = {
@@ -231,6 +237,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         footerTagline: data.footer_tagline,
         primaryColor: data.brand_primary_color,
         accentColor: data.brand_accent_color,
+        defaultCvTemplate: data.default_cv_template,
       };
       setState((s) => {
         const next = { ...s, branding };
