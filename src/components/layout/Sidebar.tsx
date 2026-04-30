@@ -31,14 +31,7 @@ import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { useOrganizationSafe } from '@/lib/auth/context';
 
 type NavItem = { label: string; href: string; icon: React.ElementType };
-type NavGroup = {
-  id: string;
-  label: string;
-  icon: React.ElementType;
-  items: NavItem[];
-  /** Si true, tous les items du groupe s'allument dès qu'un seul est actif. */
-  linkSiblings?: boolean;
-};
+type NavGroup = { id: string; label: string; icon: React.ElementType; items: NavItem[] };
 
 const GROUPS: NavGroup[] = [
   {
@@ -89,7 +82,6 @@ const GROUPS: NavGroup[] = [
     id: 'organisation',
     label: 'Organisation',
     icon: Building2,
-    linkSiblings: true,
     items: [
       { label: 'Équipe', href: '/settings/team', icon: Package },
       { label: 'Paramètres', href: '/settings', icon: Settings },
@@ -191,12 +183,22 @@ export function Sidebar() {
               {open && (
                 <ul className="mt-1 space-y-0.5">
                   {group.items.map((item) => {
-                    const itemActive =
+                    // Match "le plus spécifique l'emporte" : si un sibling a
+                    // un href plus précis qui matche aussi (ex: /settings/team
+                    // sibling de /settings), il prend la priorité et les
+                    // autres ne s'allument pas.
+                    let active =
                       pathname === item.href || pathname.startsWith(item.href + '/');
-                    // Groupes "liés" (ex: Organisation) : tous les items
-                    // s'allument dès qu'un seul l'est.
-                    const active =
-                      group.linkSiblings && groupActive ? true : itemActive;
+                    if (active && pathname !== item.href) {
+                      const moreSpecific = group.items.some(
+                        (other) =>
+                          other.href !== item.href &&
+                          other.href.startsWith(item.href + '/') &&
+                          (pathname === other.href ||
+                            pathname.startsWith(other.href + '/')),
+                      );
+                      if (moreSpecific) active = false;
+                    }
                     const Icon = item.icon;
                     return (
                       <li key={item.href}>
