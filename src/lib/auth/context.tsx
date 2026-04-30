@@ -77,7 +77,12 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
           try {
             const parsed = JSON.parse(cached) as Omit<State, 'loading'>;
             setState({ ...parsed, loading: false });
-            if (!force && Date.now() - ts < AUTH_CACHE_TTL_MS) {
+            // Cache "frais" UNIQUEMENT si l'état est cohérent. Un cache qui
+            // montre user connecté sans activeOrgId est cassé : on bypass le
+            // TTL pour retenter — sinon l'utilisateur reste bloqué jusqu'à
+            // expiration / déco.
+            const isBroken = !!parsed.user && !parsed.activeOrgId;
+            if (!force && !isBroken && Date.now() - ts < AUTH_CACHE_TTL_MS) {
               hadFreshCache = true;
             }
           } catch {
@@ -88,19 +93,27 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
       if (hadFreshCache) return;
 
-      // Timeout de sécurité : si Supabase stall, on ne veut pas que l'UI
-      // reste en loading=true indéfiniment.
-      const withTimeout = <T,>(p: Promise<T>, ms: number, fallback: T) =>
+      // Timeout de sécurité : on rejette plutôt qu'un fallback silencieux,
+      // pour pouvoir distinguer "vraiment vide" de "Supabase stall" et ne pas
+      // empoisonner le cache avec un état cassé qui survivrait au refresh.
+      const withTimeout = <T,>(p: Promise<T>, ms: number) =>
         Promise.race([
           p,
-          new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+          new Promise<T>((_, reject) =>
+            setTimeout(() => reject(new Error('auth_timeout')), ms),
+          ),
         ]);
 
-      const { data: { session } } = await withTimeout(
-        supabase.auth.getSession(),
-        8000,
-        { data: { session: null } } as Awaited<ReturnType<typeof supabase.auth.getSession>>,
-      );
+      let session: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'] = null;
+      try {
+        const r = await withTimeout(supabase.auth.getSession(), 8000);
+        session = r.data.session ?? null;
+      } catch {
+        // Impossible de lire la session — on garde l'état actuel et on
+        // arrête juste le spinner. Aucun écrasement du cache.
+        setState((s) => ({ ...s, loading: false }));
+        return;
+      }
       const user = session?.user ?? null;
 
       if (!user) {
@@ -120,8 +133,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
       }
 
       // Les PostgrestBuilder sont thenable ; Promise.resolve suffit pour les
-      // "terminer". Fallback = objet minimal avec juste .data, c'est tout ce
-      // qu'on lit ensuite.
+      // "terminer".
       const profileQ = Promise.resolve(
         supabase.from('profiles').select('organization_id').eq('id', user.id).single(),
       ) as Promise<{ data: { organization_id: string | null } | null }>;
@@ -143,10 +155,21 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
           ),
       ) as Promise<{ data: MembershipRow[] | null }>;
 
-      const [profileRes, memberRes] = await Promise.all([
-        withTimeout(profileQ, 8000, { data: null } as { data: { organization_id: string | null } | null }),
-        withTimeout(memberQ, 8000, { data: [] } as { data: MembershipRow[] | null }),
-      ]);
+      let profileRes: { data: { organization_id: string | null } | null };
+      let memberRes: { data: MembershipRow[] | null };
+      try {
+        [profileRes, memberRes] = await Promise.all([
+          withTimeout(profileQ, 12000),
+          withTimeout(memberQ, 12000),
+        ]);
+      } catch {
+        // Réseau / RLS hiccup : on préserve l'état précédent (qui peut
+        // contenir un activeOrgId valide depuis le cache) au lieu de
+        // l'écraser par memberships=[]. L'utilisateur ne se retrouve pas
+        // bloqué sur une page vide.
+        setState((s) => ({ ...s, loading: false }));
+        return;
+      }
 
       const rows = (memberRes.data ?? []) as MembershipRow[];
       const memberships: Membership[] = rows.map(({ id, name, slug, role }) => ({
@@ -194,6 +217,26 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
     const { data: sub } = supabase.auth.onAuthStateChange(() => load({ force: true }));
     return () => sub.subscription.unsubscribe();
   }, [load, supabase]);
+
+  // Recover from broken state when the tab becomes visible again. Common
+  // case : token rotated server-side while the tab was idle, queries silently
+  // return empty, user lands on a blank page until they reload.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      // Only force-reload if we have a logged-in user but no active org —
+      // the symptom of a broken state. Otherwise leave the cache alone.
+      setState((s) => {
+        if (s.user && !s.activeOrgId) {
+          load({ force: true });
+        }
+        return s;
+      });
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [load]);
 
   const switchOrg = useCallback(
     async (orgId: string) => {
