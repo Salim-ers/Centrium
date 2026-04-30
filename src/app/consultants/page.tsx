@@ -3,7 +3,18 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Plus, Search, Eye, Pencil, Trash2, ArchiveRestore, Archive, X, Target } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Eye,
+  Pencil,
+  Trash2,
+  ArchiveRestore,
+  Archive,
+  X,
+  Target,
+  ArrowLeftCircle,
+} from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
@@ -159,6 +170,23 @@ export default function ConsultantsPage() {
       return;
     }
     toast.success(`${consultant.first_name} ${consultant.last_name} restauré`);
+    setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
+  }
+
+  async function demoteToProspect(consultant: Consultant) {
+    if (
+      !confirm(
+        `Renvoyer ${consultant.first_name} ${consultant.last_name} dans le vivier de prospection ? Le profil sort de l'effectif actif et n'est plus comptabilisé dans la facturation.`,
+      )
+    ) {
+      return;
+    }
+    const res = await consultantService.demoteToProspect(consultant.id);
+    if (res.error) {
+      toast.error('Erreur : ' + res.error.message);
+      return;
+    }
+    toast.success(`${consultant.first_name} ${consultant.last_name} renvoyé au vivier`);
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
   }
 
@@ -394,6 +422,15 @@ export default function ConsultantsPage() {
                               title="Éditer"
                             >
                               <Pencil className="h-3.5 w-3.5 text-violet-glow" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => demoteToProspect(c)}
+                              title="Renvoyer au vivier de prospection"
+                              className="text-amber-300 hover:text-amber-200"
+                            >
+                              <ArrowLeftCircle className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               variant="ghost"
