@@ -31,7 +31,14 @@ import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { useOrganizationSafe } from '@/lib/auth/context';
 
 type NavItem = { label: string; href: string; icon: React.ElementType };
-type NavGroup = { id: string; label: string; icon: React.ElementType; items: NavItem[] };
+type NavGroup = {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  items: NavItem[];
+  /** Si true, tous les items du groupe s'allument dès qu'un seul est actif. */
+  linkSiblings?: boolean;
+};
 
 const GROUPS: NavGroup[] = [
   {
@@ -82,6 +89,7 @@ const GROUPS: NavGroup[] = [
     id: 'organisation',
     label: 'Organisation',
     icon: Building2,
+    linkSiblings: true,
     items: [
       { label: 'Équipe', href: '/settings/team', icon: Package },
       { label: 'Paramètres', href: '/settings', icon: Settings },
@@ -183,8 +191,12 @@ export function Sidebar() {
               {open && (
                 <ul className="mt-1 space-y-0.5">
                   {group.items.map((item) => {
-                    const active =
+                    const itemActive =
                       pathname === item.href || pathname.startsWith(item.href + '/');
+                    // Groupes "liés" (ex: Organisation) : tous les items
+                    // s'allument dès qu'un seul l'est.
+                    const active =
+                      group.linkSiblings && groupActive ? true : itemActive;
                     const Icon = item.icon;
                     return (
                       <li key={item.href}>
