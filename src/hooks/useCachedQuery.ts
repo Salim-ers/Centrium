@@ -92,6 +92,26 @@ export function useCachedQuery<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, key]);
 
+  // Refetch au retour sur l'onglet si la donnée est "trop vieille". Sans ça,
+  // après une longue idle, le composant reste affiché avec des données
+  // périmées (et parfois vides si le JWT avait expiré au moment du dernier
+  // fetch). Seuil 60s pour éviter le spam.
+  useEffect(() => {
+    if (!enabled || typeof document === 'undefined') return;
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      const last = readCache<T>(key);
+      if (last && Date.now() - last.ts < 60_000) return;
+      run();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, [enabled, key, run]);
+
   const setData = useCallback(
     (updater: T | ((prev: T | null) => T)) => {
       setDataState((prev) => {

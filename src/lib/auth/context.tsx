@@ -218,25 +218,35 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
     return () => sub.subscription.unsubscribe();
   }, [load, supabase]);
 
-  // Recover from broken state when the tab becomes visible again. Common
-  // case : token rotated server-side while the tab was idle, queries silently
-  // return empty, user lands on a blank page until they reload.
+  // Au retour de l'onglet : on force un refresh du token Supabase et on
+  // recharge le contexte. Sans ça, après une longue idle le JWT peut être
+  // expiré côté navigateur, RLS renvoie 0 rows, et toutes les listes
+  // s'affichent vides jusqu'à un refresh manuel ou un logout/login.
   useEffect(() => {
     if (typeof document === 'undefined') return;
+    let lastRefresh = Date.now();
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return;
-      // Only force-reload if we have a logged-in user but no active org —
-      // the symptom of a broken state. Otherwise leave the cache alone.
+      const idleMs = Date.now() - lastRefresh;
+      lastRefresh = Date.now();
+      // Pas la peine de refresh si on revient dans la fenêtre de 60s.
+      if (idleMs < 60_000) return;
+      // Best-effort : si pas de user en cache, on ne fait rien (load() s'en
+      // occupera de toute façon au prochain trigger). Si user présent, on
+      // refresh le token et on relance le load.
       setState((s) => {
-        if (s.user && !s.activeOrgId) {
-          load({ force: true });
-        }
+        if (!s.user) return s;
+        supabase.auth.refreshSession().finally(() => load({ force: true }));
         return s;
       });
     };
     document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [load]);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, [load, supabase]);
 
   const switchOrg = useCallback(
     async (orgId: string) => {
