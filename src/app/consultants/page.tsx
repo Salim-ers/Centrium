@@ -31,7 +31,12 @@ import {
 } from '@/components/ui/table';
 import { ConsultantFormDialog } from '@/components/consultants/ConsultantFormDialog';
 import { AssignMissionDialog } from '@/components/missions/AssignMissionDialog';
+import { JobFamilyFilter } from '@/components/consultants/JobFamilyFilter';
 import { Select } from '@/components/ui/select';
+import {
+  classifyJobFamily,
+  type JobFamilyId,
+} from '@/lib/consultants/job-family';
 
 import {
   consultantService,
@@ -57,6 +62,7 @@ export default function ConsultantsPage() {
   const [editingConsultant, setEditingConsultant] = useState<Consultant | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [assignTo, setAssignTo] = useState<ConsultantListItem | null>(null);
+  const [familyFilter, setFamilyFilter] = useState<Set<JobFamilyId>>(new Set());
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 200);
@@ -79,7 +85,27 @@ export default function ConsultantsPage() {
     },
     { enabled: !!activeOrgId },
   );
-  const consultants = consultantsData ?? [];
+  const allConsultants = consultantsData ?? [];
+
+  // Comptes par corps de métier (sur la liste non filtrée par famille,
+  // sinon les chips inactives masqueraient leur propre compte).
+  const familyCounts = (() => {
+    const base: Record<JobFamilyId, number> = {
+      qa: 0, dev: 0, data: 0, devops: 0, cyber: 0, pm: 0,
+      ba: 0, architect: 0, support: 0, design: 0, other: 0,
+    };
+    for (const c of allConsultants) {
+      base[classifyJobFamily(c.job_title)] += 1;
+    }
+    return base;
+  })();
+
+  const consultants =
+    familyFilter.size === 0
+      ? allConsultants
+      : allConsultants.filter((c) =>
+          familyFilter.has(classifyJobFamily(c.job_title)),
+        );
 
   useEffect(() => {
     if (!activeOrgId) return;
@@ -261,7 +287,7 @@ export default function ConsultantsPage() {
       />
 
       <Card className="mb-6">
-        <CardContent className="p-4">
+        <CardContent className="p-4 space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -271,6 +297,12 @@ export default function ConsultantsPage() {
               className="pl-9"
             />
           </div>
+          <JobFamilyFilter
+            counts={familyCounts}
+            total={allConsultants.length}
+            active={familyFilter}
+            onChange={setFamilyFilter}
+          />
         </CardContent>
       </Card>
 

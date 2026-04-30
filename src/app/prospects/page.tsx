@@ -19,10 +19,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ConsultantFormDialog } from '@/components/consultants/ConsultantFormDialog';
+import { JobFamilyFilter } from '@/components/consultants/JobFamilyFilter';
 
 import { consultantService } from '@/lib/services/consultant.service';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { classifyJobFamily, type JobFamilyId } from '@/lib/consultants/job-family';
 import type { Consultant } from '@/types';
 import { SENIORITY_LABEL } from '@/constants';
 import { formatCurrency } from '@/lib/utils';
@@ -33,6 +35,7 @@ export default function ProspectsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Consultant | null>(null);
+  const [familyFilter, setFamilyFilter] = useState<Set<JobFamilyId>>(new Set());
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 200);
@@ -56,7 +59,25 @@ export default function ProspectsPage() {
     { enabled: !!activeOrgId },
   );
 
-  const prospectsList = prospects ?? [];
+  const allProspects = prospects ?? [];
+
+  const familyCounts = (() => {
+    const base: Record<JobFamilyId, number> = {
+      qa: 0, dev: 0, data: 0, devops: 0, cyber: 0, pm: 0,
+      ba: 0, architect: 0, support: 0, design: 0, other: 0,
+    };
+    for (const c of allProspects) {
+      base[classifyJobFamily(c.job_title)] += 1;
+    }
+    return base;
+  })();
+
+  const prospectsList =
+    familyFilter.size === 0
+      ? allProspects
+      : allProspects.filter((c) =>
+          familyFilter.has(classifyJobFamily(c.job_title)),
+        );
 
   function openCreate() {
     setEditing(null);
@@ -127,7 +148,7 @@ export default function ProspectsPage() {
       />
 
       <Card className="mb-6">
-        <CardContent className="p-4">
+        <CardContent className="p-4 space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -137,6 +158,12 @@ export default function ProspectsPage() {
               className="pl-9"
             />
           </div>
+          <JobFamilyFilter
+            counts={familyCounts}
+            total={allProspects.length}
+            active={familyFilter}
+            onChange={setFamilyFilter}
+          />
         </CardContent>
       </Card>
 
