@@ -9,10 +9,20 @@ import { ArrowLeft, Printer, CheckCircle2 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { TimesheetDocument } from '@/components/timesheets/TimesheetDocument';
+import { TimesheetDocument, type TimesheetIssuer } from '@/components/timesheets/TimesheetDocument';
 import { timesheetService } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import type { Timesheet, Mission, Consultant, Company } from '@/types';
+
+type IdentityRow = {
+  name: string;
+  brand_name: string | null;
+  footer_tagline: string | null;
+  logo_url: string | null;
+  signature_url: string | null;
+  representative_name: string | null;
+  representative_title: string | null;
+};
 
 type TimesheetDay = {
   id: string;
@@ -45,12 +55,13 @@ const STATUS_LABEL: Record<Timesheet['status'], string> = {
 };
 
 export default function TimesheetDetailPage() {
-  const { activeOrgId } = useOrganization();
+  const { activeOrgId, branding } = useOrganization();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [issuer, setIssuer] = useState<TimesheetIssuer | null>(null);
 
   async function reload() {
     if (!params?.id) return;
@@ -63,6 +74,36 @@ export default function TimesheetDetailPage() {
   useEffect(() => {
     reload();
   }, [params?.id]);
+
+  useEffect(() => {
+    if (!activeOrgId) {
+      setIssuer(null);
+      return;
+    }
+    let cancelled = false;
+    fetch('/api/organizations/identity', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body: { data: IdentityRow } | null) => {
+        if (cancelled || !body?.data) return;
+        const row = body.data;
+        setIssuer({
+          brandName: row.brand_name ?? row.name,
+          logoUrl: row.logo_url,
+          footerTagline: row.footer_tagline,
+          signatureUrl: row.signature_url,
+          primaryColor: branding?.primaryColor ?? null,
+          accentColor: branding?.accentColor ?? null,
+          representativeName: row.representative_name,
+          representativeTitle: row.representative_title,
+        });
+      })
+      .catch(() => {
+        // fallback = issuer QuadCore par défaut
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeOrgId, branding?.primaryColor, branding?.accentColor]);
 
   async function validateAndInvoice() {
     if (!detail) return;
@@ -137,11 +178,11 @@ export default function TimesheetDetailPage() {
       </div>
 
       <div className="no-print bg-neutral-200 rounded-xl p-6 overflow-auto">
-        <TimesheetDocument {...detail} />
+        <TimesheetDocument {...detail} issuer={issuer} />
       </div>
 
       <div className="print-only hidden print:block">
-        <TimesheetDocument {...detail} />
+        <TimesheetDocument {...detail} issuer={issuer} />
       </div>
     </AppShell>
   );

@@ -38,6 +38,30 @@ type Props = {
   isProspect?: boolean;
 };
 
+function normalizeUrl(raw: string | null | undefined): string {
+  if (!raw) return '';
+  const v = raw.trim();
+  if (!v) return '';
+  // Déjà une URL valide
+  try {
+    const u = new URL(v);
+    if (u.protocol === 'http:' || u.protocol === 'https:') return u.toString();
+  } catch {
+    // pas une URL — on tente d'ajouter https://
+  }
+  // Cas "linkedin.com/in/..." ou "www.linkedin.com/in/..." → ajoute https://
+  if (/^(www\.)?[a-z0-9.-]+\.[a-z]{2,}(\/.*)?$/i.test(v)) {
+    try {
+      const u = new URL(`https://${v}`);
+      return u.toString();
+    } catch {
+      return '';
+    }
+  }
+  // Tout le reste = ininterprétable, on jette plutôt que faire échouer le form
+  return '';
+}
+
 function toFormValues(c: Consultant | null | undefined): Partial<ConsultantInput> {
   if (!c) {
     return {
@@ -199,7 +223,7 @@ export function ConsultantFormDialog({
       summary: safeParsed.summary ?? '',
       email: mergedIdentity.email ?? '',
       phone: mergedIdentity.phone ?? '',
-      linkedin_url: mergedIdentity.linkedin_url ?? '',
+      linkedin_url: normalizeUrl(mergedIdentity.linkedin_url),
     } as Partial<ConsultantInput>);
 
     warnings.forEach((w) => toast.warning(w, { duration: 6000 }));

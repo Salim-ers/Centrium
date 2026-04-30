@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, X, Sparkles, ImageUp, CheckCircle2 } from 'lucide-react';
 
 import {
   Dialog,
@@ -22,6 +22,7 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { jobOfferSchema, type JobOfferInput } from '@/lib/validators';
 import { jobOfferService } from '@/lib/services';
+import { parseOfferImage } from '@/lib/offers/parse-offer-image';
 import type { JobOffer } from '@/types';
 
 type Props = {
@@ -69,6 +70,9 @@ export function JobOfferFormDialog({
   const [niceToHave, setNiceToHave] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState('');
   const [niceInput, setNiceInput] = useState('');
+  const [parsingImage, setParsingImage] = useState(false);
+  const [imageFileName, setImageFileName] = useState<string | null>(null);
+  const imageRef = useRef<HTMLInputElement | null>(null);
   const isEdit = !!offer;
 
   const {
@@ -90,8 +94,46 @@ export function JobOfferFormDialog({
       setNiceToHave(values.nice_to_have ?? []);
       setSkillInput('');
       setNiceInput('');
+      setParsingImage(false);
+      setImageFileName(null);
     }
   }, [open, offer, reset]);
+
+  async function handleImageFile(file: File) {
+    setParsingImage(true);
+    try {
+      const { parsed } = await parseOfferImage(file);
+      const dedupe = (xs: string[]) =>
+        Array.from(new Set(xs.map((s) => s.trim()).filter(Boolean)));
+      const required = dedupe(parsed.required_skills);
+      const nice = dedupe(parsed.nice_to_have);
+      reset({
+        title: parsed.title ?? '',
+        description: parsed.description ?? '',
+        required_skills: required,
+        nice_to_have: nice,
+        seniority: parsed.seniority ?? undefined,
+        daily_rate_min: parsed.daily_rate_min ?? undefined,
+        daily_rate_max: parsed.daily_rate_max ?? undefined,
+        location: parsed.location ?? '',
+        remote_days: parsed.remote_days ?? 0,
+        start_date: parsed.start_date ?? '',
+        duration_months: parsed.duration_months ?? undefined,
+        deadline: parsed.deadline ?? '',
+      });
+      setRequiredSkills(required);
+      setNiceToHave(nice);
+      setImageFileName(file.name);
+      toast.success('Offre extraite — vérifie et valide pour créer.');
+    } catch (e) {
+      toast.error(
+        `Lecture de l'offre échouée${e instanceof Error ? ` : ${e.message}` : ''}.`,
+      );
+    } finally {
+      setParsingImage(false);
+      if (imageRef.current) imageRef.current.value = '';
+    }
+  }
 
   function addSkill(kind: 'required' | 'nice') {
     const input = kind === 'required' ? skillInput : niceInput;
@@ -158,6 +200,59 @@ export function JobOfferFormDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
+          {!isEdit && (
+            <div className="rounded-lg border border-violet-brand/25 bg-violet-brand/5 p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded-md bg-violet-brand/15 p-1.5">
+                  <Sparkles className="h-4 w-4 text-violet-300" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium">
+                    Importer une capture d&apos;écran d&apos;AO
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    PNG, JPEG ou WebP. L&apos;IA extrait intitulé, description, compétences,
+                    TJM, lieu, durée et dates.
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <label
+                  className={`inline-flex items-center gap-2 h-9 px-3 rounded-md border cursor-pointer text-sm transition ${
+                    parsingImage
+                      ? 'border-white/10 bg-white/5 text-white/40 cursor-wait'
+                      : 'border-violet-brand/40 bg-violet-brand/10 text-violet-100 hover:bg-violet-brand/20'
+                  }`}
+                >
+                  {parsingImage ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ImageUp className="h-4 w-4" />
+                  )}
+                  {parsingImage ? 'Analyse en cours…' : 'Choisir une capture'}
+                  <input
+                    ref={imageRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    disabled={parsingImage}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleImageFile(f);
+                    }}
+                  />
+                </label>
+                {imageFileName && !parsingImage && (
+                  <div className="text-xs text-white/70 truncate flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                    <span className="truncate">{imageFileName}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div>
             <Label>Intitulé de la mission *</Label>
             <Input {...register('title')} placeholder="ex: Lead Dev Backend — Banque de détail" />

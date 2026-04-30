@@ -3,15 +3,59 @@ import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { QuadCoreSignature } from '@/components/brand/QuadCoreSignature';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
+export type InvoiceIssuer = {
+  brandName: string;
+  legalName: string;
+  address: string | null;
+  city: string | null;
+  postalCode: string | null;
+  siren: string | null;
+  footerTagline: string | null;
+  logoUrl: string | null;
+  signatureUrl: string | null;
+  primaryColor: string | null;
+  accentColor: string | null;
+  representativeName: string | null;
+  representativeTitle: string | null;
+};
+
+const DEFAULT_ISSUER: InvoiceIssuer = {
+  brandName: 'QuadCore',
+  legalName: 'QuadCore SAS',
+  address: '5 Rue du Docteur Roux',
+  city: 'Nogent Sur Oise',
+  postalCode: '60180',
+  siren: '101 694 016',
+  footerTagline: 'IT Services & Consulting',
+  logoUrl: null,
+  signatureUrl: null,
+  primaryColor: '#6d28d9',
+  accentColor: '#e11d74',
+  representativeName: 'QuadCore SAS',
+  representativeTitle: 'Direction commerciale',
+};
+
 type Props = {
   invoice: Invoice;
   company: Company | null;
   mission: Mission | null;
   consultant: Consultant | null;
   timesheet: Timesheet | null;
+  issuer?: InvoiceIssuer | null;
 };
 
-export function InvoiceDocument({ invoice, company, mission, consultant, timesheet }: Props) {
+export function InvoiceDocument({
+  invoice,
+  company,
+  mission,
+  consultant,
+  timesheet,
+  issuer,
+}: Props) {
+  const iss = issuer ?? DEFAULT_ISSUER;
+  const primary = iss.primaryColor || '#6d28d9';
+  const accent = iss.accentColor || '#e11d74';
+  const cityLine = [iss.postalCode, iss.city].filter(Boolean).join(' ');
   const ht = Number(invoice.amount_ht);
   const vat = Number(invoice.amount_vat);
   const ttc = Number(invoice.amount_ttc);
@@ -23,7 +67,7 @@ export function InvoiceDocument({ invoice, company, mission, consultant, timeshe
     >
       <header className="px-12 pt-10 pb-6">
         <div className="flex items-start justify-between gap-6">
-          <QuadCoreLogo size="md" />
+          <QuadCoreLogo size="md" src={iss.logoUrl} alt={iss.brandName} />
           <div className="text-right">
             <div className="text-[10px] uppercase tracking-[0.2em] text-neutral-400">Facture</div>
             <div className="font-mono text-lg font-bold mt-1">{invoice.invoice_number}</div>
@@ -31,18 +75,28 @@ export function InvoiceDocument({ invoice, company, mission, consultant, timeshe
         </div>
         <div
           className="mt-5 h-[2px] w-full"
-          style={{ background: 'linear-gradient(90deg, #6d28d9 0%, #e11d74 55%, transparent 100%)' }}
+          style={{ background: `linear-gradient(90deg, ${primary} 0%, ${accent} 55%, transparent 100%)` }}
         />
       </header>
 
       <section className="px-12 py-6 grid grid-cols-2 gap-8">
         <div>
           <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">Émetteur</div>
-          <div className="text-sm font-semibold text-neutral-900">QuadCore SAS</div>
+          <div className="text-sm font-semibold text-neutral-900">{iss.legalName}</div>
           <div className="text-xs text-neutral-600 leading-relaxed mt-1">
-            5 Rue du Docteur Roux<br />
-            60180 Nogent Sur Oise<br />
-            SIREN 101 694 016
+            {iss.address && (
+              <>
+                {iss.address}
+                <br />
+              </>
+            )}
+            {cityLine && (
+              <>
+                {cityLine}
+                <br />
+              </>
+            )}
+            {iss.siren && <>SIREN {iss.siren}</>}
           </div>
         </div>
 
@@ -124,10 +178,10 @@ export function InvoiceDocument({ invoice, company, mission, consultant, timeshe
           </div>
           <div
             className="flex justify-between py-2 border-t-2 text-base font-bold"
-            style={{ borderColor: '#6d28d9' }}
+            style={{ borderColor: primary }}
           >
             <span>Total TTC</span>
-            <span style={{ color: '#e11d74' }}>{formatCurrency(ttc)}</span>
+            <span style={{ color: accent }}>{formatCurrency(ttc)}</span>
           </div>
         </div>
       </section>
@@ -148,9 +202,13 @@ export function InvoiceDocument({ invoice, company, mission, consultant, timeshe
           </div>
           <div className="flex justify-end">
             <QuadCoreSignature
-              signerName="QuadCore SAS"
-              signerRole="Direction commerciale"
+              signerName={iss.representativeName ?? iss.legalName}
+              signerRole={iss.representativeTitle ?? 'Direction commerciale'}
               date={formatDate(invoice.issue_date)}
+              imageUrl={iss.signatureUrl}
+              brandName={iss.brandName}
+              logoUrl={iss.logoUrl}
+              accentColor={accent}
             />
           </div>
         </div>
@@ -159,10 +217,12 @@ export function InvoiceDocument({ invoice, company, mission, consultant, timeshe
       <footer className="px-12 py-4 text-center">
         <div
           className="h-[2px] w-full mb-3"
-          style={{ background: 'linear-gradient(90deg, transparent 0%, #e11d74 45%, #6d28d9 100%)' }}
+          style={{ background: `linear-gradient(90deg, transparent 0%, ${accent} 45%, ${primary} 100%)` }}
         />
         <div className="text-[9px] text-neutral-400 tracking-wider">
-          QuadCore · IT Services &amp; Consulting · SIREN 101 694 016
+          {iss.brandName}
+          {iss.footerTagline ? ` · ${iss.footerTagline}` : ''}
+          {iss.siren ? ` · SIREN ${iss.siren}` : ''}
         </div>
       </footer>
     </div>

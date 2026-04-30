@@ -21,7 +21,7 @@ const putSchema = z.object({
 });
 
 const SELECT_COLS =
-  'id, name, logo_url, brand_name, footer_tagline, brand_primary_color, brand_accent_color, default_cv_template';
+  'id, name, logo_url, brand_name, footer_tagline, brand_primary_color, brand_accent_color, default_cv_template, signature_url';
 
 export async function GET() {
   const ctx = await requireOrg();

@@ -36,6 +36,7 @@ type IdentityRow = {
   legal_form: string | null;
   representative_name: string | null;
   representative_title: string | null;
+  signature_url: string | null;
 };
 
 function toIssuer(row: IdentityRow): ContractIssuer {
@@ -53,6 +54,7 @@ function toIssuer(row: IdentityRow): ContractIssuer {
     representativeTitle: row.representative_title,
     logoUrl: row.logo_url,
     footerTagline: row.footer_tagline,
+    signatureUrl: row.signature_url,
   };
 }
 

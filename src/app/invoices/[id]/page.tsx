@@ -10,8 +10,9 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { InvoiceDocument } from '@/components/invoices/InvoiceDocument';
+import { InvoiceDocument, type InvoiceIssuer } from '@/components/invoices/InvoiceDocument';
 import { invoiceService } from '@/lib/services';
+import { useOrganization } from '@/lib/auth/context';
 import type { Invoice, Company, Mission, Consultant, Timesheet } from '@/types';
 import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE } from '@/constants';
 
@@ -23,12 +24,28 @@ type Detail = {
   timesheet: Timesheet | null;
 };
 
+type IdentityRow = {
+  name: string;
+  brand_name: string | null;
+  footer_tagline: string | null;
+  logo_url: string | null;
+  signature_url: string | null;
+  address: string | null;
+  city: string | null;
+  postal_code: string | null;
+  siren: string | null;
+  representative_name: string | null;
+  representative_title: string | null;
+};
+
 export default function InvoiceDetailPage() {
+  const { activeOrgId, branding } = useOrganization();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [issuer, setIssuer] = useState<InvoiceIssuer | null>(null);
 
   async function reload() {
     if (!params?.id) return;
@@ -41,6 +58,39 @@ export default function InvoiceDetailPage() {
   useEffect(() => {
     reload();
   }, [params?.id]);
+
+  useEffect(() => {
+    if (!activeOrgId) {
+      setIssuer(null);
+      return;
+    }
+    let cancelled = false;
+    fetch('/api/organizations/identity', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body: { data: IdentityRow } | null) => {
+        if (cancelled || !body?.data) return;
+        const row = body.data;
+        setIssuer({
+          brandName: row.brand_name ?? row.name,
+          legalName: row.name,
+          address: row.address,
+          city: row.city,
+          postalCode: row.postal_code,
+          siren: row.siren,
+          footerTagline: row.footer_tagline,
+          logoUrl: row.logo_url,
+          signatureUrl: row.signature_url,
+          primaryColor: branding?.primaryColor ?? null,
+          accentColor: branding?.accentColor ?? null,
+          representativeName: row.representative_name,
+          representativeTitle: row.representative_title,
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [activeOrgId, branding?.primaryColor, branding?.accentColor]);
 
   async function markSent() {
     if (!detail) return;
@@ -116,11 +166,11 @@ export default function InvoiceDetailPage() {
       </div>
 
       <div className="no-print bg-neutral-200 rounded-xl p-6 overflow-auto">
-        <InvoiceDocument {...detail} />
+        <InvoiceDocument {...detail} issuer={issuer} />
       </div>
 
       <div className="print-only hidden print:block">
-        <InvoiceDocument {...detail} />
+        <InvoiceDocument {...detail} issuer={issuer} />
       </div>
     </AppShell>
   );

@@ -6,7 +6,7 @@ import { requireOrg } from '@/lib/auth/guards';
 export const runtime = 'nodejs';
 
 const SELECT_COLS =
-  'id, name, slug, logo_url, brand_name, footer_tagline, address, city, postal_code, country, siren, siret, vat_number, rcs, capital_eur, legal_form, representative_name, representative_title';
+  'id, name, slug, logo_url, brand_name, footer_tagline, address, city, postal_code, country, siren, siret, vat_number, rcs, capital_eur, legal_form, representative_name, representative_title, signature_url';
 
 export async function GET() {
   const ctx = await requireOrg();

@@ -29,6 +29,7 @@ export type OrgBranding = {
   primaryColor: string | null;
   accentColor: string | null;
   defaultCvTemplate: CVTemplatePref | null;
+  signatureUrl: string | null;
 };
 
 type State = {
@@ -132,12 +133,13 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         brand_primary_color: string | null;
         brand_accent_color: string | null;
         default_cv_template: CVTemplatePref | null;
+        signature_url: string | null;
       };
       const memberQ = Promise.resolve(
         supabase
           .from('my_organizations')
           .select(
-            'id, name, slug, role, logo_url, brand_name, footer_tagline, brand_primary_color, brand_accent_color, default_cv_template',
+            'id, name, slug, role, logo_url, brand_name, footer_tagline, brand_primary_color, brand_accent_color, default_cv_template, signature_url',
           ),
       ) as Promise<{ data: MembershipRow[] | null }>;
 
@@ -167,6 +169,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
             primaryColor: activeRow.brand_primary_color,
             accentColor: activeRow.brand_accent_color,
             defaultCvTemplate: activeRow.default_cv_template,
+            signatureUrl: activeRow.signature_url,
           }
         : null;
 
@@ -227,6 +230,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
           brand_primary_color: string | null;
           brand_accent_color: string | null;
           default_cv_template: CVTemplatePref | null;
+          signature_url: string | null;
         };
       };
       const branding: OrgBranding = {
@@ -238,6 +242,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         primaryColor: data.brand_primary_color,
         accentColor: data.brand_accent_color,
         defaultCvTemplate: data.default_cv_template,
+        signatureUrl: data.signature_url,
       };
       setState((s) => {
         const next = { ...s, branding };

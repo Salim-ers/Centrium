@@ -10,12 +10,35 @@ type TimesheetDay = {
   note: string | null;
 };
 
+export type TimesheetIssuer = {
+  brandName: string;
+  logoUrl: string | null;
+  footerTagline: string | null;
+  signatureUrl: string | null;
+  primaryColor: string | null;
+  accentColor: string | null;
+  representativeName: string | null;
+  representativeTitle: string | null;
+};
+
+const DEFAULT_ISSUER: TimesheetIssuer = {
+  brandName: 'QuadCore',
+  logoUrl: null,
+  footerTagline: 'IT Services & Consulting',
+  signatureUrl: null,
+  primaryColor: '#6d28d9',
+  accentColor: '#e11d74',
+  representativeName: 'QuadCore SAS',
+  representativeTitle: 'Direction commerciale',
+};
+
 type Props = {
   timesheet: Timesheet;
   mission: Mission | null;
   consultant: Consultant | null;
   company: Company | null;
   days: TimesheetDay[];
+  issuer?: TimesheetIssuer | null;
 };
 
 const MONTH_NAMES_FR = [
@@ -40,7 +63,17 @@ const STATUS_LABEL_FR: Record<Timesheet['status'], string> = {
   rejected: 'Rejeté',
 };
 
-export function TimesheetDocument({ timesheet, mission, consultant, company, days }: Props) {
+export function TimesheetDocument({
+  timesheet,
+  mission,
+  consultant,
+  company,
+  days,
+  issuer,
+}: Props) {
+  const iss = issuer ?? DEFAULT_ISSUER;
+  const primary = iss.primaryColor || '#6d28d9';
+  const accent = iss.accentColor || '#e11d74';
   const monthName = MONTH_NAMES_FR[timesheet.period_month - 1];
   const periodLabel = `${monthName} ${timesheet.period_year}`;
 
@@ -58,7 +91,7 @@ export function TimesheetDocument({ timesheet, mission, consultant, company, day
     >
       <header className="px-12 pt-10 pb-6">
         <div className="flex items-start justify-between gap-6">
-          <QuadCoreLogo size="md" />
+          <QuadCoreLogo size="md" src={iss.logoUrl} alt={iss.brandName} />
           <div className="text-right">
             <div className="text-[10px] uppercase tracking-[0.2em] text-neutral-400">
               Compte rendu d&apos;activité
@@ -68,7 +101,7 @@ export function TimesheetDocument({ timesheet, mission, consultant, company, day
         </div>
         <div
           className="mt-5 h-[2px] w-full"
-          style={{ background: 'linear-gradient(90deg, #6d28d9 0%, #e11d74 55%, transparent 100%)' }}
+          style={{ background: `linear-gradient(90deg, ${primary} 0%, ${accent} 55%, transparent 100%)` }}
         />
       </header>
 
@@ -127,7 +160,7 @@ export function TimesheetDocument({ timesheet, mission, consultant, company, day
                 {c.duration > 0 && (
                   <span
                     className="text-[10px] font-bold"
-                    style={{ color: '#6d28d9' }}
+                    style={{ color: primary }}
                   >
                     {c.duration === 1 ? '1j' : `${c.duration}j`}
                   </span>
@@ -156,10 +189,10 @@ export function TimesheetDocument({ timesheet, mission, consultant, company, day
             </div>
             <div
               className="flex justify-between py-2 border-t-2 text-base font-bold"
-              style={{ borderColor: '#6d28d9' }}
+              style={{ borderColor: primary }}
             >
               <span>Total HT estimé</span>
-              <span style={{ color: '#e11d74' }}>{formatCurrency(totalHt)}</span>
+              <span style={{ color: accent }}>{formatCurrency(totalHt)}</span>
             </div>
           </div>
         </section>
@@ -182,13 +215,17 @@ export function TimesheetDocument({ timesheet, mission, consultant, company, day
           </div>
           <div className="flex justify-end">
             <QuadCoreSignature
-              signerName="QuadCore SAS"
-              signerRole="Direction commerciale"
+              signerName={iss.representativeName ?? 'QuadCore SAS'}
+              signerRole={iss.representativeTitle ?? 'Direction commerciale'}
               date={
                 timesheet.validated_at
                   ? formatDate(timesheet.validated_at)
                   : formatDate(new Date().toISOString())
               }
+              imageUrl={iss.signatureUrl}
+              brandName={iss.brandName}
+              logoUrl={iss.logoUrl}
+              accentColor={accent}
             />
           </div>
         </div>
@@ -197,10 +234,11 @@ export function TimesheetDocument({ timesheet, mission, consultant, company, day
       <footer className="px-12 py-4 text-center">
         <div
           className="h-[2px] w-full mb-3"
-          style={{ background: 'linear-gradient(90deg, transparent 0%, #e11d74 45%, #6d28d9 100%)' }}
+          style={{ background: `linear-gradient(90deg, transparent 0%, ${accent} 45%, ${primary} 100%)` }}
         />
         <div className="text-[9px] text-neutral-400 tracking-wider">
-          QuadCore · IT Services &amp; Consulting · CRA {periodLabel}
+          {iss.brandName}
+          {iss.footerTagline ? ` · ${iss.footerTagline}` : ''} · CRA {periodLabel}
         </div>
       </footer>
     </div>

@@ -18,6 +18,7 @@ export type ContractIssuer = {
   representativeTitle: string | null;
   logoUrl: string | null;
   footerTagline: string | null;
+  signatureUrl: string | null;
   billingEmailFallback?: string | null;
 };
 
@@ -35,6 +36,7 @@ const DEFAULT_ISSUER: ContractIssuer = {
   representativeTitle: 'Président',
   logoUrl: null,
   footerTagline: 'IT Services & Consulting',
+  signatureUrl: null,
 };
 
 type Props = { contract: Contract; issuer?: ContractIssuer | null };
@@ -437,7 +439,19 @@ export function QuadCoreContractAT({ contract, issuer }: Props) {
             {iss.representativeName && (
               <p className="text-[9pt] text-neutral-600 mt-0.5">{iss.representativeName}</p>
             )}
-            <div style={{ height: '60px' }} />
+            {iss.signatureUrl ? (
+              <div className="mt-2 h-[60px] flex items-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={iss.signatureUrl}
+                  alt={`Signature ${iss.brandName}`}
+                  className="max-h-[60px] max-w-[220px] object-contain select-none"
+                  draggable={false}
+                />
+              </div>
+            ) : (
+              <div style={{ height: '60px' }} />
+            )}
           </div>
           <div className="border-t border-black pt-2">
             <p className="font-bold">Pour {supplier_company_name || '[Fournisseur]'}</p>

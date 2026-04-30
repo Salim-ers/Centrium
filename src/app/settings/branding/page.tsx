@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Palette, Upload, Trash2, Loader2, RotateCcw, LayoutTemplate } from 'lucide-react';
+import { Palette, Upload, Trash2, Loader2, RotateCcw, LayoutTemplate, PenLine } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -51,6 +51,7 @@ type Branding = {
   brand_primary_color: string | null;
   brand_accent_color: string | null;
   default_cv_template: TemplateId | null;
+  signature_url: string | null;
 };
 
 export default function BrandingSettingsPage() {
@@ -61,6 +62,8 @@ export default function BrandingSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [deletingLogo, setDeletingLogo] = useState(false);
+  const [uploadingSig, setUploadingSig] = useState(false);
+  const [deletingSig, setDeletingSig] = useState(false);
 
   const [initial, setInitial] = useState<Branding | null>(null);
   const [brandName, setBrandName] = useState('');
@@ -68,9 +71,11 @@ export default function BrandingSettingsPage() {
   const [primary, setPrimary] = useState(DEFAULT_PRIMARY);
   const [accent, setAccent] = useState(DEFAULT_ACCENT);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
   const [defaultTemplate, setDefaultTemplate] = useState<TemplateId>('standard');
 
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const sigRef = useRef<HTMLInputElement | null>(null);
 
   const applyFromApi = useCallback((b: Branding) => {
     setInitial(b);
@@ -79,6 +84,7 @@ export default function BrandingSettingsPage() {
     setPrimary(b.brand_primary_color ?? DEFAULT_PRIMARY);
     setAccent(b.brand_accent_color ?? DEFAULT_ACCENT);
     setLogoUrl(b.logo_url);
+    setSignatureUrl(b.signature_url);
     setDefaultTemplate(b.default_cv_template ?? 'standard');
   }, []);
 
@@ -180,6 +186,50 @@ export default function BrandingSettingsPage() {
       toast.error('Suppression du logo échouée.');
     } finally {
       setDeletingLogo(false);
+    }
+  };
+
+  const uploadSignature = async (file: File) => {
+    if (!isAdmin) return;
+    setUploadingSig(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/organizations/branding/signature', {
+        method: 'POST',
+        body: fd,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.error ?? `HTTP ${res.status}`);
+      }
+      setSignatureUrl((json?.data?.signature_url as string | null) ?? null);
+      await reloadBranding();
+      toast.success('Signature mise à jour.');
+    } catch (e) {
+      toast.error(
+        `Upload de la signature échoué${e instanceof Error ? ` : ${e.message}` : ''}.`,
+      );
+    } finally {
+      setUploadingSig(false);
+      if (sigRef.current) sigRef.current.value = '';
+    }
+  };
+
+  const removeSignature = async () => {
+    if (!isAdmin) return;
+    if (!confirm('Supprimer la signature ? Les documents utiliseront le rendu texte par défaut.')) return;
+    setDeletingSig(true);
+    try {
+      const res = await fetch('/api/organizations/branding/signature', { method: 'DELETE' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setSignatureUrl(null);
+      await reloadBranding();
+      toast.success('Signature supprimée.');
+    } catch {
+      toast.error('Suppression de la signature échouée.');
+    } finally {
+      setDeletingSig(false);
     }
   };
 
@@ -287,6 +337,84 @@ export default function BrandingSettingsPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Transparent recommandé. Fallback = logo QuadCore.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <PenLine className="h-4 w-4" />
+                  Signature officielle
+                </CardTitle>
+                <CardDescription>
+                  PNG transparent fortement recommandé — 3 Mo maximum. Incrustée dans les
+                  contrats, CRA et factures à la place du rendu texte stylisé.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-start gap-5">
+                  <div className="h-24 w-40 rounded-md border border-border bg-neutral-50 flex items-center justify-center overflow-hidden">
+                    {signatureUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={signatureUrl}
+                        alt="Signature"
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    ) : (
+                      <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-400">
+                        Aucune signature
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        ref={sigRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) uploadSignature(f);
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!isAdmin || uploadingSig}
+                        onClick={() => sigRef.current?.click()}
+                      >
+                        {uploadingSig ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Upload className="h-4 w-4" />
+                        )}
+                        {signatureUrl ? 'Remplacer' : 'Téléverser'}
+                      </Button>
+                      {signatureUrl && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={!isAdmin || deletingSig}
+                          onClick={removeSignature}
+                        >
+                          {deletingSig ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                          Supprimer
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Scan ou export d'un trait signé, sur fond transparent.
                     </p>
                   </div>
                 </div>
