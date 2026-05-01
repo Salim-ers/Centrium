@@ -761,9 +761,10 @@ export const dashboardService = {
     const firstDayMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
     const [
-      onMission,
+      activeMissions,
       available,
       openOps,
+      openJobOffers,
       wonOps,
       invoicesPaid,
       invoicesPending,
@@ -771,18 +772,27 @@ export const dashboardService = {
       timesheetsPending,
       criticalAlerts,
     ] = await Promise.all([
+      // Source de vérité = la table missions, pas consultant.status (qui peut
+      // dériver). On dédupe les consultant_id côté client pour avoir un compte
+      // distinct.
+      supabase
+        .from('missions')
+        .select('consultant_id')
+        .in('status', ['proposed', 'active']),
       supabase
         .from('consultants')
         .select('id', { count: 'exact', head: true })
-        .eq('status', 'on_mission'),
-      supabase
-        .from('consultants')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'available'),
+        .eq('status', 'available')
+        .eq('archived', false)
+        .eq('is_prospect', false),
       supabase
         .from('opportunities')
         .select('id', { count: 'exact', head: true })
         .not('status', 'in', '("won","lost")'),
+      supabase
+        .from('job_offers')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'open'),
       supabase
         .from('opportunities')
         .select('id', { count: 'exact', head: true })
@@ -812,6 +822,29 @@ export const dashboardService = {
         .eq('status', 'new'),
     ]);
 
+    const onMissionIds = new Set(
+      (activeMissions.data ?? []).map(
+        (m) => (m as { consultant_id: string }).consultant_id,
+      ),
+    );
+    const consultantsOnMission = onMissionIds.size;
+
+    // "Disponibles" exclut ceux qui ont déjà une mission active : sinon un
+    // consultant avec une mission proposée mais status='available' (drift)
+    // serait compté dans les deux KPIs.
+    let consultantsAvailable = available.count ?? 0;
+    if (onMissionIds.size > 0 && (available.count ?? 0) > 0) {
+      const { data: availableIds } = await supabase
+        .from('consultants')
+        .select('id')
+        .eq('status', 'available')
+        .eq('archived', false)
+        .eq('is_prospect', false);
+      consultantsAvailable = (availableIds ?? []).filter(
+        (c) => !onMissionIds.has((c as { id: string }).id),
+      ).length;
+    }
+
     const revenueThisMonth = (invoicesPaid.data ?? []).reduce(
       (sum, inv) => sum + Number(inv.amount_ht ?? 0),
       0
@@ -819,9 +852,11 @@ export const dashboardService = {
 
     return {
       data: {
-        consultantsOnMission: onMission.count ?? 0,
-        consultantsAvailable: available.count ?? 0,
-        openOpportunities: openOps.count ?? 0,
+        consultantsOnMission,
+        consultantsAvailable,
+        // "Ouvertes" = AO en cours (job_offers.open) + opportunités CRM
+        // non clôturées. La plupart des ESN n'utilisent qu'un des deux.
+        openOpportunities: (openOps.count ?? 0) + (openJobOffers.count ?? 0),
         opportunitiesWonThisMonth: wonOps.count ?? 0,
         revenueThisMonth,
         pendingInvoices: invoicesPending.count ?? 0,
