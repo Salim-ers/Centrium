@@ -34,6 +34,12 @@ type MissionOption = {
   start_date: string;
   end_date: string | null;
   status: string;
+  company: { id: string; name: string; address: string | null; city: string | null } | null;
+  job_offer: {
+    id: string;
+    location: string | null;
+    remote_days: number | null;
+  } | null;
 };
 
 type Props = {
@@ -86,15 +92,20 @@ export function ContractFormDialog({
       consultantService.list().then((res) => {
         if (res.data) setConsultants(res.data);
       });
-      // Charge les missions actives + proposées (pour pre-fill du contrat)
+      // Charge les missions actives + proposées (pour pre-fill du contrat),
+      // avec le client final et l'AO source pour pré-remplir lieu / remote.
       const supabase = createClient();
       supabase
         .from('missions')
-        .select('id, title, consultant_id, daily_rate_eur, start_date, end_date, status')
+        .select(
+          `id, title, consultant_id, daily_rate_eur, start_date, end_date, status,
+           company:companies (id, name, address, city),
+           job_offer:job_offers (id, location, remote_days)`,
+        )
         .in('status', ['proposed', 'active'])
         .order('start_date', { ascending: false })
         .then(({ data }) => {
-          setMissions((data as MissionOption[]) ?? []);
+          setMissions((data as MissionOption[] | null) ?? []);
         });
       setSelectedMissionId(contract?.mission_id ?? '');
       if (contract) {
@@ -142,8 +153,10 @@ export function ContractFormDialog({
     }
   }, [consultantId, consultants, setValue, watch]);
 
-  // Auto-fill depuis mission sélectionnée : consultant, TJM, dates, mission_id, mission_title
-  function applyMission(missionId: string) {
+  // Auto-fill depuis mission sélectionnée : consultant, TJM, dates,
+  // mission_id, mission_title, client final + lieu + remote (depuis l'AO),
+  // et infos fournisseur (depuis le dernier contrat du même consultant).
+  async function applyMission(missionId: string) {
     setSelectedMissionId(missionId);
     if (!missionId) {
       setValue('mission_id', null);
@@ -168,6 +181,46 @@ export function ContractFormDialog({
       setValue('duration_months', months);
     }
     if (!watch('title')) setValue('title', `Contrat AT – ${m.title}`);
+
+    // Client final + lieu d'exécution + remote depuis l'AO source / la company.
+    if (m.company?.name && !watch('client_name')) setValue('client_name', m.company.name);
+    if (m.company?.address && !watch('client_address')) {
+      const addr = [m.company.address, m.company.city].filter(Boolean).join(', ');
+      setValue('client_address', addr);
+    }
+    if (m.job_offer?.location && !watch('work_location')) {
+      setValue('work_location', m.job_offer.location);
+    }
+    if (m.job_offer?.remote_days != null) {
+      setValue('remote_days_per_week', m.job_offer.remote_days);
+    }
+
+    // Dernier contrat pour ce consultant : on copie les infos fournisseur.
+    const supabase = createClient();
+    const { data: prev } = await supabase
+      .from('contracts')
+      .select(
+        'supplier_company_name, supplier_address, supplier_postal_code, supplier_city, supplier_rcs, supplier_representative, supplier_email, billing_email, payment_terms_days, non_compete_months, jurisdiction_city',
+      )
+      .eq('consultant_id', m.consultant_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (prev) {
+      if (prev.supplier_company_name && !watch('supplier_company_name')) {
+        setValue('supplier_company_name', prev.supplier_company_name);
+      }
+      if (prev.supplier_address && !watch('supplier_address')) setValue('supplier_address', prev.supplier_address);
+      if (prev.supplier_postal_code && !watch('supplier_postal_code')) setValue('supplier_postal_code', prev.supplier_postal_code);
+      if (prev.supplier_city && !watch('supplier_city')) setValue('supplier_city', prev.supplier_city);
+      if (prev.supplier_rcs && !watch('supplier_rcs')) setValue('supplier_rcs', prev.supplier_rcs);
+      if (prev.supplier_representative && !watch('supplier_representative')) setValue('supplier_representative', prev.supplier_representative);
+      if (prev.supplier_email && !watch('supplier_email')) setValue('supplier_email', prev.supplier_email);
+      if (prev.billing_email && !watch('billing_email')) setValue('billing_email', prev.billing_email);
+      if (prev.payment_terms_days != null) setValue('payment_terms_days', prev.payment_terms_days);
+      if (prev.non_compete_months != null) setValue('non_compete_months', prev.non_compete_months);
+      if (prev.jurisdiction_city) setValue('jurisdiction_city', prev.jurisdiction_city);
+    }
   }
 
   async function onSubmit(values: ContractInput) {

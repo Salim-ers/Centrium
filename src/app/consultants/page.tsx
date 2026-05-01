@@ -14,6 +14,7 @@ import {
   X,
   Target,
   ArrowLeftCircle,
+  FileUp,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -32,6 +33,7 @@ import {
 import { ConsultantFormDialog } from '@/components/consultants/ConsultantFormDialog';
 import { AssignMissionDialog } from '@/components/missions/AssignMissionDialog';
 import { JobFamilyFilter } from '@/components/consultants/JobFamilyFilter';
+import { CsvImportDialog } from '@/components/consultants/CsvImportDialog';
 import { Select } from '@/components/ui/select';
 import {
   classifyJobFamily,
@@ -63,6 +65,7 @@ export default function ConsultantsPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [assignTo, setAssignTo] = useState<ConsultantListItem | null>(null);
   const [familyFilter, setFamilyFilter] = useState<Set<JobFamilyId>>(new Set());
+  const [csvOpen, setCsvOpen] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 200);
@@ -249,10 +252,16 @@ export default function ConsultantsPage() {
             )}
           </Button>
           {!showArchived && (
-            <Button onClick={openCreate}>
-              <Plus className="h-4 w-4" />
-              Nouveau consultant
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setCsvOpen(true)}>
+                <FileUp className="h-4 w-4" />
+                Importer CSV
+              </Button>
+              <Button onClick={openCreate}>
+                <Plus className="h-4 w-4" />
+                Nouveau consultant
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -284,6 +293,12 @@ export default function ConsultantsPage() {
             : null
         }
         onAssigned={() => reload()}
+      />
+
+      <CsvImportDialog
+        open={csvOpen}
+        onOpenChange={setCsvOpen}
+        onImported={() => reload()}
       />
 
       <Card className="mb-6">

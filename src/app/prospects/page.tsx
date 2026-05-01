@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Plus, Search, Eye, Pencil, Trash2, ArrowRightCircle } from 'lucide-react';
+import { Plus, Search, Eye, Pencil, Trash2, ArrowRightCircle, FileUp } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/table';
 import { ConsultantFormDialog } from '@/components/consultants/ConsultantFormDialog';
 import { JobFamilyFilter } from '@/components/consultants/JobFamilyFilter';
+import { CsvImportDialog } from '@/components/consultants/CsvImportDialog';
 
 import { consultantService } from '@/lib/services/consultant.service';
 import { useOrganization } from '@/lib/auth/context';
@@ -36,6 +37,7 @@ export default function ProspectsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Consultant | null>(null);
   const [familyFilter, setFamilyFilter] = useState<Set<JobFamilyId>>(new Set());
+  const [csvOpen, setCsvOpen] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 200);
@@ -129,10 +131,16 @@ export default function ProspectsPage() {
             {prospectsList.length > 1 ? 's' : ''} dans l&apos;effectif
           </p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" />
-          Nouveau prospect
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setCsvOpen(true)}>
+            <FileUp className="h-4 w-4" />
+            Importer CSV
+          </Button>
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4" />
+            Nouveau prospect
+          </Button>
+        </div>
       </div>
 
       <ConsultantFormDialog
@@ -145,6 +153,13 @@ export default function ProspectsPage() {
         consultant={editing}
         isProspect
         onSaved={() => reload()}
+      />
+
+      <CsvImportDialog
+        open={csvOpen}
+        onOpenChange={setCsvOpen}
+        isProspect
+        onImported={() => reload()}
       />
 
       <Card className="mb-6">
