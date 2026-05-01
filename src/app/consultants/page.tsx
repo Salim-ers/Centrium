@@ -202,6 +202,35 @@ export default function ConsultantsPage() {
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
   }
 
+  async function hardDeleteConsultant(consultant: Consultant) {
+    const fullName = `${consultant.first_name} ${consultant.last_name}`;
+    if (
+      !confirm(
+        `⚠️ Suppression DÉFINITIVE de ${fullName} et de toutes ses données (CV, expériences, formations, compétences, documents).\n\nCette action est IRRÉVERSIBLE. Continuer ?`,
+      )
+    ) {
+      return;
+    }
+    const typed = prompt(
+      `Pour confirmer, tape exactement le nom complet du consultant :\n${fullName}`,
+    );
+    if (typed?.trim() !== fullName) {
+      toast.error('Confirmation incorrecte — suppression annulée.');
+      return;
+    }
+    const res = await consultantService.delete(consultant.id);
+    if (res.error) {
+      // Cas typique : FK contraint (CRA, factures, contrats existants)
+      const msg = /foreign key|violates foreign|reference/i.test(res.error.message)
+        ? `Impossible : ${fullName} a des CRA, factures ou contrats liés. Supprime-les d'abord.`
+        : 'Erreur : ' + res.error.message;
+      toast.error(msg);
+      return;
+    }
+    toast.success(`${fullName} supprimé définitivement`);
+    setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
+  }
+
   async function demoteToProspect(consultant: Consultant) {
     if (
       !confirm(
@@ -450,16 +479,28 @@ export default function ConsultantsPage() {
                           </Link>
                         </Button>
                         {showArchived ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => unarchiveConsultant(c)}
-                            title="Restaurer"
-                            className="text-emerald-300 hover:text-emerald-200"
-                          >
-                            <ArchiveRestore className="h-3.5 w-3.5" />
-                            Restaurer
-                          </Button>
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => unarchiveConsultant(c)}
+                              title="Restaurer"
+                              className="text-emerald-300 hover:text-emerald-200"
+                            >
+                              <ArchiveRestore className="h-3.5 w-3.5" />
+                              Restaurer
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => hardDeleteConsultant(c)}
+                              title="Supprimer définitivement"
+                              className="text-red-400 hover:text-red-300"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Supprimer
+                            </Button>
+                          </>
                         ) : (
                           <>
                             <Button
