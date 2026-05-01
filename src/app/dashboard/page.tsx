@@ -79,6 +79,12 @@ export default function DashboardPage() {
           label="CA du mois"
           value={kpis ? formatCurrency(kpis.revenueThisMonth) : '—'}
           accent="violet"
+          hint={
+            kpis
+              ? `Encaissé : ${formatCurrency(kpis.revenueThisMonthPaid)}`
+              : undefined
+          }
+          title="CA produit ce mois-ci = somme(TJM × jours ouvrés écoulés) sur les missions actives. Évolue automatiquement chaque jour ouvré."
         />
       </div>
 
@@ -196,11 +202,15 @@ function KPICard({
   label,
   value,
   accent,
+  hint,
+  title,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string | number;
   accent: 'violet' | 'magenta' | 'emerald';
+  hint?: string;
+  title?: string;
 }) {
   const accentClass = {
     violet: 'text-violet-glow bg-violet-glow/10',
@@ -208,12 +218,15 @@ function KPICard({
     emerald: 'text-emerald-400 bg-emerald-500/10',
   }[accent];
   return (
-    <Card className="qc-card-hover">
+    <Card className="qc-card-hover" title={title}>
       <CardContent className="p-5">
         <div className="flex items-start justify-between">
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
             <p className="text-2xl font-bold font-display mt-2">{value}</p>
+            {hint && (
+              <p className="text-[11px] text-muted-foreground mt-1">{hint}</p>
+            )}
           </div>
           <div className={`rounded-lg p-2 ${accentClass}`}>{icon}</div>
         </div>

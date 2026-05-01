@@ -747,12 +747,35 @@ export type DashboardKPIs = {
   consultantsAvailable: number;
   openOpportunities: number;
   opportunitiesWonThisMonth: number;
+  /** CA "produit" = TJM × jours ouvrés écoulés ce mois-ci sur les missions actives. */
   revenueThisMonth: number;
+  /** CA réellement encaissé ce mois-ci (factures status='paid'). */
+  revenueThisMonthPaid: number;
   pendingInvoices: number;
   overdueInvoices: number;
   pendingTimesheets: number;
   criticalAlerts: number;
 };
+
+/**
+ * Nombre de jours ouvrés (lundi-vendredi) entre deux dates incluses.
+ * Très simple : ne tient pas compte des jours fériés FR — on accepte
+ * une approximation ~10 jours/an d'écart pour rester concis.
+ */
+function businessDaysBetween(from: Date, to: Date): number {
+  if (to < from) return 0;
+  let count = 0;
+  const cur = new Date(from);
+  cur.setHours(0, 0, 0, 0);
+  const end = new Date(to);
+  end.setHours(0, 0, 0, 0);
+  while (cur <= end) {
+    const dow = cur.getDay();
+    if (dow !== 0 && dow !== 6) count += 1;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
 
 export const dashboardService = {
   async getKPIs(): Promise<ServiceResult<DashboardKPIs>> {
@@ -772,12 +795,11 @@ export const dashboardService = {
       timesheetsPending,
       criticalAlerts,
     ] = await Promise.all([
-      // Source de vérité = la table missions, pas consultant.status (qui peut
-      // dériver). On dédupe les consultant_id côté client pour avoir un compte
-      // distinct.
+      // Source de vérité = la table missions. On ramène aussi TJM + dates
+      // pour calculer le CA "produit" du mois sans requête supplémentaire.
       supabase
         .from('missions')
-        .select('consultant_id')
+        .select('consultant_id, daily_rate_eur, start_date, end_date')
         .in('status', ['proposed', 'active']),
       supabase
         .from('consultants')
@@ -822,12 +844,34 @@ export const dashboardService = {
         .eq('status', 'new'),
     ]);
 
-    const onMissionIds = new Set(
-      (activeMissions.data ?? []).map(
-        (m) => (m as { consultant_id: string }).consultant_id,
-      ),
-    );
+    type ActiveMission = {
+      consultant_id: string;
+      daily_rate_eur: number | string | null;
+      start_date: string | null;
+      end_date: string | null;
+    };
+    const missionRows = (activeMissions.data ?? []) as ActiveMission[];
+    const onMissionIds = new Set(missionRows.map((m) => m.consultant_id));
     const consultantsOnMission = onMissionIds.size;
+
+    // CA "produit" du mois en cours : TJM × jours ouvrés effectivement
+    // travaillés ce mois-ci sur chaque mission active. Évolue tout seul
+    // jour après jour sans dépendre du cycle facturation.
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const today = now;
+    let revenueThisMonth = 0;
+    for (const m of missionRows) {
+      if (!m.start_date) continue;
+      const tjm = Number(m.daily_rate_eur ?? 0);
+      if (!tjm) continue;
+      const start = new Date(m.start_date);
+      const end = m.end_date ? new Date(m.end_date) : monthEnd;
+      const from = start > monthStart ? start : monthStart;
+      const to = [end, today, monthEnd].sort((a, b) => a.getTime() - b.getTime())[0];
+      if (to < from) continue;
+      revenueThisMonth += businessDaysBetween(from, to) * tjm;
+    }
 
     // "Disponibles" exclut ceux qui ont déjà une mission active : sinon un
     // consultant avec une mission proposée mais status='available' (drift)
@@ -845,7 +889,7 @@ export const dashboardService = {
       ).length;
     }
 
-    const revenueThisMonth = (invoicesPaid.data ?? []).reduce(
+    const revenueThisMonthPaid = (invoicesPaid.data ?? []).reduce(
       (sum, inv) => sum + Number(inv.amount_ht ?? 0),
       0
     );
@@ -859,6 +903,7 @@ export const dashboardService = {
         openOpportunities: (openOps.count ?? 0) + (openJobOffers.count ?? 0),
         opportunitiesWonThisMonth: wonOps.count ?? 0,
         revenueThisMonth,
+        revenueThisMonthPaid,
         pendingInvoices: invoicesPending.count ?? 0,
         overdueInvoices: invoicesOverdue.count ?? 0,
         pendingTimesheets: timesheetsPending.count ?? 0,
