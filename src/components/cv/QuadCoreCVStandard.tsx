@@ -98,23 +98,76 @@ export function QuadCoreCVStandard({
         )}
 
         <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-[11px] text-neutral-700 font-sans">
-          <InfoItem label="Expérience" value={`${content.header.yearsExperience} ans`} />
-          {content.header.location && (
-            <InfoItem label="Localisation" value={content.header.location} />
+          <EditableInfoItem
+            label="Expérience"
+            path="header.yearsExperience"
+            value={`${content.header.yearsExperience} ans`}
+            editable={editable}
+            onEdit={onEdit}
+          />
+          {(content.header.location || editable) && (
+            <EditableInfoItem
+              label="Localisation"
+              path="header.location"
+              value={content.header.location ?? ''}
+              editable={editable}
+              onEdit={onEdit}
+              placeholder="Ville"
+            />
           )}
-          {content.header.mobility && (
-            <InfoItem label="Mobilité" value={content.header.mobility} />
+          {(content.header.mobility || editable) && (
+            <EditableInfoItem
+              label="Mobilité"
+              path="header.mobility"
+              value={content.header.mobility ?? ''}
+              editable={editable}
+              onEdit={onEdit}
+              placeholder="ex: France"
+            />
           )}
-          {content.header.availability && (
-            <InfoItem label="Disponibilité" value={content.header.availability} />
+          {(content.header.availability || editable) && (
+            <EditableInfoItem
+              label="Disponibilité"
+              path="header.availability"
+              value={content.header.availability ?? ''}
+              editable={editable}
+              onEdit={onEdit}
+              placeholder="ex: Immédiate"
+            />
           )}
           {content.languages.length > 0 && (
-            <InfoItem
-              label="Langues"
-              value={content.languages
-                .map((l) => `${l.code.toUpperCase()} (${l.level})`)
-                .join(' · ')}
-            />
+            <div className="font-sans">
+              <span className="uppercase tracking-wider text-[9px] text-neutral-500 mr-1.5">
+                Langues
+              </span>
+              <span className="font-semibold inline-flex flex-wrap gap-x-1 gap-y-0">
+                {content.languages.map((l, i) => (
+                  <span key={`${l.code}-${i}`} className="inline-flex items-center">
+                    <Editable
+                      as="span"
+                      path={`language.${i}.code`}
+                      value={l.code.toUpperCase()}
+                      editable={editable}
+                      onEdit={onEdit}
+                      placeholder="FR"
+                    />
+                    <span className="text-neutral-400">&nbsp;(</span>
+                    <Editable
+                      as="span"
+                      path={`language.${i}.level`}
+                      value={l.level}
+                      editable={editable}
+                      onEdit={onEdit}
+                      placeholder="Niveau"
+                    />
+                    <span className="text-neutral-400">)</span>
+                    {i < content.languages.length - 1 && (
+                      <span className="text-neutral-400 mx-1">·</span>
+                    )}
+                  </span>
+                ))}
+              </span>
+            </div>
           )}
         </div>
       </section>
@@ -138,24 +191,33 @@ export function QuadCoreCVStandard({
       <section className="px-12 py-4 border-t border-neutral-200">
         <SectionTitle color={b.primary}>Compétences techniques</SectionTitle>
         <div className="mt-3 space-y-1.5">
-          {content.skillCategories.map((cat) => (
-            <div key={cat.name} className="flex gap-3 text-[11.5px] font-sans">
-              <div
-                className="w-36 shrink-0 font-semibold text-neutral-700 uppercase text-[10px] tracking-wider pt-0.5"
-              >
-                {cat.name}
+          {content.skillCategories.map((cat, catIdx) => (
+            <div key={`cat-${catIdx}`} className="flex gap-3 text-[11.5px] font-sans">
+              <div className="w-36 shrink-0 font-semibold text-neutral-700 uppercase text-[10px] tracking-wider pt-0.5">
+                <Editable
+                  as="span"
+                  path={`skill.${catIdx}.name`}
+                  value={cat.name}
+                  editable={editable}
+                  onEdit={onEdit}
+                  placeholder="Catégorie"
+                />
               </div>
               <div className="flex-1 text-neutral-800 leading-[1.6]">
                 {cat.items.map((item, i) => {
                   const highlighted = cat.highlighted?.includes(item);
                   return (
-                    <span key={item}>
-                      <span
+                    <span key={`${catIdx}-${i}`}>
+                      <Editable
+                        as="span"
+                        path={`skill.${catIdx}.item.${i}`}
+                        value={item}
+                        editable={editable}
+                        onEdit={onEdit}
+                        placeholder="—"
                         className={highlighted ? 'font-bold' : ''}
                         style={highlighted ? { color: b.primary } : undefined}
-                      >
-                        {item}
-                      </span>
+                      />
                       {i < cat.items.length - 1 && (
                         <span className="text-neutral-400 mx-1.5">·</span>
                       )}
@@ -238,12 +300,26 @@ export function QuadCoreCVStandard({
                 </ul>
               )}
 
-              {exp.environment && exp.environment.length > 0 && (
+              {((exp.environment && exp.environment.length > 0) || editable) && (
                 <p className="mt-2 text-[10px] text-neutral-500 font-sans">
                   <span className="uppercase tracking-wider font-semibold">
                     Environnement :
                   </span>{' '}
-                  {exp.environment.join(' · ')}
+                  {(exp.environment ?? []).map((env, i) => (
+                    <span key={`${exp.id}-env-${i}`}>
+                      <Editable
+                        as="span"
+                        path={`experience.${exp.id}.environment.${i}`}
+                        value={env}
+                        editable={editable}
+                        onEdit={onEdit}
+                        placeholder="—"
+                      />
+                      {i < (exp.environment?.length ?? 0) - 1 && (
+                        <span className="text-neutral-400 mx-1">·</span>
+                      )}
+                    </span>
+                  ))}
                 </p>
               )}
             </article>
@@ -259,9 +335,15 @@ export function QuadCoreCVStandard({
           <div className="mt-3 space-y-1.5 font-sans">
             {content.educations.map((edu) => (
               <div key={edu.id} className="flex items-baseline gap-3 text-[11.5px]">
-                <span className="w-14 shrink-0 font-semibold text-neutral-500">
-                  {edu.year}
-                </span>
+                <Editable
+                  as="span"
+                  path={`education.${edu.id}.year`}
+                  value={String(edu.year)}
+                  editable={editable}
+                  onEdit={onEdit}
+                  placeholder="2024"
+                  className="w-14 shrink-0 font-semibold text-neutral-500"
+                />
                 <Editable
                   as="span"
                   path={`education.${edu.id}.degree`}
@@ -319,13 +401,35 @@ function SectionTitle({ children, color }: { children: React.ReactNode; color?: 
   );
 }
 
-function InfoItem({ label, value }: { label: string; value: string }) {
+function EditableInfoItem({
+  label,
+  path,
+  value,
+  editable,
+  onEdit,
+  placeholder,
+}: {
+  label: string;
+  path: string;
+  value: string;
+  editable?: boolean;
+  onEdit?: (path: string, value: string) => void;
+  placeholder?: string;
+}) {
   return (
     <div>
       <span className="uppercase tracking-wider text-[9px] text-neutral-500 mr-1.5">
         {label}
       </span>
-      <span className="font-semibold">{value}</span>
+      <Editable
+        as="span"
+        path={path}
+        value={value}
+        editable={!!editable}
+        onEdit={onEdit}
+        placeholder={placeholder ?? '—'}
+        className="font-semibold"
+      />
     </div>
   );
 }

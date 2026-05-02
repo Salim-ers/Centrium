@@ -102,15 +102,51 @@ export function QuadCoreCVDense({
           <SideBlock title="Infos" color={b.primary}>
             <ul className="space-y-1 text-[10px] text-neutral-700">
               <li>
-                <strong>{content.header.yearsExperience} ans</strong> d'expérience
+                <Editable
+                  as="span"
+                  path="header.yearsExperience"
+                  value={`${content.header.yearsExperience} ans`}
+                  editable={editable}
+                  onEdit={onEdit}
+                  placeholder="X ans"
+                  className="font-bold"
+                />{' '}
+                d'expérience
               </li>
-              {content.header.location && <li>{content.header.location}</li>}
-              {content.header.mobility && (
-                <li className="text-neutral-500">{content.header.mobility}</li>
+              {(content.header.location || editable) && (
+                <li>
+                  <Editable
+                    as="span"
+                    path="header.location"
+                    value={content.header.location ?? ''}
+                    editable={editable}
+                    onEdit={onEdit}
+                    placeholder="Ville"
+                  />
+                </li>
               )}
-              {content.header.availability && (
+              {(content.header.mobility || editable) && (
+                <li className="text-neutral-500">
+                  <Editable
+                    as="span"
+                    path="header.mobility"
+                    value={content.header.mobility ?? ''}
+                    editable={editable}
+                    onEdit={onEdit}
+                    placeholder="Mobilité"
+                  />
+                </li>
+              )}
+              {(content.header.availability || editable) && (
                 <li className="font-semibold" style={{ color: b.primary }}>
-                  {content.header.availability}
+                  <Editable
+                    as="span"
+                    path="header.availability"
+                    value={content.header.availability ?? ''}
+                    editable={editable}
+                    onEdit={onEdit}
+                    placeholder="Disponibilité"
+                  />
                 </li>
               )}
             </ul>
@@ -119,9 +155,26 @@ export function QuadCoreCVDense({
           {content.languages.length > 0 && (
             <SideBlock title="Langues" color={b.primary}>
               <ul className="space-y-0.5 text-[10px] text-neutral-700">
-                {content.languages.map((l) => (
-                  <li key={l.code}>
-                    <strong>{l.code.toUpperCase()}</strong> — {l.level}
+                {content.languages.map((l, i) => (
+                  <li key={`${l.code}-${i}`}>
+                    <Editable
+                      as="span"
+                      path={`language.${i}.code`}
+                      value={l.code.toUpperCase()}
+                      editable={editable}
+                      onEdit={onEdit}
+                      placeholder="FR"
+                      className="font-bold"
+                    />
+                    {' — '}
+                    <Editable
+                      as="span"
+                      path={`language.${i}.level`}
+                      value={l.level}
+                      editable={editable}
+                      onEdit={onEdit}
+                      placeholder="Niveau"
+                    />
                   </li>
                 ))}
               </ul>
@@ -133,10 +186,33 @@ export function QuadCoreCVDense({
               <ul className="space-y-1.5 text-[10px] text-neutral-700">
                 {content.educations.map((edu) => (
                   <li key={edu.id}>
-                    <div className="font-semibold">{edu.year}</div>
-                    <div>{edu.degree}</div>
-                    {edu.institution && (
-                      <div className="text-neutral-500">{edu.institution}</div>
+                    <Editable
+                      as="div"
+                      path={`education.${edu.id}.year`}
+                      value={String(edu.year)}
+                      editable={editable}
+                      onEdit={onEdit}
+                      placeholder="2024"
+                      className="font-semibold"
+                    />
+                    <Editable
+                      as="div"
+                      path={`education.${edu.id}.degree`}
+                      value={edu.degree}
+                      editable={editable}
+                      onEdit={onEdit}
+                      placeholder="Diplôme"
+                    />
+                    {(edu.institution || editable) && (
+                      <Editable
+                        as="div"
+                        path={`education.${edu.id}.institution`}
+                        value={edu.institution ?? ''}
+                        editable={editable}
+                        onEdit={onEdit}
+                        placeholder="École"
+                        className="text-neutral-500"
+                      />
                     )}
                   </li>
                 ))}
@@ -149,22 +225,33 @@ export function QuadCoreCVDense({
         <div className="px-8 py-6">
           <DenseSection title="Compétences techniques" color={b.primary}>
             <div className="space-y-1">
-              {content.skillCategories.map((cat) => (
-                <div key={cat.name} className="flex gap-2 text-[10.5px]">
+              {content.skillCategories.map((cat, catIdx) => (
+                <div key={`cat-${catIdx}`} className="flex gap-2 text-[10.5px]">
                   <div className="w-28 shrink-0 uppercase tracking-wider text-[9px] font-semibold text-neutral-600 pt-[1px]">
-                    {cat.name}
+                    <Editable
+                      as="span"
+                      path={`skill.${catIdx}.name`}
+                      value={cat.name}
+                      editable={editable}
+                      onEdit={onEdit}
+                      placeholder="Catégorie"
+                    />
                   </div>
                   <div className="flex-1 text-neutral-800 leading-[1.5]">
                     {cat.items.map((item, i) => {
                       const h = cat.highlighted?.includes(item);
                       return (
-                        <span key={item}>
-                          <span
+                        <span key={`${catIdx}-${i}`}>
+                          <Editable
+                            as="span"
+                            path={`skill.${catIdx}.item.${i}`}
+                            value={item}
+                            editable={editable}
+                            onEdit={onEdit}
+                            placeholder="—"
                             className={h ? 'font-bold' : ''}
                             style={h ? { color: b.primary } : undefined}
-                          >
-                            {item}
-                          </span>
+                          />
                           {i < cat.items.length - 1 && (
                             <span className="text-neutral-400 mx-1">·</span>
                           )}
@@ -242,10 +329,24 @@ export function QuadCoreCVDense({
                       ))}
                     </ul>
                   )}
-                  {exp.environment && exp.environment.length > 0 && (
+                  {((exp.environment && exp.environment.length > 0) || editable) && (
                     <p className="text-[9.5px] text-neutral-500 mt-1">
                       <span className="uppercase tracking-wider font-semibold">Env :</span>{' '}
-                      {exp.environment.join(' · ')}
+                      {(exp.environment ?? []).map((env, i) => (
+                        <span key={`${exp.id}-env-${i}`}>
+                          <Editable
+                            as="span"
+                            path={`experience.${exp.id}.environment.${i}`}
+                            value={env}
+                            editable={editable}
+                            onEdit={onEdit}
+                            placeholder="—"
+                          />
+                          {i < (exp.environment?.length ?? 0) - 1 && (
+                            <span className="text-neutral-400 mx-1">·</span>
+                          )}
+                        </span>
+                      ))}
                     </p>
                   )}
                 </div>

@@ -103,15 +103,45 @@ export function QuadCoreCVExecutive({
             />
           </div>
           <div className="text-right border-l border-neutral-300 pl-8 space-y-3">
-            <KeyValue label="Expérience" value={`${content.header.yearsExperience} ans`} highlight highlightColor={b.primary} />
-            {content.header.location && (
-              <KeyValue label="Base" value={content.header.location} />
+            <EditableKeyValue
+              label="Expérience"
+              path="header.yearsExperience"
+              value={`${content.header.yearsExperience} ans`}
+              editable={editable}
+              onEdit={onEdit}
+              placeholder="X ans"
+              highlight
+              highlightColor={b.primary}
+            />
+            {(content.header.location || editable) && (
+              <EditableKeyValue
+                label="Base"
+                path="header.location"
+                value={content.header.location ?? ''}
+                editable={editable}
+                onEdit={onEdit}
+                placeholder="Ville"
+              />
             )}
-            {content.header.mobility && (
-              <KeyValue label="Mobilité" value={content.header.mobility} />
+            {(content.header.mobility || editable) && (
+              <EditableKeyValue
+                label="Mobilité"
+                path="header.mobility"
+                value={content.header.mobility ?? ''}
+                editable={editable}
+                onEdit={onEdit}
+                placeholder="—"
+              />
             )}
-            {content.header.availability && (
-              <KeyValue label="Disponibilité" value={content.header.availability} />
+            {(content.header.availability || editable) && (
+              <EditableKeyValue
+                label="Disponibilité"
+                path="header.availability"
+                value={content.header.availability ?? ''}
+                editable={editable}
+                onEdit={onEdit}
+                placeholder="—"
+              />
             )}
           </div>
         </div>
@@ -214,18 +244,22 @@ export function QuadCoreCVExecutive({
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          {content.skillCategories.flatMap((cat) =>
-            cat.items.slice(0, 6).map((item) => (
-              <span
-                key={`${cat.name}-${item}`}
+          {content.skillCategories.flatMap((cat, catIdx) =>
+            cat.items.slice(0, 6).map((item, i) => (
+              <Editable
+                key={`${catIdx}-${i}`}
+                as="span"
+                path={`skill.${catIdx}.item.${i}`}
+                value={item}
+                editable={editable}
+                onEdit={onEdit}
+                placeholder="—"
                 className="text-[10.5px] font-semibold px-3 py-1 rounded-full border"
                 style={{
                   borderColor: b.primary,
                   color: cat.highlighted?.includes(item) ? b.accent : b.primary,
                 }}
-              >
-                {item}
-              </span>
+              />
             ))
           )}
         </div>
@@ -240,10 +274,37 @@ export function QuadCoreCVExecutive({
           <ul className="space-y-1.5 text-[11px]">
             {content.educations.map((edu) => (
               <li key={edu.id}>
-                <span className="font-semibold">{edu.year}</span> —{' '}
-                <span className="font-semibold">{edu.degree}</span>
-                {edu.institution && (
-                  <span className="text-neutral-500"> · {edu.institution}</span>
+                <Editable
+                  as="span"
+                  path={`education.${edu.id}.year`}
+                  value={String(edu.year)}
+                  editable={editable}
+                  onEdit={onEdit}
+                  placeholder="2024"
+                  className="font-semibold"
+                />
+                {' — '}
+                <Editable
+                  as="span"
+                  path={`education.${edu.id}.degree`}
+                  value={edu.degree}
+                  editable={editable}
+                  onEdit={onEdit}
+                  placeholder="Diplôme"
+                  className="font-semibold"
+                />
+                {(edu.institution || editable) && (
+                  <span className="text-neutral-500">
+                    {' · '}
+                    <Editable
+                      as="span"
+                      path={`education.${edu.id}.institution`}
+                      value={edu.institution ?? ''}
+                      editable={editable}
+                      onEdit={onEdit}
+                      placeholder="École"
+                    />
+                  </span>
                 )}
               </li>
             ))}
@@ -254,9 +315,26 @@ export function QuadCoreCVExecutive({
             Langues
           </div>
           <ul className="space-y-1 text-[11px]">
-            {content.languages.map((l) => (
-              <li key={l.code}>
-                <span className="font-semibold">{l.code.toUpperCase()}</span> — {l.level}
+            {content.languages.map((l, i) => (
+              <li key={`${l.code}-${i}`}>
+                <Editable
+                  as="span"
+                  path={`language.${i}.code`}
+                  value={l.code.toUpperCase()}
+                  editable={editable}
+                  onEdit={onEdit}
+                  placeholder="FR"
+                  className="font-semibold"
+                />
+                {' — '}
+                <Editable
+                  as="span"
+                  path={`language.${i}.level`}
+                  value={l.level}
+                  editable={editable}
+                  onEdit={onEdit}
+                  placeholder="Niveau"
+                />
               </li>
             ))}
           </ul>
@@ -271,26 +349,38 @@ export function QuadCoreCVExecutive({
   );
 }
 
-function KeyValue({
+function EditableKeyValue({
   label,
+  path,
   value,
+  editable,
+  onEdit,
+  placeholder,
   highlight = false,
   highlightColor,
 }: {
   label: string;
+  path: string;
   value: string;
+  editable?: boolean;
+  onEdit?: (path: string, value: string) => void;
+  placeholder?: string;
   highlight?: boolean;
   highlightColor?: string;
 }) {
   return (
     <div>
       <div className="text-[9px] uppercase tracking-wider text-neutral-500">{label}</div>
-      <div
+      <Editable
+        as="div"
+        path={path}
+        value={value}
+        editable={!!editable}
+        onEdit={onEdit}
+        placeholder={placeholder ?? '—'}
         className="text-[12px] font-semibold"
         style={highlight ? { color: highlightColor ?? '#6d28d9' } : undefined}
-      >
-        {value}
-      </div>
+      />
     </div>
   );
 }
