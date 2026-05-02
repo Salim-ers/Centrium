@@ -68,9 +68,11 @@ export default function OnboardingPage() {
       }
       toast.success('Organisation créée 🎉');
       // Ne pas bloquer la navigation sur reload() — si le contexte stall,
-      // le /dashboard re-chargera son propre état via son provider.
+      // le /onboarding/setup re-chargera son propre état via son provider.
       void reload().catch(() => undefined);
-      router.push('/dashboard');
+      // Redirige vers le wizard d'identité visuelle (logo, couleurs,
+      // signature, identité légale). Le user peut skip s'il veut.
+      router.push('/onboarding/setup');
       router.refresh();
     } catch (e) {
       clearTimeout(timeoutId);

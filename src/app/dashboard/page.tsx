@@ -10,6 +10,8 @@ import {
   CheckCircle2,
   Banknote,
   Send,
+  Sparkles,
+  ArrowRight,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -28,8 +30,12 @@ import { RevenueChart } from '@/components/dashboard/RevenueChart';
 type DashboardData = { kpis: DashboardKPIs | null; alerts: Alert[] };
 
 export default function DashboardPage() {
-  const { activeOrgId } = useOrganization();
+  const { activeOrgId, branding } = useOrganization();
   const brandName = useBrandName();
+  // "Branding non configuré" = pas de logo ET pas de couleur primaire perso.
+  // Évite de hasseler les orgs qui ont décidé de garder le défaut.
+  const brandingMissing =
+    !!branding && !branding.logoUrl && !branding.primaryColor;
   const { data, loading } = useCachedQuery<DashboardData>(
     `dashboard:${activeOrgId ?? 'none'}`,
     async () => {
@@ -55,6 +61,29 @@ export default function DashboardPage() {
           Vue d&apos;ensemble de votre activité {brandName}
         </p>
       </div>
+
+      {brandingMissing && (
+        <Link
+          href="/onboarding/setup"
+          className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-violet-glow/40 bg-gradient-to-r from-violet-glow/10 to-magenta/5 px-5 py-4 hover:border-violet-glow/70 transition-colors"
+        >
+          <div className="flex items-start gap-3">
+            <div className="rounded-md bg-violet-glow/15 p-2 shrink-0">
+              <Sparkles className="h-4 w-4 text-violet-glow" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold">
+                Personnalise l&apos;identité visuelle de ton ESN
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                Logo, couleurs, signature, mentions légales — pour que tes contrats, factures et
+                CV soient à ton image.
+              </div>
+            </div>
+          </div>
+          <ArrowRight className="h-4 w-4 text-violet-glow shrink-0" />
+        </Link>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
