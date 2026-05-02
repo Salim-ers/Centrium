@@ -27,6 +27,13 @@ export async function downloadElementAsPdf(
     return;
   }
 
+  // On cible la "page A4" elle-même (.qc-print-doc / .cv-print-page) plutôt
+  // que le wrapper de prévisualisation, qui inclut le fond gris et un padding
+  // qui réduisent visuellement le document dans le PDF final.
+  const docPage =
+    (element.querySelector('.qc-print-doc, .cv-print-page') as HTMLElement | null) ??
+    element;
+
   const t = toast.loading('Génération du PDF…');
   try {
     // Imports dynamiques : ces deux libs sont lourdes, on ne les charge
@@ -39,7 +46,7 @@ export async function downloadElementAsPdf(
     const scale = opts.scale ?? 2;
     const margin = opts.marginMm ?? 0;
 
-    const canvas = await html2canvas(element, {
+    const canvas = await html2canvas(docPage, {
       scale,
       backgroundColor: '#ffffff',
       useCORS: true,
