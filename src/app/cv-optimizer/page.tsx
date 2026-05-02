@@ -21,6 +21,7 @@ import {
   MinusCircle,
   Pencil,
   RotateCcw,
+  MousePointerClick,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -475,14 +476,21 @@ function CVOptimizerPageInner() {
 
         <div className="flex items-center gap-2 flex-wrap">
           <Button
-            variant={editMode ? 'default' : 'outline'}
             onClick={() => setEditMode((v) => !v)}
             disabled={!generated}
-            title={editMode ? 'Sortir du mode édition' : 'Éditer directement sur le CV'}
-            className={editMode ? 'bg-violet-glow text-white hover:bg-violet-500' : ''}
+            title={
+              editMode
+                ? 'Sortir du mode édition'
+                : 'Modifie le CV directement sur l\'aperçu, comme dans Canva'
+            }
+            className={
+              editMode
+                ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-[0_0_20px_-6px_rgba(16,185,129,0.7)]'
+                : 'bg-gradient-to-r from-violet-glow to-magenta text-white shadow-[0_0_20px_-6px_rgba(225,29,116,0.55)] hover:brightness-110'
+            }
           >
             <Pencil className="h-4 w-4" />
-            {editMode ? 'Édition active' : 'Éditer le CV'}
+            {editMode ? '✓ Édition active' : 'Modifier le CV'}
           </Button>
           {hasOverrides && (
             <Button
@@ -933,6 +941,7 @@ function CVOptimizerPageInner() {
                   </div>
                 </CardContent>
               </Card>
+              <EditModeBanner editMode={editMode} setEditMode={setEditMode} />
               <div className="overflow-auto bg-neutral-200 p-6 rounded-xl">
                 <CVRenderer
                   content={displayed ?? generated}
@@ -943,14 +952,17 @@ function CVOptimizerPageInner() {
               </div>
             </>
           ) : generated ? (
-            <div className="overflow-auto bg-neutral-200 p-6 rounded-xl">
-              <CVRenderer
-                content={displayed ?? generated}
-                templateId={templateId}
-                editable={editMode}
-                onEdit={handleInlineEdit}
-              />
-            </div>
+            <>
+              <EditModeBanner editMode={editMode} setEditMode={setEditMode} />
+              <div className="overflow-auto bg-neutral-200 p-6 rounded-xl">
+                <CVRenderer
+                  content={displayed ?? generated}
+                  templateId={templateId}
+                  editable={editMode}
+                  onEdit={handleInlineEdit}
+                />
+              </div>
+            </>
           ) : (
             <Card>
               <CardContent className="py-16 text-center text-muted-foreground">
@@ -978,6 +990,59 @@ function Stat({ label, value }: { label: string; value: number }) {
     >
       <div className="text-base font-bold">{value}</div>
       <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
+function EditModeBanner({
+  editMode,
+  setEditMode,
+}: {
+  editMode: boolean;
+  setEditMode: (v: boolean) => void;
+}) {
+  if (editMode) {
+    return (
+      <div className="mb-3 flex items-start gap-3 rounded-lg border border-emerald-500/40 bg-emerald-500/[0.06] px-4 py-3">
+        <MousePointerClick className="h-4 w-4 text-emerald-300 shrink-0 mt-0.5" />
+        <div className="flex-1 text-sm">
+          <div className="font-semibold text-emerald-200">Mode édition activé</div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Clique sur n&apos;importe quel texte du CV pour le modifier directement (titre,
+            résumé, expériences, compétences). Tape Entrée pour valider, ou clique ailleurs.
+            Tes modifications sont sauvegardées automatiquement.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setEditMode(false)}
+          className="shrink-0"
+        >
+          Sortir
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <div className="mb-3 flex items-start gap-3 rounded-lg border border-violet-glow/30 bg-violet-glow/[0.06] px-4 py-3">
+      <Sparkles className="h-4 w-4 text-violet-glow shrink-0 mt-0.5" />
+      <div className="flex-1 text-sm">
+        <div className="font-semibold">Modifie ton CV comme dans Canva</div>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Active le mode édition pour cliquer directement sur le texte du CV et le modifier
+          inline. Idéal pour ajuster un titre, reformuler une mission ou retravailler un
+          résumé sans repasser par la fiche consultant.
+        </p>
+      </div>
+      <Button
+        size="sm"
+        onClick={() => setEditMode(true)}
+        className="shrink-0 bg-gradient-to-r from-violet-glow to-magenta text-white shadow-[0_0_18px_-6px_rgba(225,29,116,0.55)] hover:brightness-110"
+      >
+        <Pencil className="h-3.5 w-3.5" />
+        Activer
+      </Button>
     </div>
   );
 }
