@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Plus, Receipt, CheckCircle2, Send, Eye, Undo2 } from 'lucide-react';
@@ -21,24 +21,27 @@ import { InvoiceFormDialog } from '@/components/invoices/InvoiceFormDialog';
 
 import { invoiceService, type InvoiceListItem } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE } from '@/constants';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 export default function InvoicesPage() {
   const { activeOrgId } = useOrganization();
-  const [invoices, setInvoices] = useState<InvoiceListItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  async function reload() {
-    const res = await invoiceService.listWithConsultant();
-    if (res.data) setInvoices(res.data);
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    reload();
-  }, []);
+  const {
+    data: invoicesData,
+    loading,
+    reload,
+  } = useCachedQuery<InvoiceListItem[]>(
+    `invoices:${activeOrgId ?? 'none'}`,
+    async () => {
+      const res = await invoiceService.listWithConsultant();
+      return res.data ?? [];
+    },
+    { enabled: !!activeOrgId },
+  );
+  const invoices = invoicesData ?? [];
 
   async function markPaid(id: string) {
     const res = await invoiceService.markAsPaid(id);

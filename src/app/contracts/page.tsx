@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import {
@@ -32,6 +32,7 @@ import {
 import { ContractFormDialog } from '@/components/contracts/ContractFormDialog';
 import { contractService } from '@/lib/services/contract.service';
 import { useOrganization } from '@/lib/auth/context';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import type { Contract, ContractStatus } from '@/types';
 import { formatDate, formatCurrency } from '@/lib/utils';
 
@@ -61,23 +62,24 @@ type View = 'active' | 'archived';
 
 export default function ContractsPage() {
   const { activeOrgId } = useOrganization();
-  const [contracts, setContracts] = useState<Contract[]>([]);
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Contract | undefined>(undefined);
   const [view, setView] = useState<View>('active');
 
-  async function reload() {
-    setLoading(true);
-    const res = await contractService.list({ archived: view === 'archived' });
-    if (res.data) setContracts(res.data);
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view]);
+  const {
+    data: contractsData,
+    loading,
+    reload,
+    setData: setContracts,
+  } = useCachedQuery<Contract[]>(
+    `contracts:${activeOrgId ?? 'none'}:${view}`,
+    async () => {
+      const res = await contractService.list({ archived: view === 'archived' });
+      return res.data ?? [];
+    },
+    { enabled: !!activeOrgId },
+  );
+  const contracts = contractsData ?? [];
 
   async function updateStatus(id: string, status: ContractStatus) {
     const res = await contractService.updateStatus(id, status);
@@ -85,7 +87,9 @@ export default function ContractsPage() {
       toast.error('Erreur : ' + res.error.message);
       return;
     }
-    setContracts((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
+    setContracts((prev) =>
+      (prev ?? []).map((c) => (c.id === id ? { ...c, status } : c)),
+    );
     toast.success('Statut mis à jour');
   }
 
@@ -95,7 +99,7 @@ export default function ContractsPage() {
       toast.error('Erreur : ' + res.error.message);
       return;
     }
-    setContracts((prev) => prev.filter((c) => c.id !== id));
+    setContracts((prev) => (prev ?? []).filter((c) => c.id !== id));
     toast.success('Contrat archivé');
   }
 
@@ -105,7 +109,7 @@ export default function ContractsPage() {
       toast.error('Erreur : ' + res.error.message);
       return;
     }
-    setContracts((prev) => prev.filter((c) => c.id !== id));
+    setContracts((prev) => (prev ?? []).filter((c) => c.id !== id));
     toast.success('Contrat restauré');
   }
 
@@ -119,7 +123,7 @@ export default function ContractsPage() {
       toast.error('Erreur : ' + res.error.message);
       return;
     }
-    setContracts((prev) => prev.filter((x) => x.id !== c.id));
+    setContracts((prev) => (prev ?? []).filter((x) => x.id !== c.id));
     toast.success('Contrat supprimé');
   }
 

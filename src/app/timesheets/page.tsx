@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { ClipboardCheck, CheckCircle2, Eye, Plus } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { TimesheetFormDialog } from '@/components/timesheets/TimesheetFormDialog';
 import { timesheetService } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import type { Timesheet } from '@/types';
 
 const MONTHS = [
@@ -32,19 +33,22 @@ const MONTHS = [
 
 export default function TimesheetsPage() {
   const { activeOrgId } = useOrganization();
-  const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  async function reload() {
-    const res = await timesheetService.list();
-    if (res.data) setTimesheets(res.data);
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    reload();
-  }, []);
+  const {
+    data: timesheetsData,
+    loading,
+    reload,
+    setData: setTimesheets,
+  } = useCachedQuery<Timesheet[]>(
+    `timesheets:${activeOrgId ?? 'none'}`,
+    async () => {
+      const res = await timesheetService.list();
+      return res.data ?? [];
+    },
+    { enabled: !!activeOrgId },
+  );
+  const timesheets = timesheetsData ?? [];
 
   async function validate(id: string) {
     if (!activeOrgId) {
@@ -57,11 +61,11 @@ export default function TimesheetsPage() {
       return;
     }
     setTimesheets((prev) =>
-      prev.map((t) =>
+      (prev ?? []).map((t) =>
         t.id === id
           ? { ...t, status: 'client_validated', days_validated: t.days_worked }
-          : t
-      )
+          : t,
+      ),
     );
     if (res.data.alreadyInvoiced) {
       toast.success('CRA validé (facture déjà existante)');
