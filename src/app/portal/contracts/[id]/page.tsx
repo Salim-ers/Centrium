@@ -1,15 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Printer, Download } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ContractDocument } from '@/components/contracts/ContractDocument';
 import { createClient } from '@/lib/supabase/client';
+import { downloadElementAsPdf } from '@/lib/pdf/download-document';
 import type { Contract } from '@/types';
 
 const STATUS_STYLE: Partial<Record<Contract['status'], string>> = {
@@ -39,6 +40,7 @@ export default function PortalContractDetailPage() {
   const router = useRouter();
   const [contract, setContract] = useState<Contract | null>(null);
   const [loading, setLoading] = useState(true);
+  const docRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -87,18 +89,21 @@ export default function PortalContractDetailPage() {
               </a>
             </Button>
           )}
-          <Button size="sm" onClick={() => window.print()}>
-            <Printer className="h-4 w-4" />
-            Imprimer / PDF
+          <Button
+            size="sm"
+            onClick={() =>
+              downloadElementAsPdf(docRef.current, {
+                fileName: `Contrat_${contract.contract_number || contract.id}`,
+              })
+            }
+          >
+            <Download className="h-4 w-4" />
+            Télécharger PDF
           </Button>
         </div>
       </div>
 
-      <div className="no-print bg-neutral-200 rounded-xl p-6 overflow-auto">
-        <ContractDocument contract={contract} />
-      </div>
-
-      <div className="print-only hidden print:block">
+      <div ref={docRef} className="bg-neutral-200 rounded-xl p-6 overflow-auto">
         <ContractDocument contract={contract} />
       </div>
     </div>

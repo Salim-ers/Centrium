@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { ArrowLeft, Printer, CheckCircle2, Send } from 'lucide-react';
+import { ArrowLeft, Download, CheckCircle2, Send } from 'lucide-react';
+
+import { downloadElementAsPdf } from '@/lib/pdf/download-document';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
@@ -46,6 +48,7 @@ export default function InvoiceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [issuer, setIssuer] = useState<InvoiceIssuer | null>(null);
+  const docRef = useRef<HTMLDivElement | null>(null);
 
   async function reload() {
     if (!params?.id) return;
@@ -158,18 +161,21 @@ export default function InvoiceDetailPage() {
               Marquer payée
             </Button>
           )}
-          <Button size="sm" onClick={() => window.print()}>
-            <Printer className="h-4 w-4" />
-            Imprimer / PDF
+          <Button
+            size="sm"
+            onClick={() =>
+              downloadElementAsPdf(docRef.current, {
+                fileName: `Facture_${invoice.invoice_number}`,
+              })
+            }
+          >
+            <Download className="h-4 w-4" />
+            Télécharger PDF
           </Button>
         </div>
       </div>
 
-      <div className="no-print bg-neutral-200 rounded-xl p-6 overflow-auto">
-        <InvoiceDocument {...detail} issuer={issuer} />
-      </div>
-
-      <div className="print-only hidden print:block">
+      <div ref={docRef} className="bg-neutral-200 rounded-xl p-6 overflow-auto">
         <InvoiceDocument {...detail} issuer={issuer} />
       </div>
     </AppShell>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { FileSignature, Download, FileDown, Loader2 } from 'lucide-react';
 
@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 import { CVRenderer } from '@/components/cv/CVRenderer';
 import { generateCVDocx } from '@/lib/cv/export-docx';
+import { downloadElementAsPdf } from '@/lib/pdf/download-document';
 import type { CVContent, CVTemplateId } from '@/types';
 
 const SAMPLE_CONTENT: CVContent = {
@@ -123,13 +124,17 @@ const TEMPLATE_DESCRIPTIONS: Record<CVTemplateId, { title: string; body: string 
 export default function TemplatesPage() {
   const [template, setTemplate] = useState<CVTemplateId>('standard');
   const [exporting, setExporting] = useState<'pdf' | 'docx' | null>(null);
+  const docRef = useRef<HTMLDivElement | null>(null);
 
-  function exportPDF() {
+  async function exportPDF() {
     setExporting('pdf');
-    setTimeout(() => {
-      window.print();
+    try {
+      await downloadElementAsPdf(docRef.current, {
+        fileName: `CV_QuadCore_${template}_demo`,
+      });
+    } finally {
       setExporting(null);
-    }, 100);
+    }
   }
 
   async function exportDOCX() {
@@ -205,7 +210,7 @@ export default function TemplatesPage() {
               </Card>
             </div>
 
-            <div className="overflow-auto bg-neutral-200 p-6 rounded-xl">
+            <div ref={docRef} className="overflow-auto bg-neutral-200 p-6 rounded-xl">
               <CVRenderer content={SAMPLE_CONTENT} templateId={template} />
             </div>
           </TabsContent>

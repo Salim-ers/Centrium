@@ -1,15 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Printer } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { InvoiceDocument } from '@/components/invoices/InvoiceDocument';
 import { createClient } from '@/lib/supabase/client';
+import { downloadElementAsPdf } from '@/lib/pdf/download-document';
 import type { Invoice, Company, Mission, Consultant, Timesheet } from '@/types';
 
 type Detail = {
@@ -25,6 +26,7 @@ export default function PortalInvoiceDetailPage() {
   const router = useRouter();
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(true);
+  const docRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -96,18 +98,21 @@ export default function PortalInvoiceDetailPage() {
           >
             Payée
           </Badge>
-          <Button size="sm" onClick={() => window.print()}>
-            <Printer className="h-4 w-4" />
-            Imprimer / PDF
+          <Button
+            size="sm"
+            onClick={() =>
+              downloadElementAsPdf(docRef.current, {
+                fileName: `Facture_${detail.invoice.invoice_number}`,
+              })
+            }
+          >
+            <Download className="h-4 w-4" />
+            Télécharger PDF
           </Button>
         </div>
       </div>
 
-      <div className="no-print bg-neutral-200 rounded-xl p-6 overflow-auto">
-        <InvoiceDocument {...detail} />
-      </div>
-
-      <div className="print-only hidden print:block">
+      <div ref={docRef} className="bg-neutral-200 rounded-xl p-6 overflow-auto">
         <InvoiceDocument {...detail} />
       </div>
     </div>

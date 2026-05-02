@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Download, Edit, ArrowLeft, Send, CheckCircle2 } from 'lucide-react';
+
+import { downloadElementAsPdf } from '@/lib/pdf/download-document';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
@@ -67,6 +69,7 @@ export default function ContractDetailPage() {
   const [issuer, setIssuer] = useState<ContractIssuer | null>(null);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
+  const docRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -100,8 +103,11 @@ export default function ContractDetailPage() {
     toast.success('Statut mis à jour');
   }
 
-  function printContract() {
-    window.print();
+  function downloadPdf() {
+    if (!contract) return;
+    downloadElementAsPdf(docRef.current, {
+      fileName: `Contrat_${contract.contract_number || contract.id}`,
+    });
   }
 
   if (loading) {
@@ -161,21 +167,16 @@ export default function ContractDetailPage() {
                 Marquer signé
               </Button>
             )}
-            <Button onClick={printContract}>
+            <Button onClick={downloadPdf}>
               <Download className="h-4 w-4" />
-              Exporter PDF
+              Télécharger PDF
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Preview du contrat */}
-      <div className="overflow-auto bg-neutral-200 p-6 rounded-xl no-print">
-        <QuadCoreContractAT contract={contract} issuer={issuer} />
-      </div>
-
-      {/* Version print plein écran */}
-      <div className="hidden print:block">
+      {/* Preview du contrat (sert aussi de source pour le PDF) */}
+      <div ref={docRef} className="overflow-auto bg-neutral-200 p-6 rounded-xl">
         <QuadCoreContractAT contract={contract} issuer={issuer} />
       </div>
 

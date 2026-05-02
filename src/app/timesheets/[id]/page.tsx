@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { ArrowLeft, Printer, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Download, CheckCircle2 } from 'lucide-react';
+
+import { downloadElementAsPdf } from '@/lib/pdf/download-document';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
@@ -62,6 +64,7 @@ export default function TimesheetDetailPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [issuer, setIssuer] = useState<TimesheetIssuer | null>(null);
+  const docRef = useRef<HTMLDivElement | null>(null);
 
   async function reload() {
     if (!params?.id) return;
@@ -170,18 +173,21 @@ export default function TimesheetDetailPage() {
               Valider &amp; facturer
             </Button>
           )}
-          <Button size="sm" onClick={() => window.print()}>
-            <Printer className="h-4 w-4" />
-            Imprimer / PDF
+          <Button
+            size="sm"
+            onClick={() =>
+              downloadElementAsPdf(docRef.current, {
+                fileName: `CRA_${(detail.consultant ? `${detail.consultant.first_name}_${detail.consultant.last_name}_` : '')}${detail.timesheet.period_year}-${String(detail.timesheet.period_month).padStart(2, '0')}`,
+              })
+            }
+          >
+            <Download className="h-4 w-4" />
+            Télécharger PDF
           </Button>
         </div>
       </div>
 
-      <div className="no-print bg-neutral-200 rounded-xl p-6 overflow-auto">
-        <TimesheetDocument {...detail} issuer={issuer} />
-      </div>
-
-      <div className="print-only hidden print:block">
+      <div ref={docRef} className="bg-neutral-200 rounded-xl p-6 overflow-auto">
         <TimesheetDocument {...detail} issuer={issuer} />
       </div>
     </AppShell>
