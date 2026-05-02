@@ -26,6 +26,7 @@ import {
   Package,
   UserPlus,
 } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { CentriumMark } from '@/components/brand/CentriumMark';
@@ -97,6 +98,10 @@ export function Sidebar() {
   const org = useOrganizationSafe();
   const logoSrc = org?.branding?.logoUrl ?? null;
   const brandName = org?.branding?.brandName ?? undefined;
+  // Hint visuel sur "Paramètres" quand l'identité visuelle n'a pas encore
+  // été configurée (logo manquant ET pas de couleur perso définie).
+  const brandingMissing =
+    !!org?.branding && !org.branding.logoUrl && !org.branding.primaryColor;
 
   // État ouvert/fermé par groupe (persisté en localStorage).
   // Par défaut tout est fermé ; seul le groupe contenant la page active est ouvert.
@@ -180,6 +185,22 @@ export function Sidebar() {
                   )}
                 />
               </button>
+
+              {open && group.id === 'organisation' && brandingMissing && (
+                <Link
+                  href="/onboarding/setup"
+                  className="mt-2 mx-1 flex items-start gap-2 rounded-lg border border-violet-glow/30 bg-violet-glow/[0.06] px-3 py-2 hover:border-violet-glow/60 transition-colors"
+                  title="Configure le logo, les couleurs et l'identité légale de ton ESN"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-violet-glow shrink-0 mt-0.5" />
+                  <div className="text-[11px] leading-tight">
+                    <div className="font-semibold text-violet-glow">Personnalise ton ESN</div>
+                    <div className="text-white/60 mt-0.5">
+                      Logo, couleurs, identité légale
+                    </div>
+                  </div>
+                </Link>
+              )}
 
               {open && (
                 <ul className="mt-1 space-y-0.5">

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
+import { CentriumMark } from '@/components/brand/CentriumMark';
 import type { Locale, LandingDict } from '@/lib/i18n/landing';
 
 type Props = {
@@ -44,12 +44,8 @@ export function Header({ t, locale, onLocaleChange }: Props) {
           className="relative flex items-center group ml-2 md:ml-6 shrink-0"
         >
           <span className="absolute inset-[-35%] rounded-full bg-[radial-gradient(circle,rgba(225,29,116,0.55),rgba(139,92,246,0.18),transparent_70%)] blur-2xl pointer-events-none transition-opacity duration-500 group-hover:opacity-100 opacity-90" />
-          <span className="relative rounded-2xl bg-[#0a0b14] border border-white/10 p-2.5 shadow-[0_0_40px_rgba(225,29,116,0.25)] transition-transform duration-300 group-hover:scale-[1.03]">
-            <QuadCoreLogo
-              size="md"
-              variant="dark"
-              className="[mask-image:radial-gradient(ellipse_at_center,black_55%,transparent_100%)] [-webkit-mask-image:radial-gradient(ellipse_at_center,black_55%,transparent_100%)]"
-            />
+          <span className="relative rounded-2xl bg-[#0a0b14] border border-white/10 px-3 py-2 shadow-[0_0_40px_rgba(225,29,116,0.25)] transition-transform duration-300 group-hover:scale-[1.03]">
+            <CentriumMark size="md" />
           </span>
         </a>
 

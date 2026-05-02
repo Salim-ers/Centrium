@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 
-import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
+import { CentriumMark } from '@/components/brand/CentriumMark';
 
 type Props = {
   /** Durée minimum d'affichage en ms (par défaut 1500) */
@@ -53,11 +53,7 @@ export function LoadingSplash({ minDuration = 1500, label = 'CHARGEMENT' }: Prop
               <div className="absolute inset-[-40%] rounded-[2rem] bg-[radial-gradient(circle,rgba(225,29,116,0.55),rgba(139,92,246,0.3),transparent_70%)] blur-2xl animate-pulse" />
               <div className="relative rounded-2xl bg-[#0a0b14] border border-white/10 p-6 shadow-[0_0_80px_rgba(225,29,116,0.35)] overflow-hidden">
                 <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_at_center,rgba(225,29,116,0.18),transparent_70%)]" />
-                <QuadCoreLogo
-                  size="lg"
-                  variant="dark"
-                  className="relative [mask-image:radial-gradient(ellipse_at_center,black_55%,transparent_100%)] [-webkit-mask-image:radial-gradient(ellipse_at_center,black_55%,transparent_100%)]"
-                />
+                <CentriumMark size="xl" />
               </div>
             </motion.div>
 

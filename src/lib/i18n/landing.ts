@@ -97,7 +97,7 @@ export const DICT: Record<Locale, LandingDict> = {
       title1: 'Votre ESN,',
       titleGradient: 'pilotée par un seul outil.',
       subtitle:
-        'QuadCore centralise vos consultants, votre CRM, vos CV et vos CRA. Une plateforme unique pour mobiliser les bons profils, suivre vos missions, facturer sans friction.',
+        'Centrium centralise vos consultants, votre CRM, vos CV et vos CRA. Une plateforme unique pour mobiliser les bons profils, suivre vos missions, facturer sans friction.',
       ctaPrimary: 'Voir les tarifs',
       ctaSecondary: 'Voir le produit',
       trial: 'Sans engagement · résiliation en 1 clic',
@@ -113,7 +113,7 @@ export const DICT: Record<Locale, LandingDict> = {
         {
           title: 'CV IA',
           label: 'OPTIMIZER',
-          desc: 'Template QuadCore propriétaire',
+          desc: 'Template Centrium propriétaire',
         },
         {
           title: 'CRM',
@@ -141,10 +141,10 @@ export const DICT: Record<Locale, LandingDict> = {
         },
         {
           tag: 'CV OPTIMIZER',
-          title: 'Vos CV au standard QuadCore, en 30 secondes',
-          desc: 'Transformez vos CV bruts en template QuadCore propriétaire, prêt à envoyer au client. Gain de temps, cohérence brand sur toute votre bibliothèque, format professionnel.',
+          title: 'Vos CV au standard Centrium, en 30 secondes',
+          desc: 'Transformez vos CV bruts en template Centrium propriétaire, prêt à envoyer au client. Gain de temps, cohérence brand sur toute votre bibliothèque, format professionnel.',
           bullets: [
-            'Template QuadCore propriétaire',
+            'Template Centrium propriétaire',
             'Brand cohérent sur toute l\'équipe',
             'Export PDF & DOCX prêt à envoyer',
           ],
@@ -200,7 +200,7 @@ export const DICT: Record<Locale, LandingDict> = {
             'CV Optimizer IA (Claude)',
             'Matching consultant ↔ offre',
             'CRM pipeline',
-            'Templates CV QuadCore',
+            'Templates CV Centrium',
             'Support email',
           ],
           ctaLabel: 'Souscrire',
@@ -311,7 +311,7 @@ export const DICT: Record<Locale, LandingDict> = {
       title1: 'Run your staffing agency',
       titleGradient: 'from a single platform.',
       subtitle:
-        'QuadCore centralizes your consultants, CRM, CVs and timesheets. One platform to staff the right people, track missions, invoice without friction.',
+        'Centrium centralizes your consultants, CRM, CVs and timesheets. One platform to staff the right people, track missions, invoice without friction.',
       ctaPrimary: 'See pricing',
       ctaSecondary: 'See the product',
       trial: 'No commitment · cancel anytime',
@@ -320,7 +320,7 @@ export const DICT: Record<Locale, LandingDict> = {
       title: 'Built for modern staffing agencies',
       items: [
         { title: 'Consultants', label: 'LIBRARY', desc: 'Centralized, AI-enriched' },
-        { title: 'AI CV', label: 'OPTIMIZER', desc: 'Proprietary QuadCore template' },
+        { title: 'AI CV', label: 'OPTIMIZER', desc: 'Proprietary Centrium template' },
         { title: 'CRM', label: 'PIPELINE', desc: 'Opportunities & matching' },
         { title: 'Timesheets', label: 'AUTOMATED', desc: 'From entry to payment' },
       ],
@@ -339,10 +339,10 @@ export const DICT: Record<Locale, LandingDict> = {
         },
         {
           tag: 'CV OPTIMIZER',
-          title: 'Your CVs in QuadCore format, in 30 seconds',
-          desc: 'Turn raw CVs into a unified QuadCore template, ready to send to the client. Time savings, brand consistency across your library, professional format.',
+          title: 'Your CVs in Centrium format, in 30 seconds',
+          desc: 'Turn raw CVs into a unified Centrium template, ready to send to the client. Time savings, brand consistency across your library, professional format.',
           bullets: [
-            'Proprietary QuadCore template',
+            'Proprietary Centrium template',
             'Consistent branding across your team',
             'Ready-to-send PDF & DOCX export',
           ],
@@ -386,7 +386,7 @@ export const DICT: Record<Locale, LandingDict> = {
             'AI CV Optimizer (Claude)',
             'Consultant ↔ mission matching',
             'CRM pipeline',
-            'QuadCore CV templates',
+            'Centrium CV templates',
             'Email support',
           ],
           ctaLabel: 'Subscribe',

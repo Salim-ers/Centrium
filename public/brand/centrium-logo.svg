@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Centrium">
+  <defs>
+    <linearGradient id="centrium-gradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6d28d9" />
+      <stop offset="55%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#e11d74" />
+    </linearGradient>
+    <linearGradient id="centrium-gradient-soft" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6d28d9" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#e11d74" stop-opacity="0.9" />
+    </linearGradient>
+  </defs>
+
+  <!-- Outer C : opening on the right (-30° to +30°), thickness 20px -->
+  <path
+    d="M 164.95 62.5
+       A 75 75 0 1 0 164.95 137.5
+       L 147.63 127.5
+       A 55 55 0 1 1 147.63 72.5
+       Z"
+    fill="url(#centrium-gradient)" />
+
+  <!-- Inner C : same center, smaller, gives the double-C interlocking feel -->
+  <path
+    d="M 136.37 79
+       A 42 42 0 1 0 136.37 121
+       L 124.25 114
+       A 28 28 0 1 1 124.25 86
+       Z"
+    fill="url(#centrium-gradient-soft)" />
+</svg>

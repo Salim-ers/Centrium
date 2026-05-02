@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
+import { CentriumMark } from '@/components/brand/CentriumMark';
 import { LegalLinks } from './legal/LegalLinks';
 import type { LandingDict } from '@/lib/i18n/landing';
 
@@ -10,7 +10,7 @@ export function Footer({ t }: { t: LandingDict }) {
     <footer className="relative border-t border-white/5 py-14">
       <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-10">
         <div className="md:col-span-2">
-          <QuadCoreLogo size="sm" variant="dark" />
+          <CentriumMark size="md" />
           <p className="mt-4 text-sm text-white/55 max-w-sm leading-relaxed">{t.footer.tagline}</p>
         </div>
 

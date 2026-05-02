@@ -21,6 +21,10 @@ import { Button } from '@/components/ui/button';
 import { dashboardService, type DashboardKPIs, alertService } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useBrandName } from '@/components/brand/BrandingStyles';
+import {
+  NewUserTutorial,
+  TutorialButton,
+} from '@/components/onboarding/NewUserTutorial';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import type { Alert } from '@/types';
 import { formatCurrency, relativeDate } from '@/lib/utils';
@@ -55,12 +59,18 @@ export default function DashboardPage() {
 
   return (
     <AppShell>
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
-          Vue d&apos;ensemble de votre activité {brandName}
-        </p>
+      <div className="mb-8 flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="font-display text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">
+            Vue d&apos;ensemble de votre activité {brandName}
+          </p>
+        </div>
+        <TutorialButton />
       </div>
+
+      {/* Auto-ouvre le tuto au 1er montage si pas vu */}
+      <NewUserTutorial />
 
       {brandingMissing && (
         <Link
