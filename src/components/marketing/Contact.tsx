@@ -70,7 +70,7 @@ export function Contact({ t }: { t: LandingDict }) {
                 <div className="h-9 w-9 rounded-lg bg-magenta/15 border border-magenta/30 flex items-center justify-center">
                   <MapPin className="h-4 w-4 text-magenta" />
                 </div>
-                Paris · Remote-first
+                Paris
               </div>
             </div>
           </motion.div>

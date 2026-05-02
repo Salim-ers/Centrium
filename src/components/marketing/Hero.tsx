@@ -6,6 +6,7 @@ import { ArrowRight, Sparkles } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { VideoHero } from './VideoHero';
+import { CentriumMark } from '@/components/brand/CentriumMark';
 import type { LandingDict } from '@/lib/i18n/landing';
 
 export function Hero({ t }: { t: LandingDict }) {
@@ -21,7 +22,16 @@ export function Hero({ t }: { t: LandingDict }) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/5 px-3 py-1 text-xs text-violet-200"
+            className="inline-flex"
+          >
+            <CentriumMark size="xl" />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.05 }}
+            className="mt-4 inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/5 px-3 py-1 text-xs text-violet-200"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
             {t.hero.badge}

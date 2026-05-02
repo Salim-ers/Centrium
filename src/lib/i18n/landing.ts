@@ -93,7 +93,7 @@ export const DICT: Record<Locale, LandingDict> = {
       bookMeeting: 'Prendre un rendez-vous',
     },
     hero: {
-      badge: 'SaaS — Plateforme ESN nouvelle génération',
+      badge: 'La plateforme métier tout-en-un des ESN',
       title1: 'Votre ESN,',
       titleGradient: 'pilotée par un seul outil.',
       subtitle:
@@ -307,7 +307,7 @@ export const DICT: Record<Locale, LandingDict> = {
       bookMeeting: 'Book a meeting',
     },
     hero: {
-      badge: 'SaaS — Next-gen ESN platform',
+      badge: 'The all-in-one platform for staffing agencies',
       title1: 'Run your staffing agency',
       titleGradient: 'from a single platform.',
       subtitle:

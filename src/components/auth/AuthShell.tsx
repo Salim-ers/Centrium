@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 
-import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { CentriumMark } from '@/components/brand/CentriumMark';
 import { NetworkCanvas } from '@/components/marketing/NetworkCanvas';
 
@@ -46,18 +45,14 @@ export function AuthShell({ children, title, subtitle, footer }: Props) {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="w-full max-w-md"
         >
-          {/* Logo avec aura rose */}
+          {/* Logo Centrium avec aura rose */}
           <div className="relative flex justify-center mb-6">
             <span className="absolute inset-[-40%] rounded-full bg-[radial-gradient(circle,rgba(225,29,116,0.5),rgba(139,92,246,0.25),transparent_70%)] blur-2xl pointer-events-none" />
             <Link
               href="/"
-              className="relative rounded-2xl bg-[#0a0b14] border border-white/10 p-4 shadow-[0_0_40px_-10px_rgba(225,29,116,0.35)]"
+              className="relative rounded-2xl bg-[#0a0b14] border border-white/10 px-5 py-4 shadow-[0_0_40px_-10px_rgba(225,29,116,0.35)]"
             >
-              <QuadCoreLogo
-                size="md"
-                variant="dark"
-                className="[mask-image:radial-gradient(ellipse_at_center,black_55%,transparent_100%)] [-webkit-mask-image:radial-gradient(ellipse_at_center,black_55%,transparent_100%)]"
-              />
+              <CentriumMark size="lg" />
             </Link>
           </div>
 
