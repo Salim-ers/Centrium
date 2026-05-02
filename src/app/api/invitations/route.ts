@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireOrg } from '@/lib/auth/guards';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { invitationSchema } from '@/lib/validators';
 
 // =========================================================================
 // POST /api/invitations — Crée une invitation pour l'organisation active
 // -------------------------------------------------------------------------
-// Seul un admin de l'org peut inviter (RLS via auth.role_in).
-// Retourne { url } : le lien à envoyer manuellement (ou par email plus tard).
+// Seul un admin de l'org peut inviter.
+// 1. Crée la ligne dans `organization_invitations` (token unique)
+// 2. Tente d'envoyer l'email Centrium via Supabase Auth (template "invite"
+//    déjà brandé via Management API). Si l'email est déjà connu, fallback
+//    sur magic link. Si tout échoue, on garde l'URL pour copie manuelle.
 // =========================================================================
 
 export const runtime = 'nodejs';
@@ -28,7 +32,17 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createClient();
-  const { data, error } = await supabase
+
+  // 1. Récupère le nom de l'org (pour le metadata du mail)
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('name, brand_name')
+    .eq('id', organizationId)
+    .maybeSingle();
+  const orgDisplayName = org?.brand_name ?? org?.name ?? 'votre organisation';
+
+  // 2. Crée l'invitation en DB
+  const { data: invite, error } = await supabase
     .from('organization_invitations')
     .insert({
       organization_id: organizationId,
@@ -43,9 +57,58 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'db_error', message: error.message }, { status: 500 });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-  const url = `${appUrl}/invite/accept?token=${data.token}`;
+  // 3. Construit l'URL de redirection après vérification email Supabase
+  const reqUrl = new URL(req.url);
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ?? `${reqUrl.protocol}//${reqUrl.host}`;
+  const acceptUrl = `${appUrl}/invite/accept?token=${invite.token}`;
 
-  // TODO : envoyer l'email via Resend. MVP = on retourne l'URL et l'admin copie-colle.
-  return NextResponse.json({ url, email: parsed.data.email }, { status: 201 });
+  // 4. Envoie l'email d'invitation via Supabase Auth (template "invite"
+  //    déjà brandé Centrium). Fallback magic-link si le compte existe déjà.
+  const admin = createAdminClient();
+  const inviteData = {
+    invitation_token: invite.token,
+    organization_name: orgDisplayName,
+    role: parsed.data.role,
+  };
+
+  let emailSent = false;
+  let emailError: string | null = null;
+
+  const { error: inviteErr } = await admin.auth.admin.inviteUserByEmail(
+    parsed.data.email.toLowerCase(),
+    {
+      redirectTo: acceptUrl,
+      data: inviteData,
+    },
+  );
+  if (!inviteErr) {
+    emailSent = true;
+  } else if (
+    /already (been )?registered|already exists|user already/i.test(inviteErr.message)
+  ) {
+    // Compte déjà existant → on envoie un magic link à la place
+    const { error: linkErr } = await admin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: parsed.data.email.toLowerCase(),
+      options: { redirectTo: acceptUrl, data: inviteData },
+    });
+    if (!linkErr) {
+      emailSent = true;
+    } else {
+      emailError = linkErr.message;
+    }
+  } else {
+    emailError = inviteErr.message;
+  }
+
+  return NextResponse.json(
+    {
+      url: acceptUrl,
+      email: parsed.data.email,
+      email_sent: emailSent,
+      email_error: emailError,
+    },
+    { status: 201 },
+  );
 }

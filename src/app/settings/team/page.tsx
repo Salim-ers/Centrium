@@ -122,9 +122,21 @@ export default function TeamSettingsPage() {
         toast.error(body.message ?? 'Invitation échouée');
         return;
       }
-      const { url } = await res.json();
-      await navigator.clipboard.writeText(url);
-      toast.success(`✉ Lien d'invitation copié — envoie-le à ${inviteEmail}`, { duration: 6000 });
+      const { url, email_sent, email_error } = (await res.json()) as {
+        url: string;
+        email_sent: boolean;
+        email_error: string | null;
+      };
+      if (email_sent) {
+        toast.success(`✉ Email envoyé à ${inviteEmail}`, { duration: 6000 });
+      } else {
+        // Fallback : on n'a pas pu envoyer l'email, on copie le lien
+        await navigator.clipboard.writeText(url);
+        toast.warning(
+          `Email non envoyé (${email_error ?? 'erreur SMTP'}) — lien copié dans le presse-papier, envoie-le manuellement à ${inviteEmail}.`,
+          { duration: 8000 },
+        );
+      }
       setInviteEmail('');
       load();
     } finally {
@@ -185,8 +197,8 @@ export default function TeamSettingsPage() {
               Inviter un membre
             </CardTitle>
             <CardDescription className="text-xs">
-              Un lien sera copié dans ton presse-papier. Envoie-le manuellement à
-              l&apos;invité (email automatique disponible bientôt).
+              Un email Centrium sera envoyé automatiquement à l&apos;invité avec un lien de
+              connexion. Le lien expire après 7 jours.
             </CardDescription>
           </CardHeader>
           <CardContent>
