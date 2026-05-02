@@ -3,11 +3,19 @@ import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { QuadCoreSignature } from '@/components/brand/QuadCoreSignature';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
+type TimesheetDayKind =
+  | 'worked'
+  | 'paid_leave'
+  | 'sick_leave'
+  | 'unpaid_leave'
+  | 'holiday';
+
 type TimesheetDay = {
   id: string;
   day_date: string;
   duration: number;
   note: string | null;
+  kind?: TimesheetDayKind;
 };
 
 export type TimesheetIssuer = {
@@ -147,32 +155,56 @@ export function TimesheetDocument({
               {d}
             </div>
           ))}
-          {calendarDays.map((c, i) => (
-            <div
-              key={i}
-              className="bg-white px-1.5 py-2 min-h-[52px] flex flex-col justify-between"
-              style={{
-                backgroundColor: c.duration > 0 ? '#f5f3ff' : c.isWeekend ? '#fafafa' : 'white',
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-neutral-500">{c.dayNum ?? ''}</span>
-                {c.duration > 0 && (
-                  <span
-                    className="text-[10px] font-bold"
-                    style={{ color: primary }}
-                  >
-                    {c.duration === 1 ? '1j' : `${c.duration}j`}
-                  </span>
+          {calendarDays.map((c, i) => {
+            const tag = kindTag(c.kind);
+            return (
+              <div
+                key={i}
+                className="bg-white px-1.5 py-2 min-h-[52px] flex flex-col justify-between"
+                style={{
+                  backgroundColor:
+                    c.kind === 'worked'
+                      ? '#f5f3ff'
+                      : c.kind === 'holiday'
+                        ? '#fff7ed'
+                        : c.kind === 'paid_leave'
+                          ? '#fffbeb'
+                          : c.kind === 'sick_leave'
+                            ? '#fef2f2'
+                            : c.kind === 'unpaid_leave'
+                              ? '#f1f5f9'
+                              : c.isWeekend
+                                ? '#fafafa'
+                                : 'white',
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-neutral-500">{c.dayNum ?? ''}</span>
+                  {c.kind === 'worked' && c.duration > 0 && (
+                    <span
+                      className="text-[10px] font-bold"
+                      style={{ color: primary }}
+                    >
+                      {c.duration === 1 ? '1j' : `${c.duration}j`}
+                    </span>
+                  )}
+                  {tag && (
+                    <span
+                      className="text-[8px] uppercase tracking-wider font-semibold"
+                      style={{ color: tag.color }}
+                    >
+                      {tag.label}
+                    </span>
+                  )}
+                </div>
+                {c.note && (
+                  <div className="text-[8px] text-neutral-500 leading-tight mt-1 truncate">
+                    {c.note}
+                  </div>
                 )}
               </div>
-              {c.note && (
-                <div className="text-[8px] text-neutral-500 leading-tight mt-1 truncate">
-                  {c.note}
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -259,23 +291,47 @@ type CalendarCell = {
   duration: number;
   note: string | null;
   isWeekend: boolean;
+  kind: TimesheetDayKind | null;
 };
+
+function kindTag(
+  kind: TimesheetDayKind | null,
+): { label: string; color: string } | null {
+  switch (kind) {
+    case 'holiday':
+      return { label: 'Férié', color: '#c2410c' };
+    case 'paid_leave':
+      return { label: 'Congé', color: '#b45309' };
+    case 'sick_leave':
+      return { label: 'Maladie', color: '#b91c1c' };
+    case 'unpaid_leave':
+      return { label: 'Sans solde', color: '#64748b' };
+    default:
+      return null;
+  }
+}
 
 function buildCalendar(year: number, month: number, days: TimesheetDay[]): CalendarCell[] {
   const firstDay = new Date(year, month - 1, 1);
   const daysInMonth = new Date(year, month, 0).getDate();
-  // ISO weekday Mon=1…Sun=7 ; JS getDay Sun=0…Sat=6
   const firstIso = ((firstDay.getDay() + 6) % 7) + 1;
   const leading = firstIso - 1;
 
-  const byDate = new Map<string, { duration: number; note: string | null }>();
+  const byDate = new Map<
+    string,
+    { duration: number; note: string | null; kind: TimesheetDayKind | null }
+  >();
   for (const d of days) {
-    byDate.set(d.day_date.slice(0, 10), { duration: Number(d.duration), note: d.note });
+    byDate.set(d.day_date.slice(0, 10), {
+      duration: Number(d.duration),
+      note: d.note,
+      kind: d.kind ?? (Number(d.duration) > 0 ? 'worked' : null),
+    });
   }
 
   const cells: CalendarCell[] = [];
   for (let i = 0; i < leading; i++) {
-    cells.push({ dayNum: null, duration: 0, note: null, isWeekend: false });
+    cells.push({ dayNum: null, duration: 0, note: null, isWeekend: false, kind: null });
   }
   for (let d = 1; d <= daysInMonth; d++) {
     const iso = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
@@ -287,11 +343,11 @@ function buildCalendar(year: number, month: number, days: TimesheetDay[]): Calen
       duration: entry?.duration ?? 0,
       note: entry?.note ?? null,
       isWeekend,
+      kind: entry?.kind ?? null,
     });
   }
-  // Pad trailing to complete the last week
   while (cells.length % 7 !== 0) {
-    cells.push({ dayNum: null, duration: 0, note: null, isWeekend: false });
+    cells.push({ dayNum: null, duration: 0, note: null, isWeekend: false, kind: null });
   }
   return cells;
 }

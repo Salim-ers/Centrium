@@ -31,6 +31,20 @@ const MONTHS = [
   'Déc',
 ];
 
+const STATUS_LABEL: Record<Timesheet['status'], string> = {
+  draft: 'Brouillon',
+  submitted: 'Soumis',
+  client_validated: 'Validé',
+  rejected: 'Rejeté',
+};
+
+const STATUS_STYLE: Record<Timesheet['status'], string> = {
+  draft: 'border-slate-500/40 bg-slate-500/10 text-slate-300',
+  submitted: 'border-blue-500/40 bg-blue-500/10 text-blue-300',
+  client_validated: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300',
+  rejected: 'border-red-500/40 bg-red-500/10 text-red-300',
+};
+
 export default function TimesheetsPage() {
   const { activeOrgId } = useOrganization();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -131,7 +145,9 @@ export default function TimesheetsPage() {
                     <TableCell>{t.days_worked}</TableCell>
                     <TableCell>{t.days_validated}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{t.status}</Badge>
+                      <Badge variant="outline" className={STATUS_STYLE[t.status]}>
+                        {STATUS_LABEL[t.status]}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">

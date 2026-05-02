@@ -487,6 +487,7 @@ export const timesheetService = {
         day_date: string;
         duration: number;
         note: string | null;
+        kind: 'worked' | 'paid_leave' | 'sick_leave' | 'unpaid_leave' | 'holiday';
       }>;
     }>
   > {
@@ -529,10 +530,55 @@ export const timesheetService = {
           day_date: string;
           duration: number;
           note: string | null;
+          kind: 'worked' | 'paid_leave' | 'sick_leave' | 'unpaid_leave' | 'holiday';
         }>,
       },
       error: null,
     };
+  },
+
+  /**
+   * Met à jour (ou supprime) un jour du calendrier CRA.
+   *
+   * - kind = 'worked' / 'paid_leave' / 'sick_leave' / 'unpaid_leave' / 'holiday'
+   * - duration appliquée seulement si kind = 'worked' (sinon 0)
+   * - kind = null → supprimer la ligne (revient à "vide", weekend par ex.)
+   *
+   * Le trigger `recompute_timesheet_days_worked` met à jour
+   * timesheets.days_worked automatiquement.
+   */
+  async upsertDay(input: {
+    timesheetId: string;
+    dayDate: string; // 'YYYY-MM-DD'
+    kind: 'worked' | 'paid_leave' | 'sick_leave' | 'unpaid_leave' | 'holiday' | null;
+    duration?: number; // 1.0 ou 0.5 pour 'worked' ; ignoré sinon
+    note?: string | null;
+  }): Promise<ServiceResult<true>> {
+    const supabase = createClient();
+    if (input.kind === null) {
+      const { error } = await supabase
+        .from('timesheet_days')
+        .delete()
+        .eq('timesheet_id', input.timesheetId)
+        .eq('day_date', input.dayDate);
+      if (error) return { data: null, error };
+      return { data: true, error: null };
+    }
+    const duration = input.kind === 'worked' ? (input.duration ?? 1) : 0;
+    const { error } = await supabase
+      .from('timesheet_days')
+      .upsert(
+        {
+          timesheet_id: input.timesheetId,
+          day_date: input.dayDate,
+          kind: input.kind,
+          duration,
+          note: input.note ?? null,
+        },
+        { onConflict: 'timesheet_id,day_date' },
+      );
+    if (error) return { data: null, error };
+    return { data: true, error: null };
   },
 
   async validate(id: string): Promise<ServiceResult<Timesheet>> {

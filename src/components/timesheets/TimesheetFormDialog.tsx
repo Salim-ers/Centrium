@@ -15,7 +15,6 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
@@ -69,7 +68,6 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
     defaultValues: {
       period_month: now.getMonth() + 1,
       period_year: now.getFullYear(),
-      days_worked: 20,
     },
   });
 
@@ -101,7 +99,6 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
       reset({
         period_month: now.getMonth() + 1,
         period_year: now.getFullYear(),
-        days_worked: 20,
       });
       onOpenChange(false);
     } finally {
@@ -146,7 +143,7 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Mois *</Label>
               <Select {...register('period_month')}>
@@ -167,15 +164,17 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
                 ))}
               </Select>
             </div>
-            <div>
-              <Label>Jours travaillés *</Label>
-              <Input type="number" min="0" max="31" step="0.5" {...register('days_worked')} />
-            </div>
           </div>
+
+          <p className="text-[11px] text-violet-300/80 leading-relaxed">
+            Les jours ouvrés du mois sont pré-remplis automatiquement comme
+            travaillés. Tu pourras marquer les jours fériés et les absences
+            directement sur le calendrier après création.
+          </p>
 
           <div>
             <Label>Notes</Label>
-            <Textarea {...register('notes')} rows={3} placeholder="Contexte, congés, jours fériés…" />
+            <Textarea {...register('notes')} rows={3} placeholder="Contexte particulier…" />
           </div>
 
           <DialogFooter>

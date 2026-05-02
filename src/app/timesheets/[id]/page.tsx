@@ -4,14 +4,19 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { ArrowLeft, Download, CheckCircle2, Receipt } from 'lucide-react';
+import { ArrowLeft, Download, CheckCircle2, Receipt, Pencil } from 'lucide-react';
 
 import { downloadElementAsPdf } from '@/lib/pdf/download-document';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { TimesheetDocument, type TimesheetIssuer } from '@/components/timesheets/TimesheetDocument';
+import {
+  TimesheetCalendar,
+  type TimesheetDayKind,
+} from '@/components/timesheets/TimesheetCalendar';
 import { timesheetService } from '@/lib/services';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
@@ -33,6 +38,7 @@ type TimesheetDay = {
   day_date: string;
   duration: number;
   note: string | null;
+  kind: TimesheetDayKind;
 };
 
 type Detail = {
@@ -165,6 +171,25 @@ export default function TimesheetDetailPage() {
   }
 
   const { timesheet } = detail;
+  const calendarEditable = timesheet.status !== 'client_validated';
+
+  async function handleDayChange(
+    dayDate: string,
+    next: { kind: TimesheetDayKind | null; duration?: number; note?: string | null },
+  ) {
+    const res = await timesheetService.upsertDay({
+      timesheetId: timesheet.id,
+      dayDate,
+      kind: next.kind,
+      duration: next.duration,
+      note: next.note,
+    });
+    if (res.error) {
+      toast.error('Modification impossible : ' + res.error.message);
+      return;
+    }
+    await reload();
+  }
 
   return (
     <AppShell>
@@ -213,6 +238,48 @@ export default function TimesheetDetailPage() {
           </Button>
         </div>
       </div>
+
+      {/* Calendrier interactif (hors PDF) */}
+      <Card className="no-print mb-4">
+        <CardContent className="p-5">
+          <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
+            <div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
+                Calendrier du mois
+              </div>
+              <div className="text-sm">
+                {calendarEditable ? (
+                  <span className="inline-flex items-center gap-1.5 text-violet-300">
+                    <Pencil className="h-3.5 w-3.5" />
+                    Clique sur un jour pour le marquer travaillé, férié, ou
+                    en absence
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">
+                    CRA validé — calendrier en lecture seule
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Total facturé
+              </div>
+              <div className="text-2xl font-bold qc-gradient-text">
+                {Number(timesheet.days_worked)} j
+              </div>
+            </div>
+          </div>
+          <TimesheetCalendar
+            year={timesheet.period_year}
+            month={timesheet.period_month}
+            days={detail.days}
+            editable={calendarEditable}
+            onChange={handleDayChange}
+            primaryColor={branding?.primaryColor ?? undefined}
+          />
+        </CardContent>
+      </Card>
 
       <div ref={docRef} className="bg-neutral-200 rounded-xl p-6 overflow-auto">
         <TimesheetDocument {...detail} issuer={issuer} />

@@ -145,7 +145,10 @@ export const timesheetSchema = z.object({
   mission_id: z.string().uuid(),
   period_month: z.coerce.number().int().min(1).max(12),
   period_year: z.coerce.number().int().min(2020).max(2100),
-  days_worked: z.coerce.number().min(0).max(31),
+  // Auto-rempli par le trigger Postgres `populate_timesheet_weekdays` à la
+  // création (jours ouvrés du mois). Optionnel ici, recalculé par le
+  // trigger `recompute_timesheet_days_worked` à chaque édition.
+  days_worked: z.coerce.number().min(0).max(31).optional(),
   notes: z.string().max(2000).optional().nullable(),
 });
 
