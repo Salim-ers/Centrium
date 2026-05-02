@@ -30,6 +30,8 @@ import {
   SENIORITY_LABEL,
 } from '@/constants';
 import type { Consultant } from '@/types';
+import { useOrganization } from '@/lib/auth/context';
+import { KycDocuments } from '@/components/consultants/KycDocuments';
 import { usePortalConsultant } from '../portal-context';
 
 type EditableForm = {
@@ -48,6 +50,7 @@ function emptyForm(): EditableForm {
 
 export default function PortalProfilePage() {
   const { consultantId } = usePortalConsultant();
+  const { activeOrgId } = useOrganization();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<EditableForm>(emptyForm());
@@ -308,6 +311,16 @@ export default function PortalProfilePage() {
             ))}
           </CardContent>
         </Card>
+      )}
+
+      {activeOrgId && (
+        <div className="mb-6">
+          <KycDocuments
+            consultantId={consultantId}
+            organizationId={activeOrgId}
+            asConsultant
+          />
+        </div>
       )}
     </div>
   );

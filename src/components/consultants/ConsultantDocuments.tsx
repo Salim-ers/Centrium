@@ -31,6 +31,10 @@ const DOC_KIND_LABEL: Record<string, string> = {
   cv_generated: 'CV généré',
   certification: 'Certification',
   id: 'Pièce d\'identité',
+  id_card: 'Pièce d\'identité',
+  kbis: 'Extrait Kbis',
+  rc_pro: 'Attestation RC Pro',
+  rib: 'RIB',
   contract: 'Contrat',
   other: 'Autre',
 };
