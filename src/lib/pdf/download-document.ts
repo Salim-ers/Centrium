@@ -63,20 +63,23 @@ export async function downloadElementAsPdf(
     const usableHeight = A4_HEIGHT_MM - margin * 2;
     // Hauteur totale du contenu rendu, en mm, ramené à la largeur A4 utile.
     const contentHeightMm = (canvas.height * usableWidth) / canvas.width;
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
 
+    // Cas 1 — tient déjà sur une page A4 → addImage direct.
     if (contentHeightMm <= usableHeight) {
-      // Tient sur une page → simple addImage
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-      pdf.addImage(
-        dataUrl,
-        'JPEG',
-        margin,
-        margin,
-        usableWidth,
-        contentHeightMm,
-      );
-    } else {
-      // Plusieurs pages → on découpe le canvas verticalement
+      pdf.addImage(dataUrl, 'JPEG', margin, margin, usableWidth, contentHeightMm);
+    }
+    // Cas 2 — léger débord (≤ 30% au-delà d'une page). C'est le cas typique
+    // des documents A4 capturés au pixel près qui débordent de quelques mm.
+    // On scale-to-fit pour tenir sur 1 page sans page blanche supplémentaire.
+    else if (contentHeightMm <= usableHeight * 1.3) {
+      const fitWidth = (canvas.width * usableHeight) / canvas.height;
+      const offsetX = margin + (usableWidth - fitWidth) / 2;
+      pdf.addImage(dataUrl, 'JPEG', offsetX, margin, fitWidth, usableHeight);
+    }
+    // Cas 3 — vraiment multi-pages (CV à rallonge, contrat de plusieurs
+    // articles) → découpe verticale.
+    else {
       const pageHeightPx = (canvas.width * usableHeight) / usableWidth;
       let renderedPx = 0;
       let pageIndex = 0;
@@ -94,10 +97,10 @@ export async function downloadElementAsPdf(
           0, renderedPx, canvas.width, sliceHeight,
           0, 0, canvas.width, sliceHeight,
         );
-        const dataUrl = pageCanvas.toDataURL('image/jpeg', 0.95);
+        const sliceUrl = pageCanvas.toDataURL('image/jpeg', 0.95);
         if (pageIndex > 0) pdf.addPage();
         const sliceMm = (sliceHeight * usableWidth) / canvas.width;
-        pdf.addImage(dataUrl, 'JPEG', margin, margin, usableWidth, sliceMm);
+        pdf.addImage(sliceUrl, 'JPEG', margin, margin, usableWidth, sliceMm);
         renderedPx += sliceHeight;
         pageIndex += 1;
       }
