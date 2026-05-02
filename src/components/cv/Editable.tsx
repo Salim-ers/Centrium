@@ -1,6 +1,11 @@
 'use client';
 
-import { createElement, useEffect, useRef } from 'react';
+import { createElement, useEffect, useLayoutEffect, useRef } from 'react';
+
+// useLayoutEffect côté client (sync avant peinture, évite le flash vide
+// quand on bascule en mode édition). Fallback à useEffect côté SSR pour
+// éviter le warning React.
+const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export type EditableProps = {
   /** Chemin logique dans le CV (ex: "summary", "header.jobTitle", "experience.<id>.task.0"). */
@@ -44,7 +49,10 @@ export function Editable({
 
   // Synchronise le DOM avec la valeur externe, sauf si l'utilisateur est en
   // train de l'éditer (document.activeElement === ref.current).
-  useEffect(() => {
+  // useLayoutEffect = avant peinture → pas de flash "champ vide" quand on
+  // bascule en mode édition (sinon le placeholder CSS s'affiche brièvement
+  // avant que useEffect populate le textContent).
+  useIsoLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (document.activeElement === el) return;

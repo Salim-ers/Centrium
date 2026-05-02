@@ -122,7 +122,17 @@ function CVOptimizerPageInner() {
   const hasOverrides = Object.keys(overrides).length > 0;
 
   function handleInlineEdit(path: string, value: string) {
-    setOverrides((prev) => ({ ...prev, [path]: value }));
+    setOverrides((prev) => {
+      // Si l'utilisateur vide un champ → on retire l'override pour revert
+      // à la valeur d'origine du CV généré (sinon le champ resterait vide
+      // pour de bon en cas de clic + Tab accidentel).
+      if (value === '') {
+        const next = { ...prev };
+        delete next[path];
+        return next;
+      }
+      return { ...prev, [path]: value };
+    });
   }
   function resetOverrides() {
     if (!hasOverrides) return;
