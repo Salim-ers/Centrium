@@ -51,6 +51,7 @@ export type ConsultantMissionRef = {
 export type ConsultantListItem = Consultant & {
   owner: ConsultantOwner | null;
   active_missions: ConsultantMissionRef[];
+  has_portal: boolean;
 };
 
 export const consultantService = {
@@ -78,6 +79,7 @@ export const consultantService = {
     let query = supabase.from('consultants').select(
       `*,
        owner:profiles!owner_id (id, first_name, last_name, email),
+       portal:profiles!consultant_id (id),
        missions!consultant_id (
          id, title, status,
          job_offer:job_offers (title)
@@ -102,7 +104,7 @@ export const consultantService = {
     if (error) return { data: null, error };
 
     const items: ConsultantListItem[] = (data ?? []).map((row: any) => {
-      const { owner, missions, ...consultant } = row;
+      const { owner, missions, portal, ...consultant } = row;
       const activeMissions: ConsultantMissionRef[] = (missions ?? [])
         .filter((m: any) => m.status === 'active' || m.status === 'proposed')
         .map((m: any) => ({
@@ -111,6 +113,9 @@ export const consultantService = {
           status: m.status,
           job_offer_title: m.job_offer?.title ?? null,
         }));
+      // portal est un array (relation 1-to-many implicite côté Supabase) :
+      // si au moins un profile est lié, le consultant a un accès portail.
+      const portalArr = Array.isArray(portal) ? portal : portal ? [portal] : [];
       return {
         ...(consultant as Consultant),
         owner: owner
@@ -122,6 +127,7 @@ export const consultantService = {
             }
           : null,
         active_missions: activeMissions,
+        has_portal: portalArr.length > 0,
       };
     });
     return { data: items, error: null };

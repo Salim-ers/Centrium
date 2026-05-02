@@ -15,6 +15,7 @@ import {
   Target,
   ArrowLeftCircle,
   FileUp,
+  KeyRound,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -34,6 +35,7 @@ import { ConsultantFormDialog } from '@/components/consultants/ConsultantFormDia
 import { AssignMissionDialog } from '@/components/missions/AssignMissionDialog';
 import { JobFamilyFilter } from '@/components/consultants/JobFamilyFilter';
 import { CsvImportDialog } from '@/components/consultants/CsvImportDialog';
+import { GrantPortalDialog } from '@/components/consultants/GrantPortalDialog';
 import { Select } from '@/components/ui/select';
 import {
   classifyJobFamily,
@@ -66,6 +68,7 @@ export default function ConsultantsPage() {
   const [assignTo, setAssignTo] = useState<ConsultantListItem | null>(null);
   const [familyFilter, setFamilyFilter] = useState<Set<JobFamilyId>>(new Set());
   const [csvOpen, setCsvOpen] = useState(false);
+  const [grantingPortal, setGrantingPortal] = useState<Consultant | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 200);
@@ -330,6 +333,15 @@ export default function ConsultantsPage() {
         onImported={() => reload()}
       />
 
+      <GrantPortalDialog
+        open={!!grantingPortal}
+        onOpenChange={(v) => {
+          if (!v) setGrantingPortal(null);
+        }}
+        consultant={grantingPortal}
+        onGranted={() => reload()}
+      />
+
       <Card className="mb-6">
         <CardContent className="p-4 space-y-4">
           <div className="relative">
@@ -511,6 +523,17 @@ export default function ConsultantsPage() {
                             >
                               <Pencil className="h-3.5 w-3.5 text-violet-glow" />
                             </Button>
+                            {!c.has_portal && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setGrantingPortal(c)}
+                                title="Créer un accès portail consultant"
+                                className="text-violet-300 hover:text-violet-200"
+                              >
+                                <KeyRound className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="sm"

@@ -21,6 +21,7 @@ import {
 import { ConsultantFormDialog } from '@/components/consultants/ConsultantFormDialog';
 import { JobFamilyFilter } from '@/components/consultants/JobFamilyFilter';
 import { CsvImportDialog } from '@/components/consultants/CsvImportDialog';
+import { PromoteToConsultantDialog } from '@/components/consultants/PromoteToConsultantDialog';
 
 import { consultantService } from '@/lib/services/consultant.service';
 import { useOrganization } from '@/lib/auth/context';
@@ -38,6 +39,7 @@ export default function ProspectsPage() {
   const [editing, setEditing] = useState<Consultant | null>(null);
   const [familyFilter, setFamilyFilter] = useState<Set<JobFamilyId>>(new Set());
   const [csvOpen, setCsvOpen] = useState(false);
+  const [promoting, setPromoting] = useState<Consultant | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 200);
@@ -91,21 +93,8 @@ export default function ProspectsPage() {
     setDialogOpen(true);
   }
 
-  async function promote(c: Consultant) {
-    if (
-      !confirm(
-        `Promouvoir ${c.first_name} ${c.last_name} en consultant de l'organisation ? Il rejoindra la bibliothèque active et comptera dans l'effectif.`,
-      )
-    ) {
-      return;
-    }
-    const res = await consultantService.promoteToConsultant(c.id);
-    if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
-      return;
-    }
-    toast.success(`${c.first_name} ${c.last_name} est désormais consultant actif`);
-    setProspects((prev) => (prev ?? []).filter((p) => p.id !== c.id));
+  function promote(c: Consultant) {
+    setPromoting(c);
   }
 
   async function archiveProspect(c: Consultant) {
@@ -160,6 +149,17 @@ export default function ProspectsPage() {
         onOpenChange={setCsvOpen}
         isProspect
         onImported={() => reload()}
+      />
+
+      <PromoteToConsultantDialog
+        open={!!promoting}
+        onOpenChange={(v) => {
+          if (!v) setPromoting(null);
+        }}
+        consultant={promoting}
+        onPromoted={(c) => {
+          setProspects((prev) => (prev ?? []).filter((p) => p.id !== c.id));
+        }}
       />
 
       <Card className="mb-6">

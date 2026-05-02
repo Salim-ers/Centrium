@@ -1,0 +1,159 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
+import { createAdminClient } from '@/lib/supabase/admin';
+import { requireOrg } from '@/lib/auth/guards';
+
+// =========================================================================
+// POST /api/consultants/:id/portal-access
+// -------------------------------------------------------------------------
+// Crée un compte d'authentification + un profile lié au consultant pour
+// qu'il puisse se connecter à /portal/*. Idempotent : si le consultant a
+// déjà un profile portail, renvoie 409 sans rien casser.
+//
+// Body : { email, password }
+// Réservé aux admin / business_manager / recruiter.
+// =========================================================================
+
+export const runtime = 'nodejs';
+
+const bodySchema = z.object({
+  email: z.string().email('Email invalide'),
+  password: z.string().min(8, 'Mot de passe : 8 caractères minimum').max(72),
+});
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  const ctx = await requireOrg();
+  if (!['admin', 'business_manager', 'recruiter'].includes(ctx.role)) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  }
+
+  const parsed = bodySchema.safeParse(await req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'invalid_input', details: parsed.error.flatten() },
+      { status: 400 },
+    );
+  }
+
+  const admin = createAdminClient();
+
+  // 1) Vérifie que le consultant existe et appartient à l'org courante
+  const { data: consultant } = await admin
+    .from('consultants')
+    .select('id, organization_id, first_name, last_name, is_prospect')
+    .eq('id', params.id)
+    .maybeSingle();
+  if (!consultant) {
+    return NextResponse.json({ error: 'consultant_not_found' }, { status: 404 });
+  }
+  if (consultant.organization_id !== ctx.organizationId) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  }
+  if (consultant.is_prospect) {
+    return NextResponse.json(
+      {
+        error: 'is_prospect',
+        message:
+          "Un prospect ne peut pas avoir d'accès portail. Promouvoir en consultant d'abord.",
+      },
+      { status: 400 },
+    );
+  }
+
+  // 2) Existe-t-il déjà un profile portail pour ce consultant ?
+  const { data: existing } = await admin
+    .from('profiles')
+    .select('id, role')
+    .eq('consultant_id', consultant.id)
+    .maybeSingle();
+  if (existing) {
+    return NextResponse.json(
+      {
+        error: 'already_has_portal',
+        message: 'Ce consultant a déjà un accès portail.',
+      },
+      { status: 409 },
+    );
+  }
+
+  // 3) Email déjà utilisé par un autre user ?
+  const listRes = await admin.auth.admin.listUsers();
+  const emailExists = listRes.data.users.find(
+    (u) => u.email?.toLowerCase() === parsed.data.email.toLowerCase(),
+  );
+  if (emailExists) {
+    return NextResponse.json(
+      {
+        error: 'email_already_used',
+        message:
+          'Cet email a déjà un compte. Choisis un autre email pour cet accès portail.',
+      },
+      { status: 409 },
+    );
+  }
+
+  // 4) Crée le user auth (email confirmé pour qu'il puisse se connecter)
+  const { data: created, error: authErr } = await admin.auth.admin.createUser({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    email_confirm: true,
+    user_metadata: {
+      first_name: consultant.first_name,
+      last_name: consultant.last_name,
+    },
+  });
+  if (authErr || !created.user) {
+    return NextResponse.json(
+      { error: 'auth_create_failed', message: authErr?.message ?? 'Auth error' },
+      { status: 500 },
+    );
+  }
+  const userId = created.user.id;
+
+  // 5) Membership organization_members + profile lié au consultant
+  const { error: memberErr } = await admin.from('organization_members').upsert(
+    { organization_id: ctx.organizationId, user_id: userId, role: 'consultant' },
+    { onConflict: 'organization_id,user_id' },
+  );
+  if (memberErr) {
+    await admin.auth.admin.deleteUser(userId);
+    return NextResponse.json(
+      { error: 'member_failed', message: memberErr.message },
+      { status: 500 },
+    );
+  }
+
+  const { error: profileErr } = await admin
+    .from('profiles')
+    .update({
+      role: 'consultant',
+      consultant_id: consultant.id,
+      organization_id: ctx.organizationId,
+      first_name: consultant.first_name,
+      last_name: consultant.last_name,
+    })
+    .eq('id', userId);
+  if (profileErr) {
+    await admin.auth.admin.deleteUser(userId);
+    return NextResponse.json(
+      { error: 'profile_failed', message: profileErr.message },
+      { status: 500 },
+    );
+  }
+
+  // Met aussi à jour l'email sur la fiche consultant si elle est vide
+  await admin
+    .from('consultants')
+    .update({ email: parsed.data.email })
+    .eq('id', consultant.id)
+    .is('email', null);
+
+  return NextResponse.json(
+    { data: { user_id: userId, email: parsed.data.email } },
+    { status: 201 },
+  );
+}
