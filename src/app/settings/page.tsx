@@ -1,13 +1,46 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Settings as SettingsIcon, LogOut, Palette, Users } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useOrganization } from '@/lib/auth/context';
+
+type IdentityRow = {
+  name: string;
+  brand_name: string | null;
+  footer_tagline: string | null;
+  address: string | null;
+  city: string | null;
+  postal_code: string | null;
+  siren: string | null;
+};
 
 export default function SettingsPage() {
+  const { activeOrgId } = useOrganization();
+  const [identity, setIdentity] = useState<IdentityRow | null>(null);
+
+  useEffect(() => {
+    if (!activeOrgId) return;
+    let cancelled = false;
+    fetch('/api/organizations/identity', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body: { data: IdentityRow } | null) => {
+        if (!cancelled && body?.data) setIdentity(body.data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [activeOrgId]);
+
+  const cityLine = identity
+    ? [identity.postal_code, identity.city].filter(Boolean).join(' ')
+    : '';
+
   return (
     <AppShell>
       <div className="mb-8">
@@ -53,9 +86,27 @@ export default function SettingsPage() {
             <CardTitle className="text-base">Organisation</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-1">
-            <p><strong>QuadCore</strong> — IT Services &amp; Consulting</p>
-            <p>5 Rue du Docteur Roux, 60180 Nogent-Sur-Oise</p>
-            <p>SIREN : 101 694 016</p>
+            <p>
+              <strong>{identity?.brand_name ?? identity?.name ?? '—'}</strong>
+              {identity?.footer_tagline ? ` — ${identity.footer_tagline}` : ''}
+            </p>
+            {(identity?.address || cityLine) && (
+              <p>
+                {identity?.address}
+                {identity?.address && cityLine ? ', ' : ''}
+                {cityLine}
+              </p>
+            )}
+            {identity?.siren && <p>SIREN : {identity.siren}</p>}
+            {!identity?.address && !identity?.siren && (
+              <p className="italic text-amber-300/70">
+                Identité légale non renseignée. Va dans{' '}
+                <Link href="/settings/branding" className="underline">
+                  Identité visuelle
+                </Link>{' '}
+                pour la compléter — elle sera utilisée sur tes contrats et factures.
+              </p>
+            )}
           </CardContent>
         </Card>
 

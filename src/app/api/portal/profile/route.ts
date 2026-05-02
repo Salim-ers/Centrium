@@ -62,10 +62,14 @@ export async function PATCH(req: NextRequest) {
     Object.entries(parsed.data).map(([k, v]) => [k, v === '' ? null : v]),
   );
 
+  // Defense-in-depth : on borne aussi la mise à jour à l'org du caller,
+  // au cas où profile.consultant_id pointerait par accident vers une fiche
+  // d'une autre org (impossible aujourd'hui mais zéro coût).
   const { data, error } = await admin
     .from('consultants')
     .update(payload)
     .eq('id', profile.consultant_id)
+    .eq('organization_id', ctx.organizationId)
     .select()
     .single();
 

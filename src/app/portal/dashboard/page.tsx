@@ -17,6 +17,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { formatCurrency } from '@/lib/utils';
 import type { Consultant, Timesheet, Invoice } from '@/types';
+import { useBrandName } from '@/components/brand/BrandingStyles';
 import { usePortalConsultant } from '../portal-context';
 
 type PortalDashboardData = {
@@ -27,6 +28,7 @@ type PortalDashboardData = {
 
 export default function PortalDashboardPage() {
   const { consultantId } = usePortalConsultant();
+  const brandName = useBrandName();
 
   const { data, loading } = useCachedQuery<PortalDashboardData>(
     `portal-dashboard:${consultantId}`,
@@ -73,7 +75,7 @@ export default function PortalDashboardPage() {
           Bonjour {consultant?.first_name ?? ''}
         </h1>
         <p className="text-muted-foreground mt-1">
-          Voici un aperçu de votre activité QuadCore.
+          Voici un aperçu de votre activité {brandName}.
         </p>
       </div>
 

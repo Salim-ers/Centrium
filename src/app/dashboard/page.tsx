@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { dashboardService, type DashboardKPIs, alertService } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
+import { useBrandName } from '@/components/brand/BrandingStyles';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import type { Alert } from '@/types';
 import { formatCurrency, relativeDate } from '@/lib/utils';
@@ -28,6 +29,7 @@ type DashboardData = { kpis: DashboardKPIs | null; alerts: Alert[] };
 
 export default function DashboardPage() {
   const { activeOrgId } = useOrganization();
+  const brandName = useBrandName();
   const { data, loading } = useCachedQuery<DashboardData>(
     `dashboard:${activeOrgId ?? 'none'}`,
     async () => {
@@ -50,7 +52,7 @@ export default function DashboardPage() {
       <div className="mb-8">
         <h1 className="font-display text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground mt-1">
-          Vue d'ensemble de votre activité QuadCore
+          Vue d&apos;ensemble de votre activité {brandName}
         </p>
       </div>
 

@@ -174,7 +174,7 @@ export default function BrandingSettingsPage() {
 
   const removeLogo = async () => {
     if (!isAdmin) return;
-    if (!confirm('Supprimer le logo ? Les CV utiliseront le logo QuadCore par défaut.')) return;
+    if (!confirm('Supprimer le logo ? Le logo générique sera affiché à la place.')) return;
     setDeletingLogo(true);
     try {
       const res = await fetch('/api/organizations/branding/logo', { method: 'DELETE' });
@@ -254,7 +254,7 @@ export default function BrandingSettingsPage() {
           Identité visuelle
         </h1>
         <p className="text-sm text-muted-foreground mt-2">
-          Ces éléments remplacent le branding QuadCore sur les CV générés par votre organisation.
+          Ces éléments définissent le branding visible par tes consultants et tes clients : sidebar, CV générés, contrats, factures, CRA.
         </p>
       </div>
 
@@ -336,7 +336,7 @@ export default function BrandingSettingsPage() {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Transparent recommandé. Fallback = logo QuadCore.
+                      Transparent recommandé. À défaut, un logo générique est utilisé.
                     </p>
                   </div>
                 </div>
@@ -425,7 +425,7 @@ export default function BrandingSettingsPage() {
               <CardHeader>
                 <CardTitle className="text-base">Texte de marque</CardTitle>
                 <CardDescription>
-                  Remplace "QuadCore — IT Services &amp; Consulting" dans le footer des CV.
+                  Affiché dans le footer des CV, contrats et factures (ex: "MaSociété — IT Services & Consulting").
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
