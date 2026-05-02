@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
+import { CentriumMark } from '@/components/brand/CentriumMark';
+import { useOrganizationSafe } from '@/lib/auth/context';
 
 const PORTAL_NAV = [
   { label: 'Accueil', href: '/portal/dashboard', icon: LayoutDashboard },
@@ -27,12 +29,15 @@ const PORTAL_NAV = [
 
 export function PortalSidebar() {
   const pathname = usePathname();
+  const org = useOrganizationSafe();
+  const logoSrc = org?.branding?.logoUrl ?? null;
+  const brandName = org?.branding?.brandName ?? undefined;
 
   return (
     <aside className="hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-white/5 bg-midnight-200/80 backdrop-blur-xl">
-      {/* Logo */}
+      {/* Logo de l'ESN (logo générique en fallback) */}
       <div className="flex h-32 items-center justify-center border-b border-white/5 px-2">
-        <QuadCoreLogo size="xl" variant="dark" />
+        <QuadCoreLogo size="xl" variant="dark" src={logoSrc} alt={brandName} />
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">
@@ -70,6 +75,11 @@ export function PortalSidebar() {
             Se déconnecter
           </button>
         </form>
+      </div>
+
+      {/* Co-branding plateforme */}
+      <div className="border-t border-white/5 px-4 py-3">
+        <CentriumMark size="sm" />
       </div>
     </aside>
   );

@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
+import { CentriumMark } from '@/components/brand/CentriumMark';
 import { NetworkCanvas } from '@/components/marketing/NetworkCanvas';
 
 type Props = {
@@ -83,6 +84,11 @@ export function AuthShell({ children, title, subtitle, footer }: Props) {
           {footer && (
             <div className="mt-6 text-center text-sm text-white/60">{footer}</div>
           )}
+
+          {/* Mark plateforme — discret, en bas de l'écran auth */}
+          <div className="mt-8 flex justify-center">
+            <CentriumMark size="sm" />
+          </div>
         </motion.div>
       </div>
     </div>

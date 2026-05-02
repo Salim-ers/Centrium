@@ -22,6 +22,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { useOrganization } from '@/lib/auth/context';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
+import { CentriumMark } from '@/components/brand/CentriumMark';
 
 const DEFAULT_PRIMARY = '#6d28d9';
 const DEFAULT_ACCENT = '#e11d74';
@@ -274,6 +275,11 @@ export default function OnboardingSetupPage() {
   return (
     <div className="min-h-screen bg-midnight-300 p-6">
       <div className="mx-auto max-w-3xl">
+        {/* Header co-brandé : Centrium plateforme + ESN qui personnalise */}
+        <div className="mb-2 flex justify-center">
+          <CentriumMark size="md" />
+        </div>
+
         {/* Stepper */}
         <div className="mb-6 flex items-center justify-between gap-3">
           <h1 className="font-display text-2xl font-bold flex items-center gap-2">

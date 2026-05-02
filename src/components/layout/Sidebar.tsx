@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
+import { CentriumMark } from '@/components/brand/CentriumMark';
 import { useOrganizationSafe } from '@/lib/auth/context';
 
 type NavItem = { label: string; href: string; icon: React.ElementType };
@@ -223,6 +224,12 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Co-branding : la plateforme est Centrium, éditée par QuadCore.
+          Discret, en bas de la sidebar, sous le branding de l'ESN. */}
+      <div className="border-t border-white/5 px-4 py-3">
+        <CentriumMark size="sm" />
+      </div>
     </aside>
   );
 }
