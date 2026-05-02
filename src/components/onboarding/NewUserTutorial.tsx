@@ -10,7 +10,6 @@ import {
   Receipt,
   Palette,
   ArrowRight,
-  X,
   HelpCircle,
 } from 'lucide-react';
 
@@ -98,14 +97,23 @@ export function NewUserTutorial({ open: controlledOpen, onOpenChange }: Props = 
     }
   }
 
-  // Auto-open la première fois si pas controlé
+  // Auto-open la première fois si pas controlé.
+  // Important : on marque "seen" dès l'auto-ouverture (et pas seulement à la
+  // fermeture) pour qu'un refresh, un changement d'onglet ou une fermeture
+  // accidentelle n'entraîne pas une ré-ouverture la prochaine fois.
   useEffect(() => {
     if (isControlled) return;
     try {
       const seen = window.localStorage.getItem(STORAGE_KEY);
       if (!seen) {
-        // Petit délai pour laisser la page se peindre
-        const t = setTimeout(() => setInternalOpen(true), 600);
+        const t = setTimeout(() => {
+          setInternalOpen(true);
+          try {
+            window.localStorage.setItem(STORAGE_KEY, '1');
+          } catch {
+            // ignore (mode privé, quota plein…)
+          }
+        }, 600);
         return () => clearTimeout(t);
       }
     } catch {
@@ -121,15 +129,8 @@ export function NewUserTutorial({ open: controlledOpen, onOpenChange }: Props = 
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <div className="flex items-center justify-between gap-3 mb-2">
+          <div className="mb-2">
             <CentriumMark size="md" showWordmark={false} />
-            <button
-              onClick={() => setOpen(false)}
-              className="rounded-md p-1 text-muted-foreground hover:bg-white/[0.05]"
-              aria-label="Fermer"
-            >
-              <X className="h-4 w-4" />
-            </button>
           </div>
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="h-5 w-5 text-violet-glow" />
