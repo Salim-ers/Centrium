@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { ArrowLeft, Download, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Download, CheckCircle2, Receipt } from 'lucide-react';
 
 import { downloadElementAsPdf } from '@/lib/pdf/download-document';
 
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TimesheetDocument, type TimesheetIssuer } from '@/components/timesheets/TimesheetDocument';
 import { timesheetService } from '@/lib/services';
+import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import type { Timesheet, Mission, Consultant, Company } from '@/types';
 
@@ -64,13 +65,25 @@ export default function TimesheetDetailPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [issuer, setIssuer] = useState<TimesheetIssuer | null>(null);
+  const [linkedInvoiceId, setLinkedInvoiceId] = useState<string | null>(null);
   const docRef = useRef<HTMLDivElement | null>(null);
 
   async function reload() {
     if (!params?.id) return;
     const res = await timesheetService.getById(params.id);
-    if (res.error || !res.data) setNotFound(true);
-    else setDetail(res.data);
+    if (res.error || !res.data) {
+      setNotFound(true);
+    } else {
+      setDetail(res.data);
+      // Lookup invoice link to know if "Générer la facture" should appear
+      const supabase = createClient();
+      const { data: inv } = await supabase
+        .from('invoices')
+        .select('id')
+        .eq('timesheet_id', params.id)
+        .maybeSingle();
+      setLinkedInvoiceId((inv?.id as string | undefined) ?? null);
+    }
     setLoading(false);
   }
 
@@ -171,6 +184,20 @@ export default function TimesheetDetailPage() {
             <Button variant="outline" size="sm" onClick={validateAndInvoice}>
               <CheckCircle2 className="h-4 w-4" />
               Valider &amp; facturer
+            </Button>
+          )}
+          {timesheet.status === 'client_validated' && !linkedInvoiceId && (
+            <Button variant="outline" size="sm" onClick={validateAndInvoice}>
+              <Receipt className="h-4 w-4" />
+              Générer la facture
+            </Button>
+          )}
+          {linkedInvoiceId && (
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/invoices/${linkedInvoiceId}`}>
+                <Receipt className="h-4 w-4" />
+                Voir la facture
+              </Link>
             </Button>
           )}
           <Button
