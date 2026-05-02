@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 // Paths accessibles sans session (signup self-serve, invitations, pricing public)
 const PUBLIC_PATHS = ['/login', '/signup', '/register', '/pricing', '/'];
-const PUBLIC_PREFIXES = ['/invite/']; // /invite/accept?token=…
+const PUBLIC_PREFIXES = ['/invite/', '/auth/']; // /invite/accept?token=… , /auth/callback?code=…
 
 // Cookie cache pour role + organization_id : évite une query profile à chaque navigation.
 // Le RLS applique toujours la vraie sécurité côté DB, le cookie ne guide que le routing.
@@ -112,8 +112,14 @@ export async function updateSession(request: NextRequest) {
   const hasOrg = !!orgId;
 
   // Pas d'org active (vient de signer up) → onboarding obligatoire
-  //   Exceptions : l'onboarding lui-même et l'acceptation d'invitation
-  if (!hasOrg && !isOnboarding && !pathname.startsWith('/invite/')) {
+  //   Exceptions : l'onboarding lui-même, l'acceptation d'invitation,
+  //   et le callback OAuth/PKCE (qui pose les cookies puis redirige).
+  if (
+    !hasOrg &&
+    !isOnboarding &&
+    !pathname.startsWith('/invite/') &&
+    !pathname.startsWith('/auth/')
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = '/onboarding';
     return NextResponse.redirect(url);

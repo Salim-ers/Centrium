@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2, Building2, Sparkles } from 'lucide-react';
+import { Loader2, Building2, Sparkles, MailCheck } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,10 +20,46 @@ import {
 import { organizationSchema, type OrganizationInput } from '@/lib/validators';
 import { useOrganization } from '@/lib/auth/context';
 
+type PendingInvite = {
+  token: string;
+  organization_id: string;
+  organization_name: string;
+  role: string;
+  email: string;
+};
+
 export default function OnboardingPage() {
   const router = useRouter();
   const { reload } = useOrganization();
   const [loading, setLoading] = useState(false);
+  const [pendingInvite, setPendingInvite] = useState<PendingInvite | null>(null);
+  const [checkingInvite, setCheckingInvite] = useState(true);
+
+  // Au mount, on vérifie si le user a une invitation non acceptée
+  // (a pu être amené ici par erreur après le redirect Supabase /verify
+  // si le cookie de session n'était pas encore posé).
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/invitations/pending', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body: { data: PendingInvite | null } | null) => {
+        if (cancelled) return;
+        if (body?.data) {
+          setPendingInvite(body.data);
+          // Auto-redirect : si on a une invitation pendante, on va direct
+          // sur /invite/accept au lieu de proposer la création d'une org.
+          window.location.href = `/invite/accept?token=${body.data.token}`;
+          return;
+        }
+        setCheckingInvite(false);
+      })
+      .catch(() => {
+        if (!cancelled) setCheckingInvite(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const {
     register,
@@ -85,23 +121,80 @@ export default function OnboardingPage() {
     }
   }
 
+  async function acceptInvite() {
+    if (!pendingInvite) return;
+    setLoading(true);
+    // /invite/accept est un Server Component qui fait l'insert + redirect.
+    window.location.href = `/invite/accept?token=${pendingInvite.token}`;
+  }
+
+  // Pendant qu'on check l'invitation pendante, on affiche un loader
+  // pour éviter un flash du formulaire de création d'org alors qu'on
+  // va auto-rediriger vers /invite/accept.
+  if (checkingInvite) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-midnight-300">
+        <Loader2 className="h-6 w-6 animate-spin text-violet-glow" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-midnight-300 p-6">
       <div className="absolute inset-0 bg-gradient-radial opacity-30 pointer-events-none" />
       <Card className="w-full max-w-md relative">
+        {/* Banner invitation détectée — prioritaire sur la création d'org */}
+        {pendingInvite && (
+          <div className="border-b border-emerald-500/30 bg-emerald-500/[0.06] p-5 rounded-t-xl">
+            <div className="flex items-start gap-3">
+              <div className="rounded-md bg-emerald-500/15 p-2 shrink-0">
+                <MailCheck className="h-4 w-4 text-emerald-300" />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-semibold text-emerald-200">
+                  Invitation détectée
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Tu as été invité à rejoindre{' '}
+                  <strong className="text-foreground">{pendingInvite.organization_name}</strong>{' '}
+                  en tant que <strong className="text-foreground">{pendingInvite.role}</strong>.
+                  Pas besoin de créer une nouvelle organisation.
+                </p>
+                <Button
+                  size="sm"
+                  className="w-full mt-3 bg-emerald-500/80 hover:bg-emerald-500 text-white"
+                  onClick={acceptInvite}
+                  disabled={loading}
+                >
+                  {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Rejoindre {pendingInvite.organization_name}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <CardHeader className="text-center space-y-2">
           <div className="flex justify-center">
             <div className="p-3 bg-violet-500/10 rounded-full">
               <Building2 className="h-6 w-6 text-violet-300" />
             </div>
           </div>
-          <CardTitle className="text-xl font-display">Crée ton organisation</CardTitle>
+          <CardTitle className="text-xl font-display">
+            {pendingInvite ? 'Ou crée une nouvelle organisation' : 'Crée ton organisation'}
+          </CardTitle>
           <CardDescription>
-            Une organisation = une ESN. Tu en seras admin.
-            <br />
-            <span className="text-[11px] text-violet-300/80 inline-flex items-center gap-1 mt-1">
-              <Sparkles className="h-3 w-3" /> 14 jours d&apos;essai gratuit, aucune CB demandée
-            </span>
+            {pendingInvite ? (
+              <>Tu peux aussi créer ta propre ESN si l&apos;invitation ci-dessus ne te concerne pas.</>
+            ) : (
+              <>
+                Une organisation = une ESN. Tu en seras admin.
+                <br />
+                <span className="text-[11px] text-violet-300/80 inline-flex items-center gap-1 mt-1">
+                  <Sparkles className="h-3 w-3" /> 14 jours d&apos;essai gratuit, aucune CB demandée
+                </span>
+              </>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>

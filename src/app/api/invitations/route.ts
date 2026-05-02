@@ -57,11 +57,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'db_error', message: error.message }, { status: 500 });
   }
 
-  // 3. Construit l'URL de redirection après vérification email Supabase
+  // 3. Construit l'URL de redirection après vérification email Supabase.
+  // On passe par /auth/callback qui échange le code Supabase en cookies
+  // sur NOTRE domaine (PKCE flow), puis redirige vers /invite/accept.
+  // Sans ça, certaines configs laissent les cookies sur le domaine
+  // Supabase et l'utilisateur arrive non-authentifié sur l'app.
   const reqUrl = new URL(req.url);
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL ?? `${reqUrl.protocol}//${reqUrl.host}`;
-  const acceptUrl = `${appUrl}/invite/accept?token=${invite.token}`;
+  const acceptPath = `/invite/accept?token=${invite.token}`;
+  const callbackUrl = `${appUrl}/auth/callback?next=${encodeURIComponent(acceptPath)}`;
+  // URL "directe" pour le fallback manuel (toast lien copié)
+  const acceptUrl = `${appUrl}${acceptPath}`;
 
   // 4. Envoie l'email d'invitation via Supabase Auth (template "invite"
   //    déjà brandé Centrium). Fallback magic-link si le compte existe déjà.
@@ -78,7 +85,7 @@ export async function POST(req: NextRequest) {
   const { error: inviteErr } = await admin.auth.admin.inviteUserByEmail(
     parsed.data.email.toLowerCase(),
     {
-      redirectTo: acceptUrl,
+      redirectTo: callbackUrl,
       data: inviteData,
     },
   );
@@ -91,7 +98,7 @@ export async function POST(req: NextRequest) {
     const { error: linkErr } = await admin.auth.admin.generateLink({
       type: 'magiclink',
       email: parsed.data.email.toLowerCase(),
-      options: { redirectTo: acceptUrl, data: inviteData },
+      options: { redirectTo: callbackUrl, data: inviteData },
     });
     if (!linkErr) {
       emailSent = true;
