@@ -4,6 +4,11 @@ import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireOrg } from '@/lib/auth/guards';
 import { consultantSchema } from '@/lib/validators';
+import {
+  enforceConsultantLimit,
+  PlanLimitError,
+  planLimitResponse,
+} from '@/lib/billing/enforce';
 
 // =========================================================================
 // POST /api/consultants/import-csv
@@ -32,6 +37,17 @@ export async function POST(req: NextRequest) {
       { error: 'invalid_input', details: parsed.error.flatten() },
       { status: 400 },
     );
+  }
+
+  // Pré-check du lot complet : on refuse l'import en bloc si ça dépasse,
+  // plutôt que d'insérer N puis d'échouer en plein milieu.
+  try {
+    await enforceConsultantLimit(ctx.organizationId, parsed.data.rows.length);
+  } catch (e) {
+    if (e instanceof PlanLimitError) {
+      return NextResponse.json(planLimitResponse(e), { status: 402 });
+    }
+    throw e;
   }
 
   const admin = createAdminClient();

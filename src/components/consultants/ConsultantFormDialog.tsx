@@ -26,6 +26,7 @@ import { applyParsedCV } from '@/lib/cv/apply-parsed-cv';
 import { extractIdentityFromText } from '@/lib/cv/extract-identity';
 import type { ParsedCV } from '@/lib/cv/parse-cv';
 import type { Consultant } from '@/types';
+import { PlanLimitDialog, type PlanLimitPayload } from '@/components/billing/PlanLimitDialog';
 
 type Props = {
   open: boolean;
@@ -96,6 +97,7 @@ export function ConsultantFormDialog({
   isProspect = false,
 }: Props) {
   const [saving, setSaving] = useState(false);
+  const [planLimit, setPlanLimit] = useState<PlanLimitPayload | null>(null);
   const [createPortal, setCreatePortal] = useState(false);
   const [portalEmail, setPortalEmail] = useState('');
   const [portalPassword, setPortalPassword] = useState('');
@@ -296,6 +298,10 @@ export function ConsultantFormDialog({
           body: JSON.stringify(body),
         });
         const payload = await res.json().catch(() => ({}));
+        if (res.status === 402 && payload?.error === 'plan_limit_reached') {
+          setPlanLimit(payload as PlanLimitPayload);
+          return;
+        }
         if (!res.ok) {
           toast.error(payload.message ?? payload.error ?? 'Création impossible');
           return;
@@ -342,6 +348,13 @@ export function ConsultantFormDialog({
   }
 
   return (
+    <>
+    <PlanLimitDialog
+      payload={planLimit}
+      onOpenChange={(o) => {
+        if (!o) setPlanLimit(null);
+      }}
+    />
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -584,5 +597,6 @@ export function ConsultantFormDialog({
         </form>
       </DialogContent>
     </Dialog>
+    </>
   );
 }

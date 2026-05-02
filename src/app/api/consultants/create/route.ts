@@ -4,6 +4,11 @@ import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireOrg } from '@/lib/auth/guards';
 import { consultantSchema } from '@/lib/validators';
+import {
+  enforceConsultantLimit,
+  PlanLimitError,
+  planLimitResponse,
+} from '@/lib/billing/enforce';
 
 // =========================================================================
 // POST /api/consultants/create
@@ -48,6 +53,18 @@ export async function POST(req: NextRequest) {
   }
 
   const { portal_access, is_prospect, ...consultantData } = parsed.data;
+
+  // Quota plan : 1 consultant de plus (prospects et actifs comptent pareil
+  // pour éviter le contournement "tout en prospect"). Le rôle "consultant"
+  // du membership n'est PAS compté dans max_users (quota séparé).
+  try {
+    await enforceConsultantLimit(ctx.organizationId);
+  } catch (e) {
+    if (e instanceof PlanLimitError) {
+      return NextResponse.json(planLimitResponse(e), { status: 402 });
+    }
+    throw e;
+  }
   const admin = createAdminClient();
 
   // Normalise les champs vides → null

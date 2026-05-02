@@ -192,7 +192,7 @@ export const DICT: Record<Locale, LandingDict> = {
       plans: [
         {
           name: 'Starter',
-          price: '99€',
+          price: '149€',
           desc: 'Pour démarrer',
           features: [
             'Jusqu\'à 10 consultants',
@@ -207,7 +207,7 @@ export const DICT: Record<Locale, LandingDict> = {
         },
         {
           name: 'Growth',
-          price: '299€',
+          price: '399€',
           desc: 'Le plus populaire',
           features: [
             'Jusqu\'à 30 consultants',
@@ -224,7 +224,7 @@ export const DICT: Record<Locale, LandingDict> = {
         },
         {
           name: 'Scale',
-          price: '699€',
+          price: '899€',
           desc: 'ESN établies',
           features: [
             'Jusqu\'à 100 consultants',
@@ -249,7 +249,7 @@ export const DICT: Record<Locale, LandingDict> = {
             'Data residency dédiée',
             'Audit logs exportables',
             'Support 24/7 + CSM dédié',
-            'Contractuel annuel ≥ 1 500 €/mois',
+            'Contractuel annuel ≥ 1 900 €/mois',
           ],
           isQuote: true,
           ctaLabel: 'Nous contacter',
@@ -378,7 +378,7 @@ export const DICT: Record<Locale, LandingDict> = {
       plans: [
         {
           name: 'Starter',
-          price: '€99',
+          price: '€149',
           desc: 'To get started',
           features: [
             'Up to 10 consultants',
@@ -393,7 +393,7 @@ export const DICT: Record<Locale, LandingDict> = {
         },
         {
           name: 'Growth',
-          price: '€299',
+          price: '€399',
           desc: 'Most popular',
           features: [
             'Up to 30 consultants',
@@ -410,7 +410,7 @@ export const DICT: Record<Locale, LandingDict> = {
         },
         {
           name: 'Scale',
-          price: '€699',
+          price: '€899',
           desc: 'Established agencies',
           features: [
             'Up to 100 consultants',
@@ -435,7 +435,7 @@ export const DICT: Record<Locale, LandingDict> = {
             'Dedicated data residency',
             'Exportable audit logs',
             '24/7 support + dedicated CSM',
-            'Annual contract ≥ €1,500/month',
+            'Annual contract ≥ €1,900/month',
           ],
           isQuote: true,
           ctaLabel: 'Contact us',

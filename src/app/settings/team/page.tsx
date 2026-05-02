@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/table';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
+import { PlanLimitDialog, type PlanLimitPayload } from '@/components/billing/PlanLimitDialog';
+import { UsageBanner } from '@/components/billing/UsageBanner';
 
 type Member = {
   user_id: string;
@@ -59,6 +61,7 @@ export default function TeamSettingsPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('viewer');
   const [inviting, setInviting] = useState(false);
+  const [planLimit, setPlanLimit] = useState<PlanLimitPayload | null>(null);
 
   const isAdmin = role === 'admin';
 
@@ -119,6 +122,10 @@ export default function TeamSettingsPage() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
+        if (res.status === 402 && body?.error === 'plan_limit_reached') {
+          setPlanLimit(body as PlanLimitPayload);
+          return;
+        }
         toast.error(body.message ?? 'Invitation échouée');
         return;
       }
@@ -181,6 +188,12 @@ export default function TeamSettingsPage() {
 
   return (
     <AppShell>
+      <PlanLimitDialog
+        payload={planLimit}
+        onOpenChange={(o) => {
+          if (!o) setPlanLimit(null);
+        }}
+      />
       <div className="mb-8">
         <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
           <Users className="h-7 w-7 text-violet-glow" />
@@ -188,6 +201,8 @@ export default function TeamSettingsPage() {
         </h1>
         <p className="text-muted-foreground mt-1">Membres & invitations de l&apos;organisation</p>
       </div>
+
+      <UsageBanner resource="members" />
 
       {isAdmin && (
         <Card className="mb-6">

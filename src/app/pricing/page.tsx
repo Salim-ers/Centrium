@@ -48,10 +48,6 @@ export default function PricingPage() {
       toast.error('Seul un admin de l\'organisation peut gérer le billing.');
       return;
     }
-    if (planId === 'free') {
-      toast.info('Tu es déjà sur le plan Free par défaut.');
-      return;
-    }
     if (planId === 'enterprise') {
       window.location.href = 'mailto:sales@quadcore.app?subject=Enterprise plan';
       return;
@@ -105,9 +101,8 @@ export default function PricingPage() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {plans.map((plan) => {
-              const isFree = plan.id === 'free';
               const isEnterprise = plan.id === 'enterprise';
-              const isPopular = plan.id === 'pro';
+              const isPopular = plan.id === 'growth';
               return (
                 <Card
                   key={plan.id}
@@ -158,7 +153,7 @@ export default function PricingPage() {
                       {checkingOut === plan.id && (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       )}
-                      {isFree ? 'Commencer gratuit' : isEnterprise ? 'Nous contacter' : 'Souscrire'}
+                      {isEnterprise ? 'Nous contacter' : 'Souscrire'}
                     </Button>
                   </CardContent>
                 </Card>

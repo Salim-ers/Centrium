@@ -3,6 +3,11 @@ import { requireOrg } from '@/lib/auth/guards';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { invitationSchema } from '@/lib/validators';
+import {
+  enforceMemberLimit,
+  PlanLimitError,
+  planLimitResponse,
+} from '@/lib/billing/enforce';
 
 // =========================================================================
 // POST /api/invitations — Crée une invitation pour l'organisation active
@@ -29,6 +34,18 @@ export async function POST(req: NextRequest) {
       { error: 'invalid_input', details: parsed.error.flatten() },
       { status: 400 },
     );
+  }
+
+  // Quota plan : invitations = futurs utilisateurs internes. Le schéma
+  // n'autorise pas le rôle 'consultant' ici (les consultants sont créés
+  // via /api/consultants/create avec leur propre quota).
+  try {
+    await enforceMemberLimit(organizationId);
+  } catch (e) {
+    if (e instanceof PlanLimitError) {
+      return NextResponse.json(planLimitResponse(e), { status: 402 });
+    }
+    throw e;
   }
 
   const supabase = createClient();

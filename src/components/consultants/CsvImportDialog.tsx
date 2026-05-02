@@ -18,6 +18,7 @@ import {
   csvRowsToConsultants,
   type ImportRowDraft,
 } from '@/lib/consultants/csv-import';
+import { PlanLimitDialog, type PlanLimitPayload } from '@/components/billing/PlanLimitDialog';
 
 type Props = {
   open: boolean;
@@ -36,6 +37,7 @@ export function CsvImportDialog({
   const [drafts, setDrafts] = useState<ImportRowDraft[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [planLimit, setPlanLimit] = useState<PlanLimitPayload | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   function reset() {
@@ -78,6 +80,10 @@ export function CsvImportDialog({
         body: JSON.stringify({ rows: valid, is_prospect: isProspect }),
       });
       const body = await res.json().catch(() => ({}));
+      if (res.status === 402 && body?.error === 'plan_limit_reached') {
+        setPlanLimit(body as PlanLimitPayload);
+        return;
+      }
       if (!res.ok) {
         toast.error(body.message ?? `Import échoué (${res.status})`);
         return;
@@ -102,6 +108,13 @@ export function CsvImportDialog({
   const errorCount = drafts.length - validCount;
 
   return (
+    <>
+    <PlanLimitDialog
+      payload={planLimit}
+      onOpenChange={(o) => {
+        if (!o) setPlanLimit(null);
+      }}
+    />
     <Dialog
       open={open}
       onOpenChange={(v) => {
@@ -270,5 +283,6 @@ export function CsvImportDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </>
   );
 }

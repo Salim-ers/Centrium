@@ -36,6 +36,7 @@ import { AssignMissionDialog } from '@/components/missions/AssignMissionDialog';
 import { JobFamilyFilter } from '@/components/consultants/JobFamilyFilter';
 import { CsvImportDialog } from '@/components/consultants/CsvImportDialog';
 import { GrantPortalDialog } from '@/components/consultants/GrantPortalDialog';
+import { UsageBanner } from '@/components/billing/UsageBanner';
 import { Select } from '@/components/ui/select';
 import {
   classifyJobFamily,
@@ -341,6 +342,8 @@ export default function ConsultantsPage() {
         consultant={grantingPortal}
         onGranted={() => reload()}
       />
+
+      <UsageBanner resource="consultants" />
 
       <Card className="mb-6">
         <CardContent className="p-4 space-y-4">
