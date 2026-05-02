@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useOrganizationSafe } from '@/lib/auth/context';
 import { createClient } from '@/lib/supabase/client';
 import { CentriumMark } from '@/components/brand/CentriumMark';
+import { TutorialButton } from '@/components/onboarding/NewUserTutorial';
 
 export function Header() {
   const org = useOrganizationSafe();
@@ -82,6 +83,7 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2">
+          <TutorialButton variant="cta" />
           <Button
             variant="ghost"
             size="icon"

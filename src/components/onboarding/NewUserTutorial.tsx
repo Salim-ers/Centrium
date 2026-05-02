@@ -209,23 +209,27 @@ export function NewUserTutorial({ open: controlledOpen, onOpenChange }: Props = 
 }
 
 /**
- * Petit bouton "?" à placer sur n'importe quelle page pour ré-ouvrir
- * le tutoriel à la demande.
+ * Bouton CTA "Tuto" — ré-ouvre le tutoriel à la demande. Style proéminent
+ * pour qu'il soit immédiatement repéré.
  */
-export function TutorialButton({ className }: { className?: string }) {
+export function TutorialButton({
+  className,
+  variant = 'cta',
+}: {
+  className?: string;
+  /** cta = bouton coloré gradient, ghost = petit pill discret. */
+  variant?: 'cta' | 'ghost';
+}) {
   const [open, setOpen] = useState(false);
+  const cls =
+    variant === 'cta'
+      ? 'inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-glow to-magenta px-4 py-2 text-sm font-semibold text-white shadow-[0_0_20px_-6px_rgba(225,29,116,0.55)] hover:brightness-110 hover:shadow-[0_0_28px_-4px_rgba(225,29,116,0.7)] transition'
+      : 'inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-white/25 transition';
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={cn(
-          'inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-white/25 transition',
-          className,
-        )}
-      >
-        <HelpCircle className="h-3.5 w-3.5" />
-        Tuto
+      <button type="button" onClick={() => setOpen(true)} className={cn(cls, className)}>
+        <HelpCircle className={variant === 'cta' ? 'h-4 w-4' : 'h-3.5 w-3.5'} />
+        {variant === 'cta' ? 'Voir le tuto' : 'Tuto'}
       </button>
       <NewUserTutorial open={open} onOpenChange={setOpen} />
     </>
