@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2, Building2, Sparkles, MailCheck } from 'lucide-react';
+import { Loader2, Building2, Sparkles, MailCheck, ArrowLeft, LogOut } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -142,6 +143,27 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-midnight-300 p-6">
       <div className="absolute inset-0 bg-gradient-radial opacity-30 pointer-events-none" />
+
+      {/* Retour vers la home — accessible si l'utilisateur n'a pas encore d'org */}
+      <Link
+        href="/"
+        className="absolute top-6 left-6 z-20 inline-flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Retour à l&apos;accueil
+      </Link>
+
+      {/* Logout — pour utiliser un autre compte si on est bloqué ici */}
+      <form action="/api/auth/logout" method="POST" className="absolute top-6 right-6 z-20">
+        <button
+          type="submit"
+          className="inline-flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Se déconnecter
+        </button>
+      </form>
+
       <Card className="w-full max-w-md relative">
         {/* Banner invitation détectée — prioritaire sur la création d'org */}
         {pendingInvite && (
