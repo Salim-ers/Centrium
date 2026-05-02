@@ -11,9 +11,9 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: 'QuadCore Platform — IT Services & Consulting',
+  title: 'Praxis — la plateforme métier des ESN',
   description:
-    'Plateforme métier pour ESN : CV Optimizer, CRM, matching consultants, facturation.',
+    'Praxis by QuadCore : CV Optimizer, CRM, matching consultants, contrats, CRA et facturation. Une plateforme tout-en-un pour piloter ton ESN.',
 };
 
 export default function RootLayout({

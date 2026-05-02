@@ -45,7 +45,7 @@ export default function AccountingAssistantPage() {
       {
         role: 'assistant',
         content:
-          "Bonjour Salim. Je suis ton assistant comptable QuadCore. Je peux répondre à tes questions sur la trésorerie, les factures, la TVA, les CRA… Choisis une question rapide ou pose la tienne.",
+          "Bonjour. Je suis ton assistant comptable Praxis. Je peux répondre à tes questions sur la trésorerie, les factures, la TVA, les CRA… Choisis une question rapide ou pose la tienne.",
         timestamp: Date.now(),
       },
     ]);
@@ -172,7 +172,7 @@ export default function AccountingAssistantPage() {
               <p className="font-semibold text-foreground">À savoir</p>
               <p>
                 L&apos;assistant ne remplace pas un comptable. Il analyse les données saisies dans
-                QuadCore. Pour la déclaration officielle (bilan, liasse fiscale), utilise ces
+                Praxis. Pour la déclaration officielle (bilan, liasse fiscale), utilise ces
                 chiffres comme support pour ton expert-comptable.
               </p>
             </CardContent>

@@ -77,7 +77,7 @@ export default function LoginPage() {
   return (
     <AuthShell
       title="Bon retour"
-      subtitle="Connecte-toi à ton espace QuadCore"
+      subtitle="Connecte-toi à ton espace Praxis"
       footer={
         <>
           Pas encore de compte ?{' '}
