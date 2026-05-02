@@ -10,6 +10,17 @@ const PUBLIC_PREFIXES = ['/invite/', '/auth/']; // /invite/accept?token=… , /a
 const PROFILE_COOKIE = 'qc_profile';
 const PROFILE_COOKIE_TTL_SEC = 300; // 5 min
 
+/**
+ * Strip maxAge / expires pour rendre tous les cookies "session-only" :
+ * ils meurent quand l'utilisateur ferme le navigateur. Évite qu'un autre
+ * utilisateur (machine partagée) retombe sur la session précédente.
+ */
+function sessionOnly(options: CookieOptions): CookieOptions {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { maxAge, expires, ...rest } = options;
+  return rest;
+}
+
 type ProfileCache = { role: string | null; orgId: string | null; ts: number };
 
 function readProfileCookie(req: NextRequest): ProfileCache | null {
@@ -25,13 +36,14 @@ function readProfileCookie(req: NextRequest): ProfileCache | null {
 }
 
 function writeProfileCookie(res: NextResponse, data: Omit<ProfileCache, 'ts'>) {
+  // Pas de maxAge → cookie de session, meurt à la fermeture du navigateur.
+  // Le timestamp interne (ts) sert quand même de TTL "soft" via la lecture.
   res.cookies.set({
     name: PROFILE_COOKIE,
     value: JSON.stringify({ ...data, ts: Date.now() }),
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
-    maxAge: PROFILE_COOKIE_TTL_SEC,
   });
 }
 
@@ -56,14 +68,16 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({ name, value, ...options });
+          const opts = sessionOnly(options);
+          request.cookies.set({ name, value, ...opts });
           response = NextResponse.next({ request: { headers: request.headers } });
-          response.cookies.set({ name, value, ...options });
+          response.cookies.set({ name, value, ...opts });
         },
         remove(name: string, options: CookieOptions) {
-          request.cookies.set({ name, value: '', ...options });
+          const opts = sessionOnly(options);
+          request.cookies.set({ name, value: '', ...opts });
           response = NextResponse.next({ request: { headers: request.headers } });
-          response.cookies.set({ name, value: '', ...options });
+          response.cookies.set({ name, value: '', ...opts });
         },
       },
     },
