@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -15,7 +14,10 @@ import { TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { createClient } from '@/lib/supabase/client';
 import { formatCurrency } from '@/lib/utils';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { useOrganization } from '@/lib/auth/context';
 
+type RpcRow = { month: string; ca: number | string; missions: number };
 type MonthlyPoint = {
   month: string;
   monthLabel: string;
@@ -28,62 +30,39 @@ const MONTHS_SHORT = [
   'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc',
 ];
 
+function rowsToBuckets(rows: RpcRow[]): MonthlyPoint[] {
+  return rows.map((r) => {
+    const [y, m] = r.month.split('-').map(Number);
+    return {
+      month: r.month,
+      monthLabel: `${MONTHS_SHORT[m - 1]} ${String(y).slice(2)}`,
+      ca: Number(r.ca),
+      missions: Number(r.missions),
+    };
+  });
+}
+
 export function RevenueChart() {
-  const [data, setData] = useState<MonthlyPoint[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { activeOrgId } = useOrganization();
 
-  useEffect(() => {
-    (async () => {
+  const { data, loading } = useCachedQuery<MonthlyPoint[]>(
+    `revenue-chart:${activeOrgId ?? 'none'}`,
+    async () => {
       const supabase = createClient();
-      const now = new Date();
-      const from = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+      // 1 seul round-trip via RPC SECURITY DEFINER (cf. migration 028).
+      const { data: rows, error } = await supabase.rpc('dashboard_revenue_chart', {
+        org_id: activeOrgId,
+        months_back: 12,
+      });
+      if (error || !rows) return [];
+      return rowsToBuckets(rows as RpcRow[]);
+    },
+    { enabled: !!activeOrgId },
+  );
 
-      const [{ data: invoices }, { data: missions }] = await Promise.all([
-        supabase
-          .from('invoices')
-          .select('amount_ht, issue_date, status')
-          .in('status', ['paid', 'sent', 'overdue'])
-          .gte('issue_date', from.toISOString().slice(0, 10)),
-        supabase
-          .from('missions')
-          .select('id, start_date, end_date'),
-      ]);
-
-      const buckets: MonthlyPoint[] = [];
-      for (let i = 0; i < 12; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
-        buckets.push({
-          month: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-          monthLabel: `${MONTHS_SHORT[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`,
-          ca: 0,
-          missions: 0,
-        });
-      }
-
-      for (const inv of invoices ?? []) {
-        const k = (inv.issue_date as string).slice(0, 7);
-        const b = buckets.find((x) => x.month === k);
-        if (b) b.ca += Number(inv.amount_ht);
-      }
-
-      for (const m of missions ?? []) {
-        const start = new Date(m.start_date as string);
-        const end = m.end_date ? new Date(m.end_date as string) : now;
-        for (const b of buckets) {
-          const [by, bm] = b.month.split('-').map(Number);
-          const bucketStart = new Date(by, bm - 1, 1);
-          const bucketEnd = new Date(by, bm, 0);
-          if (start <= bucketEnd && end >= bucketStart) b.missions += 1;
-        }
-      }
-
-      setData(buckets);
-      setLoading(false);
-    })();
-  }, []);
-
-  const totalCA = data.reduce((s, d) => s + d.ca, 0);
-  const activeCount = data[data.length - 1]?.missions ?? 0;
+  const points = data ?? [];
+  const totalCA = points.reduce((s, d) => s + d.ca, 0);
+  const activeCount = points[points.length - 1]?.missions ?? 0;
 
   return (
     <Card className="overflow-hidden">
@@ -122,7 +101,7 @@ export function RevenueChart() {
         ) : (
           <div className="h-64 -mx-2">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
+              <AreaChart data={points} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="ca-pink" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#e11d74" stopOpacity={0.55} />

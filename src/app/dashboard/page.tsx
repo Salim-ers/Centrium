@@ -40,8 +40,10 @@ export default function DashboardPage() {
   const { data, loading } = useCachedQuery<DashboardData>(
     `dashboard:${activeOrgId ?? 'none'}`,
     async () => {
+      // Passe activeOrgId à getKPIs pour éviter un round-trip profiles
+      // dans le service. Au total : 1 RPC dashboard_kpis + 1 select alerts.
       const [kpisRes, alertsRes] = await Promise.all([
-        dashboardService.getKPIs(),
+        dashboardService.getKPIs(activeOrgId ?? undefined),
         alertService.list('new'),
       ]);
       return {

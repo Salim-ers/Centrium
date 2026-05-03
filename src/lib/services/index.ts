@@ -824,8 +824,41 @@ function businessDaysBetween(from: Date, to: Date): number {
 }
 
 export const dashboardService = {
-  async getKPIs(): Promise<ServiceResult<DashboardKPIs>> {
+  /**
+   * Charge les KPIs du dashboard via la RPC `dashboard_kpis(org_id)` qui
+   * agrège les 10 sous-requêtes côté Postgres et renvoie un seul JSON.
+   * Évite 10 round-trips parallèles depuis le navigateur.
+   *
+   * Pré-requis : le user doit être membre de l'org (vérifié par la RPC).
+   * Si la RPC échoue (pas applied yet, ou edge case), on retombe sur
+   * l'agrégation client-side historique pour ne pas casser l'UI.
+   */
+  async getKPIs(orgId?: string): Promise<ServiceResult<DashboardKPIs>> {
     const supabase = createClient();
+
+    // Tenter d'abord la RPC : 1 seul appel pour tout.
+    let resolvedOrgId = orgId;
+    if (!resolvedOrgId) {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .single();
+      resolvedOrgId = (prof?.organization_id as string | undefined) ?? undefined;
+    }
+    if (resolvedOrgId) {
+      const { data, error } = await supabase.rpc('dashboard_kpis', {
+        org_id: resolvedOrgId,
+      });
+      if (!error && data) {
+        return {
+          data: data as DashboardKPIs,
+          error: null,
+        };
+      }
+      // si error → fallback ci-dessous
+    }
+
+    // === Fallback historique (multi-requêtes) si la RPC n'est pas dispo ===
     const now = new Date();
     const firstDayMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
