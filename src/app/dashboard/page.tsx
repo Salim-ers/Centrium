@@ -12,23 +12,74 @@ import {
   Send,
   Sparkles,
   ArrowRight,
+  ShieldAlert,
+  Info,
+  ArrowUpRight,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { dashboardService, type DashboardKPIs, alertService } from '@/lib/services';
+import {
+  dashboardService,
+  type DashboardKPIs,
+  alertService,
+  type ComputedAlert,
+} from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useBrandName } from '@/components/brand/BrandingStyles';
 import { NewUserTutorial } from '@/components/onboarding/NewUserTutorial';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
-import type { Alert } from '@/types';
 import { formatCurrency, relativeDate } from '@/lib/utils';
-import { ALERT_PRIORITY_STYLE } from '@/constants';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 
-type DashboardData = { kpis: DashboardKPIs | null; alerts: Alert[] };
+type DashboardData = { kpis: DashboardKPIs | null; alerts: ComputedAlert[] };
+
+// Priorité → style visuel pour la mini-carte alerte sur le dashboard.
+const ALERT_TONE: Record<
+  ComputedAlert['priority'],
+  {
+    border: string;
+    bg: string;
+    accent: string;
+    iconBg: string;
+    iconText: string;
+    Icon: typeof ShieldAlert;
+  }
+> = {
+  critical: {
+    border: 'border-red-500/40',
+    bg: 'bg-red-500/[0.05]',
+    accent: 'bg-red-500',
+    iconBg: 'bg-red-500/15',
+    iconText: 'text-red-300',
+    Icon: ShieldAlert,
+  },
+  high: {
+    border: 'border-amber-500/40',
+    bg: 'bg-amber-500/[0.05]',
+    accent: 'bg-amber-500',
+    iconBg: 'bg-amber-500/15',
+    iconText: 'text-amber-300',
+    Icon: AlertTriangle,
+  },
+  medium: {
+    border: 'border-blue-500/30',
+    bg: 'bg-blue-500/[0.04]',
+    accent: 'bg-blue-500',
+    iconBg: 'bg-blue-500/15',
+    iconText: 'text-blue-300',
+    Icon: Clock,
+  },
+  low: {
+    border: 'border-slate-500/25',
+    bg: 'bg-slate-500/[0.04]',
+    accent: 'bg-slate-500',
+    iconBg: 'bg-slate-500/15',
+    iconText: 'text-slate-300',
+    Icon: Info,
+  },
+};
 
 export default function DashboardPage() {
   const { activeOrgId, branding } = useOrganization();
@@ -40,11 +91,11 @@ export default function DashboardPage() {
   const { data, loading } = useCachedQuery<DashboardData>(
     `dashboard:${activeOrgId ?? 'none'}`,
     async () => {
-      // Passe activeOrgId à getKPIs pour éviter un round-trip profiles
-      // dans le service. Au total : 1 RPC dashboard_kpis + 1 select alerts.
+      // Passe activeOrgId aux deux RPC pour éviter un round-trip profiles
+      // dans le service. Total : 1 RPC dashboard_kpis + 1 RPC compute_org_alerts.
       const [kpisRes, alertsRes] = await Promise.all([
         dashboardService.getKPIs(activeOrgId ?? undefined),
-        alertService.list('new'),
+        alertService.listComputed(activeOrgId ?? undefined),
       ]);
       return {
         kpis: kpisRes.data ?? null,
@@ -155,32 +206,7 @@ export default function DashboardPage() {
             ) : alerts.length === 0 ? (
               <EmptyState text="Aucune alerte. Tout est sous contrôle 🎯" />
             ) : (
-              alerts.map((alert) => (
-                <div
-                  key={alert.id}
-                  className="flex items-start justify-between gap-3 p-3 rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge
-                        variant="outline"
-                        className={ALERT_PRIORITY_STYLE[alert.priority]}
-                      >
-                        {alert.priority}
-                      </Badge>
-                      <span className="text-sm font-medium truncate">{alert.title}</span>
-                    </div>
-                    {alert.description && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                        {alert.description}
-                      </p>
-                    )}
-                  </div>
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {relativeDate(alert.due_date)}
-                  </span>
-                </div>
-              ))
+              alerts.map((alert) => <DashboardAlertItem key={alert.id} alert={alert} />)
             )}
           </CardContent>
         </Card>
@@ -299,6 +325,45 @@ function QuickAction({ href, label }: { href: string; label: string }) {
     <Button variant="outline" asChild className="h-auto py-3 justify-start">
       <Link href={href}>{label}</Link>
     </Button>
+  );
+}
+
+function DashboardAlertItem({ alert }: { alert: ComputedAlert }) {
+  const tone = ALERT_TONE[alert.priority];
+  const inner = (
+    <div
+      className={`relative overflow-hidden rounded-lg border ${tone.border} ${tone.bg} transition hover:brightness-110`}
+    >
+      <div className={`absolute left-0 top-0 bottom-0 w-1 ${tone.accent}`} />
+      <div className="pl-4 pr-3 py-2.5 flex items-start gap-2.5">
+        <div className={`rounded-md p-1.5 shrink-0 ${tone.iconBg} ${tone.iconText}`}>
+          <tone.Icon className="h-3.5 w-3.5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium leading-tight truncate">{alert.title}</div>
+          {alert.description && (
+            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+              {alert.description}
+            </p>
+          )}
+        </div>
+        <div className="text-right shrink-0 flex flex-col items-end gap-1">
+          {alert.due_date && (
+            <span className="text-[10px] text-muted-foreground">
+              {relativeDate(alert.due_date)}
+            </span>
+          )}
+          {alert.link && <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground" />}
+        </div>
+      </div>
+    </div>
+  );
+  return alert.link ? (
+    <Link href={alert.link} className="block">
+      {inner}
+    </Link>
+  ) : (
+    inner
   );
 }
 

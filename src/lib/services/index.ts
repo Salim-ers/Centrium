@@ -747,7 +747,49 @@ export const timesheetService = {
 // Alerts
 // =========================================================================
 
+/** Forme renvoyée par la RPC `compute_org_alerts` côté client. */
+export type ComputedAlert = {
+  id: string;
+  kind: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  title: string;
+  description: string | null;
+  due_date: string | null;
+  link: string | null;
+  entity_kind: string | null;
+  entity_id: string | null;
+  created_at: string;
+};
+
 export const alertService = {
+  /**
+   * Renvoie les alertes calculées en temps réel (factures en retard,
+   * CRA en attente, missions qui se terminent…) via la RPC
+   * `compute_org_alerts`. Ne lit plus la table `alerts` directement
+   * sauf pour les alertes manuelles, déjà UNIONées dans la fonction.
+   *
+   * Le paramètre `status` est ignoré pour l'instant (les alertes
+   * calculées ne sont pas dismissibles individuellement — l'action
+   * corrective sur l'entité fait disparaître l'alerte).
+   */
+  async listComputed(orgId?: string): Promise<ServiceResult<ComputedAlert[]>> {
+    const supabase = createClient();
+    let resolvedOrgId = orgId;
+    if (!resolvedOrgId) {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .single();
+      resolvedOrgId = (prof?.organization_id as string | undefined) ?? undefined;
+    }
+    if (!resolvedOrgId) return { data: [], error: null };
+    const { data, error } = await supabase.rpc('compute_org_alerts', {
+      org_id: resolvedOrgId,
+    });
+    if (error) return { data: null, error };
+    return { data: (data ?? []) as ComputedAlert[], error: null };
+  },
+
   async list(status?: AlertStatus): Promise<ServiceResult<Alert[]>> {
     const supabase = createClient();
     let query = supabase.from('alerts').select('*');

@@ -1,137 +1,272 @@
 'use client';
 
-import { useState } from 'react';
-import { toast } from 'sonner';
-import { BellRing, Check, X } from 'lucide-react';
+import Link from 'next/link';
+import {
+  BellRing,
+  ShieldAlert,
+  AlertTriangle,
+  Clock,
+  Info,
+  ArrowUpRight,
+  CheckCircle2,
+} from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-
-import { alertService } from '@/lib/services';
+import { alertService, type ComputedAlert } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
-import type { Alert, AlertStatus } from '@/types';
-import { ALERT_PRIORITY_STYLE, ALERT_STATUS_LABEL } from '@/constants';
 import { relativeDate } from '@/lib/utils';
+
+type Priority = ComputedAlert['priority'];
+
+const PRIORITY_ORDER: Priority[] = ['critical', 'high', 'medium', 'low'];
+
+const PRIORITY_META: Record<
+  Priority,
+  {
+    label: string;
+    sectionTitle: string;
+    sectionHint: string;
+    Icon: typeof ShieldAlert;
+    cardBorder: string;
+    cardBg: string;
+    leftAccent: string;
+    iconBg: string;
+    iconText: string;
+    badgeBg: string;
+    badgeText: string;
+    sectionHeaderText: string;
+  }
+> = {
+  critical: {
+    label: 'Critique',
+    sectionTitle: 'Critique — à traiter immédiatement',
+    sectionHint: 'Bloquant ou échu, action requise aujourd\'hui',
+    Icon: ShieldAlert,
+    cardBorder: 'border-red-500/40 hover:border-red-500/70',
+    cardBg: 'bg-red-500/[0.05]',
+    leftAccent: 'bg-red-500',
+    iconBg: 'bg-red-500/15',
+    iconText: 'text-red-300',
+    badgeBg: 'bg-red-500/15',
+    badgeText: 'text-red-300',
+    sectionHeaderText: 'text-red-300',
+  },
+  high: {
+    label: 'Important',
+    sectionTitle: 'Important — à traiter cette semaine',
+    sectionHint: 'Échéance proche ou risque significatif',
+    Icon: AlertTriangle,
+    cardBorder: 'border-amber-500/40 hover:border-amber-500/70',
+    cardBg: 'bg-amber-500/[0.05]',
+    leftAccent: 'bg-amber-500',
+    iconBg: 'bg-amber-500/15',
+    iconText: 'text-amber-300',
+    badgeBg: 'bg-amber-500/15',
+    badgeText: 'text-amber-300',
+    sectionHeaderText: 'text-amber-300',
+  },
+  medium: {
+    label: 'Modéré',
+    sectionTitle: 'Modéré — à planifier',
+    sectionHint: 'À traiter dans les prochaines semaines',
+    Icon: Clock,
+    cardBorder: 'border-blue-500/30 hover:border-blue-500/60',
+    cardBg: 'bg-blue-500/[0.04]',
+    leftAccent: 'bg-blue-500',
+    iconBg: 'bg-blue-500/15',
+    iconText: 'text-blue-300',
+    badgeBg: 'bg-blue-500/15',
+    badgeText: 'text-blue-300',
+    sectionHeaderText: 'text-blue-300',
+  },
+  low: {
+    label: 'Info',
+    sectionTitle: 'Info — bon à savoir',
+    sectionHint: 'Signaux faibles, pas d\'urgence',
+    Icon: Info,
+    cardBorder: 'border-slate-500/25 hover:border-slate-500/50',
+    cardBg: 'bg-slate-500/[0.04]',
+    leftAccent: 'bg-slate-500',
+    iconBg: 'bg-slate-500/15',
+    iconText: 'text-slate-300',
+    badgeBg: 'bg-slate-500/15',
+    badgeText: 'text-slate-300',
+    sectionHeaderText: 'text-slate-300',
+  },
+};
+
+const KIND_LABEL_FR: Record<string, string> = {
+  invoice_overdue: 'Facturation',
+  timesheet_pending: 'CRA',
+  mission_ending: 'Mission',
+  consultant_available: 'Intercontrat',
+  client_follow_up: 'Relance client',
+  unanswered_message: 'Message',
+  offer_stale: 'Offre',
+  opportunity_cold: 'Opportunité',
+};
 
 export default function AlertsPage() {
   const { activeOrgId } = useOrganization();
-  const [filter, setFilter] = useState<AlertStatus>('new');
 
-  const {
-    data: alertsData,
-    loading,
-    setData: setAlerts,
-  } = useCachedQuery<Alert[]>(
-    `alerts:${activeOrgId ?? 'none'}:${filter}`,
+  const { data: alertsData, loading } = useCachedQuery<ComputedAlert[]>(
+    `alerts-computed:${activeOrgId ?? 'none'}`,
     async () => {
-      const res = await alertService.list(filter);
+      const res = await alertService.listComputed(activeOrgId ?? undefined);
       return res.data ?? [];
     },
     { enabled: !!activeOrgId },
   );
   const alerts = alertsData ?? [];
 
-  async function resolve(id: string) {
-    const res = await alertService.markResolved(id);
-    if (res.error) return toast.error('Erreur');
-    setAlerts((prev) => (prev ?? []).filter((a) => a.id !== id));
-    toast.success('Alerte résolue');
-  }
+  const grouped = PRIORITY_ORDER.map((p) => ({
+    priority: p,
+    items: alerts.filter((a) => a.priority === p),
+  }));
 
-  async function dismiss(id: string) {
-    const res = await alertService.dismiss(id);
-    if (res.error) return toast.error('Erreur');
-    setAlerts((prev) => (prev ?? []).filter((a) => a.id !== id));
-    toast.success('Alerte ignorée');
-  }
+  const totalCount = alerts.length;
+  const counts = {
+    critical: grouped.find((g) => g.priority === 'critical')!.items.length,
+    high: grouped.find((g) => g.priority === 'high')!.items.length,
+    medium: grouped.find((g) => g.priority === 'medium')!.items.length,
+    low: grouped.find((g) => g.priority === 'low')!.items.length,
+  };
 
   return (
     <AppShell>
       <div className="mb-8">
         <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
           <BellRing className="h-7 w-7 text-violet-glow" />
-          Centre d'alertes
+          Centre d&apos;alertes
         </h1>
         <p className="text-muted-foreground mt-1">
-          Relances, échéances et signaux à traiter
+          Signaux à traiter, classés par importance et calculés en temps réel sur ton activité.
         </p>
       </div>
 
-      <Tabs value={filter} onValueChange={(v) => setFilter(v as AlertStatus)}>
-        <TabsList>
-          <TabsTrigger value="new">Nouvelles</TabsTrigger>
-          <TabsTrigger value="in_progress">En cours</TabsTrigger>
-          <TabsTrigger value="resolved">Résolues</TabsTrigger>
-        </TabsList>
+      {/* Sommaire en chips */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        {PRIORITY_ORDER.map((p) => {
+          const meta = PRIORITY_META[p];
+          const c = counts[p];
+          return (
+            <div
+              key={p}
+              className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs ${
+                c > 0
+                  ? `${meta.cardBorder} ${meta.cardBg} ${meta.sectionHeaderText}`
+                  : 'border-white/5 bg-white/[0.02] text-muted-foreground'
+              }`}
+            >
+              <meta.Icon className="h-3.5 w-3.5" />
+              <span className="font-semibold">{meta.label}</span>
+              <span className="text-[10px] opacity-80">{c}</span>
+            </div>
+          );
+        })}
+      </div>
 
-        <TabsContent value={filter}>
-          {loading ? (
-            <div className="space-y-2">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="h-20 rounded-lg bg-white/[0.02] animate-pulse" />
-              ))}
-            </div>
-          ) : alerts.length === 0 ? (
-            <Card>
-              <CardContent className="py-16 text-center text-muted-foreground">
-                <BellRing className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                <p>Aucune alerte {ALERT_STATUS_LABEL[filter].toLowerCase()}</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-2">
-              {alerts.map((a) => (
-                <Card key={a.id} className="qc-card-hover">
-                  <CardContent className="p-4 flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="outline" className={ALERT_PRIORITY_STYLE[a.priority]}>
-                          {a.priority}
-                        </Badge>
-                        <Badge variant="outline" className="text-[10px]">
-                          {a.kind.replace(/_/g, ' ')}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {relativeDate(a.due_date)}
-                        </span>
-                      </div>
-                      <h3 className="font-medium mt-1.5">{a.title}</h3>
-                      {a.description && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {a.description}
-                        </p>
-                      )}
-                    </div>
-                    {filter === 'new' && (
-                      <div className="flex gap-2 shrink-0">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => resolve(a.id)}
-                        >
-                          <Check className="h-4 w-4" />
-                          Traité
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => dismiss(a.id)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+      {loading ? (
+        <div className="space-y-2">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-20 rounded-lg bg-white/[0.02] animate-pulse" />
+          ))}
+        </div>
+      ) : totalCount === 0 ? (
+        <Card>
+          <CardContent className="py-16 text-center">
+            <CheckCircle2 className="h-10 w-10 mx-auto mb-3 text-emerald-300" />
+            <p className="text-base font-semibold">Tout est sous contrôle</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Aucune action urgente, aucune échéance dépassée. Bonne nouvelle.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-8">
+          {grouped.map(({ priority, items }) => {
+            if (items.length === 0) return null;
+            const meta = PRIORITY_META[priority];
+            return (
+              <section key={priority}>
+                <header className="mb-3 flex items-baseline gap-3">
+                  <div className={`flex items-center gap-2 ${meta.sectionHeaderText}`}>
+                    <meta.Icon className="h-4 w-4" />
+                    <h2 className="text-sm font-semibold uppercase tracking-wider">
+                      {meta.sectionTitle}
+                    </h2>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {items.length} alerte{items.length > 1 ? 's' : ''} · {meta.sectionHint}
+                  </span>
+                </header>
+
+                <div className="space-y-2">
+                  {items.map((a) => (
+                    <AlertItem key={a.id} alert={a} />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
     </AppShell>
   );
+}
+
+function AlertItem({ alert }: { alert: ComputedAlert }) {
+  const meta = PRIORITY_META[alert.priority];
+  const kindLabel = KIND_LABEL_FR[alert.kind] ?? alert.kind.replace(/_/g, ' ');
+
+  const inner = (
+    <div
+      className={`relative overflow-hidden rounded-lg border ${meta.cardBorder} ${meta.cardBg} transition`}
+    >
+      <div className={`absolute left-0 top-0 bottom-0 w-1 ${meta.leftAccent}`} />
+      <div className="pl-5 pr-4 py-3 flex items-start gap-3">
+        <div className={`rounded-md p-2 shrink-0 ${meta.iconBg} ${meta.iconText}`}>
+          <meta.Icon className="h-4 w-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${meta.badgeBg} ${meta.badgeText}`}
+            >
+              {kindLabel}
+            </span>
+            {alert.due_date && (
+              <span className="text-[11px] text-muted-foreground">
+                {relativeDate(alert.due_date)}
+              </span>
+            )}
+          </div>
+          <h3 className="text-sm font-semibold mt-1.5 leading-tight">{alert.title}</h3>
+          {alert.description && (
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              {alert.description}
+            </p>
+          )}
+        </div>
+        {alert.link && (
+          <ArrowUpRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+        )}
+      </div>
+    </div>
+  );
+
+  if (alert.link) {
+    return (
+      <Link
+        href={alert.link}
+        className="block hover:brightness-110"
+        title="Voir le détail"
+      >
+        {inner}
+      </Link>
+    );
+  }
+  return inner;
 }
