@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { toast } from 'sonner';
+import {
+  notifyDestructive,
+  notifyError,
+  notifyCreated,
+} from '@/lib/notify';
 import {
   Plus,
   Search,
@@ -133,7 +137,7 @@ export default function ConsultantsPage() {
     );
     const res = await consultantService.updateOwner(consultantId, next);
     if (res.error) {
-      toast.error('Impossible de mettre à jour le référent');
+      notifyError('Impossible de mettre à jour le référent');
       setConsultants(prev);
     }
   }
@@ -162,11 +166,11 @@ export default function ConsultantsPage() {
     const res = await fetch(`/api/missions/${missionId}`, { method: 'DELETE' });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      toast.error(body.message ?? 'Suppression impossible');
+      notifyError(body.message ?? 'Suppression impossible');
       setConsultants(prev);
       return;
     }
-    toast.success('Mission retirée');
+    notifyDestructive('Mission retirée');
   }
 
   function openCreate() {
@@ -189,20 +193,20 @@ export default function ConsultantsPage() {
     }
     const res = await consultantService.archive(consultant.id);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      notifyError('Erreur : ' + res.error.message);
       return;
     }
-    toast.success('Consultant archivé');
+    notifyDestructive(`${consultant.first_name} ${consultant.last_name} archivé`);
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
   }
 
   async function unarchiveConsultant(consultant: Consultant) {
     const res = await consultantService.unarchive(consultant.id);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      notifyError('Erreur : ' + res.error.message);
       return;
     }
-    toast.success(`${consultant.first_name} ${consultant.last_name} restauré`);
+    notifyCreated(`${consultant.first_name} ${consultant.last_name} restauré`);
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
   }
 
@@ -219,19 +223,18 @@ export default function ConsultantsPage() {
       `Pour confirmer, tape exactement le nom complet du consultant :\n${fullName}`,
     );
     if (typed?.trim() !== fullName) {
-      toast.error('Confirmation incorrecte — suppression annulée.');
+      notifyError('Confirmation incorrecte — suppression annulée.');
       return;
     }
     const res = await consultantService.delete(consultant.id);
     if (res.error) {
-      // Cas typique : FK contraint (CRA, factures, contrats existants)
       const msg = /foreign key|violates foreign|reference/i.test(res.error.message)
         ? `Impossible : ${fullName} a des CRA, factures ou contrats liés. Supprime-les d'abord.`
         : 'Erreur : ' + res.error.message;
-      toast.error(msg);
+      notifyError(msg);
       return;
     }
-    toast.success(`${fullName} supprimé définitivement`);
+    notifyDestructive(`${fullName} supprimé définitivement`);
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
   }
 
@@ -245,10 +248,10 @@ export default function ConsultantsPage() {
     }
     const res = await consultantService.demoteToProspect(consultant.id);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      notifyError('Erreur : ' + res.error.message);
       return;
     }
-    toast.success(`${consultant.first_name} ${consultant.last_name} renvoyé au vivier`);
+    notifyDestructive(`${consultant.first_name} ${consultant.last_name} renvoyé au vivier`);
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
   }
 

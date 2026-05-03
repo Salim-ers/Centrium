@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { toast } from 'sonner';
+import { notifyDestructive, notifyError } from '@/lib/notify';
 import { Plus, Search, Eye, Pencil, Trash2, ArrowRightCircle, FileUp } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -22,6 +22,7 @@ import { ConsultantFormDialog } from '@/components/consultants/ConsultantFormDia
 import { JobFamilyFilter } from '@/components/consultants/JobFamilyFilter';
 import { CsvImportDialog } from '@/components/consultants/CsvImportDialog';
 import { PromoteToConsultantDialog } from '@/components/consultants/PromoteToConsultantDialog';
+import { CityFilter } from '@/components/consultants/CityFilter';
 
 import { consultantService } from '@/lib/services/consultant.service';
 import { useOrganization } from '@/lib/auth/context';
@@ -38,6 +39,7 @@ export default function ProspectsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Consultant | null>(null);
   const [familyFilter, setFamilyFilter] = useState<Set<JobFamilyId>>(new Set());
+  const [cityFilter, setCityFilter] = useState<Set<string>>(new Set());
   const [csvOpen, setCsvOpen] = useState(false);
   const [promoting, setPromoting] = useState<Consultant | null>(null);
 
@@ -76,12 +78,29 @@ export default function ProspectsPage() {
     return base;
   })();
 
-  const prospectsList =
+  // Comptage des villes présentes (sur la sélection famille pour rester
+  // cohérent : si on filtre famille=QA, on ne propose que les villes des QA).
+  const familyFilteredForCities =
     familyFilter.size === 0
       ? allProspects
       : allProspects.filter((c) =>
           familyFilter.has(classifyJobFamily(c.job_title)),
         );
+  const cityCounts = (() => {
+    const map = new Map<string, number>();
+    for (const c of familyFilteredForCities) {
+      if (c.city && c.city.trim()) {
+        map.set(c.city, (map.get(c.city) ?? 0) + 1);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  })();
+
+  const prospectsList = familyFilteredForCities.filter((c) =>
+    cityFilter.size === 0 ? true : c.city ? cityFilter.has(c.city) : false,
+  );
 
   function openCreate() {
     setEditing(null);
@@ -101,10 +120,10 @@ export default function ProspectsPage() {
     if (!confirm(`Retirer ${c.first_name} ${c.last_name} du vivier ?`)) return;
     const res = await consultantService.archive(c.id);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      notifyError('Erreur : ' + res.error.message);
       return;
     }
-    toast.success('Prospect retiré du vivier');
+    notifyDestructive(`${c.first_name} ${c.last_name} retiré du vivier`);
     setProspects((prev) => (prev ?? []).filter((p) => p.id !== c.id));
   }
 
@@ -179,6 +198,9 @@ export default function ProspectsPage() {
             active={familyFilter}
             onChange={setFamilyFilter}
           />
+          <div className="flex items-center gap-2 flex-wrap">
+            <CityFilter cities={cityCounts} selected={cityFilter} onChange={setCityFilter} />
+          </div>
         </CardContent>
       </Card>
 

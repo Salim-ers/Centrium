@@ -7,11 +7,14 @@ import { requireOrg } from '@/lib/auth/guards';
 // =========================================================================
 // POST /api/consultants/:id/portal-access
 // -------------------------------------------------------------------------
-// Crée un compte d'authentification + un profile lié au consultant pour
-// qu'il puisse se connecter à /portal/*. Idempotent : si le consultant a
-// déjà un profile portail, renvoie 409 sans rien casser.
+// Crée un compte d'authentification + un profile lié au consultant et
+// envoie au consultant un email d'invitation pour qu'il choisisse SON
+// propre mot de passe. On ne génère plus de mot de passe côté admin —
+// l'admin ne voit jamais le secret.
 //
-// Body : { email, password }
+// Idempotent : si le consultant a déjà un profile portail, renvoie 409.
+//
+// Body : { email }
 // Réservé aux admin / business_manager / recruiter.
 // =========================================================================
 
@@ -19,7 +22,6 @@ export const runtime = 'nodejs';
 
 const bodySchema = z.object({
   email: z.string().email('Email invalide'),
-  password: z.string().min(8, 'Mot de passe : 8 caractères minimum').max(72),
 });
 
 export async function POST(
@@ -96,23 +98,32 @@ export async function POST(
     );
   }
 
-  // 4) Crée le user auth (email confirmé pour qu'il puisse se connecter)
-  const { data: created, error: authErr } = await admin.auth.admin.createUser({
-    email: parsed.data.email,
-    password: parsed.data.password,
-    email_confirm: true,
-    user_metadata: {
-      first_name: consultant.first_name,
-      last_name: consultant.last_name,
+  // 4) Invite le consultant : Supabase crée le user (email pas encore
+  //    confirmé) et envoie le mail "invite" Centrium avec un lien qui le
+  //    fait atterrir sur le set-password. Aucun mot de passe côté admin.
+  const reqUrl = new URL(req.url);
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ?? `${reqUrl.protocol}//${reqUrl.host}`;
+  // /auth/callback gère l'échange du code PKCE puis redirige sur set-password
+  const redirectTo = `${appUrl}/auth/callback?next=${encodeURIComponent('/auth/set-password?welcome=portal')}`;
+  const { data: invited, error: authErr } = await admin.auth.admin.inviteUserByEmail(
+    parsed.data.email,
+    {
+      data: {
+        first_name: consultant.first_name,
+        last_name: consultant.last_name,
+        portal_consultant_id: consultant.id,
+      },
+      redirectTo,
     },
-  });
-  if (authErr || !created.user) {
+  );
+  if (authErr || !invited.user) {
     return NextResponse.json(
-      { error: 'auth_create_failed', message: authErr?.message ?? 'Auth error' },
+      { error: 'auth_invite_failed', message: authErr?.message ?? 'Auth error' },
       { status: 500 },
     );
   }
-  const userId = created.user.id;
+  const userId = invited.user.id;
 
   // 5) Membership organization_members + profile lié au consultant
   const { error: memberErr } = await admin.from('organization_members').upsert(
@@ -153,7 +164,13 @@ export async function POST(
     .is('email', null);
 
   return NextResponse.json(
-    { data: { user_id: userId, email: parsed.data.email } },
+    {
+      data: {
+        user_id: userId,
+        email: parsed.data.email,
+        invitation_sent: true,
+      },
+    },
     { status: 201 },
   );
 }

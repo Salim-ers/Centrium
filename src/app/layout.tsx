@@ -26,14 +26,12 @@ export default function RootLayout({
       <body className="font-sans">
         <OrganizationProvider>{children}</OrganizationProvider>
         <Toaster
-          position="bottom-right"
+          position="top-right"
           theme="dark"
+          richColors
+          closeButton
           toastOptions={{
-            style: {
-              background: 'rgba(15, 17, 25, 0.95)',
-              border: '1px solid rgba(139, 92, 246, 0.2)',
-              color: '#fff',
-            },
+            duration: 4500,
           }}
         />
       </body>

@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2, UserPlus, Mail, Lock, FileUp, Sparkles, CheckCircle2 } from 'lucide-react';
+import { notifyCreated, notifyUpdated, notifyError } from '@/lib/notify';
+import { Loader2, UserPlus, Mail, FileUp, Sparkles, CheckCircle2 } from 'lucide-react';
 
 import {
   Dialog,
@@ -27,6 +28,7 @@ import { extractIdentityFromText } from '@/lib/cv/extract-identity';
 import type { ParsedCV } from '@/lib/cv/parse-cv';
 import type { Consultant } from '@/types';
 import { PlanLimitDialog, type PlanLimitPayload } from '@/components/billing/PlanLimitDialog';
+import { AvailableFromField } from '@/components/consultants/AvailableFromField';
 
 type Props = {
   open: boolean;
@@ -100,7 +102,6 @@ export function ConsultantFormDialog({
   const [planLimit, setPlanLimit] = useState<PlanLimitPayload | null>(null);
   const [createPortal, setCreatePortal] = useState(false);
   const [portalEmail, setPortalEmail] = useState('');
-  const [portalPassword, setPortalPassword] = useState('');
   const [parsingCV, setParsingCV] = useState(false);
   const [cvFileName, setCvFileName] = useState<string | null>(null);
   const [parsedPreview, setParsedPreview] = useState<{
@@ -115,6 +116,8 @@ export function ConsultantFormDialog({
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<ConsultantInput>({
     resolver: zodResolver(consultantSchema),
@@ -126,7 +129,6 @@ export function ConsultantFormDialog({
       reset(toFormValues(consultant));
       setCreatePortal(false);
       setPortalEmail('');
-      setPortalPassword('');
       setParsingCV(false);
       setCvFileName(null);
       setParsedPreview(null);
@@ -161,12 +163,10 @@ export function ConsultantFormDialog({
 
     // Étape 2 : parse structuré (IA si dispo, sinon heuristique — jamais bloquant)
     let parsed: ParsedCV | null = null;
-    let mode: 'llm' | 'heuristic' = 'heuristic';
     let warnings: string[] = [];
     try {
       const result = await parseCVSmart(text);
       parsed = result.parsed ?? null;
-      mode = result.mode;
       warnings = result.warnings ?? [];
     } catch (e) {
       console.error('[handleCVFile] parseCVSmart failed', e);
@@ -229,8 +229,8 @@ export function ConsultantFormDialog({
     } as Partial<ConsultantInput>);
 
     warnings.forEach((w) => toast.warning(w, { duration: 6000 }));
-    toast.success(
-      `CV analysé (${mode === 'llm' ? 'IA' : 'heuristique'}) — vérifie et valide pour créer.`,
+    notifyCreated(
+      `CV importé — ${safeParsed.skills.length} compétences, ${safeParsed.experiences.length} expériences détectées. Vérifie et valide.`,
     );
     setParsingCV(false);
   }
@@ -239,18 +239,20 @@ export function ConsultantFormDialog({
     // Validation accès portail (créé only)
     if (!isEdit && createPortal) {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(portalEmail)) {
-        toast.error('Email du portail invalide');
-        return;
-      }
-      if (portalPassword.length < 8) {
-        toast.error('Le mot de passe doit faire au moins 8 caractères');
+        notifyError('Email du portail invalide');
         return;
       }
     }
 
     // Supabase rejette '' pour les colonnes DATE/nullable ; normalise avant envoi.
+    // 'unknown' est une sentinelle UI (bouton "On ne sait pas") qui mappe à NULL
+    // côté DB — on conserve l'info "champ rempli explicitement" via la
+    // sélection obligatoire d'un mode dans AvailableFromField.
     const normalized = Object.fromEntries(
-      Object.entries(values).map(([k, v]) => [k, v === '' ? null : v]),
+      Object.entries(values).map(([k, v]) => {
+        if (v === '' || (k === 'available_from' && v === 'unknown')) return [k, null];
+        return [k, v];
+      }),
     ) as Partial<ConsultantInput>;
 
     setSaving(true);
@@ -268,9 +270,9 @@ export function ConsultantFormDialog({
           });
         } catch (e) {
           if ((e as Error).name === 'AbortError') {
-            toast.error('Délai dépassé — réessaie dans un instant');
+            notifyError('Délai dépassé — réessaie dans un instant');
           } else {
-            toast.error('Erreur réseau : ' + (e as Error).message);
+            notifyError('Erreur réseau : ' + (e as Error).message);
           }
           return;
         } finally {
@@ -278,17 +280,17 @@ export function ConsultantFormDialog({
         }
         const payload = await res.json().catch(() => ({}));
         if (!res.ok) {
-          toast.error(payload.message ?? payload.error ?? 'Mise à jour impossible');
+          notifyError(payload.message ?? payload.error ?? 'Mise à jour impossible');
           return;
         }
-        toast.success('Consultant mis à jour');
+        notifyUpdated(`${values.first_name} ${values.last_name} mis à jour`);
         onSaved?.(payload.data as Consultant);
       } else {
         // Création via API — gère optionnellement la création du compte portail
         const body = {
           ...values,
           ...(createPortal && {
-            portal_access: { email: portalEmail, password: portalPassword },
+            portal_access: { email: portalEmail },
           }),
           ...(isProspect && { is_prospect: true }),
         };
@@ -303,7 +305,7 @@ export function ConsultantFormDialog({
           return;
         }
         if (!res.ok) {
-          toast.error(payload.message ?? payload.error ?? 'Création impossible');
+          notifyError(payload.message ?? payload.error ?? 'Création impossible');
           return;
         }
         // Si un CV a été pré-parsé, on applique skills / expériences / formations
@@ -328,20 +330,20 @@ export function ConsultantFormDialog({
         }
 
         const baseMsg = createPortal
-          ? `Consultant créé — accès portail envoyé à ${portalEmail}`
+          ? `${values.first_name} ${values.last_name} ajouté — un email d'accès portail vient d'être envoyé à ${portalEmail}`
           : isProspect
-            ? 'Prospect ajouté au vivier'
-            : 'Consultant créé';
+            ? `${values.first_name} ${values.last_name} ajouté au vivier`
+            : `${values.first_name} ${values.last_name} ajouté à la bibliothèque`;
         const cvMsg = applied
-          ? ` · CV importé : ${applied.skillsAdded} compétences, ${applied.experiencesAdded} expériences, ${applied.educationsAdded} formations`
+          ? ` · ${applied.skillsAdded} compétences + ${applied.experiencesAdded} expériences importées`
           : '';
-        toast.success(baseMsg + cvMsg);
+        notifyCreated(baseMsg + cvMsg);
         onSaved?.(payload.data);
       }
       reset();
       onOpenChange(false);
-    } catch (err) {
-      toast.error('Erreur réseau');
+    } catch {
+      notifyError('Erreur réseau');
     } finally {
       setSaving(false);
     }
@@ -516,10 +518,12 @@ export function ConsultantFormDialog({
             </div>
           </div>
 
-          <div>
-            <Label>Disponible à partir du</Label>
-            <Input type="date" {...register('available_from')} />
-          </div>
+          <AvailableFromField
+            value={watch('available_from') ?? ''}
+            onChange={(v) => setValue('available_from', v as string, { shouldDirty: true })}
+          />
+
+          <input type="hidden" {...register('available_from')} />
 
           <div>
             <Label>Résumé exécutif</Label>
@@ -548,37 +552,23 @@ export function ConsultantFormDialog({
               </label>
 
               {createPortal && (
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
-                  <div>
-                    <Label>Email du portail *</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />
-                      <Input
-                        type="email"
-                        value={portalEmail}
-                        onChange={(e) => setPortalEmail(e.target.value)}
-                        placeholder="prenom.nom@example.com"
-                        className="pl-9"
-                        autoComplete="off"
-                      />
-                    </div>
+                <div className="pt-2 border-t border-white/5 space-y-1.5">
+                  <Label>Email du portail *</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />
+                    <Input
+                      type="email"
+                      value={portalEmail}
+                      onChange={(e) => setPortalEmail(e.target.value)}
+                      placeholder="prenom.nom@example.com"
+                      className="pl-9"
+                      autoComplete="off"
+                    />
                   </div>
-                  <div>
-                    <Label>Mot de passe * (8+ car.)</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />
-                      <Input
-                        type="text"
-                        value={portalPassword}
-                        onChange={(e) => setPortalPassword(e.target.value)}
-                        placeholder="Mot de passe temporaire"
-                        className="pl-9 font-mono text-xs"
-                        autoComplete="off"
-                      />
-                    </div>
-                  </div>
-                  <p className="col-span-2 text-[11px] text-amber-300/80">
-                    ⚠ Communique ce mot de passe au consultant. Il pourra le changer après connexion.
+                  <p className="text-[11px] text-violet-300/80">
+                    Un email Centrium sera envoyé à cette adresse avec un lien
+                    pour que le consultant définisse son propre mot de passe.
+                    Aucun secret n&apos;est stocké côté admin.
                   </p>
                 </div>
               )}

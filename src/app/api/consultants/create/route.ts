@@ -30,7 +30,6 @@ export const runtime = 'nodejs';
 
 const portalAccessSchema = z.object({
   email: z.string().email('Email invalide'),
-  password: z.string().min(8, 'Mot de passe : 8 caractères minimum').max(72),
 });
 
 const bodySchema = consultantSchema.extend({
@@ -130,23 +129,31 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { data: created, error: authErr } = await admin.auth.admin.createUser({
-    email: portal_access.email,
-    password: portal_access.password,
-    email_confirm: true,
-    user_metadata: {
-      first_name: consultantData.first_name,
-      last_name: consultantData.last_name,
+  // Invite par email — le consultant choisit son propre mot de passe via
+  // le lien Centrium. Pas de password généré côté admin.
+  const reqUrl = new URL(req.url);
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ?? `${reqUrl.protocol}//${reqUrl.host}`;
+  const redirectTo = `${appUrl}/auth/callback?next=${encodeURIComponent('/auth/set-password?welcome=portal')}`;
+  const { data: invited, error: authErr } = await admin.auth.admin.inviteUserByEmail(
+    portal_access.email,
+    {
+      data: {
+        first_name: consultantData.first_name,
+        last_name: consultantData.last_name,
+        portal_consultant_id: consultant.id,
+      },
+      redirectTo,
     },
-  });
-  if (authErr || !created.user) {
+  );
+  if (authErr || !invited.user) {
     await admin.from('consultants').delete().eq('id', consultant.id);
     return NextResponse.json(
-      { error: 'auth_create_failed', message: authErr?.message ?? 'Auth error' },
+      { error: 'auth_invite_failed', message: authErr?.message ?? 'Auth error' },
       { status: 500 },
     );
   }
-  userId = created.user.id;
+  userId = invited.user.id;
 
   // 4) Membership + profile consultant
   const { error: memberErr } = await admin.from('organization_members').upsert(
@@ -187,6 +194,7 @@ export async function POST(req: NextRequest) {
       portal: {
         email: portal_access.email,
         user_id: userId,
+        invitation_sent: true,
       },
     },
     { status: 201 },

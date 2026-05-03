@@ -3,7 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { toast } from 'sonner';
+import {
+  notifyDestructive,
+  notifyError,
+  notifyCreated,
+} from '@/lib/notify';
 import {
   ArrowLeft,
   Mail,
@@ -90,6 +94,7 @@ export default function ConsultantDetailPage() {
   async function handleArchive() {
     if (!detail) return;
     const { consultant: c } = detail;
+    const wasProspect = c.is_prospect;
     if (
       !confirm(
         `Archiver ${c.first_name} ${c.last_name} ? Le consultant disparaît de la bibliothèque mais ses données (CRA, factures, CV) sont conservées.`,
@@ -99,11 +104,17 @@ export default function ConsultantDetailPage() {
     }
     const res = await consultantService.archive(c.id);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      notifyError('Erreur : ' + res.error.message);
       return;
     }
-    toast.success('Consultant archivé');
-    router.push('/consultants');
+    notifyDestructive(
+      wasProspect
+        ? `${c.first_name} ${c.last_name} retiré du vivier`
+        : `${c.first_name} ${c.last_name} archivé`,
+    );
+    // Retour vers la liste d'origine (vivier vs bibliothèque) pour rester
+    // dans le contexte où l'utilisateur a déclenché l'action.
+    router.push(wasProspect ? '/prospects' : '/consultants');
   }
 
   async function handleUnarchive() {
@@ -111,10 +122,10 @@ export default function ConsultantDetailPage() {
     const { consultant: c } = detail;
     const res = await consultantService.unarchive(c.id);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      notifyError('Erreur : ' + res.error.message);
       return;
     }
-    toast.success(`${c.first_name} ${c.last_name} restauré`);
+    notifyCreated(`${c.first_name} ${c.last_name} restauré`);
     reload();
   }
 
