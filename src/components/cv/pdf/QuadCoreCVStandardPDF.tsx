@@ -355,20 +355,27 @@ export function QuadCoreCVStandardPDF({
         ) : null}
 
         {/* ============ EXPERIENCES ============ */}
-        {/* Les expériences peuvent se découper sur 2 pages (pas de
-            wrap={false}) — l'objectif est que la page 1 soit pleine.
-            Le header d'expérience reste insécable (wrap={false} sur le
-            header row + minPresenceAhead) pour ne pas orpheliner le
-            client/role en bas d'une page. Le titre de section est
-            protégé par minPresenceAhead pour ne pas pendre seul. */}
+        {/* Chaque expérience reste indivisible (wrap={false}) — sur
+            instruction explicite : pas de mission coupée entre 2
+            pages. Compensation : densité réduite sur la page (cf.
+            buildStyles) pour qu'un maximum de missions tiennent en
+            page 1. Si la 1re mission est trop longue pour la place
+            restante, elle bascule en page 2 et page 1 finit avec un
+            peu de blanc en bas. Le titre de section reste protégé
+            par minPresenceAhead pour ne pas pendre seul. */}
         {experiences.length > 0 ? (
           <View style={styles.sectionWrap}>
-            <View wrap={false} minPresenceAhead={50}>
+            <View wrap={false} minPresenceAhead={60}>
               <SectionTitle>Expériences professionnelles</SectionTitle>
             </View>
             {experiences.map((exp) => (
-              <View key={exp.id} style={styles.experience}>
-                <View style={styles.expHeaderRow} wrap={false} minPresenceAhead={32}>
+              <View
+                key={exp.id}
+                style={styles.experience}
+                wrap={false}
+                minPresenceAhead={40}
+              >
+                <View style={styles.expHeaderRow}>
                   <Text style={styles.expClient}>
                     {exp.client_name}
                     <Text style={styles.expRole}> — {exp.role}</Text>
