@@ -22,6 +22,7 @@ export class PlanLimitError extends Error {
 
 type SubWithPlan = {
   plan_id: string;
+  is_exempt_from_billing: boolean | null;
   plans: {
     id: string;
     name: string;
@@ -34,7 +35,7 @@ async function fetchSub(organizationId: string) {
   const admin = createAdminClient();
   const { data } = (await admin
     .from('subscriptions')
-    .select('plan_id, plans(id, name, max_consultants, max_users)')
+    .select('plan_id, is_exempt_from_billing, plans(id, name, max_consultants, max_users)')
     .eq('organization_id', organizationId)
     .maybeSingle()) as { data: SubWithPlan | null };
   return data;
@@ -90,6 +91,9 @@ export async function enforceConsultantLimit(
   extra: number = 1,
 ): Promise<void> {
   const sub = await fetchSub(organizationId);
+  // Orgs exemptes de facturation (fondateurs, partenaires, internes) :
+  // jamais bloquées, peu importe le plan technique attaché.
+  if (sub?.is_exempt_from_billing) return;
   const max = sub?.plans?.max_consultants;
   if (max === null || max === undefined) return;
   const used = await countConsultants(organizationId);
@@ -113,6 +117,7 @@ export async function enforceMemberLimit(
   extra: number = 1,
 ): Promise<void> {
   const sub = await fetchSub(organizationId);
+  if (sub?.is_exempt_from_billing) return;
   const max = sub?.plans?.max_users;
   if (max === null || max === undefined) return;
   const [members, invites] = await Promise.all([
@@ -138,10 +143,12 @@ export async function enforceMemberLimit(
 export async function getQuotaUsage(organizationId: string): Promise<{
   planId: string;
   planName: string;
+  exempt: boolean;
   consultants: { used: number; max: number | null };
   members: { used: number; max: number | null };
 }> {
   const sub = await fetchSub(organizationId);
+  const exempt = !!sub?.is_exempt_from_billing;
   const [consultants, members, invites] = await Promise.all([
     countConsultants(organizationId),
     countInternalMembers(organizationId),
@@ -150,13 +157,15 @@ export async function getQuotaUsage(organizationId: string): Promise<{
   return {
     planId: sub?.plan_id ?? 'starter',
     planName: sub?.plans?.name ?? 'Starter',
+    exempt,
     consultants: {
       used: consultants,
-      max: sub?.plans?.max_consultants ?? null,
+      // Orgs exemptes : pas de plafond. UI affichera "X / illimité".
+      max: exempt ? null : (sub?.plans?.max_consultants ?? null),
     },
     members: {
       used: members + invites,
-      max: sub?.plans?.max_users ?? null,
+      max: exempt ? null : (sub?.plans?.max_users ?? null),
     },
   };
 }

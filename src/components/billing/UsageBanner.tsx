@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { TrendingUp, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { TrendingUp, AlertTriangle, ShieldAlert, Sparkles } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 
 type Usage = {
   planId: string;
   planName: string;
+  exempt?: boolean;
   consultants: { used: number; max: number | null };
   members: { used: number; max: number | null };
 };
@@ -21,10 +22,14 @@ type Props = {
 };
 
 /**
- * Compteur de quota au-dessus d'une liste. Vert si <60%, jaune à 60-99%,
- * rouge à 100%. Le but : éviter la surprise du blocage à la création.
+ * Compteur de quota au-dessus d'une liste.
  *
- * Plans illimités (max=null) → bandeau caché.
+ *   - Plan plafonné : violet (<60%), ambre (60-99%), rouge (100%).
+ *     Bouton upgrade quand on approche / on touche la limite.
+ *   - Org exemptée (fondateur / partenaire) : bandeau ambre/rose
+ *     "X / illimité" — pas de plafond, pas d'upgrade prompt.
+ *   - Plan Enterprise (illimité non exempt) : bandeau caché, ça
+ *     n'apporte rien d'afficher 12/∞ à un client Enterprise.
  */
 export function UsageBanner({ resource, hideUntilWarn = false }: Props) {
   const [usage, setUsage] = useState<Usage | null>(null);
@@ -46,7 +51,31 @@ export function UsageBanner({ resource, hideUntilWarn = false }: Props) {
   if (!usage) return null;
 
   const { used, max } = usage[resource];
-  if (max === null) return null; // illimité (Enterprise)
+  const label = resource === 'consultants' ? 'consultants' : 'utilisateurs internes';
+
+  // Cas "exempté" : on AFFICHE le compteur avec "illimité", pas
+  // d'avertissement, pas d'upgrade. C'est l'info utile pour les
+  // fondateurs ("où en sommes-nous ?").
+  if (usage.exempt) {
+    return (
+      <div className="mb-4 rounded-lg border border-amber-400/40 bg-gradient-to-r from-amber-500/[0.07] to-rose-500/[0.05] px-4 py-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 text-sm">
+            <Sparkles className="h-4 w-4 text-amber-300" />
+            <span className="font-semibold text-amber-200">
+              {used} / illimité {label}
+            </span>
+            <span className="text-muted-foreground text-xs">
+              · Compte fondateur — aucune limite
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Plan Enterprise standard : pas la peine d'afficher.
+  if (max === null) return null;
 
   const ratio = max === 0 ? 1 : used / max;
   const pct = Math.min(100, Math.round(ratio * 100));
@@ -79,13 +108,10 @@ export function UsageBanner({ resource, hideUntilWarn = false }: Props) {
           Icon: TrendingUp,
         };
 
-  const label = resource === 'consultants' ? 'consultants' : 'utilisateurs internes';
   const Icon = tone.Icon;
 
   return (
-    <div
-      className={`mb-4 rounded-lg border ${tone.border} ${tone.bg} px-4 py-3`}
-    >
+    <div className={`mb-4 rounded-lg border ${tone.border} ${tone.bg} px-4 py-3`}>
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 text-sm">
           <Icon className={`h-4 w-4 ${tone.text}`} />
