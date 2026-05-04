@@ -221,6 +221,41 @@ export const companyService = {
     if (error) return { data: null, error };
     return { data: data as Company[], error: null };
   },
+
+  /**
+   * Création rapide d'un client/entreprise. Utilisé en inline depuis
+   * le formulaire facture (l'utilisateur n'a souvent que le nom à
+   * portée de main au moment de facturer).
+   *
+   * RLS sur la table companies vérifie déjà que le user appartient à
+   * organization_id, on peut donc insérer en direct depuis le client.
+   */
+  async create(input: {
+    organization_id: string;
+    name: string;
+    kind?: 'client' | 'esn_partner' | 'prospect';
+    industry?: string | null;
+    website?: string | null;
+    city?: string | null;
+    country?: string | null;
+  }): Promise<ServiceResult<Company>> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('companies')
+      .insert({
+        organization_id: input.organization_id,
+        name: input.name.trim(),
+        kind: input.kind ?? 'client',
+        industry: input.industry ?? null,
+        website: input.website ?? null,
+        city: input.city ?? null,
+        country: input.country ?? null,
+      })
+      .select()
+      .single();
+    if (error) return { data: null, error };
+    return { data: data as Company, error: null };
+  },
 };
 
 // =========================================================================

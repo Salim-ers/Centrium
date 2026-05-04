@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import Link from 'next/link';
-import { Loader2, Info } from 'lucide-react';
+import { Loader2, Plus, X } from 'lucide-react';
 
 import {
   Dialog,
@@ -58,6 +57,14 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [consultants, setConsultants] = useState<Consultant[]>([]);
   const [offers, setOffers] = useState<JobOffer[]>([]);
+
+  // Inline "+ Nouveau client" — évite de quitter le dialog facture pour
+  // créer un client manquant (cas typique : on facture une nouvelle ESN
+  // qu'on n'a jamais entrée en base).
+  const [creatingCompany, setCreatingCompany] = useState(false);
+  const [newCompanyName, setNewCompanyName] = useState('');
+  const [newCompanyCity, setNewCompanyCity] = useState('');
+  const [savingCompany, setSavingCompany] = useState(false);
 
   const {
     register,
@@ -123,6 +130,35 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
     [consultants],
   );
 
+  async function createCompanyInline() {
+    const name = newCompanyName.trim();
+    if (!name) {
+      notifyError('Nom du client obligatoire');
+      return;
+    }
+    setSavingCompany(true);
+    try {
+      const res = await companyService.create({
+        organization_id: organizationId,
+        name,
+        city: newCompanyCity.trim() || null,
+      });
+      if (res.error || !res.data) {
+        notifyError('Création impossible : ' + (res.error?.message ?? 'inconnue'));
+        return;
+      }
+      // Insère en haut de la liste, sélectionne, replie l'inline form.
+      setCompanies((prev) => [res.data!, ...prev]);
+      setValue('company_id', res.data.id, { shouldValidate: true });
+      setNewCompanyName('');
+      setNewCompanyCity('');
+      setCreatingCompany(false);
+      notifyCreated(`Client "${res.data.name}" créé`);
+    } finally {
+      setSavingCompany(false);
+    }
+  }
+
   async function onSubmit(values: InvoiceInput) {
     setSaving(true);
     try {
@@ -165,30 +201,75 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
               )}
             </div>
             <div>
-              <Label>Client *</Label>
-              <Select {...register('company_id')}>
-                <option value="">— Choisir un client —</option>
-                {companies.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </Select>
-              {errors.company_id && (
-                <p className="text-xs text-red-400 mt-1">Client obligatoire</p>
-              )}
-              {companies.length === 0 && (
-                <p className="text-[11px] text-amber-300/80 mt-1 inline-flex items-center gap-1">
-                  <Info className="h-3 w-3" />
-                  Aucun client en base —{' '}
-                  <Link
-                    href="/contacts"
-                    className="underline hover:text-amber-200"
-                    onClick={() => onOpenChange(false)}
+              <div className="flex items-center justify-between">
+                <Label>Client *</Label>
+                <button
+                  type="button"
+                  onClick={() => setCreatingCompany((v) => !v)}
+                  className="text-[11px] text-violet-300 hover:text-violet-200 inline-flex items-center gap-1"
+                >
+                  {creatingCompany ? (
+                    <>
+                      <X className="h-3 w-3" />
+                      Annuler
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-3 w-3" />
+                      Nouveau client
+                    </>
+                  )}
+                </button>
+              </div>
+              {!creatingCompany ? (
+                <>
+                  <Select {...register('company_id')}>
+                    <option value="">— Choisir un client —</option>
+                    {companies.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </Select>
+                  {errors.company_id && (
+                    <p className="text-xs text-red-400 mt-1">Client obligatoire</p>
+                  )}
+                  {companies.length === 0 && (
+                    <p className="text-[11px] text-amber-300/80 mt-1">
+                      Aucun client en base — clique « Nouveau client » pour en créer un.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <div className="space-y-2 rounded-md border border-violet-glow/30 bg-violet-glow/[0.04] p-2.5">
+                  <Input
+                    autoFocus
+                    placeholder="Raison sociale (ex: Renault, ENGIE…)"
+                    value={newCompanyName}
+                    onChange={(e) => setNewCompanyName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        void createCompanyInline();
+                      }
+                    }}
+                  />
+                  <Input
+                    placeholder="Ville (optionnel)"
+                    value={newCompanyCity}
+                    onChange={(e) => setNewCompanyCity(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={createCompanyInline}
+                    disabled={savingCompany || !newCompanyName.trim()}
+                    className="w-full"
                   >
-                    en créer un
-                  </Link>
-                </p>
+                    {savingCompany && <Loader2 className="h-3 w-3 animate-spin" />}
+                    Créer le client
+                  </Button>
+                </div>
               )}
             </div>
           </div>
