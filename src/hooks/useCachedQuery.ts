@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 type CacheEntry<T> = { data: T; ts: number };
 
 const STORAGE_PREFIX = 'qc_cache:';
-const DEFAULT_TTL_MS = 5 * 60_000;
 
 function readCache<T>(key: string): CacheEntry<T> | null {
   if (typeof window === 'undefined') return null;
@@ -30,6 +29,17 @@ function writeCache<T>(key: string, data: T) {
   }
 }
 
+/** Décide si une réponse "vide" doit être ignorée pour ne pas écraser
+ *  un cache précédemment plein (cas typique : token refresh transitoire
+ *  qui fait que RLS retourne 0 ligne sans erreur formelle). */
+function isSuspiciousEmpty(prev: unknown, next: unknown): boolean {
+  if (prev == null) return false;
+  if (Array.isArray(next) && next.length === 0) {
+    return Array.isArray(prev) && prev.length > 0;
+  }
+  return false;
+}
+
 export type UseCachedQueryResult<T> = {
   data: T | null;
   loading: boolean;
@@ -45,13 +55,20 @@ export type UseCachedQueryResult<T> = {
  * - Hydrates instantly from cache if present → `loading` starts false, page never blank on return.
  * - Refetches in background → `refreshing` toggles true during that.
  * - Enabled=false skips the fetch (useful while a dependency isn't ready yet).
+ * - Stale-on-error : si le fetcher throw, on garde la donnée cachée
+ *   plutôt que de virer l'écran. L'utilisateur voit toujours qqch.
+ * - Stale-on-empty : si le fetcher renvoie un tableau vide alors que
+ *   le cache était non-vide, on suspecte un glitch transitoire (auth
+ *   token, RLS race). On ne touche pas au cache, on garde l'affichage
+ *   et on retry une fois après 1.5s. 2 réponses vides consécutives →
+ *   on accepte enfin que la liste est vraiment vide.
  */
 export function useCachedQuery<T>(
   key: string,
   fetcher: () => Promise<T>,
   options: { enabled?: boolean; ttlMs?: number } = {},
 ): UseCachedQueryResult<T> {
-  const { enabled = true, ttlMs = DEFAULT_TTL_MS } = options;
+  const { enabled = true } = options;
 
   const cached = enabled ? readCache<T>(key) : null;
   const [data, setDataState] = useState<T | null>(cached?.data ?? null);
@@ -61,30 +78,57 @@ export function useCachedQuery<T>(
 
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
+  // Compteur de réponses "suspectes" (vides après un cache plein).
+  // Reset à chaque réponse non-vide ou changement de clé.
+  const suspiciousEmptyCountRef = useRef(0);
 
-  const run = useCallback(async () => {
-    if (!enabled) return;
-    const existing = readCache<T>(key);
-    if (existing) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
-    try {
-      const fresh = await fetcherRef.current();
-      setDataState(fresh);
-      writeCache(key, fresh);
-      setError(null);
-    } catch (e) {
-      setError(e);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [enabled, key]);
+  const run = useCallback(
+    async (): Promise<void> => {
+      if (!enabled) return;
+      const existing = readCache<T>(key);
+      if (existing) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      try {
+        const fresh = await fetcherRef.current();
+        const prev = existing?.data ?? null;
+        if (isSuspiciousEmpty(prev, fresh)) {
+          suspiciousEmptyCountRef.current += 1;
+          if (suspiciousEmptyCountRef.current < 2) {
+            // 1re réponse vide après cache plein : on suspecte un glitch
+            // transitoire (auth/RLS). On garde le cache et on retry
+            // après 1.5s. Si la 2e tentative est aussi vide, on accepte.
+            console.warn(
+              `[useCachedQuery] empty result for key=${key} but cache had data — keeping stale, retrying`,
+            );
+            setRefreshing(false);
+            setLoading(false);
+            setTimeout(() => void run(), 1500);
+            return;
+          }
+        }
+        suspiciousEmptyCountRef.current = 0;
+        setDataState(fresh);
+        writeCache(key, fresh);
+        setError(null);
+      } catch (e) {
+        // Stale-on-error : on garde la donnée affichée, on signale
+        // l'erreur mais on ne vide pas l'écran.
+        console.warn(`[useCachedQuery] fetch failed for key=${key}`, e);
+        setError(e);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [enabled, key],
+  );
 
   useEffect(() => {
     if (!enabled) return;
+    suspiciousEmptyCountRef.current = 0;
     // Toujours refetch au mount : le cache sert à afficher instantanément
     // le dernier snapshot, mais la donnée doit être fraîche à chaque visite
     // sinon les updates faites par un autre compte n'apparaissent pas.
