@@ -229,6 +229,8 @@ export const companyService = {
 
 export type InvoiceListItem = Invoice & {
   mission: { title: string; consultant: { first_name: string; last_name: string } | null } | null;
+  // Consultant lié directement à la facture (factures hors mission).
+  consultant: { first_name: string; last_name: string } | null;
 };
 
 export const invoiceService = {
@@ -244,13 +246,15 @@ export const invoiceService = {
 
   /**
    * Liste enrichie avec mission + consultant (pour l'affichage admin).
+   * Joint à la fois la mission (pour les CRA → factures auto) ET le
+   * consultant lié directement à la facture (pour les factures manuelles).
    */
   async listWithConsultant(): Promise<ServiceResult<InvoiceListItem[]>> {
     const supabase = createClient();
     const { data, error } = await supabase
       .from('invoices')
       .select(
-        '*, mission:missions(title, consultant:consultants(first_name, last_name))',
+        '*, mission:missions(title, consultant:consultants(first_name, last_name)), consultant:consultants!consultant_id(first_name, last_name)',
       )
       .order('issue_date', { ascending: false });
     if (error) return { data: null, error };
@@ -305,12 +309,16 @@ export const invoiceService = {
     ]);
 
     const missionData = (mission as { data: Mission | null }).data;
-    const consultant = missionData
+    // Consultant : on le récupère soit via invoice.consultant_id (facture
+    // manuelle hors mission), soit via la mission liée. Le 1er gagne s'il
+    // est défini, sinon fallback mission.
+    const consultantId = invoice.consultant_id ?? missionData?.consultant_id ?? null;
+    const consultant = consultantId
       ? (
           await supabase
             .from('consultants')
             .select('*')
-            .eq('id', missionData.consultant_id)
+            .eq('id', consultantId)
             .maybeSingle()
         ).data
       : null;

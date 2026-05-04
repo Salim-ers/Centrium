@@ -132,18 +132,21 @@ export default function InvoicesPage() {
                 </TableRow>
               ) : (
                 invoices.map((inv) => {
-                  const consultantName = inv.mission?.consultant
-                    ? `${inv.mission.consultant.first_name} ${inv.mission.consultant.last_name}`
+                  // Le consultant peut venir d'une mission liée OU d'un
+                  // lien direct sur la facture (cas des factures manuelles).
+                  const c = inv.mission?.consultant ?? inv.consultant ?? null;
+                  const consultantName = c
+                    ? `${c.first_name} ${c.last_name}`
                     : '—';
                   return (
                     <TableRow key={inv.id}>
                       <TableCell className="font-mono font-medium">{inv.invoice_number}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {inv.mission?.consultant ? (
+                          {c ? (
                             <div className="h-6 w-6 rounded-full bg-qc-gradient flex items-center justify-center text-white text-[9px] font-semibold shrink-0">
-                              {inv.mission.consultant.first_name[0]}
-                              {inv.mission.consultant.last_name[0]}
+                              {c.first_name[0]}
+                              {c.last_name[0]}
                             </div>
                           ) : null}
                           <span className="text-sm">{consultantName}</span>

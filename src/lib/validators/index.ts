@@ -124,10 +124,20 @@ export type JobOfferInput = z.infer<typeof jobOfferSchema>;
 
 // ========== Invoice ==========
 
+// `'' → null` pour les UUIDs optionnels : les <select> rendus avec
+// `<option value="">— Aucun —</option>` envoient '' qui ne passe pas
+// la validation z.string().uuid(). On préprocesse pour avaler ce cas.
+const optionalUuid = z.preprocess(
+  (v) => (v === '' || v === undefined ? null : v),
+  z.string().uuid().nullable(),
+);
+
 export const invoiceSchema = z.object({
   company_id: z.string().uuid(),
-  mission_id: z.string().uuid().optional().nullable(),
-  timesheet_id: z.string().uuid().optional().nullable(),
+  consultant_id: optionalUuid.optional(),
+  mission_id: optionalUuid.optional(),
+  job_offer_id: optionalUuid.optional(),
+  timesheet_id: optionalUuid.optional(),
   invoice_number: z.string().min(1).max(50),
   issue_date: z.string(),
   due_date: z.string(),

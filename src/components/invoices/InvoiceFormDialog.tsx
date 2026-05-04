@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { Loader2, Info } from 'lucide-react';
 
 import {
   Dialog,
@@ -20,8 +20,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { invoiceSchema, type InvoiceInput } from '@/lib/validators';
-import { invoiceService, companyService } from '@/lib/services';
-import type { Company, Invoice } from '@/types';
+import {
+  invoiceService,
+  companyService,
+  jobOfferService,
+} from '@/lib/services';
+import { consultantService } from '@/lib/services/consultant.service';
+import { notifyCreated, notifyError } from '@/lib/notify';
+import type { Company, Consultant, Invoice, JobOffer } from '@/types';
 
 type Props = {
   open: boolean;
@@ -50,12 +56,15 @@ function plus30DaysISO() {
 export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved }: Props) {
   const [saving, setSaving] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [consultants, setConsultants] = useState<Consultant[]>([]);
+  const [offers, setOffers] = useState<JobOffer[]>([]);
 
   const {
     register,
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<InvoiceInput>({
     resolver: zodResolver(invoiceSchema),
@@ -74,22 +83,55 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
       ? Number(amountHt) * (1 + Number(vatRate) / 100)
       : 0;
 
+  // Quand on choisit un AO, on suggère le client lié si la cellule est encore vide.
+  // Petit confort : ça évite de retaper le client quand l'AO le porte déjà.
+  const selectedOfferId = watch('job_offer_id');
+  const selectedCompanyId = watch('company_id');
+  useEffect(() => {
+    if (!selectedOfferId || selectedCompanyId) return;
+    const offer = offers.find((o) => o.id === selectedOfferId);
+    if (offer?.company_id) {
+      setValue('company_id', offer.company_id, { shouldValidate: true });
+    }
+  }, [selectedOfferId, selectedCompanyId, offers, setValue]);
+
   useEffect(() => {
     if (!open) return;
-    companyService.list().then((res) => {
-      if (res.data) setCompanies(res.data);
+    let cancelled = false;
+    Promise.all([
+      companyService.list(),
+      consultantService.list({ is_prospect: false }),
+      jobOfferService.list('all'),
+    ]).then(([companiesRes, consultantsRes, offersRes]) => {
+      if (cancelled) return;
+      if (companiesRes.data) setCompanies(companiesRes.data);
+      if (consultantsRes.data) setConsultants(consultantsRes.data);
+      if (offersRes.data) setOffers(offersRes.data);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
+
+  // Tri / dédoublonnage des consultants pour l'affichage : ordre alpha
+  // sur "nom prénom — intitulé".
+  const sortedConsultants = useMemo(
+    () =>
+      [...consultants].sort((a, b) =>
+        `${a.last_name} ${a.first_name}`.localeCompare(`${b.last_name} ${b.first_name}`),
+      ),
+    [consultants],
+  );
 
   async function onSubmit(values: InvoiceInput) {
     setSaving(true);
     try {
       const res = await invoiceService.create(values, organizationId);
       if (res.error) {
-        toast.error('Erreur : ' + res.error.message);
+        notifyError('Erreur : ' + res.error.message);
         return;
       }
-      toast.success('Facture créée');
+      notifyCreated(`Facture ${values.invoice_number} créée en brouillon`);
       onSaved?.(res.data);
       reset({
         invoice_number: suggestInvoiceNumber(),
@@ -135,6 +177,52 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
               {errors.company_id && (
                 <p className="text-xs text-red-400 mt-1">Client obligatoire</p>
               )}
+              {companies.length === 0 && (
+                <p className="text-[11px] text-amber-300/80 mt-1 inline-flex items-center gap-1">
+                  <Info className="h-3 w-3" />
+                  Aucun client en base —{' '}
+                  <Link
+                    href="/contacts"
+                    className="underline hover:text-amber-200"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    en créer un
+                  </Link>
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Consultant facturé</Label>
+              <Select {...register('consultant_id')}>
+                <option value="">— Aucun (facture libre) —</option>
+                {sortedConsultants.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.first_name} {c.last_name}
+                    {c.job_title ? ` — ${c.job_title}` : ''}
+                  </option>
+                ))}
+              </Select>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Optionnel — utile pour tracer la facturation par consultant
+              </p>
+            </div>
+            <div>
+              <Label>Appel d&apos;offre / Opportunité</Label>
+              <Select {...register('job_offer_id')}>
+                <option value="">— Aucun —</option>
+                {offers.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.title}
+                    {o.status !== 'open' ? ` · ${o.status}` : ''}
+                  </option>
+                ))}
+              </Select>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Optionnel — pré-remplit le client si l&apos;AO en a un
+              </p>
             </div>
           </div>
 

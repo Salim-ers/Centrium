@@ -360,7 +360,9 @@ export type Invoice = {
   id: string;
   organization_id: string;
   company_id: string;
+  consultant_id: string | null;
   mission_id: string | null;
+  job_offer_id: string | null;
   timesheet_id: string | null;
   invoice_number: string;
   issue_date: string;
