@@ -143,49 +143,82 @@ export function InvoiceDocument({
         <InvoiceField label="Période" value={invoice.period_label ?? '—'} />
       </section>
 
-      <section className="px-12 py-4">
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="border-b-2 border-neutral-900">
-              <th className="text-left py-2 text-[10px] uppercase tracking-[0.15em] text-neutral-500 font-semibold">
-                Prestation
-              </th>
-              <th className="text-right py-2 text-[10px] uppercase tracking-[0.15em] text-neutral-500 font-semibold">
-                Détail
-              </th>
-              <th className="text-right py-2 text-[10px] uppercase tracking-[0.15em] text-neutral-500 font-semibold">
-                Montant HT
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-b border-neutral-200">
-              <td className="py-3">
-                <div className="font-medium">
-                  {mission?.title ?? 'Prestation de services IT'}
-                </div>
-                {consultant && (
-                  <div className="text-xs text-neutral-500 mt-1">
-                    Consultant : {consultant.first_name} {consultant.last_name}
-                    {consultant.job_title ? ` — ${consultant.job_title}` : ''}
-                  </div>
-                )}
-                {invoice.period_label && (
-                  <div className="text-xs text-neutral-500">Période : {invoice.period_label}</div>
-                )}
-              </td>
-              <td className="py-3 text-right text-xs text-neutral-500">
-                {timesheet && (
-                  <>
-                    {timesheet.days_validated} j × {formatCurrency(mission?.daily_rate_eur ?? null)}
-                  </>
-                )}
-              </td>
-              <td className="py-3 text-right font-medium">{formatCurrency(ht)}</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
+      {/* ============ TABLEAU LIGNES ============
+          Format légal FR : Description · Qté · Prix unitaire HT · TVA % · Total HT.
+          - Si la facture vient d'un CRA → qté = jours validés, PU = TJM mission
+          - Si saisie manuelle              → qté = 1, PU = montant HT
+          Le total ligne = qté × PU est forcé à amount_ht pour cohérence avec
+          le récap (les arrondis ne décalent jamais le total). */}
+      {(() => {
+        const qty = timesheet?.days_validated
+          ? Number(timesheet.days_validated)
+          : 1;
+        const unitPrice = timesheet?.days_validated && mission?.daily_rate_eur
+          ? Number(mission.daily_rate_eur)
+          : ht;
+        const unitLabel = timesheet?.days_validated ? 'jour' : 'forfait';
+        return (
+          <section className="px-12 py-4">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr style={{ backgroundColor: '#0f1119' }} className="text-white">
+                  <th className="text-left px-3 py-2 text-[10px] uppercase tracking-[0.12em] font-semibold rounded-l-md">
+                    Description
+                  </th>
+                  <th className="text-right px-3 py-2 text-[10px] uppercase tracking-[0.12em] font-semibold w-[60px]">
+                    Qté
+                  </th>
+                  <th className="text-right px-3 py-2 text-[10px] uppercase tracking-[0.12em] font-semibold w-[110px]">
+                    Prix unitaire
+                  </th>
+                  <th className="text-right px-3 py-2 text-[10px] uppercase tracking-[0.12em] font-semibold w-[80px]">
+                    TVA (%)
+                  </th>
+                  <th className="text-right px-3 py-2 text-[10px] uppercase tracking-[0.12em] font-semibold w-[110px] rounded-r-md">
+                    Total HT
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-neutral-200 align-top">
+                  <td className="px-3 py-3">
+                    <div className="font-medium text-neutral-900">
+                      {mission?.title ?? 'Prestation de services IT'}
+                    </div>
+                    {consultant && (
+                      <div className="text-xs text-neutral-500 mt-0.5">
+                        Consultant : {consultant.first_name} {consultant.last_name}
+                        {consultant.job_title ? ` — ${consultant.job_title}` : ''}
+                      </div>
+                    )}
+                    {invoice.period_label && (
+                      <div className="text-xs text-neutral-500">
+                        Période : {invoice.period_label}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-right text-neutral-800">
+                    {qty}
+                    <span className="text-[10px] text-neutral-500 ml-1">{unitLabel === 'jour' ? 'j' : ''}</span>
+                  </td>
+                  <td className="px-3 py-3 text-right text-neutral-800 font-mono">
+                    {formatCurrency(unitPrice)}
+                  </td>
+                  <td className="px-3 py-3 text-right text-neutral-800">
+                    {Number(invoice.vat_rate).toLocaleString('fr-FR', {
+                      maximumFractionDigits: 2,
+                    })}
+                    %
+                  </td>
+                  <td className="px-3 py-3 text-right font-semibold text-neutral-900 font-mono">
+                    {formatCurrency(ht)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        );
+      })()}
 
       <section className="px-12 py-4 flex justify-end">
         <div className="w-72 space-y-2 text-sm">
@@ -258,8 +291,19 @@ export function InvoiceDocument({
         <div className="grid grid-cols-2 gap-8 items-start">
           <div className="text-[10px] text-neutral-500 leading-relaxed">
             <div className="font-semibold text-neutral-700 mb-1">Modalités de paiement</div>
-            Paiement à réception par virement bancaire. Pénalité de retard : 3× le taux légal.
-            Indemnité forfaitaire de recouvrement : 40 €. TVA acquittée sur les débits.
+            <p>Paiement à réception par virement bancaire.</p>
+            <p className="mt-1">
+              Pas d&apos;escompte accordé pour paiement anticipé.
+            </p>
+            <p className="mt-1">
+              En cas de non-paiement à la date d&apos;échéance, des pénalités calculées à
+              trois fois le taux d&apos;intérêt légal seront appliquées.
+            </p>
+            <p className="mt-1">
+              Tout retard de paiement entraînera une indemnité forfaitaire pour frais de
+              recouvrement de 40 €.
+            </p>
+            <p className="mt-1">TVA acquittée sur les débits.</p>
           </div>
           <div className="flex justify-end">
             <QuadCoreSignature
