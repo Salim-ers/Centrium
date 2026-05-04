@@ -42,19 +42,22 @@ function buildStyles(primary: string, accent: string) {
       backgroundColor: N.white,
       color: N.neutral900,
       fontFamily: 'Helvetica',
-      paddingTop: 36,
-      paddingBottom: 36,
-      paddingHorizontal: 40,
-      fontSize: 10,
-      lineHeight: 1.45,
+      // Marges réduites pour gagner ~25pt vertical par page → la 1re
+      // page accueille désormais le résumé, les compétences ET au moins
+      // une partie de la 1re mission.
+      paddingTop: 26,
+      paddingBottom: 30,
+      paddingHorizontal: 32,
+      fontSize: 9.5,
+      lineHeight: 1.4,
     },
     headerRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
-      marginBottom: 8,
+      marginBottom: 4,
     },
-    logo: { width: 64, height: 64, objectFit: 'contain', borderRadius: 6 },
+    logo: { width: 54, height: 54, objectFit: 'contain', borderRadius: 6 },
     confidential: {
       fontSize: 7,
       color: N.neutral400,
@@ -63,38 +66,38 @@ function buildStyles(primary: string, accent: string) {
       textTransform: 'uppercase',
     },
     confidentialSub: { fontSize: 7, color: N.neutral400, textAlign: 'right' },
-    accentWrap: { marginTop: 10, marginBottom: 14 },
+    accentWrap: { marginTop: 6, marginBottom: 8 },
     name: {
-      fontSize: 24,
+      fontSize: 22,
       fontFamily: 'Helvetica-Bold',
       color: N.neutral900,
       letterSpacing: -0.6,
-      lineHeight: 1.15,
-      marginBottom: 3,
+      lineHeight: 1.1,
+      marginBottom: 2,
     },
     jobTitle: {
-      fontSize: 13,
+      fontSize: 12,
       fontFamily: 'Helvetica-Bold',
       color: primary,
-      lineHeight: 1.25,
+      lineHeight: 1.2,
     },
-    subTitle: { fontSize: 9.5, color: N.neutral700, marginTop: 1 },
+    subTitle: { fontSize: 9, color: N.neutral700, marginTop: 1 },
     infoRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      marginTop: 10,
-      fontSize: 8.5,
+      marginTop: 6,
+      fontSize: 8,
     },
-    infoItem: { marginRight: 14, color: N.neutral700 },
+    infoItem: { marginRight: 12, color: N.neutral700 },
     infoLabel: { color: N.neutral500, marginRight: 3 },
     sectionWrap: {
-      marginTop: 14,
-      paddingTop: 10,
+      marginTop: 8,
+      paddingTop: 6,
       borderTop: `0.6pt solid ${N.neutral200}`,
     },
     sectionTitleRow: { flexDirection: 'row', alignItems: 'center' },
     sectionTitle: {
-      fontSize: 9,
+      fontSize: 8.5,
       fontFamily: 'Helvetica-Bold',
       letterSpacing: 2,
       color: N.neutral900,
@@ -102,38 +105,38 @@ function buildStyles(primary: string, accent: string) {
     },
     sectionRule: { height: 0.6, flexGrow: 1, marginLeft: 8, backgroundColor: primary, opacity: 0.5 },
     summary: {
-      marginTop: 7,
-      fontSize: 9.5,
-      lineHeight: 1.55,
+      marginTop: 4,
+      fontSize: 9,
+      lineHeight: 1.45,
       color: N.neutral800,
     },
-    skillRow: { flexDirection: 'row', marginBottom: 3 },
+    skillRow: { flexDirection: 'row', marginBottom: 2 },
     skillCat: {
-      width: 95,
-      fontSize: 8,
+      width: 88,
+      fontSize: 7.5,
       color: N.neutral700,
       textTransform: 'uppercase',
       letterSpacing: 1,
       fontFamily: 'Helvetica-Bold',
     },
-    skillItems: { flex: 1, fontSize: 9.5, color: N.neutral800 },
+    skillItems: { flex: 1, fontSize: 9, color: N.neutral800, lineHeight: 1.35 },
     skillHighlight: { color: primary, fontFamily: 'Helvetica-Bold' },
     skillSep: { color: N.neutral400 },
-    experience: { marginTop: 8 },
+    experience: { marginTop: 6 },
     expHeaderRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
     },
     expClient: {
-      fontSize: 10.5,
+      fontSize: 10,
       fontFamily: 'Helvetica-Bold',
       color: N.neutral900,
       flex: 1,
     },
     expRole: { color: N.neutral500, fontFamily: 'Helvetica' },
     expDates: {
-      fontSize: 7.5,
+      fontSize: 7,
       color: N.neutral500,
       letterSpacing: 1,
       textTransform: 'uppercase',
@@ -143,25 +146,25 @@ function buildStyles(primary: string, accent: string) {
       fontSize: 8.5,
       color: N.neutral700,
       fontStyle: 'italic',
-      marginTop: 2,
+      marginTop: 1,
     },
     taskItem: {
       flexDirection: 'row',
-      marginTop: 2,
-      fontSize: 9,
+      marginTop: 1.5,
+      fontSize: 8.5,
       color: N.neutral800,
-      lineHeight: 1.45,
+      lineHeight: 1.35,
     },
     bullet: {
-      width: 3,
-      height: 3,
-      borderRadius: 1.5,
+      width: 2.5,
+      height: 2.5,
+      borderRadius: 1.25,
       backgroundColor: accent,
       marginTop: 4,
       marginRight: 5,
     },
     taskText: { flex: 1 },
-    expEnv: { marginTop: 4, fontSize: 8, color: N.neutral500 },
+    expEnv: { marginTop: 3, fontSize: 7.5, color: N.neutral500 },
     expEnvLabel: {
       fontFamily: 'Helvetica-Bold',
       letterSpacing: 1,
@@ -170,27 +173,27 @@ function buildStyles(primary: string, accent: string) {
     eduRow: {
       flexDirection: 'row',
       alignItems: 'baseline',
-      marginTop: 3,
-      fontSize: 9,
+      marginTop: 2,
+      fontSize: 8.5,
     },
     eduYear: {
-      width: 32,
+      width: 30,
       fontFamily: 'Helvetica-Bold',
       color: N.neutral500,
-      fontSize: 9,
+      fontSize: 8.5,
     },
     eduDegree: { fontFamily: 'Helvetica-Bold', color: N.neutral900 },
     eduInstitution: { color: N.neutral500, marginLeft: 4 },
     footer: {
       position: 'absolute',
-      left: 40,
-      right: 40,
-      bottom: 18,
+      left: 32,
+      right: 32,
+      bottom: 14,
       flexDirection: 'row',
       justifyContent: 'space-between',
       fontSize: 7,
       color: N.neutral400,
-      paddingTop: 6,
+      paddingTop: 4,
       borderTop: `0.5pt solid ${N.neutral200}`,
     },
   });
@@ -352,26 +355,20 @@ export function QuadCoreCVStandardPDF({
         ) : null}
 
         {/* ============ EXPERIENCES ============ */}
-        {/* On garde chaque expérience indivisible (wrap={false}) ET on
-            attache le titre de section à la PREMIÈRE expérience : ainsi
-            si Tereos ne rentre pas en bas de page 1, le titre + Tereos
-            partent ensemble en page 2 et page 1 finit proprement avec
-            les compétences (pas de titre orphelin + grand vide). */}
+        {/* Les expériences peuvent se découper sur 2 pages (pas de
+            wrap={false}) — l'objectif est que la page 1 soit pleine.
+            Le header d'expérience reste insécable (wrap={false} sur le
+            header row + minPresenceAhead) pour ne pas orpheliner le
+            client/role en bas d'une page. Le titre de section est
+            protégé par minPresenceAhead pour ne pas pendre seul. */}
         {experiences.length > 0 ? (
           <View style={styles.sectionWrap}>
-            {experiences.map((exp, idx) => (
-              <View
-                key={exp.id}
-                style={styles.experience}
-                wrap={false}
-                minPresenceAhead={40}
-              >
-                {idx === 0 && (
-                  <View style={{ marginBottom: 8 }}>
-                    <SectionTitle>Expériences professionnelles</SectionTitle>
-                  </View>
-                )}
-                <View style={styles.expHeaderRow}>
+            <View wrap={false} minPresenceAhead={50}>
+              <SectionTitle>Expériences professionnelles</SectionTitle>
+            </View>
+            {experiences.map((exp) => (
+              <View key={exp.id} style={styles.experience}>
+                <View style={styles.expHeaderRow} wrap={false} minPresenceAhead={32}>
                   <Text style={styles.expClient}>
                     {exp.client_name}
                     <Text style={styles.expRole}> — {exp.role}</Text>
