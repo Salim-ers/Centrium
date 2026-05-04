@@ -332,10 +332,17 @@ export function QuadCoreCVStandardPDF({
         {/* ============ EXPERIENCES ============ */}
         {experiences.length > 0 ? (
           <View style={styles.sectionWrap}>
-            <SectionTitle>Expériences professionnelles</SectionTitle>
+            <View wrap={false} minPresenceAhead={50}>
+              <SectionTitle>Expériences professionnelles</SectionTitle>
+            </View>
             {experiences.map((exp) => (
-              <View key={exp.id} style={styles.experience} wrap={false} minPresenceAhead={60}>
-                <View style={styles.expHeaderRow}>
+              // Les expériences peuvent se découper sur 2 pages (sans
+              // wrap={false}) — sinon, dès qu'une expérience longue ne
+              // rentre pas en bas de page, elle saute entière et laisse
+              // un grand trou blanc. minPresenceAhead garde au moins le
+              // header + 2 lignes ensemble pour ne pas orpheliner le titre.
+              <View key={exp.id} style={styles.experience}>
+                <View style={styles.expHeaderRow} wrap={false} minPresenceAhead={36}>
                   <Text style={styles.expClient}>
                     {exp.client_name}
                     <Text style={styles.expRole}> — {exp.role}</Text>

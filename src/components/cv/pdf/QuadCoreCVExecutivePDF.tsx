@@ -289,15 +289,15 @@ export function QuadCoreCVExecutivePDF({
         {/* ============ EXPERIENCES ============ */}
         {experiences.length > 0 ? (
           <View style={styles.sectionWrap}>
-            <Text style={styles.sectionTitle}>Expériences professionnelles</Text>
+            <View wrap={false} minPresenceAhead={50}>
+              <Text style={styles.sectionTitle}>Expériences professionnelles</Text>
+            </View>
             {experiences.map((exp) => (
               <View
                 key={exp.id}
                 style={styles.experience}
-                wrap={false}
-                minPresenceAhead={70}
               >
-                <View style={styles.expHeaderRow}>
+                <View style={styles.expHeaderRow} wrap={false} minPresenceAhead={36}>
                   <Text style={styles.expClient}>
                     {exp.client_name}
                     <Text style={styles.expRole}> — {exp.role}</Text>
