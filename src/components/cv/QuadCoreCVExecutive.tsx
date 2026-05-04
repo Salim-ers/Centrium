@@ -13,6 +13,7 @@ type Props = {
   editable?: boolean;
   onEdit?: (path: string, value: string) => void;
   brand?: CVBrand;
+  qrSrc?: string | null;
 };
 
 /**
@@ -25,6 +26,7 @@ export function QuadCoreCVExecutive({
   editable = false,
   onEdit,
   brand,
+  qrSrc,
 }: Props) {
   const b = brand ?? resolveBrand(null);
   return (
@@ -35,7 +37,22 @@ export function QuadCoreCVExecutive({
       {/* Header large et majestueux */}
       <header className="px-14 pt-14 pb-10 relative">
         <div className="flex items-start justify-between gap-6">
-          <QuadCoreLogo size="lg" variant="light" src={b.logoUrl} alt={b.brandName} />
+          <div className="flex items-start gap-4">
+            <QuadCoreLogo size="lg" variant="light" src={b.logoUrl} alt={b.brandName} />
+            {qrSrc && (
+              <div className="flex flex-col items-center gap-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={qrSrc}
+                  alt="QR contact"
+                  className="h-20 w-20 rounded-md border border-neutral-200"
+                />
+                <span className="text-[7px] uppercase tracking-[0.18em] text-neutral-400">
+                  Scanner contact
+                </span>
+              </div>
+            )}
+          </div>
           {showConfidential && (
             <div className="text-right text-[9px] uppercase tracking-[0.22em] text-neutral-400">
               <div>Profil Executive</div>
@@ -254,11 +271,7 @@ export function QuadCoreCVExecutive({
                 editable={editable}
                 onEdit={onEdit}
                 placeholder="—"
-                className="text-[10.5px] font-semibold px-3 py-1 rounded-full border"
-                style={{
-                  borderColor: b.primary,
-                  color: cat.highlighted?.includes(item) ? b.accent : b.primary,
-                }}
+                className="text-[10.5px] font-semibold px-3 py-1 rounded-full border border-neutral-300 text-neutral-800"
               />
             ))
           )}

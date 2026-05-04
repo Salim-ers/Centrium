@@ -13,6 +13,7 @@ type Props = {
   editable?: boolean;
   onEdit?: (path: string, value: string) => void;
   brand?: CVBrand;
+  qrSrc?: string | null;
 };
 
 /**
@@ -25,6 +26,7 @@ export function QuadCoreCVDense({
   editable = false,
   onEdit,
   brand,
+  qrSrc,
 }: Props) {
   const b = brand ?? resolveBrand(null);
   return (
@@ -41,7 +43,22 @@ export function QuadCoreCVDense({
         }}
       >
         <div className="flex items-start justify-between gap-6 text-white">
-          <QuadCoreLogo size="md" variant="dark" src={b.logoUrl} alt={b.brandName} />
+          <div className="flex items-start gap-3">
+            <QuadCoreLogo size="md" variant="dark" src={b.logoUrl} alt={b.brandName} />
+            {qrSrc && (
+              <div className="flex flex-col items-center gap-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={qrSrc}
+                  alt="QR contact"
+                  className="h-14 w-14 rounded-md bg-white p-0.5"
+                />
+                <span className="text-[7px] uppercase tracking-[0.18em] text-white/50">
+                  Scanner contact
+                </span>
+              </div>
+            )}
+          </div>
           {showConfidential && (
             <div className="text-[9px] uppercase tracking-[0.2em] text-white/50">
               Document confidentiel
@@ -239,7 +256,6 @@ export function QuadCoreCVDense({
                   </div>
                   <div className="flex-1 text-neutral-800 leading-[1.5]">
                     {cat.items.map((item, i) => {
-                      const h = cat.highlighted?.includes(item);
                       return (
                         <span key={`${catIdx}-${i}`}>
                           <Editable
@@ -249,8 +265,6 @@ export function QuadCoreCVDense({
                             editable={editable}
                             onEdit={onEdit}
                             placeholder="—"
-                            className={h ? 'font-bold' : ''}
-                            style={h ? { color: b.primary } : undefined}
                           />
                           {i < cat.items.length - 1 && (
                             <span className="text-neutral-400 mx-1">·</span>

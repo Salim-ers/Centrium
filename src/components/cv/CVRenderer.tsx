@@ -18,9 +18,18 @@ type Props = {
    */
   editable?: boolean;
   onEdit?: (path: string, value: string) => void;
+  /** Data URL du QR code (LinkedIn / vCard). Affiché à côté du logo. */
+  qrSrc?: string | null;
 };
 
-export function CVRenderer({ content, templateId, showConfidential, editable, onEdit }: Props) {
+export function CVRenderer({
+  content,
+  templateId,
+  showConfidential,
+  editable,
+  onEdit,
+  qrSrc,
+}: Props) {
   const org = useOrganizationSafe();
   const brand = resolveBrand(org?.branding ?? null);
 
@@ -32,6 +41,7 @@ export function CVRenderer({ content, templateId, showConfidential, editable, on
         editable={editable}
         onEdit={onEdit}
         brand={brand}
+        qrSrc={qrSrc}
       />
     );
   }
@@ -43,6 +53,7 @@ export function CVRenderer({ content, templateId, showConfidential, editable, on
         editable={editable}
         onEdit={onEdit}
         brand={brand}
+        qrSrc={qrSrc}
       />
     );
   }
@@ -53,6 +64,7 @@ export function CVRenderer({ content, templateId, showConfidential, editable, on
       editable={editable}
       onEdit={onEdit}
       brand={brand}
+      qrSrc={qrSrc}
     />
   );
 }

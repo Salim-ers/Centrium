@@ -14,6 +14,8 @@ type Props = {
   onEdit?: (path: string, value: string) => void;
   /** Branding de l'org. Si omis, fallback QuadCore. */
   brand?: CVBrand;
+  /** QR code (LinkedIn / vCard du consultant) à coller à côté du logo. */
+  qrSrc?: string | null;
 };
 
 /**
@@ -28,6 +30,7 @@ export function QuadCoreCVStandard({
   editable = false,
   onEdit,
   brand,
+  qrSrc,
 }: Props) {
   const b = brand ?? resolveBrand(null);
   return (
@@ -36,12 +39,27 @@ export function QuadCoreCVStandard({
       {/* ============ HEADER ============ */}
       <header className="relative px-12 pt-10 pb-6">
         <div className="flex items-start justify-between gap-6">
-          <QuadCoreLogo
-            size="md"
-            variant="light"
-            src={b.logoUrl}
-            alt={`${b.brandName} — ${b.footerTagline}`}
-          />
+          <div className="flex items-start gap-4">
+            <QuadCoreLogo
+              size="md"
+              variant="light"
+              src={b.logoUrl}
+              alt={`${b.brandName} — ${b.footerTagline}`}
+            />
+            {qrSrc && (
+              <div className="flex flex-col items-center gap-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={qrSrc}
+                  alt="QR contact"
+                  className="h-16 w-16 rounded-md border border-neutral-200"
+                />
+                <span className="text-[7px] uppercase tracking-[0.18em] text-neutral-400">
+                  Scanner contact
+                </span>
+              </div>
+            )}
+          </div>
 
           {showConfidential && (
             <div className="text-right">
@@ -204,26 +222,21 @@ export function QuadCoreCVStandard({
                 />
               </div>
               <div className="flex-1 text-neutral-800 leading-[1.6]">
-                {cat.items.map((item, i) => {
-                  const highlighted = cat.highlighted?.includes(item);
-                  return (
-                    <span key={`${catIdx}-${i}`}>
-                      <Editable
-                        as="span"
-                        path={`skill.${catIdx}.item.${i}`}
-                        value={item}
-                        editable={editable}
-                        onEdit={onEdit}
-                        placeholder="—"
-                        className={highlighted ? 'font-bold' : ''}
-                        style={highlighted ? { color: b.primary } : undefined}
-                      />
-                      {i < cat.items.length - 1 && (
-                        <span className="text-neutral-400 mx-1.5">·</span>
-                      )}
-                    </span>
-                  );
-                })}
+                {cat.items.map((item, i) => (
+                  <span key={`${catIdx}-${i}`}>
+                    <Editable
+                      as="span"
+                      path={`skill.${catIdx}.item.${i}`}
+                      value={item}
+                      editable={editable}
+                      onEdit={onEdit}
+                      placeholder="—"
+                    />
+                    {i < cat.items.length - 1 && (
+                      <span className="text-neutral-400 mx-1.5">·</span>
+                    )}
+                  </span>
+                ))}
               </div>
             </div>
           ))}

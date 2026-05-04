@@ -201,6 +201,8 @@ type Props = {
   logoSrc?: string;
   showConfidential?: boolean;
   brand?: CVBrand;
+  /** Data URL du QR code à afficher à côté du logo. */
+  qrSrc?: string;
 };
 
 export function QuadCoreCVStandardPDF({
@@ -208,6 +210,7 @@ export function QuadCoreCVStandardPDF({
   logoSrc,
   showConfidential = true,
   brand,
+  qrSrc,
 }: Props) {
   const b = brand ?? resolveBrand(null);
   const styles = buildStyles(b.primary, b.accent);
@@ -224,11 +227,37 @@ export function QuadCoreCVStandardPDF({
       <Page size="A4" style={styles.page} wrap>
         {/* ============ HEADER ============ */}
         <View style={styles.headerRow} fixed>
-          {logoSrc ? (
-            <Image src={logoSrc} style={styles.logo} />
-          ) : (
-            <View />
-          )}
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+            {logoSrc ? (
+              <Image src={logoSrc} style={styles.logo} />
+            ) : (
+              <View />
+            )}
+            {qrSrc && (
+              <View style={{ alignItems: 'center' }}>
+                <Image
+                  src={qrSrc}
+                  style={{
+                    width: 56,
+                    height: 56,
+                    border: `0.5pt solid ${N.neutral200}`,
+                    borderRadius: 4,
+                  }}
+                />
+                <Text
+                  style={{
+                    fontSize: 6,
+                    color: N.neutral400,
+                    letterSpacing: 1,
+                    marginTop: 2,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Scanner contact
+                </Text>
+              </View>
+            )}
+          </View>
           {showConfidential && (
             <View>
               <Text style={styles.confidential}>Document confidentiel</Text>
@@ -307,21 +336,14 @@ export function QuadCoreCVStandardPDF({
                 <View key={cat.name} style={styles.skillRow} wrap={false}>
                   <Text style={styles.skillCat}>{cat.name}</Text>
                   <Text style={styles.skillItems}>
-                    {cat.items.map((item, i) => {
-                      const isHighlighted = cat.highlighted?.includes(item);
-                      return (
-                        <Text key={item}>
-                          <Text
-                            style={isHighlighted ? styles.skillHighlight : undefined}
-                          >
-                            {item}
-                          </Text>
-                          {i < cat.items.length - 1 ? (
-                            <Text style={styles.skillSep}> · </Text>
-                          ) : null}
-                        </Text>
-                      );
-                    })}
+                    {cat.items.map((item, i) => (
+                      <Text key={item}>
+                        <Text>{item}</Text>
+                        {i < cat.items.length - 1 ? (
+                          <Text style={styles.skillSep}> · </Text>
+                        ) : null}
+                      </Text>
+                    ))}
                   </Text>
                 </View>
               ))}
@@ -330,19 +352,26 @@ export function QuadCoreCVStandardPDF({
         ) : null}
 
         {/* ============ EXPERIENCES ============ */}
+        {/* On garde chaque expérience indivisible (wrap={false}) ET on
+            attache le titre de section à la PREMIÈRE expérience : ainsi
+            si Tereos ne rentre pas en bas de page 1, le titre + Tereos
+            partent ensemble en page 2 et page 1 finit proprement avec
+            les compétences (pas de titre orphelin + grand vide). */}
         {experiences.length > 0 ? (
           <View style={styles.sectionWrap}>
-            <View wrap={false} minPresenceAhead={50}>
-              <SectionTitle>Expériences professionnelles</SectionTitle>
-            </View>
-            {experiences.map((exp) => (
-              // Les expériences peuvent se découper sur 2 pages (sans
-              // wrap={false}) — sinon, dès qu'une expérience longue ne
-              // rentre pas en bas de page, elle saute entière et laisse
-              // un grand trou blanc. minPresenceAhead garde au moins le
-              // header + 2 lignes ensemble pour ne pas orpheliner le titre.
-              <View key={exp.id} style={styles.experience}>
-                <View style={styles.expHeaderRow} wrap={false} minPresenceAhead={36}>
+            {experiences.map((exp, idx) => (
+              <View
+                key={exp.id}
+                style={styles.experience}
+                wrap={false}
+                minPresenceAhead={40}
+              >
+                {idx === 0 && (
+                  <View style={{ marginBottom: 8 }}>
+                    <SectionTitle>Expériences professionnelles</SectionTitle>
+                  </View>
+                )}
+                <View style={styles.expHeaderRow}>
                   <Text style={styles.expClient}>
                     {exp.client_name}
                     <Text style={styles.expRole}> — {exp.role}</Text>

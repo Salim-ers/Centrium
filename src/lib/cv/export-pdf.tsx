@@ -27,11 +27,13 @@ type ExportOptions = {
   showConfidential?: boolean;
   /** Branding résolu de l'organisation. Fallback = QuadCore. */
   brand?: CVBrand;
+  /** Data URL du QR code à afficher à côté du logo (optionnel). */
+  qrSrc?: string;
 };
 
 export async function exportCVToPdf(
   content: CVContent,
-  { filename, templateId, logoSrc, showConfidential = true, brand }: ExportOptions,
+  { filename, templateId, logoSrc, showConfidential = true, brand, qrSrc }: ExportOptions,
 ): Promise<void> {
   const [{ pdf }, standard, dense, executive] = await Promise.all([
     import('@react-pdf/renderer'),
@@ -56,6 +58,7 @@ export async function exportCVToPdf(
       logoSrc={effectiveLogo}
       showConfidential={showConfidential}
       brand={resolved}
+      qrSrc={qrSrc}
     />
   );
 

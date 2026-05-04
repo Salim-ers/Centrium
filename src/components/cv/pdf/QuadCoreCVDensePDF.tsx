@@ -179,6 +179,7 @@ type Props = {
   logoSrc?: string;
   showConfidential?: boolean;
   brand?: CVBrand;
+  qrSrc?: string;
 };
 
 export function QuadCoreCVDensePDF({
@@ -186,6 +187,7 @@ export function QuadCoreCVDensePDF({
   logoSrc,
   showConfidential = true,
   brand,
+  qrSrc,
 }: Props) {
   const b = brand ?? resolveBrand(null);
   const styles = buildStyles(b.primary, b.accent);
@@ -202,7 +204,15 @@ export function QuadCoreCVDensePDF({
         {/* ============ HEADER BANDEAU ============ */}
         <View style={styles.header} fixed>
           <View style={styles.headerTopRow}>
-            {logoSrc ? <Image src={logoSrc} style={styles.logo} /> : <View />}
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+              {logoSrc ? <Image src={logoSrc} style={styles.logo} /> : <View />}
+              {qrSrc && (
+                <Image
+                  src={qrSrc}
+                  style={{ width: 50, height: 50, backgroundColor: '#ffffff', padding: 2 }}
+                />
+              )}
+            </View>
             {showConfidential ? (
               <Text style={styles.confidential}>Document confidentiel</Text>
             ) : null}
@@ -254,21 +264,14 @@ export function QuadCoreCVDensePDF({
                 <View key={cat.name} style={styles.skillRow} wrap={false}>
                   <Text style={styles.skillCat}>{cat.name}</Text>
                   <Text style={styles.skillItems}>
-                    {cat.items.map((item, i) => {
-                      const isHighlighted = cat.highlighted?.includes(item);
-                      return (
-                        <Text key={item}>
-                          <Text
-                            style={isHighlighted ? styles.skillHighlight : undefined}
-                          >
-                            {item}
-                          </Text>
-                          {i < cat.items.length - 1 ? (
-                            <Text style={styles.skillSep}> · </Text>
-                          ) : null}
-                        </Text>
-                      );
-                    })}
+                    {cat.items.map((item, i) => (
+                      <Text key={item}>
+                        <Text>{item}</Text>
+                        {i < cat.items.length - 1 ? (
+                          <Text style={styles.skillSep}> · </Text>
+                        ) : null}
+                      </Text>
+                    ))}
                   </Text>
                 </View>
               ))}
@@ -277,15 +280,19 @@ export function QuadCoreCVDensePDF({
 
           {experiences.length > 0 ? (
             <View style={styles.sectionWrap}>
-              <View wrap={false} minPresenceAhead={50}>
-                <Text style={styles.sectionTitle}>Expériences</Text>
-              </View>
-              {experiences.map((exp) => (
+              {experiences.map((exp, idx) => (
                 <View
                   key={exp.id}
                   style={styles.experience}
+                  wrap={false}
+                  minPresenceAhead={40}
                 >
-                  <View style={styles.expHeaderRow} wrap={false} minPresenceAhead={36}>
+                  {idx === 0 && (
+                    <Text style={[styles.sectionTitle, { marginBottom: 6 }]}>
+                      Expériences
+                    </Text>
+                  )}
+                  <View style={styles.expHeaderRow}>
                     <Text style={styles.expClient}>
                       {exp.client_name}
                       <Text style={styles.expRole}> — {exp.role}</Text>

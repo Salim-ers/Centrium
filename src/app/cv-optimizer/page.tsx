@@ -38,6 +38,7 @@ import { jobOfferService } from '@/lib/services';
 import { generateCVContent } from '@/lib/ai/cv-generator';
 import { generateCVDocx } from '@/lib/cv/export-docx';
 import { exportCVToPdf } from '@/lib/cv/export-pdf';
+import { buildConsultantQr } from '@/lib/cv/qr';
 import { applyOverrides, type CVOverrides } from '@/lib/cv/overrides';
 import { resolveBrand } from '@/lib/cv/branding';
 import { useOrganization } from '@/lib/auth/context';
@@ -213,6 +214,27 @@ function CVOptimizerPageInner() {
       setLoadingData(false);
     });
   }, [selectedId]);
+
+  // QR code (LinkedIn ou vCard) — généré dès qu'on a le profil. Affiché à
+  // côté du logo dans le preview ET embarqué dans le PDF.
+  const [qrSrc, setQrSrc] = useState<string | null>(null);
+  useEffect(() => {
+    if (!loaded?.consultant) {
+      setQrSrc(null);
+      return;
+    }
+    let cancelled = false;
+    buildConsultantQr(loaded.consultant)
+      .then((src) => {
+        if (!cancelled) setQrSrc(src);
+      })
+      .catch(() => {
+        if (!cancelled) setQrSrc(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loaded]);
 
   const parsedOffer: JobOffer | null = useMemo(() => {
     if (!offerTitle && !offerDescription && !offerSkills) return null;
@@ -422,6 +444,7 @@ function CVOptimizerPageInner() {
         templateId,
         logoSrc,
         brand,
+        qrSrc: qrSrc ?? undefined,
       });
       toast.success('PDF téléchargé');
     } catch (e) {
@@ -958,6 +981,7 @@ function CVOptimizerPageInner() {
                   templateId={templateId}
                   editable={editMode}
                   onEdit={handleInlineEdit}
+                  qrSrc={qrSrc}
                 />
               </div>
             </>
@@ -970,6 +994,7 @@ function CVOptimizerPageInner() {
                   templateId={templateId}
                   editable={editMode}
                   onEdit={handleInlineEdit}
+                  qrSrc={qrSrc}
                 />
               </div>
             </>
@@ -985,7 +1010,9 @@ function CVOptimizerPageInner() {
 
       {/* Version imprimable plein écran (Ctrl+P natif, export via React-PDF). */}
       <div className="print-only hidden print:block">
-        {displayed && <CVRenderer content={displayed} templateId={templateId} />}
+        {displayed && (
+          <CVRenderer content={displayed} templateId={templateId} qrSrc={qrSrc} />
+        )}
       </div>
     </AppShell>
   );
