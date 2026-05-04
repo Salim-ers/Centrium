@@ -31,6 +31,7 @@ type Member = {
   email: string | null;
   first_name: string | null;
   last_name: string | null;
+  is_founder: boolean;
 };
 
 type Invitation = {
@@ -73,7 +74,7 @@ export default function TeamSettingsPage() {
     // Membres : jointure avec profiles pour récupérer email + nom
     const { data: membersData } = await supabase
       .from('organization_members')
-      .select('user_id, role, joined_at, profiles!inner(email, first_name, last_name)')
+      .select('user_id, role, joined_at, profiles!inner(email, first_name, last_name, is_founder)')
       .eq('organization_id', activeOrgId)
       .order('joined_at', { ascending: true });
 
@@ -82,6 +83,7 @@ export default function TeamSettingsPage() {
         email: string | null;
         first_name: string | null;
         last_name: string | null;
+        is_founder: boolean | null;
       } | null;
       return {
         user_id: m.user_id,
@@ -90,6 +92,7 @@ export default function TeamSettingsPage() {
         email: p?.email ?? null,
         first_name: p?.first_name ?? null,
         last_name: p?.last_name ?? null,
+        is_founder: !!p?.is_founder,
       };
     });
     setMembers(formatted);
@@ -282,7 +285,20 @@ export default function TeamSettingsPage() {
                 members.map((m) => (
                   <TableRow key={m.user_id}>
                     <TableCell className="font-medium">
-                      {[m.first_name, m.last_name].filter(Boolean).join(' ') || '—'}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span>
+                          {[m.first_name, m.last_name].filter(Boolean).join(' ') || '—'}
+                        </span>
+                        {m.is_founder && (
+                          <Badge
+                            variant="outline"
+                            className="border-amber-400/50 bg-gradient-to-r from-amber-500/15 to-rose-500/15 text-amber-200 text-[10px] tracking-wider uppercase font-semibold"
+                            title="Compte fondateur — équipe Centrium"
+                          >
+                            ★ Fondateur
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {m.email ?? '—'}
