@@ -257,7 +257,6 @@ export function TimesheetDocument({
               imageUrl={iss.signatureUrl}
               brandName={iss.brandName}
               logoUrl={iss.logoUrl}
-              accentColor={accent}
             />
           </div>
         </div>

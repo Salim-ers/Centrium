@@ -10,6 +10,7 @@ export type InvoiceIssuer = {
   city: string | null;
   postalCode: string | null;
   siren: string | null;
+  vatNumber: string | null;
   footerTagline: string | null;
   logoUrl: string | null;
   signatureUrl: string | null;
@@ -17,6 +18,9 @@ export type InvoiceIssuer = {
   accentColor: string | null;
   representativeName: string | null;
   representativeTitle: string | null;
+  iban: string | null;
+  bic: string | null;
+  bankName: string | null;
 };
 
 const DEFAULT_ISSUER: InvoiceIssuer = {
@@ -26,6 +30,7 @@ const DEFAULT_ISSUER: InvoiceIssuer = {
   city: 'Nogent Sur Oise',
   postalCode: '60180',
   siren: '101 694 016',
+  vatNumber: 'FR85101694016',
   footerTagline: 'IT Services & Consulting',
   logoUrl: null,
   signatureUrl: null,
@@ -33,7 +38,17 @@ const DEFAULT_ISSUER: InvoiceIssuer = {
   accentColor: '#e11d74',
   representativeName: 'QuadCore SAS',
   representativeTitle: 'Direction commerciale',
+  iban: null,
+  bic: null,
+  bankName: null,
 };
+
+/** Format un IBAN en groupes de 4 caractères pour la lisibilité. */
+function formatIban(raw: string | null | undefined): string {
+  if (!raw) return '';
+  const compact = raw.replace(/\s+/g, '').toUpperCase();
+  return compact.replace(/(.{4})/g, '$1 ').trim();
+}
 
 type Props = {
   invoice: Invoice;
@@ -96,7 +111,13 @@ export function InvoiceDocument({
                 <br />
               </>
             )}
-            {iss.siren && <>SIREN {iss.siren}</>}
+            {iss.siren && (
+              <>
+                SIREN {iss.siren}
+                <br />
+              </>
+            )}
+            {iss.vatNumber && <>TVA {iss.vatNumber}</>}
           </div>
         </div>
 
@@ -195,10 +216,48 @@ export function InvoiceDocument({
 
       <section className="px-12 py-6 border-t border-neutral-100 bg-neutral-50/40">
         <div className="grid grid-cols-2 gap-8 items-end">
-          <div className="text-[10px] text-neutral-500 leading-relaxed">
-            <div className="font-semibold text-neutral-700 mb-1">Modalités de paiement</div>
-            Paiement à réception. Pénalité de retard : 3× le taux légal. Indemnité forfaitaire de
-            recouvrement : 40 €. TVA acquittée sur les débits.
+          <div className="text-[10px] text-neutral-500 leading-relaxed space-y-3">
+            <div>
+              <div className="font-semibold text-neutral-700 mb-1">Modalités de paiement</div>
+              Paiement à réception par virement bancaire. Pénalité de retard : 3× le taux légal.
+              Indemnité forfaitaire de recouvrement : 40 €. TVA acquittée sur les débits.
+            </div>
+            {(iss.iban || iss.bic || iss.bankName) && (
+              <div className="rounded-md border border-neutral-200 bg-white p-3 text-[10px]">
+                <div
+                  className="font-semibold mb-1.5 tracking-[0.18em] uppercase text-[9px]"
+                  style={{ color: primary }}
+                >
+                  Coordonnées bancaires
+                </div>
+                <table className="w-full">
+                  <tbody>
+                    {iss.bankName && (
+                      <tr>
+                        <td className="py-0.5 text-neutral-500 pr-2 align-top w-[70px]">
+                          Banque
+                        </td>
+                        <td className="py-0.5 text-neutral-800">{iss.bankName}</td>
+                      </tr>
+                    )}
+                    {iss.iban && (
+                      <tr>
+                        <td className="py-0.5 text-neutral-500 pr-2 align-top">IBAN</td>
+                        <td className="py-0.5 text-neutral-800 font-mono">
+                          {formatIban(iss.iban)}
+                        </td>
+                      </tr>
+                    )}
+                    {iss.bic && (
+                      <tr>
+                        <td className="py-0.5 text-neutral-500 pr-2 align-top">BIC</td>
+                        <td className="py-0.5 text-neutral-800 font-mono">{iss.bic}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
           <div className="flex justify-end">
             <QuadCoreSignature
@@ -208,7 +267,6 @@ export function InvoiceDocument({
               imageUrl={iss.signatureUrl}
               brandName={iss.brandName}
               logoUrl={iss.logoUrl}
-              accentColor={accent}
             />
           </div>
         </div>

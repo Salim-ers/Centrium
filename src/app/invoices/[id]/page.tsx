@@ -36,8 +36,12 @@ type IdentityRow = {
   city: string | null;
   postal_code: string | null;
   siren: string | null;
+  vat_number: string | null;
   representative_name: string | null;
   representative_title: string | null;
+  iban: string | null;
+  bic: string | null;
+  bank_name: string | null;
 };
 
 export default function InvoiceDetailPage() {
@@ -80,6 +84,7 @@ export default function InvoiceDetailPage() {
           city: row.city,
           postalCode: row.postal_code,
           siren: row.siren,
+          vatNumber: row.vat_number,
           footerTagline: row.footer_tagline,
           logoUrl: row.logo_url,
           signatureUrl: row.signature_url,
@@ -87,6 +92,9 @@ export default function InvoiceDetailPage() {
           accentColor: branding?.accentColor ?? null,
           representativeName: row.representative_name,
           representativeTitle: row.representative_title,
+          iban: row.iban,
+          bic: row.bic,
+          bankName: row.bank_name,
         });
       })
       .catch(() => {});

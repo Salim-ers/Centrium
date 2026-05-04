@@ -7,7 +7,7 @@ import { requireOrg } from '@/lib/auth/guards';
 export const runtime = 'nodejs';
 
 const SELECT_COLS =
-  'id, name, slug, logo_url, brand_name, footer_tagline, address, city, postal_code, country, siren, siret, vat_number, rcs, capital_eur, legal_form, representative_name, representative_title, signature_url';
+  'id, name, slug, logo_url, brand_name, footer_tagline, address, city, postal_code, country, siren, siret, vat_number, rcs, capital_eur, legal_form, representative_name, representative_title, signature_url, iban, bic, bank_name';
 
 const patchSchema = z.object({
   address: z.string().trim().max(200).nullable().optional(),
@@ -22,6 +22,10 @@ const patchSchema = z.object({
   legal_form: z.string().trim().max(40).nullable().optional(),
   representative_name: z.string().trim().max(120).nullable().optional(),
   representative_title: z.string().trim().max(120).nullable().optional(),
+  // Coordonnées bancaires (RIB / IBAN / BIC) imprimées sur les factures.
+  iban: z.string().trim().max(40).nullable().optional(),
+  bic: z.string().trim().max(20).nullable().optional(),
+  bank_name: z.string().trim().max(120).nullable().optional(),
 });
 
 export async function GET() {

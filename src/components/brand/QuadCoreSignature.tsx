@@ -7,7 +7,6 @@ type Props = {
   imageUrl?: string | null;
   brandName?: string;
   logoUrl?: string | null;
-  accentColor?: string;
 };
 
 export function QuadCoreSignature({
@@ -17,7 +16,6 @@ export function QuadCoreSignature({
   imageUrl = null,
   brandName = 'QuadCore',
   logoUrl = null,
-  accentColor = '#e11d74',
 }: Props) {
   const displayDate =
     date ??
@@ -48,17 +46,8 @@ export function QuadCoreSignature({
               {signerName}
             </span>
           )}
-          <div
-            className="absolute -right-2 -top-2 rotate-[-8deg] border-2 rounded-sm px-2 py-1"
-            style={{ borderColor: accentColor }}
-          >
-            <div
-              className="text-[8px] font-bold uppercase tracking-[0.2em]"
-              style={{ color: accentColor }}
-            >
-              Signé&nbsp;·&nbsp;{brandName}
-            </div>
-            <div className="text-[7px] text-neutral-500 mt-0.5">{displayDate}</div>
+          <div className="absolute right-0 top-0 text-[7px] text-neutral-400">
+            {displayDate}
           </div>
         </div>
 
