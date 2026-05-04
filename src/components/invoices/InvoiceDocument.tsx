@@ -214,50 +214,52 @@ export function InvoiceDocument({
         </section>
       )}
 
-      <section className="px-12 py-6 border-t border-neutral-100 bg-neutral-50/40">
-        <div className="grid grid-cols-2 gap-8 items-end">
-          <div className="text-[10px] text-neutral-500 leading-relaxed space-y-3">
-            <div>
-              <div className="font-semibold text-neutral-700 mb-1">Modalités de paiement</div>
-              Paiement à réception par virement bancaire. Pénalité de retard : 3× le taux légal.
-              Indemnité forfaitaire de recouvrement : 40 €. TVA acquittée sur les débits.
+      {/* ============ COORDONNÉES BANCAIRES (pleine largeur, AU-DESSUS) ============ */}
+      {(iss.iban || iss.bic || iss.bankName) && (
+        <section className="px-12 py-4">
+          <div className="rounded-md border border-neutral-200 bg-white p-4">
+            <div
+              className="font-semibold mb-2 tracking-[0.18em] uppercase text-[10px]"
+              style={{ color: primary }}
+            >
+              Coordonnées bancaires
             </div>
-            {(iss.iban || iss.bic || iss.bankName) && (
-              <div className="rounded-md border border-neutral-200 bg-white p-3 text-[10px]">
-                <div
-                  className="font-semibold mb-1.5 tracking-[0.18em] uppercase text-[9px]"
-                  style={{ color: primary }}
-                >
-                  Coordonnées bancaires
+            <div className="grid grid-cols-3 gap-6 text-[11px]">
+              {iss.bankName && (
+                <div>
+                  <div className="text-[9px] uppercase tracking-wider text-neutral-500 mb-0.5">
+                    Banque
+                  </div>
+                  <div className="text-neutral-900 font-medium">{iss.bankName}</div>
                 </div>
-                <table className="w-full">
-                  <tbody>
-                    {iss.bankName && (
-                      <tr>
-                        <td className="py-0.5 text-neutral-500 pr-2 align-top w-[70px]">
-                          Banque
-                        </td>
-                        <td className="py-0.5 text-neutral-800">{iss.bankName}</td>
-                      </tr>
-                    )}
-                    {iss.iban && (
-                      <tr>
-                        <td className="py-0.5 text-neutral-500 pr-2 align-top">IBAN</td>
-                        <td className="py-0.5 text-neutral-800 font-mono">
-                          {formatIban(iss.iban)}
-                        </td>
-                      </tr>
-                    )}
-                    {iss.bic && (
-                      <tr>
-                        <td className="py-0.5 text-neutral-500 pr-2 align-top">BIC</td>
-                        <td className="py-0.5 text-neutral-800 font-mono">{iss.bic}</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+              )}
+              {iss.iban && (
+                <div className="col-span-2">
+                  <div className="text-[9px] uppercase tracking-wider text-neutral-500 mb-0.5">
+                    IBAN
+                  </div>
+                  <div className="text-neutral-900 font-mono">{formatIban(iss.iban)}</div>
+                </div>
+              )}
+              {iss.bic && (
+                <div>
+                  <div className="text-[9px] uppercase tracking-wider text-neutral-500 mb-0.5">
+                    BIC / SWIFT
+                  </div>
+                  <div className="text-neutral-900 font-mono">{iss.bic}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="px-12 py-6 border-t border-neutral-100 bg-neutral-50/40">
+        <div className="grid grid-cols-2 gap-8 items-start">
+          <div className="text-[10px] text-neutral-500 leading-relaxed">
+            <div className="font-semibold text-neutral-700 mb-1">Modalités de paiement</div>
+            Paiement à réception par virement bancaire. Pénalité de retard : 3× le taux légal.
+            Indemnité forfaitaire de recouvrement : 40 €. TVA acquittée sur les débits.
           </div>
           <div className="flex justify-end">
             <QuadCoreSignature

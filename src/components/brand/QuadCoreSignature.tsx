@@ -24,13 +24,13 @@ export function QuadCoreSignature({
     );
 
   return (
-    <div className="relative inline-block">
+    <div className="inline-block">
       <div className="border border-neutral-200 rounded-lg bg-white px-6 py-4 min-w-[260px]">
         <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-400 mb-2">
           Signature
         </div>
 
-        <div className="relative h-16 flex items-center">
+        <div className="h-16 flex items-center">
           {imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -46,9 +46,6 @@ export function QuadCoreSignature({
               {signerName}
             </span>
           )}
-          <div className="absolute right-0 top-0 text-[7px] text-neutral-400">
-            {displayDate}
-          </div>
         </div>
 
         <div className="mt-3 pt-3 border-t border-neutral-100 flex items-center justify-between gap-4">
@@ -58,6 +55,11 @@ export function QuadCoreSignature({
             <div className="text-[9px] text-neutral-500">{signerRole}</div>
           </div>
         </div>
+      </div>
+
+      {/* Date affichée sous le bloc, plus du tout collée au tampon. */}
+      <div className="mt-2 text-center text-[11px] text-neutral-700">
+        Fait le <span className="font-semibold text-neutral-900">{displayDate}</span>
       </div>
     </div>
   );
