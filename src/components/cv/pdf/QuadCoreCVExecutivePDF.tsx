@@ -209,25 +209,33 @@ export function QuadCoreCVExecutivePDF({
             {logoSrc ? <Image src={logoSrc} style={styles.logo} /> : <View />}
             {qrSrc && (
               <View style={{ alignItems: 'center' }}>
-                <Image
-                  src={qrSrc}
+                <View
                   style={{
-                    width: 64,
-                    height: 64,
-                    border: `0.5pt solid ${N.neutral200}`,
-                    borderRadius: 4,
+                    backgroundColor: b.primary,
+                    padding: 2.5,
+                    borderRadius: 6,
                   }}
-                />
+                >
+                  <Image
+                    src={qrSrc}
+                    style={{
+                      width: 60,
+                      height: 60,
+                      backgroundColor: '#ffffff',
+                      borderRadius: 4,
+                    }}
+                  />
+                </View>
                 <Text
                   style={{
                     fontSize: 6,
-                    color: N.neutral400,
-                    letterSpacing: 1,
+                    color: b.primary,
+                    letterSpacing: 1.4,
                     marginTop: 2,
-                    textTransform: 'uppercase',
+                    fontFamily: 'Helvetica-Bold',
                   }}
                 >
-                  Scanner contact
+                  vCARD
                 </Text>
               </View>
             )}

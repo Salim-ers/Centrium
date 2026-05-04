@@ -48,14 +48,22 @@ export function QuadCoreCVStandard({
             />
             {qrSrc && (
               <div className="flex flex-col items-center gap-1">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={qrSrc}
-                  alt="QR contact"
-                  className="h-16 w-16 rounded-md border border-neutral-200"
-                />
-                <span className="text-[7px] uppercase tracking-[0.18em] text-neutral-400">
-                  Scanner contact
+                <div
+                  className="rounded-lg p-1"
+                  style={{ background: `linear-gradient(135deg, ${b.primary}, ${b.accent})` }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={qrSrc}
+                    alt="vCard contact"
+                    className="h-[60px] w-[60px] rounded-md bg-white p-0.5"
+                  />
+                </div>
+                <span
+                  className="text-[8px] font-bold tracking-[0.22em]"
+                  style={{ color: b.primary }}
+                >
+                  vCARD
                 </span>
               </div>
             )}

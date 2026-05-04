@@ -47,14 +47,19 @@ export function QuadCoreCVDense({
             <QuadCoreLogo size="md" variant="dark" src={b.logoUrl} alt={b.brandName} />
             {qrSrc && (
               <div className="flex flex-col items-center gap-1">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={qrSrc}
-                  alt="QR contact"
-                  className="h-14 w-14 rounded-md bg-white p-0.5"
-                />
-                <span className="text-[7px] uppercase tracking-[0.18em] text-white/50">
-                  Scanner contact
+                <div
+                  className="rounded-lg p-1"
+                  style={{ background: `linear-gradient(135deg, ${b.primary}, ${b.accent})` }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={qrSrc}
+                    alt="vCard contact"
+                    className="h-12 w-12 rounded-md bg-white p-0.5"
+                  />
+                </div>
+                <span className="text-[8px] font-bold tracking-[0.22em] text-white/80">
+                  vCARD
                 </span>
               </div>
             )}

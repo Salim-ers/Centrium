@@ -207,10 +207,36 @@ export function QuadCoreCVDensePDF({
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
               {logoSrc ? <Image src={logoSrc} style={styles.logo} /> : <View />}
               {qrSrc && (
-                <Image
-                  src={qrSrc}
-                  style={{ width: 50, height: 50, backgroundColor: '#ffffff', padding: 2 }}
-                />
+                <View style={{ alignItems: 'center' }}>
+                  <View
+                    style={{
+                      backgroundColor: b.primary,
+                      padding: 2,
+                      borderRadius: 6,
+                    }}
+                  >
+                    <Image
+                      src={qrSrc}
+                      style={{
+                        width: 46,
+                        height: 46,
+                        backgroundColor: '#ffffff',
+                        borderRadius: 4,
+                      }}
+                    />
+                  </View>
+                  <Text
+                    style={{
+                      fontSize: 6,
+                      color: '#ffffff',
+                      letterSpacing: 1.4,
+                      marginTop: 2,
+                      fontFamily: 'Helvetica-Bold',
+                    }}
+                  >
+                    vCARD
+                  </Text>
+                </View>
               )}
             </View>
             {showConfidential ? (
