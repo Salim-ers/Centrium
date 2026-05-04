@@ -150,13 +150,25 @@ export function InvoiceDocument({
           Le total ligne = qté × PU est forcé à amount_ht pour cohérence avec
           le récap (les arrondis ne décalent jamais le total). */}
       {(() => {
-        const qty = timesheet?.days_validated
+        // Priorité d'affichage Qté / PU :
+        //   1. Saisie manuelle (invoice.quantity + unit_price persistés
+        //      via le calcul TJM × jours du form).
+        //   2. CRA validé (timesheet.days_validated + mission.daily_rate_eur).
+        //   3. Forfait : Qté = 1, PU = montant HT.
+        const manualQty =
+          invoice.quantity != null ? Number(invoice.quantity) : null;
+        const manualUnit =
+          invoice.unit_price != null ? Number(invoice.unit_price) : null;
+        const tsQty = timesheet?.days_validated
           ? Number(timesheet.days_validated)
-          : 1;
-        const unitPrice = timesheet?.days_validated && mission?.daily_rate_eur
+          : null;
+        const tsUnit = mission?.daily_rate_eur
           ? Number(mission.daily_rate_eur)
-          : ht;
-        const unitLabel = timesheet?.days_validated ? 'jour' : 'forfait';
+          : null;
+        const qty = manualQty ?? tsQty ?? 1;
+        const unitPrice = manualUnit ?? tsUnit ?? ht;
+        const isPerDay = !!(manualQty && manualUnit) || !!tsQty;
+        const unitLabel = isPerDay ? 'jour' : 'forfait';
         return (
           <section className="px-12 py-4">
             <table className="w-full text-sm border-collapse">

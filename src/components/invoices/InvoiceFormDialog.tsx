@@ -83,6 +83,29 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
     },
   });
 
+  // Calcul TJM × jours → Montant HT. Si l'utilisateur saisit les deux,
+  // on alimente automatiquement amount_ht ET on persiste unit_price /
+  // quantity en DB pour que la facture imprimée affiche le détail
+  // (Qté = jours, PU = TJM) au lieu d'un forfait. Vider les champs
+  // permet de retomber sur un forfait : on saisit alors le HT direct.
+  const [tjm, setTjm] = useState<string>('');
+  const [days, setDays] = useState<string>('');
+
+  useEffect(() => {
+    const tjmNum = Number(tjm);
+    const daysNum = Number(days);
+    if (tjmNum > 0 && daysNum > 0) {
+      const ht = +(tjmNum * daysNum).toFixed(2);
+      setValue('amount_ht', ht, { shouldValidate: true });
+      setValue('unit_price', tjmNum, { shouldValidate: true });
+      setValue('quantity', daysNum, { shouldValidate: true });
+    } else {
+      // Forfait : on remet à null pour ne pas garder un PU/Qté périmé.
+      setValue('unit_price', null);
+      setValue('quantity', null);
+    }
+  }, [tjm, days, setValue]);
+
   const amountHt = watch('amount_ht');
   const vatRate = watch('vat_rate');
   const ttc =
@@ -321,6 +344,55 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
               <Label>Échéance *</Label>
               <Input type="date" {...register('due_date')} />
             </div>
+          </div>
+
+          {/* Calcul rapide : TJM × Jours → Montant HT (auto-rempli en
+              dessous). Le Montant HT reste éditable pour les forfaits. */}
+          <div className="rounded-md border border-violet-glow/20 bg-violet-glow/[0.04] p-3 space-y-2">
+            <div className="text-[10px] uppercase tracking-wider text-violet-300/80 font-semibold">
+              Calcul rapide TJM × jours
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label>TJM (€/j)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="ex: 520"
+                  value={tjm}
+                  onChange={(e) => setTjm(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Jours travaillés</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  placeholder="ex: 21"
+                  value={days}
+                  onChange={(e) => setDays(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  = Montant HT
+                </Label>
+                <Input
+                  readOnly
+                  value={
+                    Number(tjm) > 0 && Number(days) > 0
+                      ? (Number(tjm) * Number(days)).toFixed(2) + ' €'
+                      : '—'
+                  }
+                  className="bg-white/[0.02] cursor-not-allowed font-mono"
+                />
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Laisse vide pour un forfait — saisis directement le montant HT ci-dessous.
+            </p>
           </div>
 
           <div className="grid grid-cols-3 gap-3">

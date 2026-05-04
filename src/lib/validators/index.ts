@@ -144,6 +144,8 @@ export const invoiceSchema = z.object({
   period_label: z.string().max(100).optional().nullable(),
   amount_ht: z.coerce.number().min(0),
   vat_rate: z.coerce.number().min(0).max(100).default(20),
+  unit_price: z.coerce.number().min(0).optional().nullable(),
+  quantity: z.coerce.number().min(0).optional().nullable(),
   notes: z.string().max(2000).optional().nullable(),
 });
 

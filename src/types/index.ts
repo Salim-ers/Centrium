@@ -368,6 +368,8 @@ export type Invoice = {
   issue_date: string;
   due_date: string;
   period_label: string | null;
+  unit_price: number | null;
+  quantity: number | null;
   amount_ht: number;
   vat_rate: number;
   amount_vat: number;
