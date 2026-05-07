@@ -39,6 +39,9 @@ function toFormValues(o: JobOffer | null | undefined): Partial<JobOfferInput> {
     return {
       required_skills: [],
       nice_to_have: [],
+      tasks: [],
+      tech_stack: [],
+      working_conditions: [],
       remote_days: 0,
     };
   }
@@ -55,7 +58,26 @@ function toFormValues(o: JobOffer | null | undefined): Partial<JobOfferInput> {
     start_date: o.start_date ?? '',
     duration_months: o.duration_months ?? undefined,
     deadline: o.deadline ?? '',
+    context: o.context ?? '',
+    mission_purpose: o.mission_purpose ?? '',
+    tasks: o.tasks ?? [],
+    tech_stack: o.tech_stack ?? [],
+    working_conditions: o.working_conditions ?? [],
+    contract_kind: o.contract_kind ?? '',
   };
+}
+
+/** Convertit un textarea ligne-par-ligne en tableau de strings non vides. */
+function linesToArray(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/** Inverse : array → texte ligne-par-ligne pour le textarea. */
+function arrayToLines(items: string[] | undefined): string {
+  return (items ?? []).join('\n');
 }
 
 export function JobOfferFormDialog({
@@ -73,6 +95,11 @@ export function JobOfferFormDialog({
   const [parsingImage, setParsingImage] = useState(false);
   const [imageFileName, setImageFileName] = useState<string | null>(null);
   const imageRef = useRef<HTMLInputElement | null>(null);
+  // Fiche de poste — champs texte multi-lignes (1 ligne = 1 puce).
+  const [tasksText, setTasksText] = useState('');
+  const [techStackText, setTechStackText] = useState('');
+  const [conditionsText, setConditionsText] = useState('');
+  const [showFiche, setShowFiche] = useState(false);
   const isEdit = !!offer;
 
   const {
@@ -96,6 +123,20 @@ export function JobOfferFormDialog({
       setNiceInput('');
       setParsingImage(false);
       setImageFileName(null);
+      setTasksText(arrayToLines(values.tasks));
+      setTechStackText(arrayToLines(values.tech_stack));
+      setConditionsText(arrayToLines(values.working_conditions));
+      // Auto-déplie la section "Fiche de poste" si l'AO a déjà des
+      // données fiche, ou laisse repliée pour ne pas effrayer
+      // le user à la création.
+      const hasFicheData =
+        !!(values.context ||
+          values.mission_purpose ||
+          values.contract_kind ||
+          (values.tasks && values.tasks.length) ||
+          (values.tech_stack && values.tech_stack.length) ||
+          (values.working_conditions && values.working_conditions.length));
+      setShowFiche(hasFicheData);
     }
   }, [open, offer, reset]);
 
@@ -167,7 +208,14 @@ export function JobOfferFormDialog({
   async function onSubmit(values: JobOfferInput) {
     setSaving(true);
     try {
-      const payload = { ...values, required_skills: requiredSkills, nice_to_have: niceToHave };
+      const payload = {
+        ...values,
+        required_skills: requiredSkills,
+        nice_to_have: niceToHave,
+        tasks: linesToArray(tasksText),
+        tech_stack: linesToArray(techStackText),
+        working_conditions: linesToArray(conditionsText),
+      };
       const res = isEdit
         ? await jobOfferService.update(offer!.id, payload)
         : await jobOfferService.create(payload);
@@ -395,6 +443,95 @@ export function JobOfferFormDialog({
               <Label>Deadline candidature</Label>
               <Input type="date" {...register('deadline')} />
             </div>
+          </div>
+
+          {/* ============ FICHE DE POSTE (PDF envoyé au consultant) ============ */}
+          <div className="rounded-lg border border-violet-brand/25 bg-violet-brand/[0.04]">
+            <button
+              type="button"
+              onClick={() => setShowFiche((v) => !v)}
+              className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-violet-brand/[0.02] transition"
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-violet-300" />
+                <div>
+                  <div className="text-sm font-medium">Fiche de poste (PDF)</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    Champs détaillés pour le PDF envoyé aux consultants : contexte,
+                    finalité, missions, stack, conditions.
+                  </div>
+                </div>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {showFiche ? '— Replier' : '+ Déplier'}
+              </span>
+            </button>
+
+            {showFiche && (
+              <div className="border-t border-violet-brand/15 p-4 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Type de mission</Label>
+                    <Input
+                      {...register('contract_kind')}
+                      placeholder="Mission Freelance, CDI, Portage…"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Contexte (section 01)</Label>
+                  <Textarea
+                    {...register('context')}
+                    rows={4}
+                    placeholder="Présentation de l'entreprise, de la DSI, de l'équipe…"
+                  />
+                </div>
+
+                <div>
+                  <Label>Finalité de la mission (section 02)</Label>
+                  <Textarea
+                    {...register('mission_purpose')}
+                    rows={2}
+                    placeholder="Objectif synthétique en 1-2 phrases — affiché dans le bloc accent."
+                  />
+                </div>
+
+                <div>
+                  <Label>Missions principales — 1 par ligne</Label>
+                  <Textarea
+                    rows={6}
+                    value={tasksText}
+                    onChange={(e) => setTasksText(e.target.value)}
+                    placeholder={'Assurer le MCO des infrastructures réseaux N2\nTraiter et résoudre les incidents\nAdministrer les équipements LAN, WAN et Wifi'}
+                  />
+                </div>
+
+                <div>
+                  <Label>Environnement technique — 1 techno par ligne</Label>
+                  <Textarea
+                    rows={3}
+                    value={techStackText}
+                    onChange={(e) => setTechStackText(e.target.value)}
+                    placeholder={'Cisco\nAruba\nPalo Alto\nFortinet'}
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Affichées en tags violets sur la fiche. Si vide, on retombe sur les
+                    compétences requises.
+                  </p>
+                </div>
+
+                <div>
+                  <Label>Conditions d&apos;exercice — 1 par ligne</Label>
+                  <Textarea
+                    rows={3}
+                    value={conditionsText}
+                    onChange={(e) => setConditionsText(e.target.value)}
+                    placeholder={'Poste basé à Lyon — Télétravail 2j/sem.\nMission de 6 mois — Prestation\nInterventions ponctuelles en HNO'}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter>

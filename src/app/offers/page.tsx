@@ -3,7 +3,17 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Briefcase, Plus, Pencil, Trash2, Target, MapPin, Euro, Calendar } from 'lucide-react';
+import {
+  Briefcase,
+  Plus,
+  Pencil,
+  Trash2,
+  Target,
+  MapPin,
+  Euro,
+  Calendar,
+  FileDown,
+} from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,6 +34,8 @@ import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import type { JobOffer } from '@/types';
 import { formatCurrency, relativeDate } from '@/lib/utils';
+import { exportJobOfferPoster } from '@/lib/offers/export-poster';
+import { resolveBrand } from '@/lib/cv/branding';
 
 const STATUS_LABEL: Record<string, string> = {
   open: 'Ouverte',
@@ -49,10 +61,11 @@ const SENIORITY_LABEL: Record<string, string> = {
 };
 
 export default function OffersPage() {
-  const { activeOrgId } = useOrganization();
+  const { activeOrgId, branding } = useOrganization();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<JobOffer | null>(null);
   const [statusFilter, setStatusFilter] = useState<'open' | 'closed' | 'won' | 'lost' | 'all'>('open');
+  const [exportingOfferId, setExportingOfferId] = useState<string | null>(null);
 
   const {
     data: offersData,
@@ -88,6 +101,27 @@ export default function OffersPage() {
     }
     toast.success('Offre supprimée');
     setOffers((prev) => (prev ?? []).filter((x) => x.id !== o.id));
+  }
+
+  async function downloadPoster(o: JobOffer) {
+    setExportingOfferId(o.id);
+    try {
+      const brand = resolveBrand(branding);
+      const safeTitle = o.title.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 60);
+      const brandSlug = brand.brandName.replace(/[^a-zA-Z0-9]/g, '') || 'QuadCore';
+      await exportJobOfferPoster(o, {
+        filename: `Fiche_Poste_${safeTitle}_${brandSlug}`,
+        brand,
+      });
+      toast.success('Fiche de poste téléchargée');
+    } catch (e) {
+      console.error(e);
+      toast.error(
+        `Erreur export PDF : ${e instanceof Error ? e.message : 'inconnue'}`,
+      );
+    } finally {
+      setExportingOfferId(null);
+    }
   }
 
   async function changeStatus(o: JobOffer, newStatus: 'open' | 'closed' | 'won' | 'lost') {
@@ -263,6 +297,21 @@ export default function OffersPage() {
                           <Link href={`/matching?offerId=${o.id}`}>
                             <Target className="h-3.5 w-3.5 text-violet-glow" />
                           </Link>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => downloadPoster(o)}
+                          disabled={exportingOfferId === o.id}
+                          title="Télécharger la fiche de poste PDF"
+                        >
+                          <FileDown
+                            className={`h-3.5 w-3.5 ${
+                              exportingOfferId === o.id
+                                ? 'animate-pulse text-violet-glow/60'
+                                : 'text-violet-glow'
+                            }`}
+                          />
                         </Button>
                         <Button
                           size="sm"

@@ -118,6 +118,15 @@ export const jobOfferSchema = z.object({
   deadline: z.string().optional().nullable(),
   company_id: z.string().uuid().optional().nullable(),
   contact_id: z.string().uuid().optional().nullable(),
+  // Champs Fiche de poste — utilisés pour générer le PDF envoyé aux
+  // consultants. Tous optionnels : si non remplis, on tombe sur des
+  // sections vides ou cachées.
+  context: z.string().max(5000).optional().nullable(),
+  mission_purpose: z.string().max(2000).optional().nullable(),
+  tasks: z.array(z.string()).default([]),
+  tech_stack: z.array(z.string()).default([]),
+  working_conditions: z.array(z.string()).default([]),
+  contract_kind: z.string().max(80).optional().nullable(),
 });
 
 export type JobOfferInput = z.infer<typeof jobOfferSchema>;

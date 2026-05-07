@@ -271,6 +271,12 @@ function CVOptimizerPageInner() {
       deadline: null,
       status: 'open',
       source: null,
+      context: null,
+      mission_purpose: null,
+      tasks: [],
+      tech_stack: [],
+      working_conditions: [],
+      contract_kind: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

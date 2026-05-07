@@ -291,6 +291,13 @@ export type JobOffer = {
   deadline: string | null;
   status: 'open' | 'closed' | 'won' | 'lost';
   source: string | null;
+  // Fiche de poste (PDF envoyé aux consultants).
+  context: string | null;
+  mission_purpose: string | null;
+  tasks: string[];
+  tech_stack: string[];
+  working_conditions: string[];
+  contract_kind: string | null;
   created_at: string;
   updated_at: string;
 };
