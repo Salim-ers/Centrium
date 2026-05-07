@@ -265,6 +265,8 @@ export type Contact = {
   city: string | null;
   source: string | null;
   last_interaction: string | null;
+  prospecting_done: boolean;
+  prospecting_done_at: string | null;
   notes: string | null;
   archived: boolean;
   created_at: string;

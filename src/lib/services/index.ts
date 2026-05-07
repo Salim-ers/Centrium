@@ -232,6 +232,29 @@ export const contactService = {
     if (error) return { data: null, error };
     return { data: data as Contact, error: null };
   },
+
+  /**
+   * Bascule l'état du démarchage : terminé ↔ pas terminé.
+   * Quand on passe à terminé, on stamp `prospecting_done_at` à NOW.
+   * Quand on rouvre, on remet le timestamp à null.
+   */
+  async toggleProspectingDone(
+    id: string,
+    nextValue: boolean,
+  ): Promise<ServiceResult<Contact>> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('contacts')
+      .update({
+        prospecting_done: nextValue,
+        prospecting_done_at: nextValue ? new Date().toISOString() : null,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) return { data: null, error };
+    return { data: data as Contact, error: null };
+  },
 };
 
 export const companyService = {

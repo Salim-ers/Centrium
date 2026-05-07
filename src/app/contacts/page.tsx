@@ -11,6 +11,9 @@ import {
   Trash2,
   PhoneCall,
   X as XIcon,
+  FileUp,
+  CheckCheck,
+  Undo2,
 } from 'lucide-react';
 
 import {
@@ -18,6 +21,7 @@ import {
   notifyError,
   notifyUpdated,
 } from '@/lib/notify';
+import { ContactCsvImportDialog } from '@/components/crm/ContactCsvImportDialog';
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,6 +45,7 @@ import { relativeDate } from '@/lib/utils';
 export default function ContactsPage() {
   const { activeOrgId } = useOrganization();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [csvOpen, setCsvOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
 
   const {
@@ -112,6 +117,28 @@ export default function ContactsPage() {
     );
   }
 
+  async function toggleProspecting(contact: Contact) {
+    const next = !contact.prospecting_done;
+    const res = await contactService.toggleProspectingDone(contact.id, next);
+    if (res.error || !res.data) {
+      notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
+      return;
+    }
+    setContacts((prev) =>
+      (prev ?? []).map((c) => (c.id === contact.id ? res.data! : c)),
+    );
+    notifyUpdated(
+      next
+        ? `${contact.first_name} ${contact.last_name} — démarchage terminé ✓`
+        : `${contact.first_name} ${contact.last_name} — démarchage rouvert`,
+      {
+        description: next
+          ? 'Le contact sort des listes de prospection active'
+          : 'Le contact réintègre les listes de prospection',
+      },
+    );
+  }
+
   return (
     <AppShell>
       <div className="flex items-center justify-between mb-8">
@@ -124,11 +151,23 @@ export default function ContactsPage() {
             {contacts.length} contact{contacts.length > 1 ? 's' : ''}
           </p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" />
-          Nouveau contact
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setCsvOpen(true)}>
+            <FileUp className="h-4 w-4" />
+            Importer CSV
+          </Button>
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4" />
+            Nouveau contact
+          </Button>
+        </div>
       </div>
+
+      <ContactCsvImportDialog
+        open={csvOpen}
+        onOpenChange={setCsvOpen}
+        onImported={() => reload()}
+      />
 
       <ContactFormDialog
         open={dialogOpen}
@@ -171,10 +210,27 @@ export default function ContactsPage() {
                 </TableRow>
               ) : (
                 contacts.map((c) => (
-                  <TableRow key={c.id}>
+                  <TableRow key={c.id} className={c.prospecting_done ? 'opacity-65' : ''}>
                     <TableCell>
-                      <div className="font-medium">
-                        {c.first_name} {c.last_name}
+                      <div className="flex items-center gap-2">
+                        <div className="font-medium">
+                          {c.first_name} {c.last_name}
+                        </div>
+                        {c.prospecting_done && (
+                          <span
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 text-[9px] uppercase tracking-wider font-semibold"
+                            title={
+                              c.prospecting_done_at
+                                ? `Démarchage terminé le ${new Date(
+                                    c.prospecting_done_at,
+                                  ).toLocaleDateString('fr-FR')}`
+                                : 'Démarchage terminé'
+                            }
+                          >
+                            <CheckCheck className="h-2.5 w-2.5" />
+                            Terminé
+                          </span>
+                        )}
                       </div>
                       {c.source && (
                         <div className="text-xs text-muted-foreground">via {c.source}</div>
@@ -250,6 +306,32 @@ export default function ContactsPage() {
                         >
                           <PhoneCall className="h-3.5 w-3.5" />
                           {c.last_interaction ? '' : 'Contacté'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={c.prospecting_done ? 'ghost' : 'outline'}
+                          onClick={() => toggleProspecting(c)}
+                          title={
+                            c.prospecting_done
+                              ? 'Rouvrir le démarchage'
+                              : 'Marquer le démarchage comme terminé'
+                          }
+                          className={
+                            c.prospecting_done
+                              ? 'text-amber-300 hover:text-amber-200'
+                              : 'border-violet-glow/40 text-violet-100 hover:bg-violet-glow/10'
+                          }
+                        >
+                          {c.prospecting_done ? (
+                            <>
+                              <Undo2 className="h-3.5 w-3.5" />
+                            </>
+                          ) : (
+                            <>
+                              <CheckCheck className="h-3.5 w-3.5" />
+                              Démarchage OK
+                            </>
+                          )}
                         </Button>
                         <Button
                           size="sm"
