@@ -13,50 +13,67 @@ import { resolveBrand } from '@/lib/cv/branding';
 
 // =========================================================================
 // Fiche de poste — React-PDF
-// Direction artistique : header violet sombre type plaquette commerciale,
-// sections numérotées avec puce violette, tags en bandeau plein violet,
-// bloc "Intéressé(e)" final en CTA contrasté.
+//
+// Match exact du design référence :
+//   - Header violet sombre INSET (rounded), logo + kicker + titre + meta
+//   - Quick row à 4 cellules avec borders magenta haut+bas et dividers
+//   - Sections numerotees : pip + titre en MAGENTA (l'accent)
+//   - Bloc 02 Finalite : violet plein, texte blanc
+//   - Bloc 03 : carte gris violet clair avec 2 colonnes ; headers
+//     "MISSIONS" / "PROFIL RECHERCHE" en violet plein
+//   - Tech stack 04 : grille de tags violet plein equireparties
+//   - Section 05 conditions : puces magenta
+//   - CTA bas : violet sombre arrondi
+//   - Footer : ligne fine magenta + 3 colonnes brand / email / page N/T
+//
+// Cible : tenir sur 1 page A4 avec un volume de contenu raisonnable.
 // =========================================================================
 
 const N = {
   white: '#ffffff',
   ink: '#0f1119',
-  ink2: '#171727',
   text: '#1f2030',
   muted: '#6b6e80',
   ruler: '#e5e5ec',
-  light: '#f6f4ff',
+  cardBg: '#f6f4f9',
+  cellDivider: '#e8e6ee',
 };
 
-function buildStyles(primary: string, accent: string) {
+// Le violet sombre du header / finalité / col headers / tech tags / CTA.
+const HEADER_VIOLET = '#3a2466';
+
+function buildStyles(_primary: string, accent: string) {
   return StyleSheet.create({
     page: {
       backgroundColor: N.white,
       color: N.text,
       fontFamily: 'Helvetica',
-      paddingTop: 0,
-      paddingBottom: 36,
-      paddingHorizontal: 0,
-      fontSize: 9.5,
-      lineHeight: 1.45,
-    },
-    headerBox: {
-      backgroundColor: '#2a1f55',
-      paddingHorizontal: 36,
       paddingTop: 24,
-      paddingBottom: 24,
+      paddingBottom: 36,
+      paddingHorizontal: 28,
+      fontSize: 9,
+      lineHeight: 1.4,
+    },
+
+    // === HEADER ===
+    headerBox: {
+      backgroundColor: HEADER_VIOLET,
+      borderRadius: 8,
+      paddingHorizontal: 22,
+      paddingTop: 18,
+      paddingBottom: 18,
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       gap: 16,
     },
     logo: { width: 56, height: 56, objectFit: 'contain', borderRadius: 6 },
     headerTextWrap: { flex: 1 },
     headerKicker: {
-      fontSize: 7.5,
+      fontSize: 8,
       letterSpacing: 3,
       color: '#cdc4ff',
       fontFamily: 'Helvetica-Bold',
-      marginBottom: 6,
+      marginBottom: 4,
     },
     headerTitle: {
       fontSize: 22,
@@ -65,108 +82,129 @@ function buildStyles(primary: string, accent: string) {
       letterSpacing: -0.4,
     },
     headerMeta: {
-      fontSize: 10,
+      fontSize: 9.5,
       color: '#cdc4ff',
       marginTop: 4,
     },
+
+    // === QUICK ROW ===
     quickRow: {
       flexDirection: 'row',
-      paddingHorizontal: 36,
-      borderBottom: `0.6pt solid ${primary}`,
-      paddingTop: 12,
-      paddingBottom: 12,
+      borderTop: `0.6pt solid ${accent}`,
+      borderBottom: `0.6pt solid ${accent}`,
+      marginTop: 14,
+      paddingTop: 8,
+      paddingBottom: 8,
     },
-    quickCell: { flex: 1 },
+    quickCell: {
+      flex: 1,
+      borderRight: `0.5pt solid ${N.cellDivider}`,
+      paddingHorizontal: 10,
+    },
+    quickCellLast: {
+      flex: 1,
+      paddingHorizontal: 10,
+    },
     quickLabel: {
       fontSize: 7,
-      letterSpacing: 1.4,
+      letterSpacing: 1.6,
       color: N.muted,
       fontFamily: 'Helvetica-Bold',
       textTransform: 'uppercase',
       marginBottom: 2,
     },
     quickValue: {
-      fontSize: 10.5,
+      fontSize: 10,
       color: N.ink,
       fontFamily: 'Helvetica-Bold',
     },
+
+    // === SECTION ===
     section: {
-      paddingHorizontal: 36,
-      paddingTop: 14,
-      paddingBottom: 4,
+      paddingTop: 12,
     },
     sectionHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: 6,
       marginBottom: 6,
     },
+    sectionPip: {
+      width: 4,
+      height: 14,
+      backgroundColor: accent,
+      marginRight: 4,
+    },
     sectionNum: {
-      fontSize: 8,
-      color: N.white,
-      backgroundColor: primary,
-      paddingHorizontal: 4,
-      paddingVertical: 2,
-      borderRadius: 2,
+      fontSize: 9,
+      color: accent,
       fontFamily: 'Helvetica-Bold',
-      letterSpacing: 0.5,
+      letterSpacing: 1,
     },
     sectionTitle: {
-      fontSize: 11,
-      color: N.ink,
+      fontSize: 9,
+      color: accent,
       fontFamily: 'Helvetica-Bold',
-      letterSpacing: 1.6,
+      letterSpacing: 2.4,
       textTransform: 'uppercase',
     },
     sectionBody: {
-      fontSize: 9.5,
+      fontSize: 9,
       color: N.text,
-      lineHeight: 1.55,
+      lineHeight: 1.5,
     },
+
+    // === FINALITÉ BOX (02) ===
     purposeBox: {
-      backgroundColor: primary,
+      backgroundColor: HEADER_VIOLET,
+      borderRadius: 4,
       paddingHorizontal: 14,
       paddingVertical: 12,
-      borderRadius: 4,
     },
     purposeLabel: {
       fontSize: 7,
       color: '#cdc4ff',
-      letterSpacing: 1.6,
+      letterSpacing: 2,
       fontFamily: 'Helvetica-Bold',
       textTransform: 'uppercase',
       marginBottom: 5,
     },
-    purposeText: { fontSize: 10, color: N.white, lineHeight: 1.5 },
-    sectionCard: {
-      backgroundColor: N.light,
-      padding: 10,
-      borderRadius: 4,
-      marginTop: 4,
+    purposeText: {
+      fontSize: 9.5,
+      color: N.white,
+      lineHeight: 1.5,
     },
-    twoCol: { flexDirection: 'row', gap: 14 },
+
+    // === SECTION 03 (Missions & Profil) ===
+    sectionCard: {
+      backgroundColor: N.cardBg,
+      borderRadius: 4,
+      padding: 0,
+      overflow: 'hidden',
+    },
+    twoCol: { flexDirection: 'row' },
     col: { flex: 1 },
     colHeader: {
       fontSize: 7.5,
       color: N.white,
-      backgroundColor: primary,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      letterSpacing: 1.4,
+      backgroundColor: HEADER_VIOLET,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      letterSpacing: 1.6,
       fontFamily: 'Helvetica-Bold',
       textTransform: 'uppercase',
-      borderTopLeftRadius: 3,
-      borderTopRightRadius: 3,
     },
     colBody: {
       paddingTop: 6,
-      paddingHorizontal: 4,
-      paddingBottom: 4,
+      paddingHorizontal: 12,
+      paddingBottom: 8,
     },
+
+    // === BULLETS ===
     bulletItem: {
       flexDirection: 'row',
       gap: 5,
-      paddingTop: 3,
+      paddingTop: 2,
     },
     bulletDot: {
       width: 3,
@@ -175,29 +213,36 @@ function buildStyles(primary: string, accent: string) {
       backgroundColor: accent,
       marginTop: 5,
     },
-    bulletText: { flex: 1, fontSize: 9.5, lineHeight: 1.45 },
+    bulletText: {
+      flex: 1,
+      fontSize: 9,
+      color: N.text,
+      lineHeight: 1.45,
+    },
+
+    // === TECH STACK (04) ===
     techRow: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 6,
-      marginTop: 4,
+      gap: 4,
     },
     techTag: {
-      backgroundColor: primary,
+      flex: 1,
+      backgroundColor: HEADER_VIOLET,
       color: N.white,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
+      paddingVertical: 6,
       borderRadius: 3,
-      fontSize: 9,
+      fontSize: 8.5,
       fontFamily: 'Helvetica-Bold',
+      textAlign: 'center',
     },
+
+    // === CTA (Intéressé) ===
     cta: {
-      marginTop: 24,
-      marginHorizontal: 36,
-      backgroundColor: '#2a1f55',
+      marginTop: 14,
+      backgroundColor: HEADER_VIOLET,
       paddingHorizontal: 24,
-      paddingVertical: 18,
-      borderRadius: 4,
+      paddingVertical: 16,
+      borderRadius: 6,
       alignItems: 'center',
     },
     ctaTitle: {
@@ -207,36 +252,45 @@ function buildStyles(primary: string, accent: string) {
       fontFamily: 'Helvetica-Bold',
     },
     ctaContact: {
-      marginTop: 8,
+      marginTop: 7,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
     },
     ctaEmail: {
-      fontSize: 12,
-      color: N.white,
+      fontSize: 11,
+      color: accent,
       fontFamily: 'Helvetica-Bold',
     },
-    ctaSep: { fontSize: 12, color: '#9b88ff' },
-    ctaSite: { fontSize: 11, color: '#cdc4ff' },
+    ctaSep: { fontSize: 10, color: '#9b88ff' },
+    ctaSite: { fontSize: 10.5, color: '#cdc4ff' },
     ctaTagline: {
-      marginTop: 8,
+      marginTop: 6,
       fontSize: 8,
       color: '#9b88ff',
-      letterSpacing: 6,
+      letterSpacing: 5,
     },
-    footer: {
+
+    // === FOOTER ===
+    footerWrap: {
       position: 'absolute',
-      left: 36,
-      right: 36,
+      left: 28,
+      right: 28,
       bottom: 16,
+    },
+    footerRule: {
+      height: 0.6,
+      backgroundColor: accent,
+      marginBottom: 8,
+    },
+    footerRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      paddingTop: 6,
-      borderTop: `0.5pt solid ${N.ruler}`,
-      fontSize: 7,
+      fontSize: 7.5,
       color: N.muted,
     },
+    footerBrand: { fontFamily: 'Helvetica-Bold', color: HEADER_VIOLET },
+    footerEmail: { color: accent, fontFamily: 'Helvetica-Bold' },
   });
 }
 
@@ -244,11 +298,8 @@ type Props = {
   offer: JobOffer;
   brand?: CVBrand;
   logoSrc?: string;
-  /** Email visible dans le CTA. Par défaut : contact@quad-core.fr. */
   contactEmail?: string;
-  /** Site visible dans le CTA. */
   contactWebsite?: string;
-  /** Tagline du footer CTA (ex: "Réactif. Fiable. Proche."). */
   tagline?: string;
 };
 
@@ -308,6 +359,14 @@ export function JobOfferPosterPDF({
     : [];
   const tech = offer.tech_stack?.length ? offer.tech_stack : offer.required_skills;
 
+  // Quick cells (4 colonnes : Localisation / Télétravail / Démarrage / Expérience)
+  const quickCells: { label: string; value: string }[] = [
+    { label: 'Localisation', value: offer.location ?? '—' },
+    { label: 'Télétravail', value: remoteLabel },
+    { label: 'Démarrage', value: startLabel },
+    { label: 'Expérience', value: senorityToExperience(offer.seniority) },
+  ];
+
   return (
     <Document
       author={b.brandName}
@@ -326,34 +385,24 @@ export function JobOfferPosterPDF({
           </View>
         </View>
 
-        {/* ============ QUICK INFO ============ */}
+        {/* ============ QUICK ROW ============ */}
         <View style={styles.quickRow}>
-          <View style={styles.quickCell}>
-            <Text style={styles.quickLabel}>Localisation</Text>
-            <Text style={styles.quickValue}>{offer.location ?? '—'}</Text>
-          </View>
-          <View style={styles.quickCell}>
-            <Text style={styles.quickLabel}>Télétravail</Text>
-            <Text style={styles.quickValue}>{remoteLabel}</Text>
-          </View>
-          <View style={styles.quickCell}>
-            <Text style={styles.quickLabel}>Démarrage</Text>
-            <Text style={styles.quickValue}>{startLabel}</Text>
-          </View>
-          <View style={styles.quickCell}>
-            <Text style={styles.quickLabel}>Expérience</Text>
-            <Text style={styles.quickValue}>{senorityToExperience(offer.seniority)}</Text>
-          </View>
+          {quickCells.map((c, i) => (
+            <View
+              key={c.label}
+              style={i === quickCells.length - 1 ? styles.quickCellLast : styles.quickCell}
+            >
+              <Text style={styles.quickLabel}>{c.label}</Text>
+              <Text style={styles.quickValue}>{c.value}</Text>
+            </View>
+          ))}
         </View>
 
-        {/* ============ 01 CONTEXTE ============
-            Le contexte peut être très long → on n'utilise pas wrap={false}
-            sur la section entière (sinon une longue description force un
-            saut de page entier). On garde juste le header insécable avec
-            au moins quelques lignes. */}
+        {/* ============ 01 CONTEXTE ============ */}
         {(offer.context || offer.description) && (
           <View style={styles.section}>
-            <View style={styles.sectionHeader} wrap={false} minPresenceAhead={40}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionPip} />
               <Text style={styles.sectionNum}>01</Text>
               <Text style={styles.sectionTitle}>Contexte</Text>
             </View>
@@ -367,6 +416,7 @@ export function JobOfferPosterPDF({
         {offer.mission_purpose && (
           <View style={styles.section} wrap={false}>
             <View style={styles.sectionHeader}>
+              <View style={styles.sectionPip} />
               <Text style={styles.sectionNum}>02</Text>
               <Text style={styles.sectionTitle}>Finalité du poste</Text>
             </View>
@@ -377,14 +427,10 @@ export function JobOfferPosterPDF({
           </View>
         )}
 
-        {/* ============ 03 MISSIONS & PROFIL ============
-            - Si les deux colonnes sont vides → on cache la section.
-            - Si une seule est remplie → on affiche cette colonne en
-              pleine largeur (au lieu d'un placeholder "Non renseigné"
-              qui pollue le rendu et donne l'air bâclé). */}
+        {/* ============ 03 MISSIONS & PROFIL ============ */}
         {(tasks.length > 0 || profile.length > 0) && (() => {
           const showBoth = tasks.length > 0 && profile.length > 0;
-          const titleSuffix = showBoth
+          const titleText = showBoth
             ? 'Missions principales & profil'
             : tasks.length > 0
               ? 'Missions principales'
@@ -392,8 +438,9 @@ export function JobOfferPosterPDF({
           return (
             <View style={styles.section}>
               <View style={styles.sectionHeader} wrap={false} minPresenceAhead={50}>
+                <View style={styles.sectionPip} />
                 <Text style={styles.sectionNum}>03</Text>
-                <Text style={styles.sectionTitle}>{titleSuffix}</Text>
+                <Text style={styles.sectionTitle}>{titleText}</Text>
               </View>
               <View style={styles.sectionCard}>
                 {showBoth ? (
@@ -422,7 +469,7 @@ export function JobOfferPosterPDF({
                     </View>
                   </View>
                 ) : (
-                  <View style={styles.col}>
+                  <View>
                     <Text style={styles.colHeader}>
                       {tasks.length > 0 ? 'Missions' : 'Profil recherché'}
                     </Text>
@@ -445,11 +492,12 @@ export function JobOfferPosterPDF({
         {tech.length > 0 && (
           <View style={styles.section} wrap={false}>
             <View style={styles.sectionHeader}>
+              <View style={styles.sectionPip} />
               <Text style={styles.sectionNum}>04</Text>
               <Text style={styles.sectionTitle}>Environnement technique</Text>
             </View>
             <View style={styles.techRow}>
-              {tech.map((t) => (
+              {tech.slice(0, 8).map((t) => (
                 <Text key={t} style={styles.techTag}>
                   {t}
                 </Text>
@@ -462,6 +510,7 @@ export function JobOfferPosterPDF({
         {conditions.length > 0 && (
           <View style={styles.section} wrap={false}>
             <View style={styles.sectionHeader}>
+              <View style={styles.sectionPip} />
               <Text style={styles.sectionNum}>05</Text>
               <Text style={styles.sectionTitle}>Conditions d&apos;exercice</Text>
             </View>
@@ -486,16 +535,19 @@ export function JobOfferPosterPDF({
         </View>
 
         {/* ============ FOOTER ============ */}
-        <View style={styles.footer} fixed>
-          <Text>
-            {b.brandName} — {b.footerTagline}
-          </Text>
-          <Text>{contactEmail}</Text>
-          <Text
-            render={({ pageNumber, totalPages }) =>
-              `Page ${pageNumber} / ${totalPages}`
-            }
-          />
+        <View style={styles.footerWrap} fixed>
+          <View style={styles.footerRule} />
+          <View style={styles.footerRow}>
+            <Text style={styles.footerBrand}>
+              {b.brandName} <Text style={{ color: N.muted, fontFamily: 'Helvetica' }}>— {b.footerTagline}</Text>
+            </Text>
+            <Text style={styles.footerEmail}>{contactEmail}</Text>
+            <Text
+              render={({ pageNumber, totalPages }) =>
+                `Page ${pageNumber} / ${totalPages}`
+              }
+            />
+          </View>
         </View>
       </Page>
     </Document>
