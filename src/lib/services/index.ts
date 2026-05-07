@@ -3,6 +3,8 @@ import type {
   Opportunity,
   OpportunityStatus,
   Contact,
+  ContactInteraction,
+  ContactInteractionKind,
   Invoice,
   InvoiceStatus,
   Alert,
@@ -254,6 +256,121 @@ export const contactService = {
       .single();
     if (error) return { data: null, error };
     return { data: data as Contact, error: null };
+  },
+
+  /**
+   * Définit (ou efface) le prochain rappel d'appel pour ce contact.
+   * Une note libre peut être attachée. Le rappel apparaît dans le
+   * centre d'alertes via compute_org_alerts (priorité critical/high
+   * selon proximité de la date).
+   */
+  async setCallReminder(
+    id: string,
+    isoDateTime: string | null,
+    note: string | null = null,
+  ): Promise<ServiceResult<Contact>> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('contacts')
+      .update({
+        next_call_reminder: isoDateTime,
+        next_call_reminder_note: isoDateTime ? note : null,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) return { data: null, error };
+    return { data: data as Contact, error: null };
+  },
+};
+
+// =========================================================================
+// Contact interactions (notes / historique CRM)
+// =========================================================================
+
+export const contactInteractionService = {
+  async list(contactId: string): Promise<ServiceResult<ContactInteraction[]>> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('contact_interactions')
+      .select('*')
+      .eq('contact_id', contactId)
+      .order('occurred_at', { ascending: false });
+    if (error) return { data: null, error };
+    return { data: (data ?? []) as ContactInteraction[], error: null };
+  },
+
+  /**
+   * Ajoute une note d'interaction (ex: "Envoyé les CV"). Met aussi à
+   * jour contact.last_interaction pour que la cellule "Dernière
+   * interaction" reflète tout de suite l'activité.
+   */
+  async add(
+    contactId: string,
+    organizationId: string,
+    input: {
+      kind: ContactInteractionKind;
+      note: string;
+      occurredAt?: string;
+    },
+  ): Promise<ServiceResult<ContactInteraction>> {
+    const supabase = createClient();
+    const occurredAt = input.occurredAt ?? new Date().toISOString();
+    const { data, error } = await supabase
+      .from('contact_interactions')
+      .insert({
+        contact_id: contactId,
+        organization_id: organizationId,
+        kind: input.kind,
+        note: input.note,
+        occurred_at: occurredAt,
+      })
+      .select()
+      .single();
+    if (error) return { data: null, error };
+    // Bump last_interaction sur le contact pour la cohérence visuelle.
+    await supabase
+      .from('contacts')
+      .update({ last_interaction: occurredAt })
+      .eq('id', contactId);
+    return { data: data as ContactInteraction, error: null };
+  },
+
+  async remove(id: string): Promise<ServiceResult<true>> {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('contact_interactions')
+      .delete()
+      .eq('id', id);
+    if (error) return { data: null, error };
+    return { data: true, error: null };
+  },
+
+  /**
+   * Récupère la dernière interaction pour chaque contact d'une org,
+   * en un seul round-trip. On trie côté DB par occurred_at DESC, puis
+   * on garde le 1er élément par contact_id côté JS.
+   *
+   * Utilisé par la table /contacts pour afficher la dernière note
+   * inline sans aller-retour par ligne.
+   */
+  async latestPerContact(
+    organizationId: string,
+  ): Promise<ServiceResult<Map<string, ContactInteraction>>> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('contact_interactions')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .order('occurred_at', { ascending: false });
+    if (error) return { data: null, error };
+    const map = new Map<string, ContactInteraction>();
+    for (const row of (data ?? []) as ContactInteraction[]) {
+      if (!map.has(row.contact_id)) {
+        map.set(row.contact_id, row);
+      }
+    }
+    return { data: map, error: null };
   },
 };
 

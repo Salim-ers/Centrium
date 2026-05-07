@@ -267,10 +267,32 @@ export type Contact = {
   last_interaction: string | null;
   prospecting_done: boolean;
   prospecting_done_at: string | null;
+  next_call_reminder: string | null;
+  next_call_reminder_note: string | null;
   notes: string | null;
   archived: boolean;
   created_at: string;
   updated_at: string;
+};
+
+export type ContactInteractionKind =
+  | 'call'
+  | 'email'
+  | 'meeting'
+  | 'note'
+  | 'linkedin'
+  | 'sms'
+  | 'other';
+
+export type ContactInteraction = {
+  id: string;
+  organization_id: string;
+  contact_id: string;
+  kind: ContactInteractionKind;
+  note: string;
+  occurred_at: string;
+  created_by: string | null;
+  created_at: string;
 };
 
 export type JobOffer = {

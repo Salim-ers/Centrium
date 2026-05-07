@@ -14,6 +14,8 @@ import {
   FileUp,
   CheckCheck,
   Undo2,
+  Bell,
+  MessageSquare,
 } from 'lucide-react';
 
 import {
@@ -22,6 +24,10 @@ import {
   notifyUpdated,
 } from '@/lib/notify';
 import { ContactCsvImportDialog } from '@/components/crm/ContactCsvImportDialog';
+import { ContactReminderDialog } from '@/components/crm/ContactReminderDialog';
+import { ContactInteractionsDialog } from '@/components/crm/ContactInteractionsDialog';
+import { contactInteractionService } from '@/lib/services';
+import type { ContactInteraction } from '@/types';
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,6 +53,11 @@ export default function ContactsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [csvOpen, setCsvOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [reminderContact, setReminderContact] = useState<Contact | null>(null);
+  const [interactionsContact, setInteractionsContact] = useState<Contact | null>(null);
+  const [latestByContact, setLatestByContact] = useState<Map<string, ContactInteraction>>(
+    new Map(),
+  );
 
   const {
     data: contactsData,
@@ -61,6 +72,28 @@ export default function ContactsPage() {
     },
     { enabled: !!activeOrgId },
   );
+
+  // Charge la dernière interaction pour chaque contact en parallèle.
+  // Refait à chaque reload de la liste contacts pour rester synchro.
+  useEffect(() => {
+    if (!activeOrgId) return;
+    let cancelled = false;
+    contactInteractionService.latestPerContact(activeOrgId).then((res) => {
+      if (cancelled) return;
+      setLatestByContact(res.data ?? new Map());
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeOrgId, contactsData]);
+
+  function refreshInteractions() {
+    if (!activeOrgId) return;
+    contactInteractionService.latestPerContact(activeOrgId).then((res) => {
+      setLatestByContact(res.data ?? new Map());
+    });
+  }
   const contacts = contactsData ?? [];
 
   function openCreate() {
@@ -167,6 +200,34 @@ export default function ContactsPage() {
         open={csvOpen}
         onOpenChange={setCsvOpen}
         onImported={() => reload()}
+      />
+
+      <ContactReminderDialog
+        open={!!reminderContact}
+        onOpenChange={(v) => {
+          if (!v) setReminderContact(null);
+        }}
+        contact={reminderContact}
+        onSaved={(updated) => {
+          setContacts((prev) =>
+            (prev ?? []).map((c) => (c.id === updated.id ? updated : c)),
+          );
+        }}
+      />
+
+      <ContactInteractionsDialog
+        open={!!interactionsContact}
+        onOpenChange={(v) => {
+          if (!v) setInteractionsContact(null);
+        }}
+        contact={interactionsContact}
+        organizationId={activeOrgId ?? ''}
+        onChanged={() => {
+          refreshInteractions();
+          // Aussi : last_interaction est bumpée côté DB → on rafraîchit la liste contact
+          // pour que la cellule date se mette à jour.
+          reload();
+        }}
       />
 
       <ContactFormDialog
@@ -282,73 +343,80 @@ export default function ContactsPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-xs">
-                      <InteractionCell
-                        lastInteraction={c.last_interaction}
-                        onClear={() => clearInteraction(c)}
+                      <FollowUpCell
+                        contact={c}
+                        latest={latestByContact.get(c.id) ?? null}
+                        onClearLastInteraction={() => clearInteraction(c)}
                       />
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          size="sm"
-                          variant={c.last_interaction ? 'ghost' : 'outline'}
+                      <div className="flex items-center justify-end gap-0.5 whitespace-nowrap">
+                        <IconButton
                           onClick={() => toggleInteraction(c)}
                           title={
                             c.last_interaction
                               ? 'Re-marquer comme contacté maintenant'
                               : 'Marquer comme contacté à l\'instant'
                           }
-                          className={
-                            c.last_interaction
-                              ? 'text-emerald-300 hover:text-emerald-200'
-                              : 'border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10'
-                          }
+                          colorClass="text-emerald-300 hover:bg-emerald-500/10"
                         >
                           <PhoneCall className="h-3.5 w-3.5" />
-                          {c.last_interaction ? '' : 'Contacté'}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={c.prospecting_done ? 'ghost' : 'outline'}
+                        </IconButton>
+                        <IconButton
+                          onClick={() => setReminderContact(c)}
+                          title={
+                            c.next_call_reminder
+                              ? `Rappel : ${new Date(c.next_call_reminder).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}`
+                              : 'Programmer un rappel'
+                          }
+                          colorClass={
+                            c.next_call_reminder
+                              ? 'text-amber-200 bg-amber-500/15 hover:bg-amber-500/25'
+                              : 'text-amber-300 hover:bg-amber-500/10'
+                          }
+                        >
+                          <Bell className="h-3.5 w-3.5" />
+                        </IconButton>
+                        <IconButton
+                          onClick={() => setInteractionsContact(c)}
+                          title="Notes & historique"
+                          colorClass="text-violet-glow hover:bg-violet-glow/10"
+                        >
+                          <MessageSquare className="h-3.5 w-3.5" />
+                        </IconButton>
+                        <IconButton
                           onClick={() => toggleProspecting(c)}
                           title={
                             c.prospecting_done
                               ? 'Rouvrir le démarchage'
                               : 'Marquer le démarchage comme terminé'
                           }
-                          className={
+                          colorClass={
                             c.prospecting_done
-                              ? 'text-amber-300 hover:text-amber-200'
-                              : 'border-violet-glow/40 text-violet-100 hover:bg-violet-glow/10'
+                              ? 'text-amber-200 bg-amber-500/15 hover:bg-amber-500/25'
+                              : 'text-violet-100 hover:bg-violet-glow/10'
                           }
                         >
                           {c.prospecting_done ? (
-                            <>
-                              <Undo2 className="h-3.5 w-3.5" />
-                            </>
+                            <Undo2 className="h-3.5 w-3.5" />
                           ) : (
-                            <>
-                              <CheckCheck className="h-3.5 w-3.5" />
-                              Démarchage OK
-                            </>
+                            <CheckCheck className="h-3.5 w-3.5" />
                           )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
+                        </IconButton>
+                        <IconButton
                           onClick={() => openEdit(c)}
                           title="Éditer"
+                          colorClass="text-violet-glow hover:bg-violet-glow/10"
                         >
-                          <Pencil className="h-3.5 w-3.5 text-violet-glow" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
+                          <Pencil className="h-3.5 w-3.5" />
+                        </IconButton>
+                        <IconButton
                           onClick={() => deleteContact(c)}
                           title="Supprimer"
+                          colorClass="text-red-400 hover:bg-red-500/10"
                         >
-                          <Trash2 className="h-3.5 w-3.5 text-red-400" />
-                        </Button>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </IconButton>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -362,46 +430,147 @@ export default function ContactsPage() {
   );
 }
 
-function InteractionCell({
-  lastInteraction,
-  onClear,
+function IconButton({
+  onClick,
+  title,
+  colorClass,
+  children,
 }: {
-  lastInteraction: string | null;
-  onClear: () => void;
+  onClick: () => void;
+  title: string;
+  colorClass: string;
+  children: React.ReactNode;
 }) {
-  if (!lastInteraction) {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-md border border-amber-400/30 bg-amber-500/[0.06] text-amber-300">
-        Jamais contacté
-      </span>
-    );
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      className={`h-7 w-7 rounded-md inline-flex items-center justify-center transition ${colorClass}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function FollowUpCell({
+  contact,
+  latest,
+  onClearLastInteraction,
+}: {
+  contact: Contact;
+  latest: ContactInteraction | null;
+  onClearLastInteraction: () => void;
+}) {
+  const { last_interaction, next_call_reminder, next_call_reminder_note } = contact;
+
+  return (
+    <div className="flex flex-col gap-1 max-w-[280px]">
+      {/* Ligne 1 : dernière interaction (date) */}
+      {last_interaction ? (
+        <div className="inline-flex items-center gap-1 group">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-emerald-500/30 bg-emerald-500/[0.06] text-emerald-300 text-[10px]">
+            <span className="font-medium">
+              {new Date(last_interaction).toLocaleDateString('fr-FR', {
+                day: '2-digit',
+                month: 'short',
+              })}{' '}
+              ·{' '}
+              {new Date(last_interaction).toLocaleTimeString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
+            <span className="opacity-60">({relativeDate(last_interaction)})</span>
+          </span>
+          <button
+            type="button"
+            onClick={onClearLastInteraction}
+            title="Effacer la date d'interaction"
+            className="opacity-0 group-hover:opacity-100 transition text-muted-foreground hover:text-red-400"
+          >
+            <XIcon className="h-3 w-3" />
+          </button>
+        </div>
+      ) : (
+        <span className="inline-flex items-center gap-1.5 text-[10px] px-1.5 py-0.5 rounded-md border border-amber-400/30 bg-amber-500/[0.06] text-amber-300 self-start">
+          Jamais contacté
+        </span>
+      )}
+
+      {/* Ligne 2 : dernière note (commentaire) */}
+      {latest && (
+        <span
+          className="text-[11px] text-violet-200 truncate inline-flex items-center gap-1"
+          title={latest.note}
+        >
+          <span className="text-[8px] uppercase tracking-wider text-violet-400/80">
+            {kindAbbr(latest.kind)}
+          </span>
+          <span className="truncate">{latest.note}</span>
+        </span>
+      )}
+
+      {/* Ligne 3 : prochain rappel programmé */}
+      {next_call_reminder && (
+        <ReminderChip
+          when={next_call_reminder}
+          note={next_call_reminder_note ?? null}
+        />
+      )}
+    </div>
+  );
+}
+
+function kindAbbr(kind: ContactInteraction['kind']): string {
+  switch (kind) {
+    case 'call':
+      return 'Tél.';
+    case 'email':
+      return 'Email';
+    case 'meeting':
+      return 'RDV';
+    case 'linkedin':
+      return 'LinkedIn';
+    case 'sms':
+      return 'SMS';
+    case 'note':
+      return 'Note';
+    default:
+      return 'Autre';
   }
-  const d = new Date(lastInteraction);
+}
+
+function ReminderChip({ when, note }: { when: string; note: string | null }) {
+  const d = new Date(when);
+  const isOverdue = d.getTime() < Date.now();
+  const isSoon = !isOverdue && d.getTime() - Date.now() < 24 * 3600 * 1000;
+  const tone = isOverdue
+    ? 'border-red-500/40 bg-red-500/[0.08] text-red-300'
+    : isSoon
+      ? 'border-amber-500/40 bg-amber-500/[0.08] text-amber-300'
+      : 'border-violet-glow/30 bg-violet-glow/[0.06] text-violet-200';
+  const icon = isOverdue ? '🔔' : '⏰';
   const dateStr = d.toLocaleDateString('fr-FR', {
     day: '2-digit',
     month: 'short',
-    year: 'numeric',
   });
   const timeStr = d.toLocaleTimeString('fr-FR', {
     hour: '2-digit',
     minute: '2-digit',
   });
   return (
-    <div className="inline-flex items-center gap-1.5 group">
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-emerald-500/30 bg-emerald-500/[0.06] text-emerald-300">
-        <span className="text-[11px] font-medium">{dateStr}</span>
-        <span className="text-[10px] text-emerald-400/70">·</span>
-        <span className="text-[10px] text-emerald-300/80">{timeStr}</span>
-        <span className="text-[10px] text-emerald-400/60 ml-0.5">({relativeDate(lastInteraction)})</span>
+    <span
+      className={`inline-flex items-center gap-1 self-start px-1.5 py-0.5 rounded-md border text-[10px] ${tone}`}
+      title={note ?? undefined}
+    >
+      <span>{icon}</span>
+      <span className="font-semibold">{isOverdue ? 'En retard' : 'Rappel'}</span>
+      <span className="opacity-80">
+        {dateStr} · {timeStr}
       </span>
-      <button
-        type="button"
-        onClick={onClear}
-        title="Effacer la date d'interaction"
-        className="opacity-0 group-hover:opacity-100 transition text-muted-foreground hover:text-red-400"
-      >
-        <XIcon className="h-3 w-3" />
-      </button>
-    </div>
+      {note && <span className="opacity-70 truncate max-w-[120px]">— {note}</span>}
+    </span>
   );
 }
