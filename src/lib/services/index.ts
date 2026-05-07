@@ -208,6 +208,30 @@ export const contactService = {
     if (error) return { data: null, error };
     return { data: true, error: null };
   },
+
+  /**
+   * Marque le contact comme "vient d'être contacté" : last_interaction
+   * passe à NOW(). Permet de tracer la dernière relation et de tirer
+   * des relances cohérentes ("aucune interaction depuis 30 jours…").
+   *
+   * Si `clear` = true → on vide la date au lieu de la set à NOW().
+   */
+  async markInteracted(
+    id: string,
+    options: { clear?: boolean } = {},
+  ): Promise<ServiceResult<Contact>> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('contacts')
+      .update({
+        last_interaction: options.clear ? null : new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) return { data: null, error };
+    return { data: data as Contact, error: null };
+  },
 };
 
 export const companyService = {

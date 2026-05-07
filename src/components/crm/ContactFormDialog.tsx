@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+
+import { notifyCreated, notifyUpdated, notifyError } from '@/lib/notify';
 
 import {
   Dialog,
@@ -79,10 +80,15 @@ export function ContactFormDialog({
         ? await contactService.update(contact!.id, values)
         : await contactService.create(values, organizationId);
       if (res.error) {
-        toast.error('Erreur : ' + res.error.message);
+        notifyError('Erreur : ' + res.error.message);
         return;
       }
-      toast.success(isEdit ? 'Contact mis à jour' : 'Contact créé');
+      const fullName = `${values.first_name} ${values.last_name}`;
+      if (isEdit) {
+        notifyUpdated(`${fullName} mis à jour`);
+      } else {
+        notifyCreated(`${fullName} ajouté au carnet`);
+      }
       onSaved?.(res.data);
       reset();
       onOpenChange(false);

@@ -1,55 +1,76 @@
 import { toast as sonnerToast } from 'sonner';
 
+import {
+  showBrandToast,
+  type BrandToastOptions,
+} from '@/components/ui/BrandToast';
+
 /**
- * Helpers de notifications. Un wrapper léger sur Sonner qui fixe la
- * sémantique (création / édition / destructif / etc.) à un seul endroit
- * pour que tout le produit ait la même cohérence visuelle.
+ * Helpers de notifications. Tous passent maintenant par le toast custom
+ * `BrandToast` (gradient border, glass card, halos, pastille icône) pour
+ * une signalétique Centrium homogène.
  *
- * Sonner est configuré globalement avec `richColors`, donc :
- *   - success → vert
- *   - warning → orange (utilisé pour "modification appliquée")
- *   - error   → rouge (utilisé aussi pour les actions destructives
- *               réussies, parce que la couleur est la signalétique)
- *   - info    → bleu
+ *   - notifyCreated     → variant success (vert/teal)
+ *   - notifyUpdated     → variant warning (ambre/orange)
+ *   - notifyDestructive → variant error (rose/rouge)
+ *   - notifyPromoted    → variant celebration (violet/magenta brand)
+ *   - notifyError       → variant error
+ *   - notifyWarning     → variant warning
+ *   - notifyInfo        → variant info (bleu/cyan)
+ *
+ * `description` est facultatif : si fourni, il s'affiche en sous-ligne
+ * sous le titre principal.
  */
 
-type Opts = { duration?: number };
+type Opts = {
+  duration?: number;
+  description?: string;
+};
+
+function pack(opts?: Opts): BrandToastOptions {
+  return {
+    duration: opts?.duration,
+    description: opts?.description,
+  };
+}
 
 /** Création d'une ressource — vert. */
 export function notifyCreated(message: string, opts?: Opts) {
-  return sonnerToast.success(message, opts);
+  return showBrandToast('success', message, pack(opts));
 }
 
-/** Édition / mise à jour — orange (signal "modification"). */
+/** Édition / mise à jour — orange. */
 export function notifyUpdated(message: string, opts?: Opts) {
-  return sonnerToast.warning(message, opts);
+  return showBrandToast('warning', message, pack(opts));
 }
 
-/**
- * Action destructive réussie (archive, suppression, retrait du vivier) —
- * rouge. Sémantiquement on utilise `error` parce que c'est ce qui rend
- * un toast rouge avec richColors ; le contenu reste positif.
- */
+/** Action destructive réussie (archive, suppression, retrait du vivier) — rouge. */
 export function notifyDestructive(message: string, opts?: Opts) {
-  return sonnerToast.error(message, opts);
+  return showBrandToast('error', message, pack(opts));
 }
 
-/** Promotion d'un prospect en consultant — vert (succès important). */
+/** Promotion d'un prospect en consultant — variant célébration brand. */
 export function notifyPromoted(message: string, opts?: Opts) {
-  return sonnerToast.success(message, { duration: 6000, ...opts });
+  return showBrandToast('celebration', message, { duration: 6000, ...pack(opts) });
 }
 
 /** Erreur réelle (réseau, validation serveur, etc.) — rouge. */
 export function notifyError(message: string, opts?: Opts) {
-  return sonnerToast.error(message, opts);
+  return showBrandToast('error', message, pack(opts));
 }
 
-/** Avertissement (limite atteinte, lien copié manuellement…) — orange. */
+/** Avertissement — orange. */
 export function notifyWarning(message: string, opts?: Opts) {
-  return sonnerToast.warning(message, opts);
+  return showBrandToast('warning', message, pack(opts));
 }
 
 /** Info neutre — bleu. */
 export function notifyInfo(message: string, opts?: Opts) {
-  return sonnerToast.info(message, opts);
+  return showBrandToast('info', message, pack(opts));
 }
+
+/**
+ * Echappatoire : permet aux call-sites externes de fermer un toast par
+ * ID. Identique à sonner.toast.dismiss.
+ */
+export const dismissToast = sonnerToast.dismiss;

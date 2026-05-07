@@ -1,8 +1,23 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import { UserCircle, Plus, Linkedin, Mail, Phone, Pencil, Trash2 } from 'lucide-react';
+import {
+  UserCircle,
+  Plus,
+  Linkedin,
+  Mail,
+  Phone,
+  Pencil,
+  Trash2,
+  PhoneCall,
+  X as XIcon,
+} from 'lucide-react';
+
+import {
+  notifyDestructive,
+  notifyError,
+  notifyUpdated,
+} from '@/lib/notify';
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,11 +72,44 @@ export default function ContactsPage() {
     if (!confirm(`Supprimer le contact "${contact.first_name} ${contact.last_name}" ?`)) return;
     const res = await contactService.archive(contact.id);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      notifyError('Erreur : ' + res.error.message);
       return;
     }
-    toast.success('Contact supprimé');
+    notifyDestructive(`${contact.first_name} ${contact.last_name} supprimé`);
     setContacts((prev) => (prev ?? []).filter((c) => c.id !== contact.id));
+  }
+
+  async function toggleInteraction(contact: Contact) {
+    // Click pour basculer : si le contact a déjà une date d'interaction,
+    // on la garde et on actualise à maintenant ; si on Shift+click, on
+    // efface la date pour repartir de zéro.
+    const isClear = false;
+    const res = await contactService.markInteracted(contact.id, { clear: isClear });
+    if (res.error || !res.data) {
+      notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
+      return;
+    }
+    setContacts((prev) =>
+      (prev ?? []).map((c) => (c.id === contact.id ? res.data! : c)),
+    );
+    notifyUpdated(
+      `${contact.first_name} ${contact.last_name} — interaction enregistrée`,
+      { description: 'Dernière interaction mise à jour à l\'instant' },
+    );
+  }
+
+  async function clearInteraction(contact: Contact) {
+    const res = await contactService.markInteracted(contact.id, { clear: true });
+    if (res.error || !res.data) {
+      notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
+      return;
+    }
+    setContacts((prev) =>
+      (prev ?? []).map((c) => (c.id === contact.id ? res.data! : c)),
+    );
+    notifyUpdated(
+      `${contact.first_name} ${contact.last_name} — date effacée`,
+    );
   }
 
   return (
@@ -177,9 +225,32 @@ export default function ContactsPage() {
                         <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-xs">{relativeDate(c.last_interaction)}</TableCell>
+                    <TableCell className="text-xs">
+                      <InteractionCell
+                        lastInteraction={c.last_interaction}
+                        onClear={() => clearInteraction(c)}
+                      />
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <Button
+                          size="sm"
+                          variant={c.last_interaction ? 'ghost' : 'outline'}
+                          onClick={() => toggleInteraction(c)}
+                          title={
+                            c.last_interaction
+                              ? 'Re-marquer comme contacté maintenant'
+                              : 'Marquer comme contacté à l\'instant'
+                          }
+                          className={
+                            c.last_interaction
+                              ? 'text-emerald-300 hover:text-emerald-200'
+                              : 'border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10'
+                          }
+                        >
+                          <PhoneCall className="h-3.5 w-3.5" />
+                          {c.last_interaction ? '' : 'Contacté'}
+                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -206,5 +277,49 @@ export default function ContactsPage() {
         </CardContent>
       </Card>
     </AppShell>
+  );
+}
+
+function InteractionCell({
+  lastInteraction,
+  onClear,
+}: {
+  lastInteraction: string | null;
+  onClear: () => void;
+}) {
+  if (!lastInteraction) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-md border border-amber-400/30 bg-amber-500/[0.06] text-amber-300">
+        Jamais contacté
+      </span>
+    );
+  }
+  const d = new Date(lastInteraction);
+  const dateStr = d.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+  const timeStr = d.toLocaleTimeString('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return (
+    <div className="inline-flex items-center gap-1.5 group">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-emerald-500/30 bg-emerald-500/[0.06] text-emerald-300">
+        <span className="text-[11px] font-medium">{dateStr}</span>
+        <span className="text-[10px] text-emerald-400/70">·</span>
+        <span className="text-[10px] text-emerald-300/80">{timeStr}</span>
+        <span className="text-[10px] text-emerald-400/60 ml-0.5">({relativeDate(lastInteraction)})</span>
+      </span>
+      <button
+        type="button"
+        onClick={onClear}
+        title="Effacer la date d'interaction"
+        className="opacity-0 group-hover:opacity-100 transition text-muted-foreground hover:text-red-400"
+      >
+        <XIcon className="h-3 w-3" />
+      </button>
+    </div>
   );
 }
