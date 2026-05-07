@@ -112,15 +112,20 @@ export function ContactCsvImportDialog({ open, onOpenChange, onImported }: Props
         <DialogHeader>
           <DialogTitle>Importer un CSV de contacts</DialogTitle>
           <DialogDescription>
-            Format attendu : 1 ligne par contact avec en-têtes. Colonnes minimum :
-            <code className="mx-1 text-violet-300">first_name</code>,
-            <code className="mx-1 text-violet-300">last_name</code>. Optionnel :
-            email, phone, linkedin_url, job_title (poste), city, source, notes,
-            contact_type (recruteur, commercial, manager, client_final, esn_partenaire,
-            acheteur, rh, consultant, autre).
+            Headers <strong>très tolérants</strong> — virgule, point-virgule ou tab,
+            FR ou EN, casse / accents ignorés.
             <br />
-            Séparateur virgule, point-virgule ou tab. Headers en français acceptés
-            (Prénom, Nom, Email, Téléphone, Poste, Ville…).
+            <span className="text-violet-300">Identité (au moins l&apos;un)</span> :
+            <code className="mx-1">first_name</code>+<code className="mx-1">last_name</code>{' '}
+            séparés <em>OU</em> <code className="mx-1">Contact Nom/Prénom</code>{' '}
+            (sera scindé sur le 1er espace).
+            <br />
+            <span className="text-violet-300">Optionnel</span> : Email / Adresse mail,
+            Téléphone / Numéro de téléphone, URL LinkedIn, Poste / Poste du contact,
+            Ville, Société / ESN / Nom ESN (ajouté en source), Description / Notes /
+            Commentaires, Statut d&apos;avancement, Date dernière (mises en notes),
+            Type (recruteur, commercial, manager, client_final, esn_partenaire,
+            acheteur, rh, consultant, autre).
           </DialogDescription>
         </DialogHeader>
 
