@@ -124,23 +124,27 @@ function buildStyles(primary: string, accent: string) {
       lineHeight: 1.55,
     },
     purposeBox: {
-      borderLeft: `3pt solid ${accent}`,
-      backgroundColor: '#fff5fa',
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      borderTopRightRadius: 4,
-      borderBottomRightRadius: 4,
+      backgroundColor: primary,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderRadius: 4,
     },
     purposeLabel: {
       fontSize: 7,
-      color: accent,
+      color: '#cdc4ff',
       letterSpacing: 1.6,
       fontFamily: 'Helvetica-Bold',
       textTransform: 'uppercase',
-      marginBottom: 4,
+      marginBottom: 5,
     },
-    purposeText: { fontSize: 10, color: N.ink, lineHeight: 1.5 },
-    twoCol: { flexDirection: 'row', gap: 18 },
+    purposeText: { fontSize: 10, color: N.white, lineHeight: 1.5 },
+    sectionCard: {
+      backgroundColor: N.light,
+      padding: 10,
+      borderRadius: 4,
+      marginTop: 4,
+    },
+    twoCol: { flexDirection: 'row', gap: 14 },
     col: { flex: 1 },
     colHeader: {
       fontSize: 7.5,
@@ -154,10 +158,15 @@ function buildStyles(primary: string, accent: string) {
       borderTopLeftRadius: 3,
       borderTopRightRadius: 3,
     },
+    colBody: {
+      paddingTop: 6,
+      paddingHorizontal: 4,
+      paddingBottom: 4,
+    },
     bulletItem: {
       flexDirection: 'row',
       gap: 5,
-      paddingTop: 4,
+      paddingTop: 3,
     },
     bulletDot: {
       width: 3,
@@ -337,10 +346,14 @@ export function JobOfferPosterPDF({
           </View>
         </View>
 
-        {/* ============ 01 CONTEXTE ============ */}
+        {/* ============ 01 CONTEXTE ============
+            Le contexte peut être très long → on n'utilise pas wrap={false}
+            sur la section entière (sinon une longue description force un
+            saut de page entier). On garde juste le header insécable avec
+            au moins quelques lignes. */}
         {(offer.context || offer.description) && (
-          <View style={styles.section} wrap={false}>
-            <View style={styles.sectionHeader}>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader} wrap={false} minPresenceAhead={40}>
               <Text style={styles.sectionNum}>01</Text>
               <Text style={styles.sectionTitle}>Contexte</Text>
             </View>
@@ -364,45 +377,69 @@ export function JobOfferPosterPDF({
           </View>
         )}
 
-        {/* ============ 03 MISSIONS & PROFIL ============ */}
-        {(tasks.length > 0 || profile.length > 0) && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionNum}>03</Text>
-              <Text style={styles.sectionTitle}>Missions principales & profil</Text>
-            </View>
-            <View style={styles.twoCol}>
-              <View style={styles.col}>
-                <Text style={styles.colHeader}>Missions</Text>
-                {tasks.length === 0 && (
-                  <Text style={[styles.bulletText, { paddingTop: 6, color: N.muted, fontStyle: 'italic' }]}>
-                    Non renseigné
-                  </Text>
-                )}
-                {tasks.map((t, i) => (
-                  <View key={i} style={styles.bulletItem}>
-                    <View style={styles.bulletDot} />
-                    <Text style={styles.bulletText}>{t}</Text>
-                  </View>
-                ))}
+        {/* ============ 03 MISSIONS & PROFIL ============
+            - Si les deux colonnes sont vides → on cache la section.
+            - Si une seule est remplie → on affiche cette colonne en
+              pleine largeur (au lieu d'un placeholder "Non renseigné"
+              qui pollue le rendu et donne l'air bâclé). */}
+        {(tasks.length > 0 || profile.length > 0) && (() => {
+          const showBoth = tasks.length > 0 && profile.length > 0;
+          const titleSuffix = showBoth
+            ? 'Missions principales & profil'
+            : tasks.length > 0
+              ? 'Missions principales'
+              : 'Profil recherché';
+          return (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader} wrap={false} minPresenceAhead={50}>
+                <Text style={styles.sectionNum}>03</Text>
+                <Text style={styles.sectionTitle}>{titleSuffix}</Text>
               </View>
-              <View style={styles.col}>
-                <Text style={styles.colHeader}>Profil recherché</Text>
-                {profile.length === 0 && (
-                  <Text style={[styles.bulletText, { paddingTop: 6, color: N.muted, fontStyle: 'italic' }]}>
-                    Non renseigné
-                  </Text>
-                )}
-                {profile.map((p, i) => (
-                  <View key={i} style={styles.bulletItem}>
-                    <View style={styles.bulletDot} />
-                    <Text style={styles.bulletText}>{p}</Text>
+              <View style={styles.sectionCard}>
+                {showBoth ? (
+                  <View style={styles.twoCol}>
+                    <View style={styles.col}>
+                      <Text style={styles.colHeader}>Missions</Text>
+                      <View style={styles.colBody}>
+                        {tasks.map((t, i) => (
+                          <View key={i} style={styles.bulletItem}>
+                            <View style={styles.bulletDot} />
+                            <Text style={styles.bulletText}>{t}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                    <View style={styles.col}>
+                      <Text style={styles.colHeader}>Profil recherché</Text>
+                      <View style={styles.colBody}>
+                        {profile.map((p, i) => (
+                          <View key={i} style={styles.bulletItem}>
+                            <View style={styles.bulletDot} />
+                            <Text style={styles.bulletText}>{p}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
                   </View>
-                ))}
+                ) : (
+                  <View style={styles.col}>
+                    <Text style={styles.colHeader}>
+                      {tasks.length > 0 ? 'Missions' : 'Profil recherché'}
+                    </Text>
+                    <View style={styles.colBody}>
+                      {(tasks.length > 0 ? tasks : profile).map((t, i) => (
+                        <View key={i} style={styles.bulletItem}>
+                          <View style={styles.bulletDot} />
+                          <Text style={styles.bulletText}>{t}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
               </View>
             </View>
-          </View>
-        )}
+          );
+        })()}
 
         {/* ============ 04 ENVIRONNEMENT TECHNIQUE ============ */}
         {tech.length > 0 && (
@@ -438,7 +475,7 @@ export function JobOfferPosterPDF({
         )}
 
         {/* ============ CTA ============ */}
-        <View style={styles.cta}>
+        <View style={styles.cta} wrap={false}>
           <Text style={styles.ctaTitle}>INTÉRESSÉ(E) PAR CETTE MISSION ?</Text>
           <View style={styles.ctaContact}>
             <Text style={styles.ctaEmail}>✉ {contactEmail}</Text>
