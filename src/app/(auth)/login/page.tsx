@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { loginSchema, type LoginInput } from '@/lib/validators';
 import { createClient } from '@/lib/supabase/client';
 import { AuthShell } from '@/components/auth/AuthShell';
+import { toastWelcome } from '@/components/auth/WelcomeToast';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -55,7 +56,7 @@ export default function LoginPage() {
     // si Supabase stall. Le middleware résoudra le bon redirect de toute façon.
     const profilePromise = supabase
       .from('profiles')
-      .select('role')
+      .select('role, first_name')
       .eq('id', authRes.user.id)
       .maybeSingle();
     const timeoutPromise = new Promise<{ data: null }>((resolve) =>
@@ -64,10 +65,10 @@ export default function LoginPage() {
     const { data: profile } = (await Promise.race([
       profilePromise,
       timeoutPromise,
-    ])) as { data: { role: string } | null };
+    ])) as { data: { role: string; first_name: string | null } | null };
 
     setLoading(false);
-    toast.success('Connexion réussie');
+    toastWelcome({ firstName: profile?.first_name ?? null });
 
     const redirectTo = profile?.role === 'consultant' ? '/portal/dashboard' : '/dashboard';
     router.push(redirectTo);
