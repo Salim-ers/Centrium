@@ -11,8 +11,8 @@ const nextConfig = {
     serverActions: {
       allowedOrigins: [
         'localhost:3000',
-        'quad-core-platform.fr',
-        'www.quad-core-platform.fr',
+        'centrium-platform.com',
+        'www.centrium-platform.com',
       ],
     },
     staleTimes: {
