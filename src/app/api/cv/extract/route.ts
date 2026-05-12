@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
         {
           error: 'empty_text',
           message:
-            'Aucun texte lisible extrait. Si c\'est un CV scanné en image, l\'OCR n\'est pas disponible — réuploade un PDF texte ou un DOCX.',
+            'Aucun texte lisible extrait, même via l\'OCR Claude. Le fichier est peut-être chiffré, vide, ou contient uniquement des graphismes. Réessaie avec un PDF texte ou un DOCX.',
           chars: text.length,
         },
         { status: 400 },
@@ -81,11 +81,70 @@ export async function POST(req: NextRequest) {
 }
 
 async function extractPdfText(buf: Buffer): Promise<string> {
-  // unpdf : wrapper Node/serverless autour de pdfjs-dist, sans les bugs de polyfills DOM.
-  const { extractText, getDocumentProxy } = await import('unpdf');
-  const pdf = await getDocumentProxy(new Uint8Array(buf));
-  const { text } = await extractText(pdf, { mergePages: true });
-  return Array.isArray(text) ? text.join('\n\n') : text;
+  // 1) Tentative native via unpdf (gratuit, rapide, marche pour les PDFs
+  //    "texte" générés par Word/InDesign/Pages/etc.)
+  let nativeText = '';
+  try {
+    const { extractText, getDocumentProxy } = await import('unpdf');
+    const pdf = await getDocumentProxy(new Uint8Array(buf));
+    const { text } = await extractText(pdf, { mergePages: true });
+    nativeText = Array.isArray(text) ? text.join('\n\n') : text;
+  } catch (e) {
+    console.warn('[cv/extract] unpdf failed', e);
+  }
+
+  // 2) Si le texte natif est insuffisant (PDF scanné/image, layout exotique,
+  //    fonts custom non-mappées), on fallback sur Claude vision qui sait
+  //    lire les PDFs directement (vision native depuis 3.5 Sonnet).
+  if (nativeText.trim().length >= 30) {
+    return nativeText;
+  }
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    console.warn('[cv/extract] PDF text vide et ANTHROPIC_API_KEY absente — pas de fallback OCR');
+    return nativeText;
+  }
+
+  try {
+    const { default: Anthropic } = await import('@anthropic-ai/sdk');
+    const client = new Anthropic({ apiKey });
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 8000,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'document',
+              source: {
+                type: 'base64',
+                media_type: 'application/pdf',
+                data: buf.toString('base64'),
+              },
+            },
+            {
+              type: 'text',
+              text:
+                'Extrais le texte brut intégral de ce CV, en respectant l\'ordre de lecture des pages. ' +
+                'Garde les sauts de ligne entre sections (expériences, formations, compétences). ' +
+                'Renvoie UNIQUEMENT le texte, aucun commentaire, aucun markdown, aucune mise en forme.',
+            },
+          ],
+        },
+      ],
+    });
+    const ocrText = response.content
+      .filter((b) => b.type === 'text')
+      .map((b) => (b as { text: string }).text)
+      .join('\n')
+      .trim();
+    return ocrText.length > nativeText.length ? ocrText : nativeText;
+  } catch (e) {
+    console.warn('[cv/extract] Claude PDF fallback failed', e);
+    return nativeText;
+  }
 }
 
 async function extractDocxText(buf: Buffer): Promise<string> {
