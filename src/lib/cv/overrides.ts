@@ -28,6 +28,8 @@ import type { CVContent, Language } from '@/types';
  *   - "experience.<id>.client_name"
  *   - "experience.<id>.role"
  *   - "experience.<id>.context"
+ *   - "experience.<id>.start_date"            (ISO "YYYY-MM-DD")
+ *   - "experience.<id>.end_date"              (ISO "YYYY-MM-DD" ou '' = en cours)
  *   - "experience.<id>.task.<index>"          (vide = supprimer la tâche)
  *   - "experience.<id>.environment.<index>"   (vide = supprimer l'item env)
  *
@@ -112,6 +114,17 @@ export function applyOverrides(content: CVContent, overrides: CVOverrides): CVCo
       exp.client_name = overrides[`experience.${exp.id}.client_name`];
     if (get(`experience.${exp.id}.context`) !== undefined)
       exp.context = overrides[`experience.${exp.id}.context`];
+
+    // Dates : start_date doit rester non-null (sinon on ignore l'override).
+    // end_date accepte '' qui signifie "en cours" (= null).
+    const startOv = get(`experience.${exp.id}.start_date`);
+    if (startOv !== undefined && startOv !== '') {
+      exp.start_date = startOv;
+    }
+    const endOv = get(`experience.${exp.id}.end_date`);
+    if (endOv !== undefined) {
+      exp.end_date = endOv === '' ? null : endOv;
+    }
 
     if (exp.tasks) {
       exp.tasks = exp.tasks

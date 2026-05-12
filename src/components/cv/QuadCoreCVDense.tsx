@@ -1,9 +1,9 @@
 'use client';
 
 import type { CVContent } from '@/types';
-import { formatMonthYear } from '@/lib/utils';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { Editable } from './Editable';
+import { EditableDate } from './EditableDate';
 import type { CVBrand } from '@/lib/cv/branding';
 import { resolveBrand } from '@/lib/cv/branding';
 
@@ -310,8 +310,21 @@ export function QuadCoreCVDense({
                         />
                       </span>
                     </h3>
-                    <span className="text-[9px] uppercase tracking-wider text-neutral-500 whitespace-nowrap">
-                      {formatMonthYear(exp.start_date)} → {formatMonthYear(exp.end_date)}
+                    <span className="text-[9px] uppercase tracking-wider text-neutral-500 whitespace-nowrap inline-flex items-center gap-1">
+                      <EditableDate
+                        path={`experience.${exp.id}.start_date`}
+                        value={exp.start_date}
+                        editable={editable}
+                        onEdit={onEdit}
+                      />
+                      <span>→</span>
+                      <EditableDate
+                        path={`experience.${exp.id}.end_date`}
+                        value={exp.end_date}
+                        editable={editable}
+                        onEdit={onEdit}
+                        allowNull
+                      />
                     </span>
                   </div>
                   {(exp.context || editable) && (
