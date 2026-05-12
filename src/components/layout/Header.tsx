@@ -58,7 +58,29 @@ export function Header() {
   const activeMembership = org?.memberships.find((m) => m.id === org.activeOrgId);
 
   return (
-    <header className="fixed top-0 right-0 left-0 md:left-64 z-20 h-16 border-b border-hairline bg-background/70 backdrop-blur-xl">
+    <header className="fixed top-0 right-0 left-0 md:left-64 z-20 h-16 bg-background/70 backdrop-blur-xl">
+      {/* Bordure inférieure : trait gradient rose animé pour dynamiser */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
+        style={{
+          background:
+            'linear-gradient(90deg, transparent, #ec4899 20%, #e11d74 50%, #c026d3 80%, transparent)',
+          backgroundSize: '200% 100%',
+          animation: 'gradient-pan 8s ease-in-out infinite',
+        }}
+      />
+      {/* Aura rose floue qui glisse horizontalement */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-40 dark:opacity-60"
+        style={{
+          background:
+            'radial-gradient(ellipse 60% 100% at 20% 50%, rgba(236,72,153,0.25), transparent 60%), radial-gradient(ellipse 50% 100% at 80% 50%, rgba(192,38,211,0.18), transparent 60%)',
+          backgroundSize: '200% 100%',
+          animation: 'gradient-pan 12s ease-in-out infinite',
+        }}
+      />
       <div className="relative flex h-full items-center justify-between gap-4 px-6">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

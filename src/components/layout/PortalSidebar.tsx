@@ -31,9 +31,19 @@ export function PortalSidebar() {
 
   return (
     <aside className="hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-hairline bg-card/80 backdrop-blur-xl">
-      {/* Wordmark Centrium grand format — adaptatif clair/sombre */}
-      <div className="relative flex h-28 items-center justify-start border-b border-hairline px-4 shrink-0">
-        <CentriumWordmark size="md" href="/portal/dashboard" />
+      {/* Halo rose vif derrière le wordmark */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-44 opacity-90"
+        style={{
+          background:
+            'radial-gradient(ellipse 80% 80% at 50% 50%, rgba(236,72,153,0.35), rgba(225,29,116,0.18) 40%, transparent 75%)',
+        }}
+      />
+
+      {/* Wordmark Centrium vertical centré */}
+      <div className="relative flex h-44 items-center justify-center border-b border-hairline px-3 shrink-0">
+        <CentriumWordmark size="lg" orientation="vertical" href="/portal/dashboard" />
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">
@@ -48,7 +58,7 @@ export function PortalSidebar() {
                   className={cn(
                     'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all',
                     active
-                      ? 'bg-violet-glow/10 text-violet-glow border border-violet-glow/25 shadow-[0_0_24px_-10px_rgba(225,29,116,0.45)]'
+                      ? 'bg-magenta/[0.12] text-magenta-neon border border-magenta/40 shadow-[0_0_30px_-8px_rgba(236,72,153,0.6),inset_0_0_20px_-10px_rgba(236,72,153,0.3)]'
                       : 'text-muted-foreground hover-surface hover:text-foreground border border-transparent',
                   )}
                 >

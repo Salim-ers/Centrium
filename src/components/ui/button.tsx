@@ -9,7 +9,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'bg-qc-gradient bg-[length:200%_100%] text-white shadow-glow hover:shadow-glow-magenta hover:brightness-110 hover:bg-[position:100%_50%] [transition:background-position_0.6s_ease,box-shadow_0.3s_ease,filter_0.2s]',
+          'bg-qc-gradient-pink bg-[length:200%_100%] text-white shadow-glow-pink hover:shadow-glow-pink-strong hover:brightness-110 hover:bg-[position:100%_50%] [transition:background-position_0.6s_ease,box-shadow_0.3s_ease,filter_0.2s]',
         destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
         outline:
           'border border-hairline bg-transparent hover-surface hover:border-violet-glow/40',

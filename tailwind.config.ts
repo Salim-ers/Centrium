@@ -87,13 +87,22 @@ const config: Config = {
       },
       backgroundImage: {
         'qc-gradient': 'linear-gradient(135deg, #6d28d9 0%, #e11d74 100%)',
+        // Variante rose-dominante pour l'UI app (boutons, wordmark, accents).
+        // Le qc-gradient original reste pour les PDFs (branding-locked).
+        'qc-gradient-pink':
+          'linear-gradient(135deg, #ec4899 0%, #e11d74 45%, #c026d3 100%)',
+        'qc-gradient-aurora':
+          'linear-gradient(135deg, #f472b6 0%, #ec4899 25%, #e11d74 50%, #c026d3 75%, #a855f7 100%)',
         'qc-dark-gradient': 'linear-gradient(180deg, #0a0b14 0%, #14161f 100%)',
         'qc-card-gradient':
-          'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(225,29,116,0.04) 100%)',
+          'linear-gradient(135deg, rgba(236,72,153,0.10) 0%, rgba(225,29,116,0.06) 50%, rgba(168,85,247,0.04) 100%)',
       },
       boxShadow: {
         glow: '0 0 40px -10px rgba(139, 92, 246, 0.35)',
-        'glow-magenta': '0 0 40px -10px rgba(225, 29, 116, 0.35)',
+        'glow-magenta': '0 0 40px -10px rgba(225, 29, 116, 0.45)',
+        'glow-pink': '0 0 50px -10px rgba(236, 72, 153, 0.55)',
+        'glow-pink-strong':
+          '0 0 30px -4px rgba(236, 72, 153, 0.6), 0 0 60px -20px rgba(168, 85, 247, 0.4)',
       },
       keyframes: {
         'accordion-down': {

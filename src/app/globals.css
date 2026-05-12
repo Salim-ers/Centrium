@@ -34,24 +34,24 @@ section[id] {
     --popover: 0 0% 100%;
     --popover-foreground: 240 40% 10%;
 
-    --primary: 270 95% 58%;               /* violet vif */
+    --primary: 328 92% 55%;               /* rose-magenta (dominant désormais) */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 250 30% 96%;
+    --secondary: 330 30% 96%;
     --secondary-foreground: 240 40% 10%;
 
-    --muted: 250 30% 96%;
+    --muted: 330 30% 96%;
     --muted-foreground: 240 12% 42%;
 
-    --accent: 328 92% 53%;                /* magenta vif */
+    --accent: 270 95% 58%;                /* violet en accent secondaire */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 75% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 250 30% 90%;
-    --input: 250 30% 90%;
-    --ring: 270 95% 58%;
+    --border: 330 30% 90%;
+    --input: 330 30% 90%;
+    --ring: 328 92% 55%;
 
     --radius: 0.75rem;
 
@@ -73,7 +73,7 @@ section[id] {
     --popover: 230 30% 9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 270 91% 65%;
+    --primary: 328 90% 60%;               /* rose-magenta dominant */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 231 18% 16%;
@@ -82,7 +82,7 @@ section[id] {
     --muted: 231 18% 16%;
     --muted-foreground: 217 10% 65%;
 
-    --accent: 328 85% 50%;
+    --accent: 270 91% 65%;                /* violet en accent */
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 63% 51%;
@@ -90,7 +90,7 @@ section[id] {
 
     --border: 231 18% 18%;
     --input: 231 18% 18%;
-    --ring: 270 91% 65%;
+    --ring: 328 90% 60%;
 
     /* Surfaces : les blancs translucides historiques deviennent des tokens. */
     --surface-1: 0 0% 100% / 0.02;
@@ -142,28 +142,85 @@ section[id] {
       0 0 60px -30px rgba(139, 92, 246, 0.25);
   }
 
-  /* Fond app — auras gradient dynamiques inspirées des C lumineux de la
-     bannière. Plus vibrant qu'avant pour un effet "platform live". */
+  /* ============ AURORA BACKGROUND ANIMÉ ============
+     3 blobs gradient animés en arrière-plan fixe — l'effet "aurora boréale"
+     genre Stripe/Linear/Vercel. Très subtil en clair, plus présent en sombre.
+     Performant : pas de canvas, juste background-position qui glisse. */
   .app-bg {
-    background:
-      radial-gradient(ellipse 70% 50% at 95% 5%, hsl(var(--accent) / 0.10), transparent 60%),
-      radial-gradient(ellipse 60% 60% at 5% 95%, hsl(var(--primary) / 0.10), transparent 60%),
-      radial-gradient(ellipse 100% 30% at 50% 50%, hsl(var(--accent) / 0.04), transparent 70%),
-      hsl(var(--background));
+    position: relative;
+    isolation: isolate;
+    background: hsl(var(--background));
   }
-  .dark .app-bg {
+  .app-bg::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
     background:
-      radial-gradient(ellipse 70% 50% at 95% 5%, hsl(var(--accent) / 0.16), transparent 60%),
-      radial-gradient(ellipse 60% 60% at 5% 95%, hsl(var(--primary) / 0.16), transparent 60%),
-      radial-gradient(ellipse 100% 30% at 50% 50%, hsl(var(--accent) / 0.06), transparent 70%),
-      hsl(var(--background));
+      radial-gradient(ellipse 50% 40% at 15% 20%, hsl(328 92% 60% / 0.18), transparent 60%),
+      radial-gradient(ellipse 45% 50% at 85% 70%, hsl(285 90% 65% / 0.16), transparent 60%),
+      radial-gradient(ellipse 60% 45% at 50% 100%, hsl(328 92% 60% / 0.14), transparent 60%),
+      radial-gradient(ellipse 40% 35% at 75% 15%, hsl(265 90% 70% / 0.12), transparent 60%);
+    background-size: 200% 200%;
+    animation: aurora-drift 22s ease-in-out infinite;
+    filter: blur(40px);
+  }
+  .dark .app-bg::before {
+    background:
+      radial-gradient(ellipse 50% 40% at 15% 20%, hsl(328 92% 55% / 0.32), transparent 60%),
+      radial-gradient(ellipse 45% 50% at 85% 70%, hsl(285 90% 60% / 0.28), transparent 60%),
+      radial-gradient(ellipse 60% 45% at 50% 100%, hsl(328 92% 55% / 0.22), transparent 60%),
+      radial-gradient(ellipse 40% 35% at 75% 15%, hsl(265 90% 65% / 0.18), transparent 60%);
+    filter: blur(50px);
+  }
+
+  @keyframes aurora-drift {
+    0%, 100% { background-position: 0% 0%; transform: translate3d(0, 0, 0) scale(1); }
+    33% { background-position: 30% 70%; transform: translate3d(2%, -1%, 0) scale(1.05); }
+    66% { background-position: 100% 30%; transform: translate3d(-2%, 1%, 0) scale(1.02); }
   }
 
   /* Hero glow — pour titres/blocs accent qui doivent vraiment ressortir. */
   .hero-glow {
     text-shadow:
-      0 0 32px rgba(225, 29, 116, 0.45),
-      0 0 60px rgba(139, 92, 246, 0.35);
+      0 0 32px rgba(236, 72, 153, 0.55),
+      0 0 60px rgba(225, 29, 116, 0.35),
+      0 0 100px rgba(168, 85, 247, 0.25);
+  }
+
+  /* ============ HOVER FX SUR CARDS ============
+     Subtle scale + glow border rose au hover. À appliquer sur .qc-card-fx. */
+  .qc-card-fx {
+    @apply transition-all duration-300 ease-out;
+    will-change: transform, box-shadow;
+  }
+  .qc-card-fx:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 8px 30px -10px rgba(236, 72, 153, 0.35),
+      0 0 0 1px rgba(236, 72, 153, 0.25);
+    border-color: rgba(236, 72, 153, 0.4);
+  }
+
+  /* Bordure gradient animée — pour zones premium (header, kpi cards). */
+  .border-gradient-pink {
+    position: relative;
+  }
+  .border-gradient-pink::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, #ec4899, #e11d74, #c026d3, #ec4899);
+    background-size: 200% 200%;
+    animation: gradient-pan 6s ease-in-out infinite;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.7;
   }
 }
 
