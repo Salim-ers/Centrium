@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
+import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
@@ -130,7 +130,7 @@ function ErrorCard({
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-3">
           <div className="flex justify-center">
-            <QuadCoreLogo size="md" variant="dark" />
+            <CentriumWordmark size="md" />
           </div>
           <CardTitle>{title}</CardTitle>
           <CardDescription>{message}</CardDescription>

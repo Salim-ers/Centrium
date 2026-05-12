@@ -104,10 +104,30 @@ const config: Config = {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' },
         },
+        // Gradient qui glisse de gauche à droite — utilisé pour le wordmark
+        // Centrium et tout texte/border devant respirer dans la charte.
+        'gradient-pan': {
+          '0%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+          '100%': { backgroundPosition: '0% 50%' },
+        },
+        // Pulse lent pour les halos décoratifs (logo C, accent KPI).
+        'pulse-slow': {
+          '0%, 100%': { opacity: '0.5', transform: 'scale(1)' },
+          '50%': { opacity: '0.8', transform: 'scale(1.05)' },
+        },
+        // Glow shimmer pour les boutons primary et les cartes hover.
+        'glow-shimmer': {
+          '0%, 100%': { boxShadow: '0 0 24px -8px rgba(225, 29, 116, 0.45), 0 0 0 0 rgba(139, 92, 246, 0)' },
+          '50%': { boxShadow: '0 0 40px -8px rgba(225, 29, 116, 0.55), 0 0 60px -20px rgba(139, 92, 246, 0.45)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'gradient-pan': 'gradient-pan 6s ease-in-out infinite',
+        'pulse-slow': 'pulse-slow 3.5s ease-in-out infinite',
+        'glow-shimmer': 'glow-shimmer 4s ease-in-out infinite',
       },
     },
   },

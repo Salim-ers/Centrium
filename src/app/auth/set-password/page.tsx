@@ -14,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { CentriumMark } from '@/components/brand/CentriumMark';
+import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { createClient } from '@/lib/supabase/client';
 import { notifyCreated, notifyError } from '@/lib/notify';
 
@@ -62,7 +62,7 @@ function SetPasswordInner() {
     <div className="min-h-screen flex items-center justify-center bg-background p-6 relative">
       <div className="absolute inset-0 bg-gradient-radial opacity-30 pointer-events-none" />
       <div className="absolute top-6 left-1/2 -translate-x-1/2">
-        <CentriumMark size="md" />
+        <CentriumWordmark size="md" />
       </div>
 
       <Card className="w-full max-w-md relative">

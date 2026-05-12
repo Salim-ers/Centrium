@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 
-import { CentriumMark } from '@/components/brand/CentriumMark';
+import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { NetworkCanvas } from '@/components/marketing/NetworkCanvas';
 
 type Props = {
@@ -17,7 +17,7 @@ type Props = {
 
 export function AuthShell({ children, title, subtitle, footer }: Props) {
   return (
-    <div className="min-h-screen bg-background text-white relative overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
       {/* Réseau animé en fond, très atténué */}
       <div className="absolute inset-0 opacity-[0.35] pointer-events-none">
         <NetworkCanvas />
@@ -31,7 +31,7 @@ export function AuthShell({ children, title, subtitle, footer }: Props) {
       {/* Retour accueil */}
       <Link
         href="/"
-        className="absolute top-6 left-6 z-20 inline-flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition"
+        className="absolute top-6 left-6 z-20 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         Retour
@@ -45,15 +45,12 @@ export function AuthShell({ children, title, subtitle, footer }: Props) {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="w-full max-w-md"
         >
-          {/* Logo Centrium avec aura rose */}
-          <div className="relative flex justify-center mb-6">
-            <span className="absolute inset-[-40%] rounded-full bg-[radial-gradient(circle,rgba(225,29,116,0.5),rgba(139,92,246,0.25),transparent_70%)] blur-2xl pointer-events-none" />
-            <Link
-              href="/"
-              className="relative rounded-2xl bg-[#0a0b14] border border-hairline px-5 py-4 shadow-[0_0_40px_-10px_rgba(225,29,116,0.35)]"
-            >
-              <CentriumMark size="lg" />
-            </Link>
+          {/* Wordmark Centrium grand format avec aura rose */}
+          <div className="relative flex justify-center mb-8">
+            <span className="absolute inset-[-30%] rounded-full bg-[radial-gradient(circle,rgba(225,29,116,0.5),rgba(139,92,246,0.25),transparent_70%)] blur-2xl pointer-events-none" />
+            <div className="relative">
+              <CentriumWordmark size="lg" href="/" />
+            </div>
           </div>
 
           {/* Titre + sous-titre */}
@@ -62,7 +59,7 @@ export function AuthShell({ children, title, subtitle, footer }: Props) {
               {title}
             </h1>
             {subtitle && (
-              <p className="text-sm text-white/60">{subtitle}</p>
+              <p className="text-sm text-muted-foreground">{subtitle}</p>
             )}
           </div>
 
@@ -77,13 +74,8 @@ export function AuthShell({ children, title, subtitle, footer }: Props) {
 
           {/* Footer sous la carte */}
           {footer && (
-            <div className="mt-6 text-center text-sm text-white/60">{footer}</div>
+            <div className="mt-6 text-center text-sm text-muted-foreground">{footer}</div>
           )}
-
-          {/* Mark plateforme — discret, en bas de l'écran auth */}
-          <div className="mt-8 flex justify-center">
-            <CentriumMark size="sm" />
-          </div>
         </motion.div>
       </div>
     </div>

@@ -13,9 +13,8 @@ import {
   Briefcase,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
-import { CentriumMark } from '@/components/brand/CentriumMark';
-import { useOrganizationSafe } from '@/lib/auth/context';
+import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 const PORTAL_NAV = [
   { label: 'Accueil', href: '/portal/dashboard', icon: LayoutDashboard },
@@ -29,15 +28,12 @@ const PORTAL_NAV = [
 
 export function PortalSidebar() {
   const pathname = usePathname();
-  const org = useOrganizationSafe();
-  const logoSrc = org?.branding?.logoUrl ?? null;
-  const brandName = org?.branding?.brandName ?? undefined;
 
   return (
     <aside className="hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-hairline bg-card/80 backdrop-blur-xl">
-      {/* Logo de l'ESN (logo générique en fallback) */}
-      <div className="flex h-32 items-center justify-center border-b border-hairline px-2">
-        <QuadCoreLogo size="xl" variant="dark" src={logoSrc} alt={brandName} />
+      {/* Wordmark Centrium grand format — adaptatif clair/sombre */}
+      <div className="relative flex h-28 items-center justify-start border-b border-hairline px-4 shrink-0">
+        <CentriumWordmark size="md" href="/portal/dashboard" />
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">
@@ -52,8 +48,8 @@ export function PortalSidebar() {
                   className={cn(
                     'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all',
                     active
-                      ? 'bg-violet-glow/10 text-violet-glow border border-violet-glow/20'
-                      : 'text-muted-foreground hover:bg-white/[0.03] hover:text-foreground border border-transparent',
+                      ? 'bg-violet-glow/10 text-violet-glow border border-violet-glow/25 shadow-[0_0_24px_-10px_rgba(225,29,116,0.45)]'
+                      : 'text-muted-foreground hover-surface hover:text-foreground border border-transparent',
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
@@ -69,7 +65,7 @@ export function PortalSidebar() {
         <form action="/api/auth/logout" method="POST">
           <button
             type="submit"
-            className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-white/[0.03] hover:text-foreground transition-all"
+            className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover-surface hover:text-foreground transition-all"
           >
             <LogOut className="h-4 w-4 shrink-0" />
             Se déconnecter
@@ -77,9 +73,9 @@ export function PortalSidebar() {
         </form>
       </div>
 
-      {/* Co-branding plateforme */}
-      <div className="border-t border-hairline px-4 py-3">
-        <CentriumMark size="sm" />
+      {/* Footer : toggle thème uniquement */}
+      <div className="border-t border-hairline px-4 py-3 flex items-center justify-end">
+        <ThemeToggle />
       </div>
     </aside>
   );

@@ -21,44 +21,45 @@ section[id] {
 
 @layer base {
   /* ============ LIGHT MODE (default) ============
-     Palette neutre + accents violet/pink pour respecter la charte Centrium.
-     Inspirée de la bannière : fond crème très clair, accents gradient C. */
+     Palette plus vibrante avec accents violet/pink saturés.
+     Le fond reste très clair pour la lisibilité mais avec une teinte
+     subtile pour éviter l'effet "blanc clinique". */
   :root {
-    --background: 240 30% 98%;            /* off-white légèrement bleuté */
-    --foreground: 230 35% 12%;            /* near-black bleuté */
+    --background: 250 50% 99%;            /* presque blanc, teinté violet */
+    --foreground: 240 40% 10%;            /* near-black bleuté profond */
 
     --card: 0 0% 100%;
-    --card-foreground: 230 35% 12%;
+    --card-foreground: 240 40% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 230 35% 12%;
+    --popover-foreground: 240 40% 10%;
 
-    --primary: 270 91% 55%;               /* violet QuadCore (plus dense en clair) */
+    --primary: 270 95% 58%;               /* violet vif */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 20% 95%;
-    --secondary-foreground: 230 35% 12%;
+    --secondary: 250 30% 96%;
+    --secondary-foreground: 240 40% 10%;
 
-    --muted: 240 20% 95%;
-    --muted-foreground: 230 12% 45%;
+    --muted: 250 30% 96%;
+    --muted-foreground: 240 12% 42%;
 
-    --accent: 328 85% 50%;                /* magenta */
+    --accent: 328 92% 53%;                /* magenta vif */
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 50%;
+    --destructive: 0 75% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 230 20% 90%;
-    --input: 230 20% 90%;
-    --ring: 270 91% 55%;
+    --border: 250 30% 90%;
+    --input: 250 30% 90%;
+    --ring: 270 95% 58%;
 
     --radius: 0.75rem;
 
     /* Surfaces neutres réutilisables — substituts des `bg-white/X` du dark. */
-    --surface-1: 240 30% 100%;            /* card top */
-    --surface-2: 240 25% 97%;             /* card hover */
-    --surface-3: 240 22% 94%;             /* divider doux */
-    --hairline: 230 30% 87%;              /* trait fin */
+    --surface-1: 250 50% 100%;            /* card top */
+    --surface-2: 250 40% 97%;             /* card hover */
+    --surface-3: 250 35% 94%;             /* divider doux */
+    --hairline: 250 30% 88%;              /* trait fin */
   }
 
   /* ============ DARK MODE ============ */
@@ -141,19 +142,28 @@ section[id] {
       0 0 60px -30px rgba(139, 92, 246, 0.25);
   }
 
-  /* Fond app — subtilement teinté en light, profond en dark, avec un ambient
-     glow inspiré des C lumineux de la bannière. */
+  /* Fond app — auras gradient dynamiques inspirées des C lumineux de la
+     bannière. Plus vibrant qu'avant pour un effet "platform live". */
   .app-bg {
     background:
-      radial-gradient(ellipse 80% 50% at 100% 0%, hsl(var(--accent) / 0.06), transparent 60%),
-      radial-gradient(ellipse 60% 50% at 0% 100%, hsl(var(--primary) / 0.06), transparent 60%),
+      radial-gradient(ellipse 70% 50% at 95% 5%, hsl(var(--accent) / 0.10), transparent 60%),
+      radial-gradient(ellipse 60% 60% at 5% 95%, hsl(var(--primary) / 0.10), transparent 60%),
+      radial-gradient(ellipse 100% 30% at 50% 50%, hsl(var(--accent) / 0.04), transparent 70%),
       hsl(var(--background));
   }
   .dark .app-bg {
     background:
-      radial-gradient(ellipse 80% 50% at 100% 0%, hsl(var(--accent) / 0.10), transparent 60%),
-      radial-gradient(ellipse 60% 50% at 0% 100%, hsl(var(--primary) / 0.10), transparent 60%),
+      radial-gradient(ellipse 70% 50% at 95% 5%, hsl(var(--accent) / 0.16), transparent 60%),
+      radial-gradient(ellipse 60% 60% at 5% 95%, hsl(var(--primary) / 0.16), transparent 60%),
+      radial-gradient(ellipse 100% 30% at 50% 50%, hsl(var(--accent) / 0.06), transparent 70%),
       hsl(var(--background));
+  }
+
+  /* Hero glow — pour titres/blocs accent qui doivent vraiment ressortir. */
+  .hero-glow {
+    text-shadow:
+      0 0 32px rgba(225, 29, 116, 0.45),
+      0 0 60px rgba(139, 92, 246, 0.35);
   }
 }
 

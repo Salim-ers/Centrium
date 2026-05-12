@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { CentriumMark } from '@/components/brand/CentriumMark';
+import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { cn } from '@/lib/utils';
 
 const STORAGE_KEY = 'centrium_tutorial_seen_v1';
@@ -130,7 +130,7 @@ export function NewUserTutorial({ open: controlledOpen, onOpenChange }: Props = 
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <div className="mb-2">
-            <CentriumMark size="md" showWordmark={false} />
+            <CentriumWordmark size="sm" showEditor={false} />
           </div>
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="h-5 w-5 text-violet-glow" />

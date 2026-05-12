@@ -3,7 +3,7 @@
 import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { CentriumMark } from '@/components/brand/CentriumMark';
+import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 
 type WelcomeToastProps = {
   /** Prénom du user, optionnel — on le glisse en gros si présent. */
@@ -82,7 +82,7 @@ function WelcomeToastInner({
             {subtitle}
           </p>
           <div className="mt-2 flex items-center gap-2">
-            <CentriumMark size="sm" />
+            <CentriumWordmark size="sm" showEditor={false} />
             <span className="text-[9px] uppercase tracking-[0.18em] text-white/40">
               Session ouverte
             </span>

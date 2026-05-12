@@ -25,8 +25,7 @@ import {
 } from 'lucide-react';
 import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
-import { CentriumMark } from '@/components/brand/CentriumMark';
+import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useOrganizationSafe } from '@/lib/auth/context';
 
@@ -100,8 +99,6 @@ const STORAGE_KEY = 'quadcore-sidebar-open-groups';
 export function Sidebar() {
   const pathname = usePathname();
   const org = useOrganizationSafe();
-  const logoSrc = org?.branding?.logoUrl ?? null;
-  const brandName = org?.branding?.brandName ?? undefined;
   // Hint visuel sur "Paramètres" quand l'identité visuelle n'a pas encore
   // été configurée (logo manquant ET pas de couleur perso définie).
   const brandingMissing =
@@ -165,13 +162,11 @@ export function Sidebar() {
         }}
       />
 
-      {/* Logo */}
-      <Link
-        href="/dashboard"
-        className="relative flex h-28 items-center justify-center border-b border-hairline px-2 hover:opacity-80 transition shrink-0"
-      >
-        <QuadCoreLogo size="lg" variant="dark" src={logoSrc} alt={brandName} />
-      </Link>
+      {/* Wordmark Centrium grand format — remplace tout logo entreprise.
+          Adapte ses couleurs automatiquement au thème clair/sombre. */}
+      <div className="relative flex h-28 items-center justify-start border-b border-hairline px-4 shrink-0">
+        <CentriumWordmark size="md" href="/dashboard" />
+      </div>
 
       {/* Nav */}
       <nav className="relative flex-1 overflow-y-auto px-2 py-3 space-y-3">
@@ -269,10 +264,9 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Co-branding + theme toggle : Centrium en bas, sous le branding ESN.
-          Toggle clair/sombre à droite. */}
-      <div className="relative border-t border-hairline px-4 py-3 flex items-center justify-between gap-2">
-        <CentriumMark size="sm" />
+      {/* Footer sidebar : juste le toggle thème. Le wordmark Centrium est
+          déjà gros en haut, pas besoin de re-marquer. */}
+      <div className="relative border-t border-hairline px-4 py-3 flex items-center justify-end">
         <ThemeToggle />
       </div>
     </aside>

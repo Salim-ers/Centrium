@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useOrganizationSafe } from '@/lib/auth/context';
 import { createClient } from '@/lib/supabase/client';
-import { CentriumMark } from '@/components/brand/CentriumMark';
 import { TutorialButton } from '@/components/onboarding/NewUserTutorial';
 
 export function Header() {
@@ -60,11 +59,6 @@ export function Header() {
 
   return (
     <header className="fixed top-0 right-0 left-0 md:left-64 z-20 h-16 border-b border-hairline bg-background/70 backdrop-blur-xl">
-      {/* Aura subtile derrière le logo Centrium au centre */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute left-1/2 top-0 h-full w-64 -translate-x-1/2 bg-[radial-gradient(ellipse_at_center,rgba(225,29,116,0.12),rgba(139,92,246,0.06),transparent_70%)]"
-      />
       <div className="relative flex h-full items-center justify-between gap-4 px-6">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -73,13 +67,6 @@ export function Header() {
             placeholder="Rechercher un consultant, contact, opportunité…"
             className="pl-9 h-9"
           />
-        </div>
-
-        {/* Centrium au centre — rappel permanent de la plateforme */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden lg:block">
-          <Link href="/dashboard" aria-label="Centrium">
-            <CentriumMark size="md" />
-          </Link>
         </div>
 
         <div className="flex items-center gap-2">
