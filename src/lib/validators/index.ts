@@ -125,6 +125,7 @@ export const jobOfferSchema = z.object({
   mission_purpose: z.string().max(2000).optional().nullable(),
   tasks: z.array(z.string()).default([]),
   tech_stack: z.array(z.string()).default([]),
+  profile_requirements: z.array(z.string()).default([]),
   working_conditions: z.array(z.string()).default([]),
   contract_kind: z.string().max(80).optional().nullable(),
 });

@@ -275,6 +275,7 @@ function CVOptimizerPageInner() {
       mission_purpose: null,
       tasks: [],
       tech_stack: [],
+      profile_requirements: [],
       working_conditions: [],
       contract_kind: null,
       created_at: new Date().toISOString(),

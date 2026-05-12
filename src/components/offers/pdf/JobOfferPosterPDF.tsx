@@ -353,7 +353,14 @@ export function JobOfferPosterPDF({
   ].filter(Boolean);
 
   const tasks = offer.tasks?.length ? offer.tasks : [];
-  const profile = offer.required_skills?.length ? offer.required_skills : [];
+  // Profil recherché : on privilégie profile_requirements (exigences profil,
+  // séniorité, certifs, langues) — sémantiquement distinct des techs. Fallback
+  // sur required_skills pour les AO créés avant l'introduction du champ.
+  const profile = offer.profile_requirements?.length
+    ? offer.profile_requirements
+    : offer.required_skills?.length
+      ? offer.required_skills
+      : [];
   const conditions = offer.working_conditions?.length
     ? offer.working_conditions
     : [];

@@ -13,6 +13,14 @@ export type ParsedOffer = {
   start_date: string | null;
   duration_months: number | null;
   deadline: string | null;
+  // Fiche de poste — reformulé pour le PDF
+  context: string | null;
+  mission_purpose: string | null;
+  tasks: string[];
+  tech_stack: string[];
+  profile_requirements: string[];
+  working_conditions: string[];
+  contract_kind: string | null;
 };
 
 export type ParseOfferImageResult = {
@@ -20,15 +28,33 @@ export type ParseOfferImageResult = {
   warnings: string[];
 };
 
+export type ParseOfferInput = { file?: File; text?: string };
+
 const CLIENT_TIMEOUT_MS = 75_000;
 
-export async function parseOfferImage(file: File): Promise<ParseOfferImageResult> {
+/**
+ * Envoie une annonce d'AO/mission à Claude pour extraction + reformulation.
+ * Accepte une image (screenshot), du texte brut collé, ou les deux à la fois.
+ * Un des deux est requis — sinon throw.
+ */
+export async function parseOfferImage(
+  input: ParseOfferInput | File,
+): Promise<ParseOfferImageResult> {
+  // Backwards-compat : un File seul = mode image, comme avant.
+  const normalized: ParseOfferInput =
+    input instanceof File ? { file: input } : input;
+
+  if (!normalized.file && !normalized.text?.trim()) {
+    throw new Error('Fournir une image OU du texte.');
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), CLIENT_TIMEOUT_MS);
 
   try {
     const fd = new FormData();
-    fd.append('file', file);
+    if (normalized.file) fd.append('file', normalized.file);
+    if (normalized.text) fd.append('text', normalized.text);
 
     const res = await fetch('/api/offers/parse-image', {
       method: 'POST',
@@ -48,7 +74,7 @@ export async function parseOfferImage(file: File): Promise<ParseOfferImageResult
       );
     }
     throw new Error(
-      `Lecture de l'image échouée (${res.status}) : ${body.message ?? body.error ?? 'erreur'}`,
+      `Lecture de l'annonce échouée (${res.status}) : ${body.message ?? body.error ?? 'erreur'}`,
     );
   } catch (e) {
     if (e instanceof Error && e.name === 'AbortError') {

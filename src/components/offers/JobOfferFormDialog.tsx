@@ -4,7 +4,15 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2, X, Sparkles, ImageUp, CheckCircle2 } from 'lucide-react';
+import {
+  Loader2,
+  X,
+  Sparkles,
+  ImageUp,
+  CheckCircle2,
+  ClipboardPaste,
+  Wand2,
+} from 'lucide-react';
 
 import {
   Dialog,
@@ -41,6 +49,7 @@ function toFormValues(o: JobOffer | null | undefined): Partial<JobOfferInput> {
       nice_to_have: [],
       tasks: [],
       tech_stack: [],
+      profile_requirements: [],
       working_conditions: [],
       remote_days: 0,
     };
@@ -62,6 +71,7 @@ function toFormValues(o: JobOffer | null | undefined): Partial<JobOfferInput> {
     mission_purpose: o.mission_purpose ?? '',
     tasks: o.tasks ?? [],
     tech_stack: o.tech_stack ?? [],
+    profile_requirements: o.profile_requirements ?? [],
     working_conditions: o.working_conditions ?? [],
     contract_kind: o.contract_kind ?? '',
   };
@@ -95,9 +105,13 @@ export function JobOfferFormDialog({
   const [parsingImage, setParsingImage] = useState(false);
   const [imageFileName, setImageFileName] = useState<string | null>(null);
   const imageRef = useRef<HTMLInputElement | null>(null);
+  // Source d'import : capture d'écran ou texte brut (paste de l'annonce).
+  const [importMode, setImportMode] = useState<'image' | 'text'>('image');
+  const [importText, setImportText] = useState('');
   // Fiche de poste — champs texte multi-lignes (1 ligne = 1 puce).
   const [tasksText, setTasksText] = useState('');
   const [techStackText, setTechStackText] = useState('');
+  const [profileText, setProfileText] = useState('');
   const [conditionsText, setConditionsText] = useState('');
   const [showFiche, setShowFiche] = useState(false);
   const isEdit = !!offer;
@@ -123,8 +137,11 @@ export function JobOfferFormDialog({
       setNiceInput('');
       setParsingImage(false);
       setImageFileName(null);
+      setImportMode('image');
+      setImportText('');
       setTasksText(arrayToLines(values.tasks));
       setTechStackText(arrayToLines(values.tech_stack));
+      setProfileText(arrayToLines(values.profile_requirements));
       setConditionsText(arrayToLines(values.working_conditions));
       // Auto-déplie la section "Fiche de poste" si l'AO a déjà des
       // données fiche, ou laisse repliée pour ne pas effrayer
@@ -135,19 +152,25 @@ export function JobOfferFormDialog({
           values.contract_kind ||
           (values.tasks && values.tasks.length) ||
           (values.tech_stack && values.tech_stack.length) ||
+          (values.profile_requirements && values.profile_requirements.length) ||
           (values.working_conditions && values.working_conditions.length));
       setShowFiche(hasFicheData);
     }
   }, [open, offer, reset]);
 
-  async function handleImageFile(file: File) {
+  async function runParse(opts: { file?: File; text?: string }) {
     setParsingImage(true);
     try {
-      const { parsed } = await parseOfferImage(file);
+      const { parsed } = await parseOfferImage(opts);
       const dedupe = (xs: string[]) =>
         Array.from(new Set(xs.map((s) => s.trim()).filter(Boolean)));
       const required = dedupe(parsed.required_skills);
       const nice = dedupe(parsed.nice_to_have);
+      const tasks = dedupe(parsed.tasks ?? []);
+      const tech = dedupe(parsed.tech_stack ?? []);
+      const profile = dedupe(parsed.profile_requirements ?? []);
+      const conditions = dedupe(parsed.working_conditions ?? []);
+
       reset({
         title: parsed.title ?? '',
         description: parsed.description ?? '',
@@ -161,19 +184,54 @@ export function JobOfferFormDialog({
         start_date: parsed.start_date ?? '',
         duration_months: parsed.duration_months ?? undefined,
         deadline: parsed.deadline ?? '',
+        context: parsed.context ?? '',
+        mission_purpose: parsed.mission_purpose ?? '',
+        tasks,
+        tech_stack: tech,
+        profile_requirements: profile,
+        working_conditions: conditions,
+        contract_kind: parsed.contract_kind ?? '',
       });
       setRequiredSkills(required);
       setNiceToHave(nice);
-      setImageFileName(file.name);
-      toast.success('Offre extraite — vérifie et valide pour créer.');
+      setTasksText(arrayToLines(tasks));
+      setTechStackText(arrayToLines(tech));
+      setProfileText(arrayToLines(profile));
+      setConditionsText(arrayToLines(conditions));
+      setImageFileName(opts.file?.name ?? null);
+
+      const hasFiche =
+        !!(parsed.context ||
+          parsed.mission_purpose ||
+          parsed.contract_kind ||
+          tasks.length ||
+          tech.length ||
+          profile.length ||
+          conditions.length);
+      if (hasFiche) setShowFiche(true);
+
+      toast.success('Annonce extraite — vérifie et valide pour créer.');
     } catch (e) {
       toast.error(
-        `Lecture de l'offre échouée${e instanceof Error ? ` : ${e.message}` : ''}.`,
+        `Lecture de l'annonce échouée${e instanceof Error ? ` : ${e.message}` : ''}.`,
       );
     } finally {
       setParsingImage(false);
       if (imageRef.current) imageRef.current.value = '';
     }
+  }
+
+  function handleImageFile(file: File) {
+    void runParse({ file });
+  }
+
+  function handleParseText() {
+    const trimmed = importText.trim();
+    if (trimmed.length < 30) {
+      toast.error('Colle au moins quelques lignes de l\'annonce.');
+      return;
+    }
+    void runParse({ text: trimmed });
   }
 
   function addSkill(kind: 'required' | 'nice') {
@@ -214,6 +272,7 @@ export function JobOfferFormDialog({
         nice_to_have: niceToHave,
         tasks: linesToArray(tasksText),
         tech_stack: linesToArray(techStackText),
+        profile_requirements: linesToArray(profileText),
         working_conditions: linesToArray(conditionsText),
       };
       const res = isEdit
@@ -256,48 +315,110 @@ export function JobOfferFormDialog({
                 </div>
                 <div className="flex-1">
                   <div className="text-sm font-medium">
-                    Importer une capture d&apos;écran d&apos;AO
+                    Générer la fiche depuis une annonce
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    PNG, JPEG ou WebP. L&apos;IA extrait intitulé, description, compétences,
-                    TJM, lieu, durée et dates.
+                    L&apos;IA extrait <strong>intitulé, skills, TJM, lieu, dates</strong> et
+                    reformule <strong>contexte, finalité, missions, stack, profil et
+                    conditions</strong> pour la fiche de poste PDF.
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <label
-                  className={`inline-flex items-center gap-2 h-9 px-3 rounded-md border cursor-pointer text-sm transition ${
-                    parsingImage
-                      ? 'border-white/10 bg-white/5 text-white/40 cursor-wait'
-                      : 'border-violet-brand/40 bg-violet-brand/10 text-violet-100 hover:bg-violet-brand/20'
+              {/* Toggle Image / Texte */}
+              <div className="inline-flex rounded-md border border-violet-brand/30 bg-violet-brand/5 p-0.5 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setImportMode('image')}
+                  className={`px-3 py-1.5 rounded inline-flex items-center gap-1.5 transition ${
+                    importMode === 'image'
+                      ? 'bg-violet-brand/30 text-violet-50'
+                      : 'text-muted-foreground hover:text-violet-100'
                   }`}
                 >
-                  {parsingImage ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <ImageUp className="h-4 w-4" />
-                  )}
-                  {parsingImage ? 'Analyse en cours…' : 'Choisir une capture'}
-                  <input
-                    ref={imageRef}
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    className="hidden"
-                    disabled={parsingImage}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) handleImageFile(f);
-                    }}
-                  />
-                </label>
-                {imageFileName && !parsingImage && (
-                  <div className="text-xs text-white/70 truncate flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                    <span className="truncate">{imageFileName}</span>
-                  </div>
-                )}
+                  <ImageUp className="h-3.5 w-3.5" />
+                  Capture
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImportMode('text')}
+                  className={`px-3 py-1.5 rounded inline-flex items-center gap-1.5 transition ${
+                    importMode === 'text'
+                      ? 'bg-violet-brand/30 text-violet-50'
+                      : 'text-muted-foreground hover:text-violet-100'
+                  }`}
+                >
+                  <ClipboardPaste className="h-3.5 w-3.5" />
+                  Texte collé
+                </button>
               </div>
+
+              {importMode === 'image' ? (
+                <div className="flex items-center gap-3">
+                  <label
+                    className={`inline-flex items-center gap-2 h-9 px-3 rounded-md border cursor-pointer text-sm transition ${
+                      parsingImage
+                        ? 'border-white/10 bg-white/5 text-white/40 cursor-wait'
+                        : 'border-violet-brand/40 bg-violet-brand/10 text-violet-100 hover:bg-violet-brand/20'
+                    }`}
+                  >
+                    {parsingImage ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ImageUp className="h-4 w-4" />
+                    )}
+                    {parsingImage ? 'Analyse en cours…' : 'Choisir une capture'}
+                    <input
+                      ref={imageRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="hidden"
+                      disabled={parsingImage}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleImageFile(f);
+                      }}
+                    />
+                  </label>
+                  {imageFileName && !parsingImage && (
+                    <div className="text-xs text-white/70 truncate flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                      <span className="truncate">{imageFileName}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Textarea
+                    rows={6}
+                    value={importText}
+                    onChange={(e) => setImportText(e.target.value)}
+                    disabled={parsingImage}
+                    placeholder={
+                      'Colle ici l\'intégralité de l\'annonce de mission — descriptif, exigences, conditions…'
+                    }
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-muted-foreground">
+                      {importText.trim().length} caractère
+                      {importText.trim().length > 1 ? 's' : ''}
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleParseText}
+                      disabled={parsingImage || importText.trim().length < 30}
+                    >
+                      {parsingImage ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-3.5 w-3.5" />
+                      )}
+                      Générer la fiche
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -518,6 +639,22 @@ export function JobOfferFormDialog({
                   <p className="text-[10px] text-muted-foreground mt-1">
                     Affichées en tags violets sur la fiche. Si vide, on retombe sur les
                     compétences requises.
+                  </p>
+                </div>
+
+                <div>
+                  <Label>Profil recherché — 1 exigence par ligne</Label>
+                  <Textarea
+                    rows={4}
+                    value={profileText}
+                    onChange={(e) => setProfileText(e.target.value)}
+                    placeholder={
+                      '8+ ans d\'expérience en infrastructure réseau\nCertification Cisco CCNP impérative\nAnglais courant (écrit + oral)\nExpérience banque/assurance'
+                    }
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Exigences profil (séniorité, certifs, langues, soft skills) — distinct
+                    des technos. Affiché dans la colonne droite de la fiche.
                   </p>
                 </div>
 

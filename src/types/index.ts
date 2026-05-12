@@ -320,6 +320,8 @@ export type JobOffer = {
   mission_purpose: string | null;
   tasks: string[];
   tech_stack: string[];
+  /** Exigences profil (séniorité, certifs, soft skills) — distinct des techs. */
+  profile_requirements: string[];
   working_conditions: string[];
   contract_kind: string | null;
   created_at: string;
