@@ -7,11 +7,11 @@ import type { LandingDict } from '@/lib/i18n/landing';
 import {
   ConsultantsMockup,
   CVOptimizerMockup,
-  CRMMockup,
+  MatchingMockup,
   TimesheetsMockup,
 } from './ModuleMockups';
 
-const MOCKUPS = [ConsultantsMockup, CVOptimizerMockup, CRMMockup, TimesheetsMockup];
+const MOCKUPS = [ConsultantsMockup, CVOptimizerMockup, MatchingMockup, TimesheetsMockup];
 
 export function Modules({ t }: { t: LandingDict }) {
   return (

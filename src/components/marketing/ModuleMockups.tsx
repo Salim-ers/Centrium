@@ -71,30 +71,70 @@ export function CVOptimizerMockup() {
   );
 }
 
-export function CRMMockup() {
-  const columns = [
-    { title: 'Leads', color: 'bg-white/15', count: 8 },
-    { title: 'Qualif.', color: 'bg-violet-400/70', count: 5 },
-    { title: 'Propo.', color: 'bg-magenta/70', count: 3 },
-    { title: 'Won', color: 'bg-emerald-400/70', count: 2 },
+/**
+ * Matching & AO mockup : montre l'extraction LLM depuis une annonce
+ * + les 3 meilleurs consultants matchés avec score. Remplace l'ancien
+ * CRMMockup kanban.
+ */
+export function MatchingMockup() {
+  const matches = [
+    { name: 'Sarah K.', role: 'Lead Backend', score: 94, tone: 'bg-emerald-400/80' },
+    { name: 'Karim B.', role: 'Backend Senior', score: 87, tone: 'bg-emerald-400/70' },
+    { name: 'Léa M.', role: 'Backend Confirmé', score: 79, tone: 'bg-amber-400/70' },
   ];
   return (
     <Frame>
-      <div className="grid grid-cols-4 gap-1.5">
-        {columns.map((c) => (
-          <div key={c.title} className="rounded bg-white/5 border border-hairline p-1.5">
-            <div className="flex items-center gap-1 mb-1.5">
-              <span className={`h-1.5 w-1.5 rounded-full ${c.color}`} />
-              <div className="text-[9px] text-white/70 font-medium">{c.title}</div>
-              <div className="ml-auto text-[8px] text-white/40">{c.count}</div>
+      {/* Bloc 1 : AO extrait */}
+      <div className="rounded bg-white/5 border border-hairline p-2 mb-2">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <div className="h-1.5 w-1.5 rounded-full bg-magenta" />
+          <div className="text-[9px] uppercase tracking-wider text-magenta font-semibold">
+            AO extrait par IA
+          </div>
+        </div>
+        <div className="space-y-1">
+          <div className="h-2 w-3/4 rounded bg-white/25" />
+          <div className="flex gap-1 mt-1.5">
+            {['Java', 'Spring', 'AWS', 'K8s'].map((s) => (
+              <div
+                key={s}
+                className="rounded bg-violet-brand/30 border border-violet-brand/50 px-1 py-0.5 text-[8px] text-white/80"
+              >
+                {s}
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 mt-1.5 text-[8px] text-white/50">
+            <span>Paris</span>
+            <span>·</span>
+            <span>650€/j</span>
+            <span>·</span>
+            <span>6 mois</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Bloc 2 : 3 profils matchés */}
+      <div className="text-[8px] uppercase tracking-wider text-white/40 font-semibold mb-1">
+        Top matches
+      </div>
+      <div className="space-y-1">
+        {matches.map((m) => (
+          <div
+            key={m.name}
+            className="flex items-center gap-2 rounded bg-white/[0.04] border border-hairline p-1.5"
+          >
+            <div className="h-5 w-5 rounded-full bg-qc-gradient-pink shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] text-white/85 font-medium leading-tight">
+                {m.name}
+              </div>
+              <div className="text-[8px] text-white/45 leading-tight">{m.role}</div>
             </div>
-            <div className="space-y-1">
-              {Array.from({ length: Math.min(c.count, 3) }).map((_, i) => (
-                <div key={i} className="rounded bg-white/10 p-1.5 space-y-0.5">
-                  <div className="h-1.5 w-full rounded bg-white/30" />
-                  <div className="h-1 w-2/3 rounded bg-white/15" />
-                </div>
-              ))}
+            <div
+              className={`text-[9px] font-bold text-white px-1.5 py-0.5 rounded ${m.tone}`}
+            >
+              {m.score}%
             </div>
           </div>
         ))}

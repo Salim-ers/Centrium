@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-import { CentriumMark } from '@/components/brand/CentriumMark';
+import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import type { Locale, LandingDict } from '@/lib/i18n/landing';
 
 type Props = {
@@ -43,9 +43,9 @@ export function Header({ t, locale, onLocaleChange }: Props) {
           aria-label="Retour en haut"
           className="relative flex items-center group ml-2 md:ml-6 shrink-0"
         >
-          <span className="absolute inset-[-35%] rounded-full bg-[radial-gradient(circle,rgba(225,29,116,0.55),rgba(139,92,246,0.18),transparent_70%)] blur-2xl pointer-events-none transition-opacity duration-500 group-hover:opacity-100 opacity-90" />
-          <span className="relative rounded-2xl bg-[#0a0b14] border border-hairline px-3 py-2 shadow-[0_0_40px_rgba(225,29,116,0.25)] transition-transform duration-300 group-hover:scale-[1.03]">
-            <CentriumMark size="md" />
+          <span className="absolute inset-[-25%] rounded-full bg-[radial-gradient(circle,rgba(236,72,153,0.5),rgba(192,38,211,0.25),transparent_70%)] blur-2xl pointer-events-none transition-opacity duration-500 group-hover:opacity-100 opacity-80" />
+          <span className="relative transition-transform duration-300 group-hover:scale-[1.03]">
+            <CentriumWordmark size="md" />
           </span>
         </a>
 
