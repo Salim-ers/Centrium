@@ -193,7 +193,7 @@ function CalendarCell({
 
   if (cell.isWeekend) {
     return (
-      <div className="aspect-[1.1/1] rounded-md border border-white/5 bg-white/[0.015] p-1.5 text-[10px] text-neutral-600 flex flex-col">
+      <div className="aspect-[1.1/1] rounded-md border border-hairline bg-white/[0.015] p-1.5 text-[10px] text-neutral-600 flex flex-col">
         <div className="flex items-baseline justify-between">
           <span>{cell.dayNum}</span>
           <span className="text-[8px] uppercase tracking-wider">WE</span>
@@ -205,7 +205,7 @@ function CalendarCell({
   const baseClasses = `aspect-[1.1/1] rounded-md border p-1.5 text-[11px] flex flex-col justify-between relative transition`;
   const cellClasses = meta
     ? `${baseClasses} ${meta.border} ${meta.bg} ${meta.text}`
-    : `${baseClasses} border-white/10 bg-white/[0.02] text-neutral-400`;
+    : `${baseClasses} border-hairline bg-white/[0.02] text-neutral-400`;
 
   const interactive = editable
     ? 'cursor-pointer hover:brightness-125 hover:ring-1 hover:ring-violet-glow/40'
@@ -250,7 +250,7 @@ function CalendarCell({
       </button>
 
       {isOpen && (
-        <div className="absolute z-30 top-full left-1/2 -translate-x-1/2 mt-1 w-44 rounded-lg border border-white/10 bg-midnight-200 shadow-2xl overflow-hidden">
+        <div className="absolute z-30 top-full left-1/2 -translate-x-1/2 mt-1 w-44 rounded-lg border border-hairline bg-card shadow-2xl overflow-hidden">
           {(Object.keys(KIND_META) as TimesheetDayKind[]).map((k) => {
             const km = KIND_META[k];
             const KI = km.icon;
@@ -272,7 +272,7 @@ function CalendarCell({
           <button
             type="button"
             onClick={() => handlePick('worked', 0.5)}
-            className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-white/[0.04] text-violet-200 border-t border-white/5"
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-white/[0.04] text-violet-200 border-t border-hairline"
           >
             <Briefcase className="h-3.5 w-3.5" />
             <span className="flex-1 text-left">Demi-journée</span>
@@ -285,7 +285,7 @@ function CalendarCell({
             <button
               type="button"
               onClick={() => handlePick(null)}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-red-500/10 text-red-300 border-t border-white/5"
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-red-500/10 text-red-300 border-t border-hairline"
             >
               <Trash2 className="h-3.5 w-3.5" />
               <span className="flex-1 text-left">Vider</span>

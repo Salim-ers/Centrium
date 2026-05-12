@@ -87,7 +87,7 @@ export function LanguagesEditDialog({
           <DialogTitle>Gérer les langues</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={add} className="flex gap-2 py-3 border-b border-white/5">
+        <form onSubmit={add} className="flex gap-2 py-3 border-b border-hairline">
           <Input
             placeholder="fr"
             value={newCode}

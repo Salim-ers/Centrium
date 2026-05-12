@@ -4,7 +4,7 @@ import { BrandingStyles } from '@/components/brand/BrandingStyles';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-midnight-300 text-foreground">
+    <div className="min-h-screen app-bg text-foreground">
       <BrandingStyles />
       <Sidebar />
       <Header />

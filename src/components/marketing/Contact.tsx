@@ -37,7 +37,7 @@ export function Contact({ t }: { t: LandingDict }) {
   }
 
   return (
-    <section id="contact" className="relative py-24 border-t border-white/5">
+    <section id="contact" className="relative py-24 border-t border-hairline">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(139,92,246,0.08),transparent_70%)] pointer-events-none" />
       <div className="relative max-w-5xl mx-auto px-6">
         <div className="grid lg:grid-cols-5 gap-12">
@@ -81,7 +81,7 @@ export function Contact({ t }: { t: LandingDict }) {
             viewport={{ once: true, margin: '-100px' }}
             transition={{ duration: 0.6, delay: 0.15 }}
             onSubmit={onSubmit}
-            className="lg:col-span-3 rounded-xl border border-white/10 bg-midnight-200/60 backdrop-blur p-6 md:p-8 space-y-4"
+            className="lg:col-span-3 rounded-xl border border-hairline bg-card/60 backdrop-blur p-6 md:p-8 space-y-4"
           >
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
@@ -104,7 +104,7 @@ export function Contact({ t }: { t: LandingDict }) {
                 name="message"
                 required
                 rows={5}
-                className="flex w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-violet-brand/40 focus:border-violet-brand/50 transition resize-none"
+                className="flex w-full rounded-md border border-hairline bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-violet-brand/40 focus:border-violet-brand/50 transition resize-none"
               />
             </div>
 

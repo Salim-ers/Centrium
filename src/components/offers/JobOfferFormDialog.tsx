@@ -358,7 +358,7 @@ export function JobOfferFormDialog({
                   <label
                     className={`inline-flex items-center gap-2 h-9 px-3 rounded-md border cursor-pointer text-sm transition ${
                       parsingImage
-                        ? 'border-white/10 bg-white/5 text-white/40 cursor-wait'
+                        ? 'border-hairline bg-white/5 text-white/40 cursor-wait'
                         : 'border-violet-brand/40 bg-violet-brand/10 text-violet-100 hover:bg-violet-brand/20'
                     }`}
                   >

@@ -7,7 +7,7 @@ import type { LandingDict } from '@/lib/i18n/landing';
 
 export function Footer({ t }: { t: LandingDict }) {
   return (
-    <footer className="relative border-t border-white/5 py-14">
+    <footer className="relative border-t border-hairline py-14">
       <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-10">
         <div className="md:col-span-2">
           <CentriumMark size="md" />
@@ -45,7 +45,7 @@ export function Footer({ t }: { t: LandingDict }) {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 mt-10 pt-6 border-t border-white/5 flex flex-col gap-4">
+      <div className="max-w-7xl mx-auto px-6 mt-10 pt-6 border-t border-hairline flex flex-col gap-4">
         <LegalLinks />
         <div className="text-xs text-white/40 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div>{t.footer.rights}</div>

@@ -225,7 +225,7 @@ export function TutorialButton({
   const cls =
     variant === 'cta'
       ? 'inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-glow to-magenta px-4 py-2 text-sm font-semibold text-white shadow-[0_0_20px_-6px_rgba(225,29,116,0.55)] hover:brightness-110 hover:shadow-[0_0_28px_-4px_rgba(225,29,116,0.7)] transition'
-      : 'inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-white/25 transition';
+      : 'inline-flex items-center gap-1.5 rounded-full border border-hairline bg-white/[0.03] px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-white/25 transition';
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className={cn(cls, className)}>

@@ -32,7 +32,7 @@ export function Header({ t, locale, onLocaleChange }: Props) {
     <header
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
         scrolled
-          ? 'backdrop-blur-xl bg-midnight-300/70 border-b border-white/5'
+          ? 'backdrop-blur-xl bg-background/70 border-b border-hairline'
           : 'bg-transparent'
       }`}
     >
@@ -44,7 +44,7 @@ export function Header({ t, locale, onLocaleChange }: Props) {
           className="relative flex items-center group ml-2 md:ml-6 shrink-0"
         >
           <span className="absolute inset-[-35%] rounded-full bg-[radial-gradient(circle,rgba(225,29,116,0.55),rgba(139,92,246,0.18),transparent_70%)] blur-2xl pointer-events-none transition-opacity duration-500 group-hover:opacity-100 opacity-90" />
-          <span className="relative rounded-2xl bg-[#0a0b14] border border-white/10 px-3 py-2 shadow-[0_0_40px_rgba(225,29,116,0.25)] transition-transform duration-300 group-hover:scale-[1.03]">
+          <span className="relative rounded-2xl bg-[#0a0b14] border border-hairline px-3 py-2 shadow-[0_0_40px_rgba(225,29,116,0.25)] transition-transform duration-300 group-hover:scale-[1.03]">
             <CentriumMark size="md" />
           </span>
         </a>
@@ -61,7 +61,7 @@ export function Header({ t, locale, onLocaleChange }: Props) {
           <div
             role="group"
             aria-label="Language"
-            className="relative h-10 p-0.5 rounded-full border border-white/10 bg-white/5 flex items-center text-xs font-semibold"
+            className="relative h-10 p-0.5 rounded-full border border-hairline bg-white/5 flex items-center text-xs font-semibold"
           >
             <button
               type="button"

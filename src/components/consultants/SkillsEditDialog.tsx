@@ -117,7 +117,7 @@ export function SkillsEditDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={add} className="flex flex-col sm:flex-row gap-2 py-3 border-b border-white/5">
+        <form onSubmit={add} className="flex flex-col sm:flex-row gap-2 py-3 border-b border-hairline">
           <Select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="sm:max-w-[180px]">
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -153,7 +153,7 @@ export function SkillsEditDialog({
                       className={`group relative inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-md border text-xs transition ${
                         s.is_highlighted
                           ? 'bg-violet-500/15 text-violet-200 border-violet-500/40'
-                          : 'bg-white/5 border-white/10 text-white/80'
+                          : 'bg-white/5 border-hairline text-white/80'
                       } ${busy === s.id ? 'opacity-50' : ''}`}
                     >
                       <span>{s.name}</span>

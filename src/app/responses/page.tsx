@@ -287,7 +287,7 @@ export default function ResponsesPage() {
               </div>
 
               {selectedOffer && (
-                <div className="space-y-2 text-xs pt-2 border-t border-white/5">
+                <div className="space-y-2 text-xs pt-2 border-t border-hairline">
                   {selectedOffer.seniority && (
                     <div>
                       <span className="text-muted-foreground">Séniorité : </span>
@@ -521,7 +521,7 @@ export default function ResponsesPage() {
                   </div>
 
                   {cvContent && (
-                    <div className="border border-white/5 rounded-md overflow-auto max-h-[400px]">
+                    <div className="border border-hairline rounded-md overflow-auto max-h-[400px]">
                       <div
                         className="scale-[0.6] origin-top-left pointer-events-none"
                         style={{ width: '167%' }}
@@ -624,7 +624,7 @@ export default function ResponsesPage() {
                         />
                       </div>
                       {email.highlights.length > 0 && (
-                        <div className="bg-white/[0.02] border border-white/5 rounded-md p-2">
+                        <div className="bg-white/[0.02] border border-hairline rounded-md p-2">
                           <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                             <Info className="h-3 w-3" />
                             Points-clés du pitch

@@ -12,7 +12,7 @@ const GRADIENTS = [
 
 export function Pillars({ t }: { t: LandingDict }) {
   return (
-    <section className="relative py-16 border-t border-white/5">
+    <section className="relative py-16 border-t border-hairline">
       <div className="max-w-7xl mx-auto px-6">
         <motion.p
           initial={{ opacity: 0, y: 10 }}

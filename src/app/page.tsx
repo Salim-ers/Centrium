@@ -33,7 +33,7 @@ export default function LandingPage() {
   const t = DICT[locale];
 
   return (
-    <div className="min-h-screen bg-midnight-300 text-white relative overflow-x-hidden">
+    <div className="min-h-screen bg-background text-white relative overflow-x-hidden">
       {showSplash && <LoadingSplash />}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22><rect width=%221%22 height=%221%22 fill=%22%23ffffff%22 fill-opacity=%220.015%22/></svg>')] pointer-events-none" />
       <Header t={t} locale={locale} onLocaleChange={handleLocaleChange} />

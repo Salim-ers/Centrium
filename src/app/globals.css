@@ -20,44 +20,53 @@ section[id] {
 }
 
 @layer base {
+  /* ============ LIGHT MODE (default) ============
+     Palette neutre + accents violet/pink pour respecter la charte Centrium.
+     Inspirée de la bannière : fond crème très clair, accents gradient C. */
   :root {
-    /* Light tokens (non utilisés en dark-first, fallback) */
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    --background: 240 30% 98%;            /* off-white légèrement bleuté */
+    --foreground: 230 35% 12%;            /* near-black bleuté */
 
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 230 35% 12%;
 
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 230 35% 12%;
 
-    --primary: 270 91% 65%;           /* violet QuadCore */
-    --primary-foreground: 210 40% 98%;
+    --primary: 270 91% 55%;               /* violet QuadCore (plus dense en clair) */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 240 20% 95%;
+    --secondary-foreground: 230 35% 12%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 240 20% 95%;
+    --muted-foreground: 230 12% 45%;
 
-    --accent: 328 85% 50%;             /* magenta */
-    --accent-foreground: 210 40% 98%;
+    --accent: 328 85% 50%;                /* magenta */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 63% 51%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217 33% 20%;
-    --input: 217 33% 20%;
-    --ring: 270 91% 65%;
+    --border: 230 20% 90%;
+    --input: 230 20% 90%;
+    --ring: 270 91% 55%;
 
     --radius: 0.75rem;
+
+    /* Surfaces neutres réutilisables — substituts des `bg-white/X` du dark. */
+    --surface-1: 240 30% 100%;            /* card top */
+    --surface-2: 240 25% 97%;             /* card hover */
+    --surface-3: 240 22% 94%;             /* divider doux */
+    --hairline: 230 30% 87%;              /* trait fin */
   }
 
+  /* ============ DARK MODE ============ */
   .dark {
-    --background: 228 38% 6%;          /* #0a0b14 */
+    --background: 228 38% 6%;             /* #0a0b14 — midnight */
     --foreground: 210 40% 98%;
 
-    --card: 230 30% 9%;                /* #0f1119 */
+    --card: 230 30% 9%;                   /* #0f1119 */
     --card-foreground: 210 40% 98%;
 
     --popover: 230 30% 9%;
@@ -81,11 +90,24 @@ section[id] {
     --border: 231 18% 18%;
     --input: 231 18% 18%;
     --ring: 270 91% 65%;
+
+    /* Surfaces : les blancs translucides historiques deviennent des tokens. */
+    --surface-1: 0 0% 100% / 0.02;
+    --surface-2: 0 0% 100% / 0.04;
+    --surface-3: 0 0% 100% / 0.06;
+    --hairline: 0 0% 100% / 0.08;
   }
 
   * { @apply border-border; }
-  html { color-scheme: dark; }
-  body { @apply bg-background text-foreground antialiased; }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
 }
 
 @layer utilities {
@@ -93,26 +115,61 @@ section[id] {
     @apply bg-qc-gradient bg-clip-text text-transparent;
   }
   .qc-card {
-    @apply bg-card/50 backdrop-blur border border-white/5;
+    background: hsl(var(--card) / 0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid hsl(var(--hairline));
   }
   .qc-card-hover {
     @apply transition-all hover:border-violet-glow/40 hover:shadow-glow;
   }
+  /* Surfaces auto-adaptatives — remplacent les `bg-white/[0.0X]` historiques. */
+  .surface-1 { background-color: hsl(var(--surface-1)); }
+  .surface-2 { background-color: hsl(var(--surface-2)); }
+  .surface-3 { background-color: hsl(var(--surface-3)); }
+  .hover-surface:hover { background-color: hsl(var(--surface-2)); }
+  .border-hairline { border-color: hsl(var(--hairline)); }
+
+  /* Glow gradient "façon bannière" pour les accents visuels (logo, KPIs). */
+  .glow-c {
+    box-shadow:
+      0 0 60px -20px rgba(225, 29, 116, 0.45),
+      0 0 80px -40px rgba(139, 92, 246, 0.45);
+  }
+  .glow-c-soft {
+    box-shadow:
+      0 0 40px -16px rgba(225, 29, 116, 0.25),
+      0 0 60px -30px rgba(139, 92, 246, 0.25);
+  }
+
+  /* Fond app — subtilement teinté en light, profond en dark, avec un ambient
+     glow inspiré des C lumineux de la bannière. */
+  .app-bg {
+    background:
+      radial-gradient(ellipse 80% 50% at 100% 0%, hsl(var(--accent) / 0.06), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 0% 100%, hsl(var(--primary) / 0.06), transparent 60%),
+      hsl(var(--background));
+  }
+  .dark .app-bg {
+    background:
+      radial-gradient(ellipse 80% 50% at 100% 0%, hsl(var(--accent) / 0.10), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 0% 100%, hsl(var(--primary) / 0.10), transparent 60%),
+      hsl(var(--background));
+  }
 }
 
-/* Corps des documents légaux (modales) */
+/* Corps des documents légaux (modales). Doit rester lisible dans les 2 modes. */
 .legal-body h2 {
-  @apply font-display text-white text-lg font-semibold mt-7 mb-3;
+  @apply font-display text-foreground text-lg font-semibold mt-7 mb-3;
 }
 .legal-body h3 {
-  @apply text-white text-base font-semibold mt-5 mb-2;
+  @apply text-foreground text-base font-semibold mt-5 mb-2;
 }
 .legal-body p { @apply mb-3; }
 .legal-body ul { @apply list-disc pl-6 my-3 space-y-1.5; }
 .legal-body ol { @apply list-decimal pl-6 my-3 space-y-1.5; }
-.legal-body strong { @apply text-white font-semibold; }
+.legal-body strong { @apply text-foreground font-semibold; }
 .legal-body a { @apply text-magenta hover:underline; }
-.legal-body hr { @apply border-white/10 my-6; }
+.legal-body hr { @apply border-border my-6; }
 .legal-body :first-child { margin-top: 0; }
 
 /* === Print CSS pour CV / Factures / CRA QuadCore === */

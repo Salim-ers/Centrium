@@ -254,7 +254,7 @@ export default function OnboardingSetupPage() {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-midnight-300 p-6">
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
         <Card className="max-w-md">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
             Seul un administrateur peut configurer l&apos;identité de l&apos;organisation.
@@ -266,14 +266,14 @@ export default function OnboardingSetupPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-midnight-300">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-violet-glow" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-midnight-300 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-3xl">
         {/* Header co-brandé : Centrium plateforme + ESN qui personnalise */}
         <div className="mb-2 flex justify-center">

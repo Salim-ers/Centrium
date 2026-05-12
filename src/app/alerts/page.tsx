@@ -180,7 +180,7 @@ export default function AlertsPage() {
               className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs ${
                 c > 0
                   ? `${meta.cardBorder} ${meta.cardBg} ${meta.sectionHeaderText}`
-                  : 'border-white/5 bg-white/[0.02] text-muted-foreground'
+                  : 'border-hairline bg-white/[0.02] text-muted-foreground'
               }`}
             >
               <meta.Icon className="h-3.5 w-3.5" />

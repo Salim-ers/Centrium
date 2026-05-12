@@ -139,7 +139,7 @@ export default function CRMPage() {
           {byStatus.map((col) => (
             <div
               key={col.status}
-              className="rounded-xl border border-white/5 bg-white/[0.015] p-3 flex flex-col min-h-[220px]"
+              className="rounded-xl border border-hairline bg-white/[0.015] p-3 flex flex-col min-h-[220px]"
             >
               <div className="flex items-center gap-1.5 mb-2 px-0.5">
                 <span
@@ -155,7 +155,7 @@ export default function CRMPage() {
 
               <div className="space-y-2.5 flex-1">
                 {col.items.length === 0 ? (
-                  <div className="rounded-md border border-dashed border-white/5 py-10 text-center text-[11px] text-muted-foreground/60">
+                  <div className="rounded-md border border-dashed border-hairline py-10 text-center text-[11px] text-muted-foreground/60">
                     —
                   </div>
                 ) : (

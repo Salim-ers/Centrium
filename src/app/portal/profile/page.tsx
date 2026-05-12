@@ -281,7 +281,7 @@ export default function PortalProfilePage() {
                 <ReadRow icon={<MapPin className="h-4 w-4" />} label="Mobilité" value={c.mobility} />
               )}
               {c.summary && (
-                <div className="md:col-span-2 mt-2 pt-2 border-t border-white/5">
+                <div className="md:col-span-2 mt-2 pt-2 border-t border-hairline">
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
                     Résumé
                   </div>

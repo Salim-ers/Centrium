@@ -100,7 +100,7 @@ export default function PortalContractsPage() {
                   />
                 </div>
 
-                <div className="flex gap-2 pt-2 border-t border-white/5 flex-wrap">
+                <div className="flex gap-2 pt-2 border-t border-hairline flex-wrap">
                   <Button size="sm" asChild>
                     <Link href={`/portal/contracts/${c.id}`}>
                       <Eye className="h-3.5 w-3.5" />

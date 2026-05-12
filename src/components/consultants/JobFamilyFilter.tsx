@@ -35,7 +35,7 @@ export function JobFamilyFilter({ counts, total, active, onChange }: Props) {
           'h-7 px-3 rounded-full text-[11px] font-semibold uppercase tracking-wider border transition',
           active.size === 0
             ? 'border-violet-glow/60 bg-violet-glow/15 text-violet-glow'
-            : 'border-white/10 text-white/60 hover:border-white/25 hover:text-white/80',
+            : 'border-hairline text-white/60 hover:border-white/25 hover:text-white/80',
         )}
       >
         Tous
@@ -54,7 +54,7 @@ export function JobFamilyFilter({ counts, total, active, onChange }: Props) {
               'h-7 px-3 rounded-full text-[11px] font-semibold uppercase tracking-wider border transition',
               isActive
                 ? 'border-violet-glow/60 bg-violet-glow/15 text-violet-glow'
-                : 'border-white/10 text-white/60 hover:border-white/25 hover:text-white/80',
+                : 'border-hairline text-white/60 hover:border-white/25 hover:text-white/80',
             )}
           >
             {fam.label}
@@ -71,7 +71,7 @@ export function JobFamilyFilter({ counts, total, active, onChange }: Props) {
             'h-7 px-3 rounded-full text-[11px] font-semibold uppercase tracking-wider border transition',
             active.has('other')
               ? 'border-violet-glow/60 bg-violet-glow/15 text-violet-glow'
-              : 'border-white/10 text-white/60 hover:border-white/25 hover:text-white/80',
+              : 'border-hairline text-white/60 hover:border-white/25 hover:text-white/80',
           )}
         >
           Autres

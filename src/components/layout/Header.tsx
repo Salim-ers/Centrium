@@ -59,7 +59,7 @@ export function Header() {
   const activeMembership = org?.memberships.find((m) => m.id === org.activeOrgId);
 
   return (
-    <header className="fixed top-0 right-0 left-0 md:left-64 z-20 h-16 border-b border-white/5 bg-midnight-300/60 backdrop-blur-xl">
+    <header className="fixed top-0 right-0 left-0 md:left-64 z-20 h-16 border-b border-hairline bg-background/70 backdrop-blur-xl">
       {/* Aura subtile derrière le logo Centrium au centre */}
       <div
         aria-hidden
@@ -71,7 +71,7 @@ export function Header() {
           <Input
             type="search"
             placeholder="Rechercher un consultant, contact, opportunité…"
-            className="pl-9 h-9 bg-white/[0.03] border-white/5"
+            className="pl-9 h-9"
           />
         </div>
 
@@ -113,8 +113,8 @@ export function Header() {
             </Button>
 
             {menuOpen && (
-              <div className="absolute right-0 mt-2 w-64 rounded-lg border border-white/10 bg-midnight-200/95 backdrop-blur-xl shadow-xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-white/5">
+              <div className="absolute right-0 mt-2 w-64 rounded-lg border border-hairline bg-card/95 backdrop-blur-xl shadow-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-hairline">
                   <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Connecté en tant que
                   </div>
@@ -130,14 +130,14 @@ export function Header() {
                 <Link
                   href="/settings"
                   onClick={() => setMenuOpen(false)}
-                  className="block px-4 py-2.5 text-sm hover:bg-white/5 transition"
+                  className="block px-4 py-2.5 text-sm hover-surface transition"
                 >
                   Paramètres
                 </Link>
                 <form action="/api/auth/logout" method="POST">
                   <button
                     type="submit"
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-300 hover:bg-red-500/10 hover:text-red-200 transition border-t border-white/5"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition border-t border-hairline"
                   >
                     <LogOut className="h-3.5 w-3.5" />
                     Déconnexion

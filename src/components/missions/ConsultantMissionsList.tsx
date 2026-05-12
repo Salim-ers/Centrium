@@ -135,7 +135,7 @@ export function ConsultantMissionsList({ consultantId, canManage = false }: Prop
               return (
                 <li
                   key={m.id}
-                  className="rounded-lg border border-white/5 bg-white/[0.02] p-3 flex items-start gap-3"
+                  className="rounded-lg border border-hairline bg-white/[0.02] p-3 flex items-start gap-3"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">

@@ -37,7 +37,7 @@ export function TalentTabs({ active, counts }: Props) {
   ];
 
   return (
-    <div className="mb-6 flex items-center gap-1 rounded-lg border border-white/5 bg-white/[0.02] p-1 w-fit">
+    <div className="mb-6 flex items-center gap-1 rounded-lg border border-hairline bg-white/[0.02] p-1 w-fit">
       {tabs.map((t) => {
         const isActive = t.id === active;
         const count = counts?.[t.id];

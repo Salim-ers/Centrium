@@ -311,7 +311,7 @@ export default function ConsultantDetailPage() {
           </div>
 
           {(c.email || c.phone || c.linkedin_url) && (
-            <div className="mt-6 pt-6 border-t border-white/5 flex flex-wrap gap-4 text-sm">
+            <div className="mt-6 pt-6 border-t border-hairline flex flex-wrap gap-4 text-sm">
               {c.email && (
                 <a
                   href={`mailto:${c.email}`}
@@ -387,7 +387,7 @@ export default function ConsultantDetailPage() {
                 <p className="text-sm text-muted-foreground">Aucune expérience renseignée</p>
               ) : (
                 experiences.map((exp) => (
-                  <div key={exp.id} className="relative pl-5 border-l border-white/10 group">
+                  <div key={exp.id} className="relative pl-5 border-l border-hairline group">
                     <div className="absolute -left-1.5 top-1 h-3 w-3 rounded-full bg-qc-gradient" />
                     <div className="flex items-baseline justify-between gap-3 flex-wrap">
                       <div className="flex-1">

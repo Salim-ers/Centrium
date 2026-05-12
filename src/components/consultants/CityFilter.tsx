@@ -54,7 +54,7 @@ export function CityFilter({ cities, selected, onChange }: Props) {
         className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs border transition ${
           isFiltering
             ? 'border-violet-glow/60 bg-violet-glow/15 text-violet-100'
-            : 'border-white/10 bg-white/[0.02] text-muted-foreground hover:border-white/20 hover:text-white'
+            : 'border-hairline bg-white/[0.02] text-muted-foreground hover:border-white/20 hover:text-white'
         }`}
       >
         <MapPin className="h-3.5 w-3.5" />
@@ -68,8 +68,8 @@ export function CityFilter({ cities, selected, onChange }: Props) {
       </button>
 
       {open && (
-        <div className="absolute z-30 mt-1 w-64 max-h-80 overflow-auto rounded-lg border border-white/10 bg-midnight-200 shadow-2xl">
-          <div className="sticky top-0 px-3 py-2 border-b border-white/5 bg-midnight-200 flex items-center justify-between">
+        <div className="absolute z-30 mt-1 w-64 max-h-80 overflow-auto rounded-lg border border-hairline bg-card shadow-2xl">
+          <div className="sticky top-0 px-3 py-2 border-b border-hairline bg-card flex items-center justify-between">
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
               Filtrer par ville
             </span>

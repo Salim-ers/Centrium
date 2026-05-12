@@ -9,7 +9,7 @@ import type { LandingDict } from '@/lib/i18n/landing';
 
 export function PricingPreview({ t }: { t: LandingDict }) {
   return (
-    <section id="pricing" className="relative py-24 border-t border-white/5">
+    <section id="pricing" className="relative py-24 border-t border-hairline">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(225,29,116,0.08),transparent_70%)] pointer-events-none" />
       <div className="relative max-w-6xl mx-auto px-6">
         <motion.div
@@ -39,7 +39,7 @@ export function PricingPreview({ t }: { t: LandingDict }) {
               className={`relative rounded-xl border p-6 flex flex-col ${
                 p.popular
                   ? 'border-violet-brand/50 bg-gradient-to-b from-violet-brand/10 to-transparent shadow-glow'
-                  : 'border-white/10 bg-white/[0.02]'
+                  : 'border-hairline bg-white/[0.02]'
               }`}
             >
               {p.popular && (

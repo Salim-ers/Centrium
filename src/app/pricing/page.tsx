@@ -73,8 +73,8 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-midnight-300">
-      <header className="border-b border-white/5 px-6 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-hairline px-6 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
           <QuadCoreLogo size="sm" variant="dark" />
         </Link>

@@ -402,7 +402,7 @@ export function ConsultantFormDialog({
                 <label
                   className={`inline-flex items-center gap-2 h-9 px-3 rounded-md border cursor-pointer text-sm transition ${
                     parsingCV
-                      ? 'border-white/10 bg-white/5 text-white/40 cursor-wait'
+                      ? 'border-hairline bg-white/5 text-white/40 cursor-wait'
                       : 'border-violet-brand/40 bg-violet-brand/10 text-violet-100 hover:bg-violet-brand/20'
                   }`}
                 >
@@ -552,7 +552,7 @@ export function ConsultantFormDialog({
               </label>
 
               {createPortal && (
-                <div className="pt-2 border-t border-white/5 space-y-1.5">
+                <div className="pt-2 border-t border-hairline space-y-1.5">
                   <Label>Email du portail *</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />

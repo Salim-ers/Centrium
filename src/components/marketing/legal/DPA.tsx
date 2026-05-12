@@ -65,17 +65,17 @@ export function DPA() {
       </p>
       <table className="w-full text-sm my-4 border-collapse">
         <thead>
-          <tr className="text-left border-b border-white/10">
+          <tr className="text-left border-b border-hairline">
             <th className="py-2 pr-4 text-white">Sous-traitant</th>
             <th className="py-2 pr-4 text-white">Finalité</th>
             <th className="py-2 text-white">Localisation</th>
           </tr>
         </thead>
         <tbody className="text-white/75">
-          <tr className="border-b border-white/5"><td className="py-2 pr-4">Supabase, Inc.</td><td className="py-2 pr-4">Base de données, Auth, Storage</td><td className="py-2">UE (eu-west)</td></tr>
-          <tr className="border-b border-white/5"><td className="py-2 pr-4">Vercel, Inc.</td><td className="py-2 pr-4">Hébergement applicatif</td><td className="py-2">UE / US (CCT)</td></tr>
-          <tr className="border-b border-white/5"><td className="py-2 pr-4">Stripe Payments Europe Ltd.</td><td className="py-2 pr-4">Paiement abonnements</td><td className="py-2">UE (Irlande)</td></tr>
-          <tr className="border-b border-white/5"><td className="py-2 pr-4">Anthropic PBC</td><td className="py-2 pr-4">Moteur IA CV Optimizer</td><td className="py-2">US (CCT + DPF)</td></tr>
+          <tr className="border-b border-hairline"><td className="py-2 pr-4">Supabase, Inc.</td><td className="py-2 pr-4">Base de données, Auth, Storage</td><td className="py-2">UE (eu-west)</td></tr>
+          <tr className="border-b border-hairline"><td className="py-2 pr-4">Vercel, Inc.</td><td className="py-2 pr-4">Hébergement applicatif</td><td className="py-2">UE / US (CCT)</td></tr>
+          <tr className="border-b border-hairline"><td className="py-2 pr-4">Stripe Payments Europe Ltd.</td><td className="py-2 pr-4">Paiement abonnements</td><td className="py-2">UE (Irlande)</td></tr>
+          <tr className="border-b border-hairline"><td className="py-2 pr-4">Anthropic PBC</td><td className="py-2 pr-4">Moteur IA CV Optimizer</td><td className="py-2">US (CCT + DPF)</td></tr>
           <tr><td className="py-2 pr-4">Resend / Postmark</td><td className="py-2 pr-4">E-mails transactionnels</td><td className="py-2">UE / US (CCT)</td></tr>
         </tbody>
       </table>

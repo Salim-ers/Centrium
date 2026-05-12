@@ -5,7 +5,7 @@ import type { LandingDict } from '@/lib/i18n/landing';
 
 export function HowItWorks({ t }: { t: LandingDict }) {
   return (
-    <section className="relative py-24 border-t border-white/5">
+    <section className="relative py-24 border-t border-hairline">
       <div className="max-w-6xl mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -35,7 +35,7 @@ export function HowItWorks({ t }: { t: LandingDict }) {
             >
               <div className="relative mx-auto w-20 h-20 mb-6">
                 <div className="absolute inset-0 rounded-full bg-qc-gradient opacity-20 blur-xl" />
-                <div className="relative h-full w-full rounded-full border border-violet-brand/40 bg-midnight-200 flex items-center justify-center">
+                <div className="relative h-full w-full rounded-full border border-violet-brand/40 bg-card flex items-center justify-center">
                   <span className="font-display text-xl font-bold bg-qc-gradient bg-clip-text text-transparent">
                     {s.n}
                   </span>

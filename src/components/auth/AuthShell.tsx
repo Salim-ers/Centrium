@@ -17,7 +17,7 @@ type Props = {
 
 export function AuthShell({ children, title, subtitle, footer }: Props) {
   return (
-    <div className="min-h-screen bg-midnight-300 text-white relative overflow-hidden">
+    <div className="min-h-screen bg-background text-white relative overflow-hidden">
       {/* Réseau animé en fond, très atténué */}
       <div className="absolute inset-0 opacity-[0.35] pointer-events-none">
         <NetworkCanvas />
@@ -50,7 +50,7 @@ export function AuthShell({ children, title, subtitle, footer }: Props) {
             <span className="absolute inset-[-40%] rounded-full bg-[radial-gradient(circle,rgba(225,29,116,0.5),rgba(139,92,246,0.25),transparent_70%)] blur-2xl pointer-events-none" />
             <Link
               href="/"
-              className="relative rounded-2xl bg-[#0a0b14] border border-white/10 px-5 py-4 shadow-[0_0_40px_-10px_rgba(225,29,116,0.35)]"
+              className="relative rounded-2xl bg-[#0a0b14] border border-hairline px-5 py-4 shadow-[0_0_40px_-10px_rgba(225,29,116,0.35)]"
             >
               <CentriumMark size="lg" />
             </Link>
@@ -70,7 +70,7 @@ export function AuthShell({ children, title, subtitle, footer }: Props) {
           <div className="relative rounded-2xl">
             {/* gradient border via double div */}
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-magenta/40 via-violet-brand/20 to-transparent opacity-60 blur-sm" />
-            <div className="relative rounded-2xl border border-white/10 bg-midnight-200/80 backdrop-blur-xl shadow-[0_0_60px_-20px_rgba(225,29,116,0.35)] p-7">
+            <div className="relative rounded-2xl border border-hairline bg-card/80 backdrop-blur-xl shadow-[0_0_60px_-20px_rgba(225,29,116,0.35)] p-7">
               {children}
             </div>
           </div>

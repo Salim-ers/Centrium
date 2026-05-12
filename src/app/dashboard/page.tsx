@@ -110,7 +110,9 @@ export default function DashboardPage() {
   return (
     <AppShell>
       <div className="mb-8">
-        <h1 className="font-display text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="font-display text-3xl font-bold tracking-tight">
+          <span className="qc-gradient-text">Dashboard</span>
+        </h1>
         <p className="text-muted-foreground mt-1">
           Vue d&apos;ensemble de votre activité {brandName}
         </p>

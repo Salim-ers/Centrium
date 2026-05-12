@@ -375,7 +375,7 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
             {docs.map((d) => (
               <div
                 key={d.id}
-                className="flex items-center gap-3 p-2.5 rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+                className="flex items-center gap-3 p-2.5 rounded-lg border border-hairline bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
               >
                 <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div className="flex-1 min-w-0">

@@ -199,7 +199,7 @@ export function ContactInteractionsDialog({
               return (
                 <div
                   key={it.id}
-                  className="rounded-lg border border-white/5 bg-white/[0.02] p-3 group hover:bg-white/[0.04]"
+                  className="rounded-lg border border-hairline bg-white/[0.02] p-3 group hover:bg-white/[0.04]"
                 >
                   <div className="flex items-start gap-3">
                     <div className={`p-1.5 rounded-md bg-white/[0.04] ${meta.color}`}>

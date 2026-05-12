@@ -687,7 +687,7 @@ function CVOptimizerPageInner() {
               <div>
                 <Label className="text-xs">Intitulé</Label>
                 <input
-                  className="flex h-9 w-full rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm mt-1"
+                  className="flex h-9 w-full rounded-md border border-hairline bg-white/[0.02] px-3 py-2 text-sm mt-1"
                   value={offerTitle}
                   onChange={(e) => setOfferTitle(e.target.value)}
                   placeholder="ex: QA Automation Senior"
@@ -828,7 +828,7 @@ function CVOptimizerPageInner() {
                                 {s.evidence.length > 0 && (
                                   <ul className="mt-1 text-[10px] text-muted-foreground/80 space-y-0.5">
                                     {s.evidence.slice(0, 3).map((ev, i) => (
-                                      <li key={i} className="pl-2 border-l border-white/10">
+                                      <li key={i} className="pl-2 border-l border-hairline">
                                         {ev}
                                       </li>
                                     ))}
@@ -1037,7 +1037,7 @@ function CVOptimizerPageInner() {
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div
-      className={`rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1.5 ${
+      className={`rounded-lg border border-hairline bg-white/[0.02] px-2 py-1.5 ${
         value === 0 ? 'border-amber-500/30' : ''
       }`}
     >

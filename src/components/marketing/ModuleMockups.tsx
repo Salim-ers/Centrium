@@ -15,9 +15,9 @@ export function ConsultantsMockup() {
       </div>
       <div className="space-y-1.5">
         {rows.map((r) => (
-          <div key={r.name} className="flex items-center justify-between rounded-md bg-white/5 border border-white/5 px-3 py-2">
+          <div key={r.name} className="flex items-center justify-between rounded-md bg-white/5 border border-hairline px-3 py-2">
             <div className="flex items-center gap-2.5">
-              <div className={`h-6 w-6 rounded-full ${r.color}/40 border border-white/10`} />
+              <div className={`h-6 w-6 rounded-full ${r.color}/40 border border-hairline`} />
               <div>
                 <div className="text-[11px] text-white/90 font-medium">{r.name}</div>
                 <div className="text-[9px] text-white/50">{r.skill}</div>
@@ -39,7 +39,7 @@ export function CVOptimizerMockup() {
         <div className="h-3 w-32 rounded bg-white/15" />
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <div className="rounded bg-white/5 p-2.5 space-y-1.5 border border-white/5">
+        <div className="rounded bg-white/5 p-2.5 space-y-1.5 border border-hairline">
           <div className="h-2 w-16 rounded bg-violet-400/70" />
           <div className="h-1.5 w-full rounded bg-white/10" />
           <div className="h-1.5 w-4/5 rounded bg-white/10" />
@@ -82,7 +82,7 @@ export function CRMMockup() {
     <Frame>
       <div className="grid grid-cols-4 gap-1.5">
         {columns.map((c) => (
-          <div key={c.title} className="rounded bg-white/5 border border-white/5 p-1.5">
+          <div key={c.title} className="rounded bg-white/5 border border-hairline p-1.5">
             <div className="flex items-center gap-1 mb-1.5">
               <span className={`h-1.5 w-1.5 rounded-full ${c.color}`} />
               <div className="text-[9px] text-white/70 font-medium">{c.title}</div>
@@ -122,7 +122,7 @@ export function TimesheetsMockup() {
           </div>
         ))}
       </div>
-      <div className="mt-3 flex items-center justify-between rounded bg-white/5 border border-white/5 px-2.5 py-2">
+      <div className="mt-3 flex items-center justify-between rounded bg-white/5 border border-hairline px-2.5 py-2">
         <div>
           <div className="text-[10px] text-white/50">Facture avril</div>
           <div className="text-xs text-white/90 font-semibold">12 450 €</div>
@@ -135,7 +135,7 @@ export function TimesheetsMockup() {
 
 function Frame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative rounded-xl bg-midnight-200/80 border border-white/10 p-4 shadow-2xl backdrop-blur overflow-hidden">
+    <div className="relative rounded-xl bg-card/80 border border-hairline p-4 shadow-2xl backdrop-blur overflow-hidden">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-violet-brand/40 to-transparent" />
       {children}
     </div>

@@ -59,7 +59,7 @@ function SetPasswordInner() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-midnight-300 p-6 relative">
+    <div className="min-h-screen flex items-center justify-center bg-background p-6 relative">
       <div className="absolute inset-0 bg-gradient-radial opacity-30 pointer-events-none" />
       <div className="absolute top-6 left-1/2 -translate-x-1/2">
         <CentriumMark size="md" />

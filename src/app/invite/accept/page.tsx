@@ -126,7 +126,7 @@ function ErrorCard({
   backTo?: string;
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-midnight-300 p-6">
+    <div className="min-h-screen flex items-center justify-center bg-background p-6">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-3">
           <div className="flex justify-center">

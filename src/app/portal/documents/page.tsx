@@ -216,7 +216,7 @@ export default function PortalDocumentsPage() {
                 return (
                   <li
                     key={d.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+                    className="flex items-center gap-3 p-3 rounded-lg border border-hairline bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
                   >
                     <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
                     <div className="flex-1 min-w-0">

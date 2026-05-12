@@ -34,9 +34,9 @@ export function PortalSidebar() {
   const brandName = org?.branding?.brandName ?? undefined;
 
   return (
-    <aside className="hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-white/5 bg-midnight-200/80 backdrop-blur-xl">
+    <aside className="hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-hairline bg-card/80 backdrop-blur-xl">
       {/* Logo de l'ESN (logo générique en fallback) */}
-      <div className="flex h-32 items-center justify-center border-b border-white/5 px-2">
+      <div className="flex h-32 items-center justify-center border-b border-hairline px-2">
         <QuadCoreLogo size="xl" variant="dark" src={logoSrc} alt={brandName} />
       </div>
 
@@ -65,7 +65,7 @@ export function PortalSidebar() {
         </ul>
       </nav>
 
-      <div className="border-t border-white/5 p-3">
+      <div className="border-t border-hairline p-3">
         <form action="/api/auth/logout" method="POST">
           <button
             type="submit"
@@ -78,7 +78,7 @@ export function PortalSidebar() {
       </div>
 
       {/* Co-branding plateforme */}
-      <div className="border-t border-white/5 px-4 py-3">
+      <div className="border-t border-hairline px-4 py-3">
         <CentriumMark size="sm" />
       </div>
     </aside>

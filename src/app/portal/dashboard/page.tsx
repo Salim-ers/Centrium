@@ -118,7 +118,7 @@ export default function PortalDashboardPage() {
                 {timesheets.map((t) => (
                   <li
                     key={t.id}
-                    className="flex items-center gap-3 p-2.5 rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+                    className="flex items-center gap-3 p-2.5 rounded-lg border border-hairline bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium">
@@ -159,7 +159,7 @@ export default function PortalDashboardPage() {
                 {invoices.map((i) => (
                   <li
                     key={i.id}
-                    className="flex items-center gap-2 p-2 rounded-md border border-white/5 bg-white/[0.02]"
+                    className="flex items-center gap-2 p-2 rounded-md border border-hairline bg-white/[0.02]"
                   >
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                     <div className="flex-1 min-w-0">

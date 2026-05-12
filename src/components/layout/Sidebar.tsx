@@ -27,6 +27,7 @@ import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { CentriumMark } from '@/components/brand/CentriumMark';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useOrganizationSafe } from '@/lib/auth/context';
 
 type NavItem = {
@@ -153,17 +154,27 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-white/5 bg-midnight-200/80 backdrop-blur-xl">
+    <aside className="hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-hairline bg-card/80 backdrop-blur-xl">
+      {/* Halo gradient "façon bannière" — accent visuel discret en haut */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-40 opacity-70"
+        style={{
+          background:
+            'radial-gradient(ellipse 70% 60% at 50% 0%, rgba(225,29,116,0.18), transparent 65%), radial-gradient(ellipse 70% 60% at 50% 100%, rgba(139,92,246,0.14), transparent 65%)',
+        }}
+      />
+
       {/* Logo */}
       <Link
         href="/dashboard"
-        className="flex h-28 items-center justify-center border-b border-white/5 px-2 hover:opacity-80 transition shrink-0"
+        className="relative flex h-28 items-center justify-center border-b border-hairline px-2 hover:opacity-80 transition shrink-0"
       >
         <QuadCoreLogo size="lg" variant="dark" src={logoSrc} alt={brandName} />
       </Link>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-3">
+      <nav className="relative flex-1 overflow-y-auto px-2 py-3 space-y-3">
         {GROUPS.map((group) => {
           const open = openGroups[group.id] ?? false;
           const GroupIcon = group.icon;
@@ -182,7 +193,9 @@ export function Sidebar() {
                 onClick={() => toggleGroup(group.id)}
                 className={cn(
                   'w-full flex items-center justify-between gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition',
-                  groupActive ? 'text-violet-300' : 'text-white/40 hover:text-white/70',
+                  groupActive
+                    ? 'text-violet-glow'
+                    : 'text-muted-foreground/70 hover:text-foreground',
                 )}
               >
                 <span className="flex items-center gap-2">
@@ -206,7 +219,7 @@ export function Sidebar() {
                   <Sparkles className="h-3.5 w-3.5 text-violet-glow shrink-0 mt-0.5" />
                   <div className="text-[11px] leading-tight">
                     <div className="font-semibold text-violet-glow">Personnalise ton ESN</div>
-                    <div className="text-white/60 mt-0.5">
+                    <div className="text-muted-foreground mt-0.5">
                       Logo, couleurs, identité légale
                     </div>
                   </div>
@@ -239,8 +252,8 @@ export function Sidebar() {
                           className={cn(
                             'group flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm transition-all',
                             active
-                              ? 'bg-violet-glow/10 text-violet-glow border border-violet-glow/20 shadow-[0_0_20px_-10px_rgba(139,92,246,0.4)]'
-                              : 'text-muted-foreground hover:bg-white/[0.03] hover:text-foreground border border-transparent',
+                              ? 'bg-violet-glow/10 text-violet-glow border border-violet-glow/25 shadow-[0_0_24px_-10px_rgba(225,29,116,0.45)]'
+                              : 'text-muted-foreground hover-surface hover:text-foreground border border-transparent',
                           )}
                         >
                           <Icon className="h-4 w-4 shrink-0" />
@@ -256,10 +269,11 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Co-branding : la plateforme est Centrium, éditée par QuadCore.
-          Discret, en bas de la sidebar, sous le branding de l'ESN. */}
-      <div className="border-t border-white/5 px-4 py-3">
+      {/* Co-branding + theme toggle : Centrium en bas, sous le branding ESN.
+          Toggle clair/sombre à droite. */}
+      <div className="relative border-t border-hairline px-4 py-3 flex items-center justify-between gap-2">
         <CentriumMark size="sm" />
+        <ThemeToggle />
       </div>
     </aside>
   );

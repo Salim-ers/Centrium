@@ -81,7 +81,7 @@ export function AvailableFromField({ value, onChange }: Props) {
               setDate(e.target.value);
               onChange(e.target.value);
             }}
-            className="h-8 w-44 rounded-md border border-white/10 bg-white/[0.02] px-2 text-sm text-white"
+            className="h-8 w-44 rounded-md border border-hairline bg-white/[0.02] px-2 text-sm text-white"
           />
         )}
       </div>
@@ -107,7 +107,7 @@ function ModeButton({
       className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs border transition ${
         active
           ? 'border-violet-glow/60 bg-violet-glow/15 text-violet-100'
-          : 'border-white/10 bg-white/[0.02] text-muted-foreground hover:border-white/20 hover:text-white'
+          : 'border-hairline bg-white/[0.02] text-muted-foreground hover:border-white/20 hover:text-white'
       }`}
     >
       {icon}

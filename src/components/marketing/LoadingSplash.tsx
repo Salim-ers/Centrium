@@ -39,7 +39,7 @@ export function LoadingSplash({ minDuration = 1500, label = 'CHARGEMENT' }: Prop
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="fixed inset-0 z-[999] bg-midnight-300 flex items-center justify-center"
+          className="fixed inset-0 z-[999] bg-background flex items-center justify-center"
         >
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(225,29,116,0.18),transparent_60%)]" />
 
@@ -51,7 +51,7 @@ export function LoadingSplash({ minDuration = 1500, label = 'CHARGEMENT' }: Prop
               className="relative"
             >
               <div className="absolute inset-[-40%] rounded-[2rem] bg-[radial-gradient(circle,rgba(225,29,116,0.55),rgba(139,92,246,0.3),transparent_70%)] blur-2xl animate-pulse" />
-              <div className="relative rounded-2xl bg-[#0a0b14] border border-white/10 p-6 shadow-[0_0_80px_rgba(225,29,116,0.35)] overflow-hidden">
+              <div className="relative rounded-2xl bg-[#0a0b14] border border-hairline p-6 shadow-[0_0_80px_rgba(225,29,116,0.35)] overflow-hidden">
                 <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_at_center,rgba(225,29,116,0.18),transparent_70%)]" />
                 <CentriumMark size="xl" />
               </div>

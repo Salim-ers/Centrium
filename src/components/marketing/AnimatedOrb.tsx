@@ -142,7 +142,7 @@ function Tag({ label, dot }: { label: string; dot: 'violet' | 'cyan' | 'magenta'
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 1.1, duration: 0.6 }}
-      className="flex items-center gap-2 rounded-full border border-white/10 bg-midnight-100/80 backdrop-blur px-3 py-1.5 text-xs font-medium text-white/90 shadow-lg"
+      className="flex items-center gap-2 rounded-full border border-hairline bg-midnight-100/80 backdrop-blur px-3 py-1.5 text-xs font-medium text-white/90 shadow-lg"
     >
       <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`} />
       {label}

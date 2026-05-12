@@ -141,7 +141,7 @@ export function CsvImportDialog({
 
         <div className="space-y-4 pt-2">
           {drafts.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-white/10 p-8 text-center">
+            <div className="rounded-lg border border-dashed border-hairline p-8 text-center">
               <input
                 ref={fileRef}
                 type="file"
@@ -190,7 +190,7 @@ export function CsvImportDialog({
                 </div>
               </div>
 
-              <div className="rounded-lg border border-white/5 overflow-hidden">
+              <div className="rounded-lg border border-hairline overflow-hidden">
                 <div className="max-h-[420px] overflow-auto">
                   <table className="w-full text-xs">
                     <thead className="bg-white/[0.02] sticky top-0">
@@ -209,7 +209,7 @@ export function CsvImportDialog({
                           key={d.index}
                           className={
                             d.parsed
-                              ? 'border-t border-white/5'
+                              ? 'border-t border-hairline'
                               : 'border-t border-red-500/20 bg-red-500/[0.04]'
                           }
                         >

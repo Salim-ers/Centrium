@@ -134,14 +134,14 @@ export default function OnboardingPage() {
   // va auto-rediriger vers /invite/accept.
   if (checkingInvite) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-midnight-300">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-violet-glow" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-midnight-300 p-6">
+    <div className="min-h-screen flex items-center justify-center bg-background p-6">
       <div className="absolute inset-0 bg-gradient-radial opacity-30 pointer-events-none" />
 
       {/* Retour vers la home — accessible si l'utilisateur n'a pas encore d'org */}

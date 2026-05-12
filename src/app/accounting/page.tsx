@@ -30,7 +30,7 @@ const TONE_STYLES: Record<string, string> = {
   good: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
   warn: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
   bad: 'bg-red-500/10 text-red-300 border-red-500/20',
-  neutral: 'bg-white/5 text-muted-foreground border-white/10',
+  neutral: 'bg-white/5 text-muted-foreground border-hairline',
 };
 
 export default function AccountingAssistantPage() {
@@ -122,7 +122,7 @@ export default function AccountingAssistantPage() {
             )}
           </div>
 
-          <div className="border-t border-white/5 p-4">
+          <div className="border-t border-hairline p-4">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -131,7 +131,7 @@ export default function AccountingAssistantPage() {
               className="flex gap-2"
             >
               <input
-                className="flex h-10 flex-1 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm focus:border-violet-glow/50 focus:outline-none"
+                className="flex h-10 flex-1 rounded-md border border-hairline bg-white/[0.02] px-3 py-2 text-sm focus:border-violet-glow/50 focus:outline-none"
                 placeholder="Ex : quelles factures sont en retard ?"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -249,7 +249,7 @@ function AssistantBlockView({
 }) {
   if (block.type === 'list') {
     return (
-      <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+      <div className="rounded-lg border border-hairline bg-white/[0.02] p-3">
         <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
           {block.title}
         </div>
@@ -301,7 +301,7 @@ function AssistantBlockView({
   }
   if (block.type === 'draft') {
     return (
-      <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+      <div className="rounded-lg border border-hairline bg-white/[0.02] p-3">
         <div className="flex items-center justify-between mb-2">
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
             {block.title}
