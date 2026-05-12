@@ -33,6 +33,7 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 
 import { CVRenderer } from '@/components/cv/CVRenderer';
+import { CVPreviewBoundary } from '@/components/cv/CVPreviewBoundary';
 import { consultantService } from '@/lib/services/consultant.service';
 import { jobOfferService } from '@/lib/services';
 import { generateCVContent } from '@/lib/ai/cv-generator';
@@ -992,26 +993,30 @@ function CVOptimizerPageInner() {
               </Card>
               <EditModeBanner editMode={editMode} setEditMode={setEditMode} />
               <div className="overflow-auto bg-neutral-200 p-6 rounded-xl">
-                <CVRenderer
-                  content={displayed ?? generated}
-                  templateId={templateId}
-                  editable={editMode}
-                  onEdit={handleInlineEdit}
-                  qrSrc={qrSrc}
-                />
+                <CVPreviewBoundary onReset={resetOverrides}>
+                  <CVRenderer
+                    content={displayed ?? generated}
+                    templateId={templateId}
+                    editable={editMode}
+                    onEdit={handleInlineEdit}
+                    qrSrc={qrSrc}
+                  />
+                </CVPreviewBoundary>
               </div>
             </>
           ) : generated ? (
             <>
               <EditModeBanner editMode={editMode} setEditMode={setEditMode} />
               <div className="overflow-auto bg-neutral-200 p-6 rounded-xl">
-                <CVRenderer
-                  content={displayed ?? generated}
-                  templateId={templateId}
-                  editable={editMode}
-                  onEdit={handleInlineEdit}
-                  qrSrc={qrSrc}
-                />
+                <CVPreviewBoundary onReset={resetOverrides}>
+                  <CVRenderer
+                    content={displayed ?? generated}
+                    templateId={templateId}
+                    editable={editMode}
+                    onEdit={handleInlineEdit}
+                    qrSrc={qrSrc}
+                  />
+                </CVPreviewBoundary>
               </div>
             </>
           ) : (

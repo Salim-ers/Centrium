@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { formatMonthYear } from '@/lib/utils';
 
 type Props = {
@@ -22,6 +22,10 @@ type Props = {
  * Date mois/année éditable. Lecture seule = texte façon "OCT. 2024".
  * Mode édition : clic → input type="month" inline, validation au blur.
  *
+ * Implémentation : input CONTROLLED (state local synchronisé à `value`
+ * via useEffect). Permet d'éviter les crashs quand le parent re-render
+ * pendant l'édition.
+ *
  * Conventions de stockage :
  *   - value reçue = "YYYY-MM-DD" ou null
  *   - onEdit envoie "YYYY-MM-01" (1er du mois) ou "" (= null = en cours)
@@ -36,48 +40,92 @@ export function EditableDate({
   allowNull = false,
 }: Props) {
   const [open, setOpen] = useState(false);
+  // Format attendu par <input type="month"> = "YYYY-MM".
+  // Protection : si value est null OU pas une string, on renvoie ''.
+  const safeMonth = (v: string | null): string => {
+    if (!v || typeof v !== 'string') return '';
+    return v.slice(0, 7); // tolère "YYYY-MM" ou "YYYY-MM-DD"
+  };
+  const [draft, setDraft] = useState<string>(safeMonth(value));
+  const closingRef = useRef(false);
 
-  // Format attendu par <input type="month"> = "YYYY-MM"
-  const inputValue = value ? value.slice(0, 7) : '';
+  // Sync le draft quand value externe change (ex: reset overrides)
+  useEffect(() => {
+    if (!open) setDraft(safeMonth(value));
+  }, [value, open]);
+
+  // Affichage formaté en lecture seule. Protection : si formatMonthYear
+  // throw pour une raison X, on fallback sur le texte brut ou l'emptyLabel.
+  let displayText: string;
+  try {
+    displayText = value ? formatMonthYear(value) : emptyLabel;
+  } catch {
+    displayText = value ?? emptyLabel;
+  }
 
   if (!editable) {
-    return (
-      <span className={className}>
-        {value ? formatMonthYear(value) : emptyLabel}
-      </span>
-    );
+    return <span className={className}>{displayText}</span>;
   }
 
   if (!open) {
     return (
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setDraft(safeMonth(value));
+          setOpen(true);
+        }}
         title="Modifier la date"
         className={`${className ?? ''} cursor-pointer rounded-sm hover:bg-violet-500/10 hover:ring-1 hover:ring-violet-400/30 px-1 -mx-1 outline-none transition-colors uppercase`}
       >
-        {value ? formatMonthYear(value) : emptyLabel}
+        {displayText}
       </button>
     );
   }
+
+  // Commit la valeur saisie (ou null si vide + allowNull) et ferme.
+  const commit = (rawMonth: string) => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    try {
+      const trimmed = (rawMonth ?? '').trim();
+      if (trimmed === '') {
+        if (allowNull) onEdit?.(path, '');
+      } else if (/^\d{4}-\d{2}$/.test(trimmed)) {
+        const next = `${trimmed}-01`;
+        // évite un override identique
+        if (next !== value) onEdit?.(path, next);
+      }
+      // sinon : format invalide → on ignore, on ferme juste
+    } catch (e) {
+      // on log pour debug mais on ne crash pas la UI
+      console.warn('[EditableDate] commit failed', { path, rawMonth, e });
+    } finally {
+      setOpen(false);
+      // reset closingRef au prochain tick pour les futures éditions
+      setTimeout(() => {
+        closingRef.current = false;
+      }, 0);
+    }
+  };
 
   return (
     <span className={`inline-flex items-center gap-1.5 ${className ?? ''}`}>
       <input
         type="month"
-        defaultValue={inputValue}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
         autoFocus
-        onBlur={(e) => {
-          const v = e.target.value;
-          if (v && v !== inputValue) {
-            onEdit?.(path, `${v}-01`);
-          }
-          // petit délai pour laisser un éventuel clic sur "en cours" prendre la main
-          setTimeout(() => setOpen(false), 120);
-        }}
+        onBlur={(e) => commit(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') e.currentTarget.blur();
-          if (e.key === 'Escape') setOpen(false);
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit(draft);
+          }
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            setOpen(false);
+          }
         }}
         className="text-[10px] bg-white border border-violet-400/50 rounded px-1 py-0.5 outline-none focus:border-violet-500 text-neutral-900 font-sans"
       />
@@ -87,8 +135,7 @@ export function EditableDate({
           onMouseDown={(e) => {
             // mouseDown au lieu de click : intercepte AVANT le blur de l'input
             e.preventDefault();
-            onEdit?.(path, '');
-            setOpen(false);
+            commit('');
           }}
           title="Marquer comme en cours (effacer la date)"
           className="text-[9px] text-violet-500 hover:text-violet-700 underline whitespace-nowrap"
