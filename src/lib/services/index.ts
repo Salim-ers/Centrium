@@ -1043,17 +1043,13 @@ export const alertService = {
       resolvedOrgId = (prof?.organization_id as string | undefined) ?? undefined;
     }
     if (!resolvedOrgId) return { data: [], error: null };
-    const [{ data, error }, { data: dismissedRows }] = await Promise.all([
-      supabase.rpc('compute_org_alerts', { org_id: resolvedOrgId }),
-      supabase
-        .from('dismissed_alerts')
-        .select('alert_id')
-        .eq('organization_id', resolvedOrgId),
-    ]);
+    // Depuis la migration 039, la RPC exclut elle-même les alertes dismissed
+    // via un NOT EXISTS interne — plus besoin de 2 round-trips + filter JS.
+    const { data, error } = await supabase.rpc('compute_org_alerts', {
+      org_id: resolvedOrgId,
+    });
     if (error) return { data: null, error };
-    const dismissed = new Set((dismissedRows ?? []).map((r) => r.alert_id as string));
-    const filtered = ((data ?? []) as ComputedAlert[]).filter((a) => !dismissed.has(a.id));
-    return { data: filtered, error: null };
+    return { data: (data ?? []) as ComputedAlert[], error: null };
   },
 
   /**
