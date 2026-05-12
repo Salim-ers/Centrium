@@ -3,7 +3,17 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Plus, Receipt, CheckCircle2, Send, Eye, Undo2 } from 'lucide-react';
+import {
+  Plus,
+  Receipt,
+  CheckCircle2,
+  Send,
+  Eye,
+  Undo2,
+  Archive,
+  ArchiveRestore,
+  Trash2,
+} from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,15 +38,18 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 export default function InvoicesPage() {
   const { activeOrgId } = useOrganization();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   const {
     data: invoicesData,
     loading,
     reload,
   } = useCachedQuery<InvoiceListItem[]>(
-    `invoices:${activeOrgId ?? 'none'}`,
+    `invoices:${activeOrgId ?? 'none'}:${showArchived ? 'all' : 'active'}`,
     async () => {
-      const res = await invoiceService.listWithConsultant();
+      const res = await invoiceService.listWithConsultant({
+        includeArchived: showArchived,
+      });
       return res.data ?? [];
     },
     { enabled: !!activeOrgId },
@@ -65,6 +78,39 @@ export default function InvoicesPage() {
     reload();
   }
 
+  async function archive(inv: InvoiceListItem) {
+    if (
+      !confirm(
+        `Archiver la facture ${inv.invoice_number} ? Elle ne s'affichera plus dans la liste active mais reste conservée pour la compta.`,
+      )
+    )
+      return;
+    const res = await invoiceService.archive(inv.id);
+    if (res.error) return toast.error('Erreur : ' + res.error.message);
+    toast.success(`Facture ${inv.invoice_number} archivée`);
+    reload();
+  }
+
+  async function unarchive(inv: InvoiceListItem) {
+    const res = await invoiceService.unarchive(inv.id);
+    if (res.error) return toast.error('Erreur : ' + res.error.message);
+    toast.success(`Facture ${inv.invoice_number} désarchivée`);
+    reload();
+  }
+
+  async function remove(inv: InvoiceListItem) {
+    if (
+      !confirm(
+        `Supprimer définitivement la facture ${inv.invoice_number} ? Cette action est irréversible. (Seules les factures en brouillon peuvent être supprimées — sinon archive plutôt.)`,
+      )
+    )
+      return;
+    const res = await invoiceService.remove(inv.id);
+    if (res.error) return toast.error(res.error.message);
+    toast.success(`Facture ${inv.invoice_number} supprimée`);
+    reload();
+  }
+
   const totalPaid = invoices
     .filter((i) => i.status === 'paid')
     .reduce((s, i) => s + Number(i.amount_ht), 0);
@@ -88,10 +134,29 @@ export default function InvoicesPage() {
             <span className="text-amber-400 font-semibold">{formatCurrency(totalPending)}</span>
           </p>
         </div>
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Nouvelle facture
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowArchived((v) => !v)}
+            title={showArchived ? 'Revenir à la liste active' : 'Afficher les factures archivées'}
+          >
+            {showArchived ? (
+              <>
+                <ArchiveRestore className="h-4 w-4" />
+                Voir actives
+              </>
+            ) : (
+              <>
+                <Archive className="h-4 w-4" />
+                Voir archivées
+              </>
+            )}
+          </Button>
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Nouvelle facture
+          </Button>
+        </div>
       </div>
 
       <InvoiceFormDialog
@@ -197,6 +262,36 @@ export default function InvoicesPage() {
                             >
                               <Undo2 className="h-3 w-3" />
                               Annuler paiement
+                            </Button>
+                          )}
+                          {inv.archived ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => unarchive(inv)}
+                              title="Désarchiver la facture"
+                            >
+                              <ArchiveRestore className="h-3 w-3" />
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => archive(inv)}
+                              title="Archiver la facture (conservée pour la compta)"
+                            >
+                              <Archive className="h-3 w-3" />
+                            </Button>
+                          )}
+                          {inv.status === 'draft' && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => remove(inv)}
+                              title="Supprimer définitivement (brouillon uniquement)"
+                              className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                            >
+                              <Trash2 className="h-3 w-3" />
                             </Button>
                           )}
                         </div>

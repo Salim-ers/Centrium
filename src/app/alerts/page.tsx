@@ -9,6 +9,7 @@ import {
   Info,
   ArrowUpRight,
   CheckCircle2,
+  X as XIcon,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -17,6 +18,7 @@ import { alertService, type ComputedAlert } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { relativeDate } from '@/lib/utils';
+import { notifyDestructive, notifyError } from '@/lib/notify';
 
 type Priority = ComputedAlert['priority'];
 
@@ -111,7 +113,11 @@ const KIND_LABEL_FR: Record<string, string> = {
 export default function AlertsPage() {
   const { activeOrgId } = useOrganization();
 
-  const { data: alertsData, loading } = useCachedQuery<ComputedAlert[]>(
+  const {
+    data: alertsData,
+    loading,
+    setData: setAlerts,
+  } = useCachedQuery<ComputedAlert[]>(
     `alerts-computed:${activeOrgId ?? 'none'}`,
     async () => {
       const res = await alertService.listComputed(activeOrgId ?? undefined);
@@ -120,6 +126,23 @@ export default function AlertsPage() {
     { enabled: !!activeOrgId },
   );
   const alerts = alertsData ?? [];
+
+  async function handleDismiss(alert: ComputedAlert) {
+    if (!activeOrgId) return;
+    // Optimistic : on retire localement avant l'aller-retour DB. Si ça échoue
+    // on rollback. Évite le flash visuel quand on enchaîne les dismiss.
+    const previous = alerts;
+    setAlerts((prev) => (prev ?? []).filter((a) => a.id !== alert.id));
+    const res = await alertService.dismissComputed(alert.id, activeOrgId);
+    if (res.error) {
+      setAlerts(previous);
+      notifyError('Impossible de masquer cette alerte — ' + res.error.message);
+      return;
+    }
+    notifyDestructive('Alerte masquée', {
+      description: 'Elle ne réapparaîtra plus tant que la situation reste identique.',
+    });
+  }
 
   const grouped = PRIORITY_ORDER.map((p) => ({
     priority: p,
@@ -205,7 +228,11 @@ export default function AlertsPage() {
 
                 <div className="space-y-2">
                   {items.map((a) => (
-                    <AlertItem key={a.id} alert={a} />
+                    <AlertItem
+                      key={a.id}
+                      alert={a}
+                      onDismiss={() => handleDismiss(a)}
+                    />
                   ))}
                 </div>
               </section>
@@ -217,56 +244,75 @@ export default function AlertsPage() {
   );
 }
 
-function AlertItem({ alert }: { alert: ComputedAlert }) {
+function AlertItem({
+  alert,
+  onDismiss,
+}: {
+  alert: ComputedAlert;
+  onDismiss: () => void;
+}) {
   const meta = PRIORITY_META[alert.priority];
   const kindLabel = KIND_LABEL_FR[alert.kind] ?? alert.kind.replace(/_/g, ' ');
 
-  const inner = (
-    <div
-      className={`relative overflow-hidden rounded-lg border ${meta.cardBorder} ${meta.cardBg} transition`}
-    >
-      <div className={`absolute left-0 top-0 bottom-0 w-1 ${meta.leftAccent}`} />
-      <div className="pl-5 pr-4 py-3 flex items-start gap-3">
-        <div className={`rounded-md p-2 shrink-0 ${meta.iconBg} ${meta.iconText}`}>
-          <meta.Icon className="h-4 w-4" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span
-              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${meta.badgeBg} ${meta.badgeText}`}
-            >
-              {kindLabel}
+  const body = (
+    <div className="pl-5 pr-4 py-3 flex items-start gap-3">
+      <div className={`rounded-md p-2 shrink-0 ${meta.iconBg} ${meta.iconText}`}>
+        <meta.Icon className="h-4 w-4" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${meta.badgeBg} ${meta.badgeText}`}
+          >
+            {kindLabel}
+          </span>
+          {alert.due_date && (
+            <span className="text-[11px] text-muted-foreground">
+              {relativeDate(alert.due_date)}
             </span>
-            {alert.due_date && (
-              <span className="text-[11px] text-muted-foreground">
-                {relativeDate(alert.due_date)}
-              </span>
-            )}
-          </div>
-          <h3 className="text-sm font-semibold mt-1.5 leading-tight">{alert.title}</h3>
-          {alert.description && (
-            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-              {alert.description}
-            </p>
           )}
         </div>
-        {alert.link && (
-          <ArrowUpRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+        <h3 className="text-sm font-semibold mt-1.5 leading-tight">{alert.title}</h3>
+        {alert.description && (
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+            {alert.description}
+          </p>
         )}
       </div>
+      {alert.link && (
+        <ArrowUpRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+      )}
     </div>
   );
 
-  if (alert.link) {
-    return (
-      <Link
-        href={alert.link}
-        className="block hover:brightness-110"
-        title="Voir le détail"
+  return (
+    <div className="group relative">
+      <div
+        className={`relative overflow-hidden rounded-lg border ${meta.cardBorder} ${meta.cardBg} transition`}
       >
-        {inner}
-      </Link>
-    );
-  }
-  return inner;
+        <div className={`absolute left-0 top-0 bottom-0 w-1 ${meta.leftAccent}`} />
+        {alert.link ? (
+          <Link href={alert.link} className="block hover:brightness-110" title="Voir le détail">
+            {body}
+          </Link>
+        ) : (
+          body
+        )}
+      </div>
+      {/* Bouton dismiss — apparaît au hover, ne capte pas le click parent */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDismiss();
+        }}
+        className="absolute top-2 right-2 h-6 w-6 rounded-md inline-flex items-center justify-center opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition"
+        title="Masquer cette alerte"
+        aria-label="Masquer cette alerte"
+      >
+        <XIcon className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
 }

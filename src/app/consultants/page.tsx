@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
+import { TalentTabs } from '@/components/consultants/TalentTabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -257,6 +258,7 @@ export default function ConsultantsPage() {
 
   return (
     <AppShell>
+      <TalentTabs active="consultants" counts={{ consultants: consultants.length }} />
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight">

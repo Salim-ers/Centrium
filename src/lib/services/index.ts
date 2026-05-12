@@ -433,12 +433,11 @@ export type InvoiceListItem = Invoice & {
 };
 
 export const invoiceService = {
-  async list(): Promise<ServiceResult<Invoice[]>> {
+  async list(opts?: { includeArchived?: boolean }): Promise<ServiceResult<Invoice[]>> {
     const supabase = createClient();
-    const { data, error } = await supabase
-      .from('invoices')
-      .select('*')
-      .order('issue_date', { ascending: false });
+    let q = supabase.from('invoices').select('*');
+    if (!opts?.includeArchived) q = q.eq('archived', false);
+    const { data, error } = await q.order('issue_date', { ascending: false });
     if (error) return { data: null, error };
     return { data: data as Invoice[], error: null };
   },
@@ -448,16 +447,70 @@ export const invoiceService = {
    * Joint à la fois la mission (pour les CRA → factures auto) ET le
    * consultant lié directement à la facture (pour les factures manuelles).
    */
-  async listWithConsultant(): Promise<ServiceResult<InvoiceListItem[]>> {
+  async listWithConsultant(
+    opts?: { includeArchived?: boolean },
+  ): Promise<ServiceResult<InvoiceListItem[]>> {
     const supabase = createClient();
-    const { data, error } = await supabase
+    let q = supabase
       .from('invoices')
       .select(
         '*, mission:missions(title, consultant:consultants(first_name, last_name)), consultant:consultants!consultant_id(first_name, last_name)',
-      )
-      .order('issue_date', { ascending: false });
+      );
+    if (!opts?.includeArchived) q = q.eq('archived', false);
+    const { data, error } = await q.order('issue_date', { ascending: false });
     if (error) return { data: null, error };
     return { data: (data ?? []) as unknown as InvoiceListItem[], error: null };
+  },
+
+  /** Archive une facture (la sort des listes actives, garde la trace compta). */
+  async archive(id: string): Promise<ServiceResult<Invoice>> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('invoices')
+      .update({ archived: true, archived_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) return { data: null, error };
+    return { data: data as Invoice, error: null };
+  },
+
+  async unarchive(id: string): Promise<ServiceResult<Invoice>> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('invoices')
+      .update({ archived: false, archived_at: null })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) return { data: null, error };
+    return { data: data as Invoice, error: null };
+  },
+
+  /**
+   * Suppression dure. Réservé aux factures en brouillon (status='draft')
+   * pour éviter les pertes de données comptables. Une facture envoyée /
+   * payée ne doit JAMAIS être supprimée — on l'archive à la place.
+   */
+  async remove(id: string): Promise<ServiceResult<true>> {
+    const supabase = createClient();
+    const { data: existing } = await supabase
+      .from('invoices')
+      .select('status')
+      .eq('id', id)
+      .maybeSingle();
+    if (!existing) return { data: null, error: new Error('Facture introuvable') };
+    if (existing.status !== 'draft') {
+      return {
+        data: null,
+        error: new Error(
+          'Seules les factures en brouillon peuvent être supprimées. Archive plutôt.',
+        ),
+      };
+    }
+    const { error } = await supabase.from('invoices').delete().eq('id', id);
+    if (error) return { data: null, error };
+    return { data: true, error: null };
   },
 
   async create(input: InvoiceInput, organizationId: string): Promise<ServiceResult<Invoice>> {
@@ -990,11 +1043,46 @@ export const alertService = {
       resolvedOrgId = (prof?.organization_id as string | undefined) ?? undefined;
     }
     if (!resolvedOrgId) return { data: [], error: null };
-    const { data, error } = await supabase.rpc('compute_org_alerts', {
-      org_id: resolvedOrgId,
-    });
+    const [{ data, error }, { data: dismissedRows }] = await Promise.all([
+      supabase.rpc('compute_org_alerts', { org_id: resolvedOrgId }),
+      supabase
+        .from('dismissed_alerts')
+        .select('alert_id')
+        .eq('organization_id', resolvedOrgId),
+    ]);
     if (error) return { data: null, error };
-    return { data: (data ?? []) as ComputedAlert[], error: null };
+    const dismissed = new Set((dismissedRows ?? []).map((r) => r.alert_id as string));
+    const filtered = ((data ?? []) as ComputedAlert[]).filter((a) => !dismissed.has(a.id));
+    return { data: filtered, error: null };
+  },
+
+  /**
+   * Masque définitivement une alerte calculée. Si l'entité sous-jacente
+   * change (ex: facture payée), une nouvelle alerte avec un ID différent
+   * pourra apparaître — le dismiss ne bloque que cette occurrence précise.
+   */
+  async dismissComputed(alertId: string, orgId: string): Promise<ServiceResult<true>> {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('dismissed_alerts')
+      .upsert(
+        { organization_id: orgId, alert_id: alertId },
+        { onConflict: 'organization_id,alert_id' },
+      );
+    if (error) return { data: null, error };
+    return { data: true, error: null };
+  },
+
+  /** Réactive une alerte précédemment dismissée. */
+  async undismissComputed(alertId: string, orgId: string): Promise<ServiceResult<true>> {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('dismissed_alerts')
+      .delete()
+      .eq('organization_id', orgId)
+      .eq('alert_id', alertId);
+    if (error) return { data: null, error };
+    return { data: true, error: null };
   },
 
   async list(status?: AlertStatus): Promise<ServiceResult<Alert[]>> {

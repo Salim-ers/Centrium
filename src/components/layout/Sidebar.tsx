@@ -8,13 +8,11 @@ import {
   FileText,
   Users,
   Target,
-  Send,
   ClipboardCheck,
   Receipt,
   UserCircle,
   BellRing,
   FileSignature,
-  FileCheck,
   Kanban,
   Settings,
   Calculator,
@@ -24,7 +22,6 @@ import {
   Activity,
   Building2,
   Package,
-  UserPlus,
 } from 'lucide-react';
 import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -32,7 +29,13 @@ import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { CentriumMark } from '@/components/brand/CentriumMark';
 import { useOrganizationSafe } from '@/lib/auth/context';
 
-type NavItem = { label: string; href: string; icon: React.ElementType };
+type NavItem = {
+  label: string;
+  href: string;
+  icon: React.ElementType;
+  /** Routes additionnelles qui doivent allumer cet item (ex: /consultants couvre aussi /prospects). */
+  matchAlso?: string[];
+};
 type NavGroup = { id: string; label: string; icon: React.ElementType; items: NavItem[] };
 
 const GROUPS: NavGroup[] = [
@@ -50,10 +53,11 @@ const GROUPS: NavGroup[] = [
     label: 'Talents',
     icon: Users,
     items: [
-      { label: 'Consultants', href: '/consultants', icon: Users },
-      { label: 'Prospection consultants', href: '/prospects', icon: UserPlus },
+      // Consultants regroupe la bibliothèque + le vivier (prospection), avec
+      // un switcher d'onglets sur les pages elles-mêmes. Une seule entrée
+      // dans le menu pour ne pas alourdir la navigation.
+      { label: 'Consultants', href: '/consultants', icon: Users, matchAlso: ['/prospects'] },
       { label: 'CV Optimizer', href: '/cv-optimizer', icon: FileText },
-      { label: 'Templates CV', href: '/templates', icon: FileCheck },
     ],
   },
   {
@@ -63,7 +67,6 @@ const GROUPS: NavGroup[] = [
     items: [
       { label: 'Offres & missions', href: '/offers', icon: Briefcase },
       { label: 'Matching', href: '/matching', icon: Target },
-      { label: 'Réponse AO', href: '/responses', icon: Send },
       { label: 'Pipeline (CRM)', href: '/crm', icon: Kanban },
       { label: 'Carnet de contacts', href: '/contacts', icon: UserCircle },
       { label: 'Contrats', href: '/contracts', icon: FileSignature },
@@ -114,9 +117,13 @@ export function Sidebar() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    const activeGroup = GROUPS.find((g) =>
-      g.items.some((i) => pathname === i.href || pathname.startsWith(i.href + '/')),
-    );
+    const matchesItem = (i: NavItem) => {
+      if (pathname === i.href || pathname.startsWith(i.href + '/')) return true;
+      return (i.matchAlso ?? []).some(
+        (m) => pathname === m || pathname.startsWith(m + '/'),
+      );
+    };
+    const activeGroup = GROUPS.find((g) => g.items.some(matchesItem));
 
     if (stored) {
       try {
@@ -160,9 +167,13 @@ export function Sidebar() {
         {GROUPS.map((group) => {
           const open = openGroups[group.id] ?? false;
           const GroupIcon = group.icon;
-          const groupActive = group.items.some(
-            (i) => pathname === i.href || pathname.startsWith(i.href + '/'),
-          );
+          const itemMatches = (i: NavItem) =>
+            pathname === i.href ||
+            pathname.startsWith(i.href + '/') ||
+            (i.matchAlso ?? []).some(
+              (m) => pathname === m || pathname.startsWith(m + '/'),
+            );
+          const groupActive = group.items.some(itemMatches);
 
           return (
             <div key={group.id}>
@@ -209,8 +220,7 @@ export function Sidebar() {
                     // un href plus précis qui matche aussi (ex: /settings/team
                     // sibling de /settings), il prend la priorité et les
                     // autres ne s'allument pas.
-                    let active =
-                      pathname === item.href || pathname.startsWith(item.href + '/');
+                    let active = itemMatches(item);
                     if (active && pathname !== item.href) {
                       const moreSpecific = group.items.some(
                         (other) =>

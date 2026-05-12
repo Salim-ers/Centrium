@@ -412,6 +412,8 @@ export type Invoice = {
   payment_method: string | null;
   pdf_url: string | null;
   notes: string | null;
+  archived: boolean;
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
 };

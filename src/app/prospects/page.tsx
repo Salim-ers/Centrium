@@ -6,6 +6,7 @@ import { notifyDestructive, notifyError } from '@/lib/notify';
 import { Plus, Search, Eye, Pencil, Trash2, ArrowRightCircle, FileUp } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
+import { TalentTabs } from '@/components/consultants/TalentTabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -129,13 +130,14 @@ export default function ProspectsPage() {
 
   return (
     <AppShell>
+      <TalentTabs active="prospects" counts={{ prospects: prospectsList.length }} />
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight">
-            Prospection consultants
+            Vivier consultants
           </h1>
           <p className="text-muted-foreground mt-1">
-            {prospectsList.length} profil{prospectsList.length > 1 ? 's' : ''} en vivier — non compté
+            {prospectsList.length} profil{prospectsList.length > 1 ? 's' : ''} en prospection — non compté
             {prospectsList.length > 1 ? 's' : ''} dans l&apos;effectif
           </p>
         </div>
