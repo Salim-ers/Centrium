@@ -73,6 +73,12 @@ export const consultantService = {
        * - 'all'             → les deux
        */
       archived?: boolean | 'all';
+      /**
+       * - true        → uniquement les profils dont le CV a été poussé
+       * - false       → uniquement ceux dont le CV n'a PAS été poussé
+       * - undefined   → pas de filtre
+       */
+      cv_pushed?: boolean;
     } = {}
   ): Promise<ServiceResult<ConsultantListItem[]>> {
     const supabase = createClient();
@@ -92,6 +98,9 @@ export const consultantService = {
       query = query.eq('is_prospect', filters.is_prospect ?? false);
     }
 
+    if (filters.cv_pushed !== undefined) {
+      query = query.eq('cv_pushed', filters.cv_pushed);
+    }
     if (filters.status) query = query.eq('status', filters.status);
     if (filters.seniority) query = query.eq('seniority', filters.seniority);
     if (filters.search) {
@@ -278,6 +287,43 @@ export const consultantService = {
     const { error } = await supabase.from('consultants').delete().eq('id', id);
     if (error) return { data: null, error };
     return { data: true, error: null };
+  },
+
+  /**
+   * Marque (ou démarque) le consultant comme "CV poussé".
+   *
+   * - `next=true`  → set cv_pushed=true, cv_pushed_at=NOW(), garde l'éventuelle cible
+   * - `next=false` → set cv_pushed=false, cv_pushed_at=null, cv_pushed_target=null
+   *
+   * Le `target` (libre, ex: nom du client / titre AO / recruteur) est
+   * optionnel — il sert uniquement à afficher d'un coup d'œil OÙ on a
+   * poussé le profil, pour ne pas pousser deux fois au même endroit.
+   */
+  async toggleCvPushed(
+    id: string,
+    next: boolean,
+    target?: string | null,
+  ): Promise<ServiceResult<Consultant>> {
+    const supabase = createClient();
+    const payload = next
+      ? {
+          cv_pushed: true,
+          cv_pushed_at: new Date().toISOString(),
+          cv_pushed_target: target?.trim() || null,
+        }
+      : {
+          cv_pushed: false,
+          cv_pushed_at: null,
+          cv_pushed_target: null,
+        };
+    const { data, error } = await supabase
+      .from('consultants')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) return { data: null, error };
+    return { data: data as Consultant, error: null };
   },
 
   // ============ Mise à jour champs simples (résumé, mobilité, langues) ============

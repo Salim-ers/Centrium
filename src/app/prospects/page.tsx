@@ -3,7 +3,17 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { notifyDestructive, notifyError } from '@/lib/notify';
-import { Plus, Search, Eye, Pencil, Trash2, ArrowRightCircle, FileUp } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Eye,
+  Pencil,
+  Trash2,
+  ArrowRightCircle,
+  FileUp,
+  Send,
+  Undo2,
+} from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { TalentTabs } from '@/components/consultants/TalentTabs';
@@ -126,6 +136,40 @@ export default function ProspectsPage() {
     }
     notifyDestructive(`${c.first_name} ${c.last_name} retiré du vivier`);
     setProspects((prev) => (prev ?? []).filter((p) => p.id !== c.id));
+  }
+
+  async function toggleCvPushed(c: Consultant) {
+    if (c.cv_pushed) {
+      if (
+        !confirm(
+          `Retirer ${c.first_name} ${c.last_name} de la liste "CV poussés" ?`,
+        )
+      )
+        return;
+      const res = await consultantService.toggleCvPushed(c.id, false);
+      if (res.error || !res.data) {
+        notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
+        return;
+      }
+      setProspects((prev) =>
+        (prev ?? []).map((p) => (p.id === c.id ? { ...p, ...res.data! } : p)),
+      );
+      notifyDestructive(`${c.first_name} ${c.last_name} retiré des CV poussés`);
+      return;
+    }
+    const target = prompt(
+      `Marquer le CV de ${c.first_name} ${c.last_name} comme poussé. À qui ?\n(optionnel — ex: "BNP Paribas", "AO Lead Backend", "Hays")`,
+      '',
+    );
+    if (target === null) return;
+    const res = await consultantService.toggleCvPushed(c.id, true, target);
+    if (res.error || !res.data) {
+      notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
+      return;
+    }
+    setProspects((prev) =>
+      (prev ?? []).map((p) => (p.id === c.id ? { ...p, ...res.data! } : p)),
+    );
   }
 
   return (
@@ -272,6 +316,27 @@ export default function ProspectsPage() {
                             <Eye className="h-3.5 w-3.5" />
                             Voir
                           </Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleCvPushed(c)}
+                          title={
+                            c.cv_pushed
+                              ? `CV déjà poussé${c.cv_pushed_target ? ` → ${c.cv_pushed_target}` : ''} — clic pour retirer`
+                              : 'Marquer le CV comme poussé'
+                          }
+                          className={
+                            c.cv_pushed
+                              ? 'text-magenta-neon hover:bg-magenta/10'
+                              : 'text-muted-foreground hover:text-magenta-neon'
+                          }
+                        >
+                          {c.cv_pushed ? (
+                            <Undo2 className="h-3.5 w-3.5" />
+                          ) : (
+                            <Send className="h-3.5 w-3.5" />
+                          )}
                         </Button>
                         <Button
                           variant="ghost"

@@ -20,6 +20,8 @@ import {
   ArrowLeftCircle,
   FileUp,
   KeyRound,
+  Send,
+  Undo2,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -237,6 +239,42 @@ export default function ConsultantsPage() {
     }
     notifyDestructive(`${fullName} supprimé définitivement`);
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
+  }
+
+  async function toggleCvPushed(c: ConsultantListItem) {
+    if (c.cv_pushed) {
+      const ok = confirm(
+        `Retirer ${c.first_name} ${c.last_name} de la liste "CV poussés" ?`,
+      );
+      if (!ok) return;
+      const res = await consultantService.toggleCvPushed(c.id, false);
+      if (res.error || !res.data) {
+        notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
+        return;
+      }
+      setConsultants((prev) =>
+        (prev ?? []).map((x) => (x.id === c.id ? { ...x, ...res.data! } : x)),
+      );
+      notifyDestructive(`${c.first_name} ${c.last_name} retiré des CV poussés`);
+      return;
+    }
+    // Premier marquage : on demande la cible (client / AO / recruteur) — optionnelle.
+    const target = prompt(
+      `Marquer le CV de ${c.first_name} ${c.last_name} comme poussé. À qui ?\n(optionnel — ex: "BNP Paribas", "AO Lead Backend Société Générale", "Hays")`,
+      '',
+    );
+    if (target === null) return; // user a cancel
+    const res = await consultantService.toggleCvPushed(c.id, true, target);
+    if (res.error || !res.data) {
+      notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
+      return;
+    }
+    setConsultants((prev) =>
+      (prev ?? []).map((x) => (x.id === c.id ? { ...x, ...res.data! } : x)),
+    );
+    notifyCreated(
+      `${c.first_name} ${c.last_name} marqué comme CV poussé${target ? ` — ${target}` : ''}`,
+    );
   }
 
   async function demoteToProspect(consultant: Consultant) {
@@ -523,6 +561,27 @@ export default function ConsultantsPage() {
                           </>
                         ) : (
                           <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleCvPushed(c)}
+                              title={
+                                c.cv_pushed
+                                  ? `CV déjà poussé${c.cv_pushed_target ? ` → ${c.cv_pushed_target}` : ''} — clic pour retirer`
+                                  : 'Marquer le CV comme poussé (envoyé à un client / AO / recruteur)'
+                              }
+                              className={
+                                c.cv_pushed
+                                  ? 'text-magenta-neon hover:bg-magenta/10'
+                                  : 'text-muted-foreground hover:text-magenta-neon'
+                              }
+                            >
+                              {c.cv_pushed ? (
+                                <Undo2 className="h-3.5 w-3.5" />
+                              ) : (
+                                <Send className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"

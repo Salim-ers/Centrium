@@ -1,31 +1,41 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, UserPlus } from 'lucide-react';
+import { Users, UserPlus, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type Tab = 'consultants' | 'prospects';
+type Tab = 'consultants' | 'prospects' | 'cv-pushed';
 
 type Props = {
   active: Tab;
   /** Compteurs optionnels affichés à droite du libellé. */
-  counts?: { consultants?: number; prospects?: number };
+  counts?: { consultants?: number; prospects?: number; cvPushed?: number };
 };
 
 /**
- * Bascule "Bibliothèque consultants" ↔ "Vivier (prospection)".
+ * Bascule "Bibliothèque consultants" ↔ "Vivier (prospection)" ↔ "CV poussés".
  *
- * Les deux vues partagent la même entrée de menu sidebar, mais restent
- * sur des routes séparées pour préserver leurs filtres et leur état.
+ * - Bibliothèque : consultants actifs / onboardés
+ * - Vivier      : prospection, non comptés dans l'effectif
+ * - CV poussés  : transversal aux deux — profils dont le CV a été envoyé
+ *                 (client, AO, recruteur). Évite de pousser deux fois.
  */
 export function TalentTabs({ active, counts }: Props) {
-  const tabs: { id: Tab; href: string; label: string; sub: string; Icon: typeof Users }[] = [
+  const tabs: {
+    id: Tab;
+    href: string;
+    label: string;
+    sub: string;
+    Icon: typeof Users;
+    countKey: keyof NonNullable<Props['counts']>;
+  }[] = [
     {
       id: 'consultants',
       href: '/consultants',
       label: 'Bibliothèque',
       sub: 'Consultants actifs / onboardés',
       Icon: Users,
+      countKey: 'consultants',
     },
     {
       id: 'prospects',
@@ -33,6 +43,15 @@ export function TalentTabs({ active, counts }: Props) {
       label: 'Vivier',
       sub: 'Prospection — consultants à recruter',
       Icon: UserPlus,
+      countKey: 'prospects',
+    },
+    {
+      id: 'cv-pushed',
+      href: '/cv-pushed',
+      label: 'CV poussés',
+      sub: 'Profils dont le CV a déjà été envoyé (client, AO, recruteur)',
+      Icon: Send,
+      countKey: 'cvPushed',
     },
   ];
 
@@ -40,7 +59,7 @@ export function TalentTabs({ active, counts }: Props) {
     <div className="mb-6 flex items-center gap-1 rounded-lg border border-hairline bg-white/[0.02] p-1 w-fit">
       {tabs.map((t) => {
         const isActive = t.id === active;
-        const count = counts?.[t.id];
+        const count = counts?.[t.countKey];
         return (
           <Link
             key={t.id}

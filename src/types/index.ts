@@ -145,6 +145,10 @@ export type Consultant = {
   internal_notes: string | null;
   archived: boolean;
   is_prospect: boolean;
+  /** Drapeau "CV envoyé / positionné" — transversal bibliothèque + vivier. */
+  cv_pushed: boolean;
+  cv_pushed_at: string | null;
+  cv_pushed_target: string | null;
   created_at: string;
   updated_at: string;
 };
