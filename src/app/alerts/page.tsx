@@ -7,9 +7,9 @@ import {
   AlertTriangle,
   Clock,
   Info,
-  ArrowUpRight,
   CheckCircle2,
-  X as XIcon,
+  Check,
+  EyeOff,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -255,7 +255,7 @@ function AlertItem({
   const kindLabel = KIND_LABEL_FR[alert.kind] ?? alert.kind.replace(/_/g, ' ');
 
   const body = (
-    <div className="pl-5 pr-4 py-3 flex items-start gap-3">
+    <div className="pl-5 pr-32 py-3 flex items-start gap-3">
       <div className={`rounded-md p-2 shrink-0 ${meta.iconBg} ${meta.iconText}`}>
         <meta.Icon className="h-4 w-4" />
       </div>
@@ -279,9 +279,6 @@ function AlertItem({
           </p>
         )}
       </div>
-      {alert.link && (
-        <ArrowUpRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
-      )}
     </div>
   );
 
@@ -299,20 +296,37 @@ function AlertItem({
           body
         )}
       </div>
-      {/* Bouton dismiss — apparaît au hover, ne capte pas le click parent */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onDismiss();
-        }}
-        className="absolute top-2 right-2 h-6 w-6 rounded-md inline-flex items-center justify-center opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition"
-        title="Masquer cette alerte"
-        aria-label="Masquer cette alerte"
-      >
-        <XIcon className="h-3.5 w-3.5" />
-      </button>
+
+      {/* Barre d'actions en haut à droite : "Traité" + "Masquer". Pleinement
+          visibles dès qu'on survole, deux verbes clairs au lieu d'icônes
+          ambiguës qui se superposaient à la flèche de lien. */}
+      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-70 group-hover:opacity-100 transition">
+        {alert.link && (
+          <Link
+            href={alert.link}
+            className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[11px] font-medium border border-hairline bg-card/80 backdrop-blur hover:border-white/30 hover:text-foreground text-muted-foreground transition"
+            title="Voir le détail"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Check className="h-3 w-3" />
+            Voir
+          </Link>
+        )}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onDismiss();
+          }}
+          className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[11px] font-medium border border-hairline bg-card/80 backdrop-blur hover:border-white/30 hover:text-foreground text-muted-foreground transition"
+          title="Masquer cette alerte"
+          aria-label="Masquer cette alerte"
+        >
+          <EyeOff className="h-3 w-3" />
+          Masquer
+        </button>
+      </div>
     </div>
   );
 }

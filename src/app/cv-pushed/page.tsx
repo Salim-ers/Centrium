@@ -6,10 +6,13 @@ import {
   Eye,
   Search,
   CheckCircle2,
-  Undo2,
+  XCircle,
   Briefcase,
   Loader2,
   Building2,
+  Archive,
+  ArchiveRestore,
+  Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -68,6 +71,9 @@ export default function CvPushedPage() {
   const { activeOrgId } = useOrganization();
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
+  /** Mode "Voir les refusés" : on liste les status='rejected' au lieu
+   *  des status='proposed', avec actions Restaurer / Supprimer définitivement. */
+  const [showRejected, setShowRejected] = useState(false);
 
   const {
     data: pushedData,
@@ -75,7 +81,7 @@ export default function CvPushedPage() {
     setData,
     reload,
   } = useCachedQuery<PushedRow[]>(
-    `cv-pushed-missions:${activeOrgId ?? 'none'}:${search.toLowerCase()}`,
+    `cv-pushed-missions:${activeOrgId ?? 'none'}:${showRejected ? 'rej' : 'live'}:${search.toLowerCase()}`,
     async () => {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -85,10 +91,10 @@ export default function CvPushedPage() {
            consultant:consultants!consultant_id (
              id, first_name, last_name, job_title, daily_rate_eur
            ),
-           job_offer:job_offers (title),
+           job_offer:job_offers (title, source, source_kind),
            company:companies!company_id (name)`,
         )
-        .eq('status', 'proposed')
+        .eq('status', showRejected ? 'rejected' : 'proposed')
         .order('created_at', { ascending: false });
       if (error) throw error;
       const rows: PushedRow[] = (data ?? [])
@@ -101,7 +107,10 @@ export default function CvPushedPage() {
           end_date: m.end_date,
           created_at: m.created_at,
           job_offer_title: m.job_offer?.title ?? null,
-          client_name: m.company?.name ?? null,
+          // Client = company.name si rattachée, sinon nom libre de l'offre
+          // (champ `source` de l'AO — client final ou ESN partenaire).
+          client_name:
+            m.company?.name ?? m.job_offer?.source ?? null,
           consultant_id: m.consultant.id,
           first_name: m.consultant.first_name,
           last_name: m.consultant.last_name,
@@ -153,10 +162,57 @@ export default function CvPushedPage() {
     }
   }
 
-  async function unmark(row: PushedRow) {
+  async function refuseMission(row: PushedRow) {
     if (
       !confirm(
-        `Retirer la proposition "${row.mission_title}" pour ${row.first_name} ${row.last_name} ?\n\nLa mission proposée sera supprimée et le profil revient dans l'onglet Consultants.`,
+        `Refuser la proposition "${row.mission_title}" pour ${row.first_name} ${row.last_name} ?\n\nLa mission est marquée comme refusée (proposed → rejected). Tu pourras la retrouver via "Voir les refusés". Le profil revient dans l'onglet Consultants.`,
+      )
+    ) {
+      return;
+    }
+    setBusyId(row.mission_id);
+    try {
+      const res = await fetch(`/api/missions/${row.mission_id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'rejected' }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        notifyError(body.message ?? 'Refus impossible');
+        return;
+      }
+      notifyDestructive(`Proposition refusée pour ${row.first_name} ${row.last_name}`);
+      setData((prev) => (prev ?? []).filter((r) => r.mission_id !== row.mission_id));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function restoreMission(row: PushedRow) {
+    setBusyId(row.mission_id);
+    try {
+      const res = await fetch(`/api/missions/${row.mission_id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'proposed' }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        notifyError(body.message ?? 'Restauration impossible');
+        return;
+      }
+      notifyCreated(`Proposition restaurée — ${row.first_name} ${row.last_name}`);
+      setData((prev) => (prev ?? []).filter((r) => r.mission_id !== row.mission_id));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function hardDelete(row: PushedRow) {
+    if (
+      !confirm(
+        `⚠️ Supprimer DÉFINITIVEMENT la proposition "${row.mission_title}" ?\n\nIrréversible. La trace de la proposition disparaît complètement.`,
       )
     ) {
       return;
@@ -171,7 +227,7 @@ export default function CvPushedPage() {
         notifyError(body.message ?? 'Suppression impossible');
         return;
       }
-      notifyDestructive(`${row.first_name} ${row.last_name} retiré des CV poussés`);
+      notifyDestructive(`Proposition supprimée`);
       setData((prev) => (prev ?? []).filter((r) => r.mission_id !== row.mission_id));
     } finally {
       setBusyId(null);
@@ -186,16 +242,37 @@ export default function CvPushedPage() {
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
             <Send className="h-7 w-7 text-magenta-neon" />
-            CV poussés
+            {showRejected ? 'CV refusés' : 'CV poussés'}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {pushed.length} positionnement{pushed.length > 1 ? 's' : ''} en attente de validation
-            — TJM négocié, offre sélectionnée
+            {showRejected
+              ? `${pushed.length} proposition${pushed.length > 1 ? 's' : ''} refusée${pushed.length > 1 ? 's' : ''} — trace conservée pour reporting`
+              : `${pushed.length} positionnement${pushed.length > 1 ? 's' : ''} en attente de validation — TJM négocié, offre sélectionnée`}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => reload()}>
-          Rafraîchir
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowRejected((v) => !v)}
+            title={showRejected ? 'Revenir aux CV poussés en attente' : 'Voir les CV refusés'}
+          >
+            {showRejected ? (
+              <>
+                <ArchiveRestore className="h-4 w-4" />
+                Voir les en attente
+              </>
+            ) : (
+              <>
+                <Archive className="h-4 w-4" />
+                Voir les refusés
+              </>
+            )}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => reload()}>
+            Rafraîchir
+          </Button>
+        </div>
       </div>
 
       <Card className="mb-4">
@@ -237,11 +314,15 @@ export default function CvPushedPage() {
                 <TableRow>
                   <TableCell colSpan={6} className="py-12 text-center">
                     <Send className="h-8 w-8 mx-auto mb-3 text-muted-foreground/40" />
-                    <p className="text-sm font-medium">Aucun CV poussé pour le moment</p>
+                    <p className="text-sm font-medium">
+                      {showRejected
+                        ? 'Aucune proposition refusée'
+                        : 'Aucun CV poussé pour le moment'}
+                    </p>
                     <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-                      Depuis l&apos;onglet Consultants, clique sur « Pousser CV » pour positionner
-                      un profil sur une offre. Tu valideras le TJM puis tu retrouveras la
-                      proposition ici, en attente de validation client.
+                      {showRejected
+                        ? 'Quand tu refuseras un CV poussé, il apparaîtra ici. Tu pourras le restaurer ou le supprimer définitivement.'
+                        : 'Depuis l\'onglet Consultants, clique sur « Pousser CV » pour positionner un profil sur une offre. Tu valideras le TJM puis tu retrouveras la proposition ici.'}
                     </p>
                   </TableCell>
                 </TableRow>
@@ -306,32 +387,64 @@ export default function CvPushedPage() {
                               Voir
                             </Link>
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => validateMission(r)}
-                            disabled={busy}
-                            title="Valider la mission — passe à actif et entre dans le dashboard"
-                            className="text-emerald-300 hover:bg-emerald-500/10"
-                          >
-                            {busy ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                            )}
-                            Valider
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => unmark(r)}
-                            disabled={busy}
-                            title="Retirer cette proposition — supprime la mission"
-                            className="text-amber-300 hover:bg-amber-500/10"
-                          >
-                            <Undo2 className="h-3.5 w-3.5" />
-                            Retirer
-                          </Button>
+                          {showRejected ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => restoreMission(r)}
+                                disabled={busy}
+                                title="Restaurer la proposition (rejected → proposed)"
+                                className="text-emerald-300 hover:bg-emerald-500/10"
+                              >
+                                {busy ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <ArchiveRestore className="h-3.5 w-3.5" />
+                                )}
+                                Restaurer
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => hardDelete(r)}
+                                disabled={busy}
+                                title="Supprimer définitivement"
+                                className="text-red-400 hover:bg-red-500/10"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => validateMission(r)}
+                                disabled={busy}
+                                title="Valider la mission — passe à actif et entre dans le dashboard"
+                                className="text-emerald-300 hover:bg-emerald-500/10"
+                              >
+                                {busy ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                )}
+                                Valider
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => refuseMission(r)}
+                                disabled={busy}
+                                title="Refuser la proposition — le client a dit non. Retrouvable via Voir les refusés."
+                                className="text-amber-300 hover:bg-amber-500/10"
+                              >
+                                <XCircle className="h-3.5 w-3.5" />
+                                Refuser
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
