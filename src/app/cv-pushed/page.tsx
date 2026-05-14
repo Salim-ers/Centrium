@@ -7,7 +7,6 @@ import {
   Search,
   CheckCircle2,
   XCircle,
-  Briefcase,
   Loader2,
   Building2,
   Network,
@@ -380,16 +379,28 @@ export default function CvPushedPage() {
                         )}
                       </TableCell>
                       <TableCell className="max-w-[260px]">
-                        <div className="font-medium text-sm truncate">{r.mission_title}</div>
+                        {/* Mission et AO portent souvent le même intitulé. On
+                            affiche le titre de l'AO (violet) si présent, sinon
+                            le titre brut de la mission. Pas de doublon. */}
                         {r.job_offer_title ? (
-                          <div className="text-xs text-violet-300 inline-flex items-center gap-1 mt-0.5">
-                            <Briefcase className="h-3 w-3" />
-                            AO · {r.job_offer_title}
+                          <div
+                            className="text-sm font-medium text-violet-300 leading-tight"
+                            title={r.job_offer_title}
+                          >
+                            {r.job_offer_title}
                           </div>
                         ) : (
-                          <div className="text-[11px] text-muted-foreground italic mt-0.5">
-                            Mission libre (sans AO)
-                          </div>
+                          <>
+                            <div
+                              className="text-sm font-medium leading-tight"
+                              title={r.mission_title}
+                            >
+                              {r.mission_title}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground italic mt-0.5">
+                              Mission libre (sans AO)
+                            </div>
+                          </>
                         )}
                       </TableCell>
                       <TableCell>
