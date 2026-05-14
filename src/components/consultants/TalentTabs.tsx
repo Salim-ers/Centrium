@@ -1,24 +1,24 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, UserPlus, Send } from 'lucide-react';
+import { Users, Send, BriefcaseBusiness } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type Tab = 'consultants' | 'prospects' | 'cv-pushed';
+type Tab = 'consultants' | 'cv-pushed' | 'on-mission';
 
 type Props = {
   active: Tab;
   /** Compteurs optionnels affichés à droite du libellé. */
-  counts?: { consultants?: number; prospects?: number; cvPushed?: number };
+  counts?: { consultants?: number; cvPushed?: number; onMission?: number };
 };
 
 /**
- * Bascule "Bibliothèque consultants" ↔ "Vivier (prospection)" ↔ "CV poussés".
+ * Switcher 3 onglets — un profil est dans UN SEUL onglet à la fois,
+ * piloté par l'état de ses missions :
  *
- * - Bibliothèque : consultants actifs / onboardés
- * - Vivier      : prospection, non comptés dans l'effectif
- * - CV poussés  : transversal aux deux — profils dont le CV a été envoyé
- *                 (client, AO, recruteur). Évite de pousser deux fois.
+ * - Consultants  : bibliothèque + vivier confondus, aucune mission "proposed/active"
+ * - CV poussés   : a au moins une mission "proposed" (CV envoyé sur une offre, TJM négocié)
+ * - En Mission   : a au moins une mission "active" (validée, comptée dans le dashboard)
  */
 export function TalentTabs({ active, counts }: Props) {
   const tabs: {
@@ -32,26 +32,26 @@ export function TalentTabs({ active, counts }: Props) {
     {
       id: 'consultants',
       href: '/consultants',
-      label: 'Bibliothèque',
-      sub: 'Consultants actifs / onboardés',
+      label: 'Consultants',
+      sub: 'Bibliothèque + vivier — profils disponibles à positionner',
       Icon: Users,
       countKey: 'consultants',
-    },
-    {
-      id: 'prospects',
-      href: '/prospects',
-      label: 'Vivier',
-      sub: 'Prospection — consultants à recruter',
-      Icon: UserPlus,
-      countKey: 'prospects',
     },
     {
       id: 'cv-pushed',
       href: '/cv-pushed',
       label: 'CV poussés',
-      sub: 'Profils dont le CV a déjà été envoyé (client, AO, recruteur)',
+      sub: 'CV envoyé sur une offre, en attente de validation client',
       Icon: Send,
       countKey: 'cvPushed',
+    },
+    {
+      id: 'on-mission',
+      href: '/en-mission',
+      label: 'En Mission',
+      sub: 'Missions validées — comptées dans le dashboard',
+      Icon: BriefcaseBusiness,
+      countKey: 'onMission',
     },
   ];
 

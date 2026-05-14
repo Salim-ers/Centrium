@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ClipboardCheck, CheckCircle2, Eye, Plus } from 'lucide-react';
+import { ClipboardCheck, CheckCircle2, Eye, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -63,6 +63,24 @@ export default function TimesheetsPage() {
     { enabled: !!activeOrgId },
   );
   const timesheets = timesheetsData ?? [];
+
+  async function removeTimesheet(t: Timesheet) {
+    const period = `${MONTHS[t.period_month - 1]} ${t.period_year}`;
+    if (
+      !confirm(
+        `Supprimer le CRA de ${period} ?\n\nIrréversible. Échouera si une facture y est rattachée — supprime d'abord la facture liée.`,
+      )
+    ) {
+      return;
+    }
+    const res = await timesheetService.remove(t.id);
+    if (res.error) {
+      toast.error(res.error.message);
+      return;
+    }
+    setTimesheets((prev) => (prev ?? []).filter((x) => x.id !== t.id));
+    toast.success(`CRA de ${period} supprimé`);
+  }
 
   async function validate(id: string) {
     if (!activeOrgId) {
@@ -163,6 +181,15 @@ export default function TimesheetsPage() {
                             Valider
                           </Button>
                         )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => removeTimesheet(t)}
+                          title="Supprimer le CRA"
+                          className="text-red-400 hover:bg-red-500/10"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

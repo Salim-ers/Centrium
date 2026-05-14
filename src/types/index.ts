@@ -366,7 +366,7 @@ export type Mission = {
   start_date: string;
   end_date: string | null;
   contract_number: string | null;
-  status: 'active' | 'ended' | 'suspended';
+  status: 'proposed' | 'active' | 'ended' | 'suspended' | 'rejected';
   created_at: string;
   updated_at: string;
 };

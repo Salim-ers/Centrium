@@ -103,11 +103,22 @@ export const opportunityService = {
 
 export const jobOfferService = {
   // List reste en lecture directe Supabase (RLS SELECT OK, plus rapide)
-  async list(statusFilter?: 'open' | 'closed' | 'won' | 'lost' | 'all'): Promise<ServiceResult<JobOffer[]>> {
+  async list(
+    statusFilter?: 'open' | 'closed' | 'won' | 'lost' | 'all',
+    /**
+     * - false (défaut) → uniquement les offres actives
+     * - true           → uniquement les offres archivées
+     * - 'all'          → les deux
+     */
+    archived: boolean | 'all' = false,
+  ): Promise<ServiceResult<JobOffer[]>> {
     const supabase = createClient();
     let query = supabase.from('job_offers').select('*');
     if (statusFilter && statusFilter !== 'all') {
       query = query.eq('status', statusFilter);
+    }
+    if (archived !== 'all') {
+      query = query.eq('archived', archived);
     }
     const { data, error } = await query.order('updated_at', { ascending: false });
     if (error) return { data: null, error };
@@ -132,7 +143,10 @@ export const jobOfferService = {
     }
   },
 
-  async update(id: string, input: Partial<JobOfferInput> & { status?: string }): Promise<ServiceResult<JobOffer>> {
+  async update(
+    id: string,
+    input: Partial<JobOfferInput> & { status?: string; archived?: boolean },
+  ): Promise<ServiceResult<JobOffer>> {
     try {
       const res = await fetch(`/api/offers/${id}`, {
         method: 'PATCH',
@@ -1000,6 +1014,26 @@ export const timesheetService = {
       data: { timesheet, invoice: invoice as Invoice, alreadyInvoiced: false },
       error: null,
     };
+  },
+
+  /**
+   * Supprime un CRA (hard delete). Échoue côté API si une facture est
+   * encore liée — le caller doit d'abord la supprimer/détacher.
+   */
+  async remove(id: string): Promise<ServiceResult<true>> {
+    try {
+      const res = await fetch(`/api/timesheets/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        return {
+          data: null,
+          error: { message: body.message ?? body.error ?? 'Suppression impossible' } as any,
+        };
+      }
+      return { data: true, error: null };
+    } catch (e) {
+      return { data: null, error: { message: (e as Error).message } as any };
+    }
   },
 };
 

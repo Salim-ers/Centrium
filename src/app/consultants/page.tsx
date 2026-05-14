@@ -15,13 +15,11 @@ import {
   Trash2,
   ArchiveRestore,
   Archive,
-  X,
-  Target,
-  ArrowLeftCircle,
   FileUp,
   KeyRound,
   Send,
-  Undo2,
+  ArrowRightCircle,
+  ArrowLeftCircle,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -40,11 +38,13 @@ import {
 } from '@/components/ui/table';
 import { ConsultantFormDialog } from '@/components/consultants/ConsultantFormDialog';
 import { AssignMissionDialog } from '@/components/missions/AssignMissionDialog';
+import { PromoteToConsultantDialog } from '@/components/consultants/PromoteToConsultantDialog';
 import { JobFamilyFilter } from '@/components/consultants/JobFamilyFilter';
 import { CsvImportDialog } from '@/components/consultants/CsvImportDialog';
 import { GrantPortalDialog } from '@/components/consultants/GrantPortalDialog';
 import { UsageBanner } from '@/components/billing/UsageBanner';
 import { Select } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import {
   classifyJobFamily,
   type JobFamilyId,
@@ -65,6 +65,18 @@ import {
 } from '@/constants';
 import { formatCurrency } from '@/lib/utils';
 
+type OriginFilter = 'all' | 'consultant' | 'prospect';
+
+/**
+ * Onglet "Consultants" — fusion bibliothèque + vivier.
+ *
+ * Affiche tous les profils SAUF ceux qui ont une mission "proposed" ou
+ * "active" (ceux-là vivent respectivement dans /cv-pushed et /en-mission).
+ *
+ * Le bouton "Pousser CV" ouvre AssignMissionDialog : on choisit une offre
+ * (onglet Offres & missions) et on valide le TJM. Une mission "proposed"
+ * est créée → le profil bascule automatiquement vers l'onglet "CV poussés".
+ */
 export default function ConsultantsPage() {
   const { activeOrgId } = useOrganization();
   const [owners, setOwners] = useState<ConsultantOwner[]>([]);
@@ -74,8 +86,11 @@ export default function ConsultantsPage() {
   const [editingConsultant, setEditingConsultant] = useState<Consultant | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [assignTo, setAssignTo] = useState<ConsultantListItem | null>(null);
+  const [promoting, setPromoting] = useState<Consultant | null>(null);
   const [familyFilter, setFamilyFilter] = useState<Set<JobFamilyId>>(new Set());
+  const [originFilter, setOriginFilter] = useState<OriginFilter>('all');
   const [csvOpen, setCsvOpen] = useState(false);
+  const [csvAsProspect, setCsvAsProspect] = useState(false);
   const [grantingPortal, setGrantingPortal] = useState<Consultant | null>(null);
 
   useEffect(() => {
@@ -89,9 +104,11 @@ export default function ConsultantsPage() {
     reload,
     setData: setConsultants,
   } = useCachedQuery<ConsultantListItem[]>(
-    `consultants:${activeOrgId ?? 'none'}:${showArchived ? 'arch' : 'active'}:${debouncedSearch}`,
+    `consultants-pool:${activeOrgId ?? 'none'}:${showArchived ? 'arch' : 'active'}:${debouncedSearch}`,
     async () => {
       const res = await consultantService.list({
+        // Bibliothèque + vivier confondus
+        is_prospect: 'all',
         search: debouncedSearch || undefined,
         archived: showArchived,
       });
@@ -99,27 +116,44 @@ export default function ConsultantsPage() {
     },
     { enabled: !!activeOrgId },
   );
-  const allConsultants = consultantsData ?? [];
 
-  // Comptes par corps de métier (sur la liste non filtrée par famille,
-  // sinon les chips inactives masqueraient leur propre compte).
+  // Exclusion : profils avec mission proposed/active → ils vivent dans CV poussés
+  // ou En Mission. Une seule présence par profil, partout dans l'app.
+  const allInPool = (consultantsData ?? []).filter(
+    (c) => c.active_missions.length === 0,
+  );
+
+  // Comptes par corps de métier (avant filtre origine pour rester stable).
   const familyCounts = (() => {
     const base: Record<JobFamilyId, number> = {
       qa: 0, dev: 0, data: 0, devops: 0, cyber: 0, pm: 0,
       ba: 0, architect: 0, support: 0, design: 0, other: 0,
     };
-    for (const c of allConsultants) {
+    for (const c of allInPool) {
       base[classifyJobFamily(c.job_title)] += 1;
     }
     return base;
   })();
 
-  const consultants =
-    familyFilter.size === 0
-      ? allConsultants
-      : allConsultants.filter((c) =>
-          familyFilter.has(classifyJobFamily(c.job_title)),
-        );
+  const originCounts = {
+    all: allInPool.length,
+    consultant: allInPool.filter((c) => !c.is_prospect).length,
+    prospect: allInPool.filter((c) => c.is_prospect).length,
+  };
+
+  const consultants = allInPool
+    .filter((c) =>
+      originFilter === 'all'
+        ? true
+        : originFilter === 'consultant'
+          ? !c.is_prospect
+          : c.is_prospect,
+    )
+    .filter((c) =>
+      familyFilter.size === 0
+        ? true
+        : familyFilter.has(classifyJobFamily(c.job_title)),
+    );
 
   useEffect(() => {
     if (!activeOrgId) return;
@@ -130,7 +164,7 @@ export default function ConsultantsPage() {
 
   async function handleOwnerChange(consultantId: string, ownerId: string) {
     const next = ownerId || null;
-    const prev = consultants;
+    const prev = consultantsData ?? [];
     setConsultants((list) =>
       (list ?? []).map((c) =>
         c.id === consultantId
@@ -150,34 +184,9 @@ export default function ConsultantsPage() {
     return name || o.email;
   }
 
-  async function removeMission(consultantId: string, missionId: string, missionTitle: string) {
-    if (
-      !confirm(
-        `Retirer la mission "${missionTitle}" de ce consultant ? La mission sera supprimée.`,
-      )
-    ) {
-      return;
-    }
-    const prev = consultants;
-    setConsultants((list) =>
-      (list ?? []).map((c) =>
-        c.id === consultantId
-          ? { ...c, active_missions: c.active_missions.filter((m) => m.id !== missionId) }
-          : c,
-      ),
-    );
-    const res = await fetch(`/api/missions/${missionId}`, { method: 'DELETE' });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      notifyError(body.message ?? 'Suppression impossible');
-      setConsultants(prev);
-      return;
-    }
-    notifyDestructive('Mission retirée');
-  }
-
-  function openCreate() {
+  function openCreate(asProspect: boolean) {
     setEditingConsultant(null);
+    setOriginFilter(asProspect ? 'prospect' : 'consultant');
     setDialogOpen(true);
   }
 
@@ -186,10 +195,16 @@ export default function ConsultantsPage() {
     setDialogOpen(true);
   }
 
+  function openCsv(asProspect: boolean) {
+    setCsvAsProspect(asProspect);
+    setCsvOpen(true);
+  }
+
   async function archiveConsultant(consultant: Consultant) {
+    const verb = consultant.is_prospect ? 'Retirer du vivier' : 'Archiver';
     if (
       !confirm(
-        `Archiver ${consultant.first_name} ${consultant.last_name} ? Le consultant disparaît de la liste mais ses données (CRA, factures, CV) sont conservées.`,
+        `${verb} ${consultant.first_name} ${consultant.last_name} ? Le profil disparaît de la liste mais ses données (CV, CRA, factures) sont conservées.`,
       )
     ) {
       return;
@@ -199,7 +214,7 @@ export default function ConsultantsPage() {
       notifyError('Erreur : ' + res.error.message);
       return;
     }
-    notifyDestructive(`${consultant.first_name} ${consultant.last_name} archivé`);
+    notifyDestructive(`${consultant.first_name} ${consultant.last_name} ${consultant.is_prospect ? 'retiré du vivier' : 'archivé'}`);
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
   }
 
@@ -241,46 +256,10 @@ export default function ConsultantsPage() {
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
   }
 
-  async function toggleCvPushed(c: ConsultantListItem) {
-    if (c.cv_pushed) {
-      const ok = confirm(
-        `Retirer ${c.first_name} ${c.last_name} de la liste "CV poussés" ?`,
-      );
-      if (!ok) return;
-      const res = await consultantService.toggleCvPushed(c.id, false);
-      if (res.error || !res.data) {
-        notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
-        return;
-      }
-      setConsultants((prev) =>
-        (prev ?? []).map((x) => (x.id === c.id ? { ...x, ...res.data! } : x)),
-      );
-      notifyDestructive(`${c.first_name} ${c.last_name} retiré des CV poussés`);
-      return;
-    }
-    // Premier marquage : on demande la cible (client / AO / recruteur) — optionnelle.
-    const target = prompt(
-      `Marquer le CV de ${c.first_name} ${c.last_name} comme poussé. À qui ?\n(optionnel — ex: "BNP Paribas", "AO Lead Backend Société Générale", "Hays")`,
-      '',
-    );
-    if (target === null) return; // user a cancel
-    const res = await consultantService.toggleCvPushed(c.id, true, target);
-    if (res.error || !res.data) {
-      notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
-      return;
-    }
-    setConsultants((prev) =>
-      (prev ?? []).map((x) => (x.id === c.id ? { ...x, ...res.data! } : x)),
-    );
-    notifyCreated(
-      `${c.first_name} ${c.last_name} marqué comme CV poussé${target ? ` — ${target}` : ''}`,
-    );
-  }
-
   async function demoteToProspect(consultant: Consultant) {
     if (
       !confirm(
-        `Renvoyer ${consultant.first_name} ${consultant.last_name} dans le vivier de prospection ? Le profil sort de l'effectif actif et n'est plus comptabilisé dans la facturation.`,
+        `Renvoyer ${consultant.first_name} ${consultant.last_name} dans le vivier ? Le profil sort de l'effectif actif et n'est plus comptabilisé dans la facturation.`,
       )
     ) {
       return;
@@ -291,23 +270,27 @@ export default function ConsultantsPage() {
       return;
     }
     notifyDestructive(`${consultant.first_name} ${consultant.last_name} renvoyé au vivier`);
-    setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
+    setConsultants((prev) =>
+      (prev ?? []).map((c) =>
+        c.id === consultant.id ? { ...c, is_prospect: true } : c,
+      ),
+    );
   }
+
+  const headerTitle = showArchived
+    ? 'Profils archivés'
+    : 'Consultants — bibliothèque & vivier';
+  const headerSub = showArchived
+    ? `${consultants.length} archivé${consultants.length > 1 ? 's' : ''}`
+    : `${consultants.length} profil${consultants.length > 1 ? 's' : ''} disponible${consultants.length > 1 ? 's' : ''}${originFilter === 'prospect' ? ' (vivier)' : originFilter === 'consultant' ? ' (bibliothèque)' : ''} — non encore positionné${consultants.length > 1 ? 's' : ''}`;
 
   return (
     <AppShell>
-      <TalentTabs active="consultants" counts={{ consultants: consultants.length }} />
+      <TalentTabs active="consultants" counts={{ consultants: allInPool.length }} />
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">
-            {showArchived ? 'Consultants archivés' : 'Bibliothèque consultants'}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {consultants.length}{' '}
-            {showArchived
-              ? `archivé${consultants.length > 1 ? 's' : ''}`
-              : `consultant${consultants.length > 1 ? 's' : ''} référencé${consultants.length > 1 ? 's' : ''}`}
-          </p>
+          <h1 className="font-display text-3xl font-bold tracking-tight">{headerTitle}</h1>
+          <p className="text-muted-foreground mt-1">{headerSub}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -329,13 +312,13 @@ export default function ConsultantsPage() {
           </Button>
           {!showArchived && (
             <>
-              <Button variant="outline" onClick={() => setCsvOpen(true)}>
+              <Button variant="outline" onClick={() => openCsv(originFilter === 'prospect')}>
                 <FileUp className="h-4 w-4" />
                 Importer CSV
               </Button>
-              <Button onClick={openCreate}>
+              <Button onClick={() => openCreate(originFilter === 'prospect')}>
                 <Plus className="h-4 w-4" />
-                Nouveau consultant
+                {originFilter === 'prospect' ? 'Nouveau prospect' : 'Nouveau consultant'}
               </Button>
             </>
           )}
@@ -350,6 +333,7 @@ export default function ConsultantsPage() {
         }}
         organizationId={activeOrgId ?? ''}
         consultant={editingConsultant}
+        isProspect={!editingConsultant && originFilter === 'prospect'}
         onSaved={() => reload()}
       />
 
@@ -368,12 +352,30 @@ export default function ConsultantsPage() {
               }
             : null
         }
-        onAssigned={() => reload()}
+        onAssigned={() => {
+          // Mission proposed créée → le profil quitte cet onglet vers "CV poussés".
+          setConsultants((prev) => (prev ?? []).filter((c) => c.id !== assignTo?.id));
+          reload();
+        }}
+      />
+
+      <PromoteToConsultantDialog
+        open={!!promoting}
+        onOpenChange={(v) => {
+          if (!v) setPromoting(null);
+        }}
+        consultant={promoting}
+        onPromoted={(c) => {
+          setConsultants((prev) =>
+            (prev ?? []).map((p) => (p.id === c.id ? { ...p, is_prospect: false } : p)),
+          );
+        }}
       />
 
       <CsvImportDialog
         open={csvOpen}
         onOpenChange={setCsvOpen}
+        isProspect={csvAsProspect}
         onImported={() => reload()}
       />
 
@@ -399,9 +401,35 @@ export default function ConsultantsPage() {
               className="pl-9"
             />
           </div>
+
+          {!showArchived && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <OriginChip
+                label="Tous"
+                active={originFilter === 'all'}
+                count={originCounts.all}
+                onClick={() => setOriginFilter('all')}
+              />
+              <OriginChip
+                label="Bibliothèque"
+                active={originFilter === 'consultant'}
+                count={originCounts.consultant}
+                tone="emerald"
+                onClick={() => setOriginFilter('consultant')}
+              />
+              <OriginChip
+                label="Vivier"
+                active={originFilter === 'prospect'}
+                count={originCounts.prospect}
+                tone="amber"
+                onClick={() => setOriginFilter('prospect')}
+              />
+            </div>
+          )}
+
           <JobFamilyFilter
             counts={familyCounts}
-            total={allConsultants.length}
+            total={allInPool.length}
             active={familyFilter}
             onChange={setFamilyFilter}
           />
@@ -414,10 +442,10 @@ export default function ConsultantsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Consultant</TableHead>
+                <TableHead>Origine</TableHead>
                 <TableHead>Séniorité</TableHead>
                 <TableHead>TJM</TableHead>
                 <TableHead>Statut</TableHead>
-                <TableHead>Mission / AO</TableHead>
                 <TableHead>Pris en charge par</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -434,7 +462,7 @@ export default function ConsultantsPage() {
               ) : consultants.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                    {showArchived ? 'Aucun consultant archivé' : 'Aucun consultant'}
+                    {showArchived ? 'Aucun profil archivé' : 'Aucun profil disponible. Ajoute un consultant ou un prospect.'}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -455,6 +483,17 @@ export default function ConsultantsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
+                      {c.is_prospect ? (
+                        <Badge variant="outline" className="border-amber-500/40 text-amber-300 bg-amber-500/[0.08] text-[10px]">
+                          Vivier
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-emerald-500/40 text-emerald-300 bg-emerald-500/[0.08] text-[10px]">
+                          Bibliothèque
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <Badge variant="outline">{SENIORITY_LABEL[c.seniority]}</Badge>
                     </TableCell>
                     <TableCell className="font-medium">
@@ -464,49 +503,6 @@ export default function ConsultantsPage() {
                       <Badge variant="outline" className={CONSULTANT_STATUS_STYLE[c.status]}>
                         {CONSULTANT_STATUS_LABEL[c.status]}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="max-w-[260px]">
-                      <div className="space-y-1.5">
-                        {c.active_missions.length === 0 && showArchived ? (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        ) : (
-                          c.active_missions.map((m) => (
-                            <div
-                              key={m.id}
-                              className="group flex items-start gap-1.5 text-xs"
-                            >
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium truncate">{m.title}</div>
-                                {m.job_offer_title && (
-                                  <div className="text-muted-foreground truncate">
-                                    AO · {m.job_offer_title}
-                                  </div>
-                                )}
-                              </div>
-                              {!showArchived && (
-                                <button
-                                  type="button"
-                                  onClick={() => removeMission(c.id, m.id, m.title)}
-                                  title="Retirer la mission"
-                                  className="opacity-0 group-hover:opacity-100 transition text-muted-foreground hover:text-red-400 mt-0.5"
-                                >
-                                  <X className="h-3.5 w-3.5" />
-                                </button>
-                              )}
-                            </div>
-                          ))
-                        )}
-                        {!showArchived && (
-                          <button
-                            type="button"
-                            onClick={() => setAssignTo(c)}
-                            className="inline-flex items-center gap-1 text-[11px] text-violet-300 hover:text-violet-200 hover:underline"
-                          >
-                            <Target className="h-3 w-3" />
-                            Affecter une mission
-                          </button>
-                        )}
-                      </div>
                     </TableCell>
                     <TableCell>
                       {showArchived ? (
@@ -564,23 +560,12 @@ export default function ConsultantsPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => toggleCvPushed(c)}
-                              title={
-                                c.cv_pushed
-                                  ? `CV déjà poussé${c.cv_pushed_target ? ` → ${c.cv_pushed_target}` : ''} — clic pour retirer`
-                                  : 'Marquer le CV comme poussé (envoyé à un client / AO / recruteur)'
-                              }
-                              className={
-                                c.cv_pushed
-                                  ? 'text-magenta-neon hover:bg-magenta/10'
-                                  : 'text-muted-foreground hover:text-magenta-neon'
-                              }
+                              onClick={() => setAssignTo(c)}
+                              title="Pousser le CV sur une offre (choisis l'offre + valide le TJM)"
+                              className="text-magenta-neon hover:bg-magenta/10"
                             >
-                              {c.cv_pushed ? (
-                                <Undo2 className="h-3.5 w-3.5" />
-                              ) : (
-                                <Send className="h-3.5 w-3.5" />
-                              )}
+                              <Send className="h-3.5 w-3.5" />
+                              Pousser CV
                             </Button>
                             <Button
                               variant="ghost"
@@ -590,7 +575,7 @@ export default function ConsultantsPage() {
                             >
                               <Pencil className="h-3.5 w-3.5 text-violet-glow" />
                             </Button>
-                            {!c.has_portal && (
+                            {!c.is_prospect && !c.has_portal && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -601,20 +586,32 @@ export default function ConsultantsPage() {
                                 <KeyRound className="h-3.5 w-3.5" />
                               </Button>
                             )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => demoteToProspect(c)}
-                              title="Renvoyer au vivier de prospection"
-                              className="text-amber-300 hover:text-amber-200"
-                            >
-                              <ArrowLeftCircle className="h-3.5 w-3.5" />
-                            </Button>
+                            {c.is_prospect ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setPromoting(c)}
+                                title="Promouvoir en consultant actif"
+                                className="text-emerald-300 hover:text-emerald-200"
+                              >
+                                <ArrowRightCircle className="h-3.5 w-3.5" />
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => demoteToProspect(c)}
+                                title="Renvoyer au vivier de prospection"
+                                className="text-amber-300 hover:text-amber-200"
+                              >
+                                <ArrowLeftCircle className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => archiveConsultant(c)}
-                              title="Archiver"
+                              title={c.is_prospect ? 'Retirer du vivier' : 'Archiver'}
                             >
                               <Trash2 className="h-3.5 w-3.5 text-red-400" />
                             </Button>
@@ -630,5 +627,41 @@ export default function ConsultantsPage() {
         </CardContent>
       </Card>
     </AppShell>
+  );
+}
+
+function OriginChip({
+  label,
+  count,
+  active,
+  tone = 'violet',
+  onClick,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  tone?: 'violet' | 'emerald' | 'amber';
+  onClick: () => void;
+}) {
+  const toneClass =
+    tone === 'emerald'
+      ? 'border-emerald-500/40 text-emerald-200 bg-emerald-500/[0.08]'
+      : tone === 'amber'
+        ? 'border-amber-500/40 text-amber-200 bg-amber-500/[0.08]'
+        : 'border-violet-glow/40 text-violet-100 bg-violet-glow/[0.12]';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition',
+        active
+          ? toneClass
+          : 'border-hairline text-muted-foreground hover:text-foreground hover:bg-white/[0.04]',
+      )}
+    >
+      <span>{label}</span>
+      <span className="text-[10px] opacity-80">{count}</span>
+    </button>
   );
 }

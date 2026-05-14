@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import {
   Users,
   TrendingUp,
@@ -15,6 +16,7 @@ import {
   ShieldAlert,
   Info,
   ArrowUpRight,
+  RotateCcw,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -32,6 +34,7 @@ import { NewUserTutorial } from '@/components/onboarding/NewUserTutorial';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { formatCurrency, relativeDate } from '@/lib/utils';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
+import { ResetDashboardDialog } from '@/components/dashboard/ResetDashboardDialog';
 
 type DashboardData = { kpis: DashboardKPIs | null; alerts: ComputedAlert[] };
 
@@ -88,7 +91,7 @@ export default function DashboardPage() {
   // Évite de hasseler les orgs qui ont décidé de garder le défaut.
   const brandingMissing =
     !!branding && !branding.logoUrl && !branding.primaryColor;
-  const { data, loading } = useCachedQuery<DashboardData>(
+  const { data, loading, reload } = useCachedQuery<DashboardData>(
     `dashboard:${activeOrgId ?? 'none'}`,
     async () => {
       // Passe activeOrgId aux deux RPC pour éviter un round-trip profiles
@@ -106,16 +109,34 @@ export default function DashboardPage() {
   );
   const kpis = data?.kpis ?? null;
   const alerts = data?.alerts ?? [];
+  const [resetOpen, setResetOpen] = useState(false);
 
   return (
     <AppShell>
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-bold tracking-tight">
-          <span className="qc-gradient-text">Dashboard</span>
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Vue d&apos;ensemble de votre activité {brandName}
-        </p>
+      <ResetDashboardDialog
+        open={resetOpen}
+        onOpenChange={setResetOpen}
+        onReset={() => reload()}
+      />
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-bold tracking-tight">
+            <span className="qc-gradient-text">Dashboard</span>
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Vue d&apos;ensemble de votre activité {brandName}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setResetOpen(true)}
+          title="Réinitialiser les données transactionnelles (missions, CRAs, factures, alertes)"
+          className="text-amber-300 hover:bg-amber-500/10 border-amber-500/30"
+        >
+          <RotateCcw className="h-4 w-4" />
+          Réinitialiser
+        </Button>
       </div>
 
       {/* Auto-ouvre le tuto au 1er montage si pas vu */}

@@ -18,6 +18,7 @@ const patchSchema = z.object({
   start_date: z.string().optional(),
   end_date: z.string().optional().nullable(),
   contract_number: z.string().optional().nullable(),
+  archived: z.boolean().optional(),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -45,9 +46,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
-  const payload = Object.fromEntries(
+  const payload: Record<string, unknown> = Object.fromEntries(
     Object.entries(parsed.data).map(([k, v]) => [k, v === '' ? null : v]),
   );
+  // Stamp/unstamp archived_at automatiquement quand le flag bascule
+  if (parsed.data.archived === true) {
+    payload.archived_at = new Date().toISOString();
+  } else if (parsed.data.archived === false) {
+    payload.archived_at = null;
+  }
 
   const { data, error } = await admin
     .from('missions')

@@ -112,9 +112,8 @@ export default function ConsultantDetailPage() {
         ? `${c.first_name} ${c.last_name} retiré du vivier`
         : `${c.first_name} ${c.last_name} archivé`,
     );
-    // Retour vers la liste d'origine (vivier vs bibliothèque) pour rester
-    // dans le contexte où l'utilisateur a déclenché l'action.
-    router.push(wasProspect ? '/prospects' : '/consultants');
+    // Bibliothèque + vivier sont désormais sur un onglet unique.
+    router.push('/consultants');
   }
 
   async function handleUnarchive() {

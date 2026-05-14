@@ -13,6 +13,8 @@ import {
   Euro,
   Calendar,
   FileDown,
+  Archive,
+  ArchiveRestore,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -66,6 +68,7 @@ export default function OffersPage() {
   const [editing, setEditing] = useState<JobOffer | null>(null);
   const [statusFilter, setStatusFilter] = useState<'open' | 'closed' | 'won' | 'lost' | 'all'>('open');
   const [exportingOfferId, setExportingOfferId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const {
     data: offersData,
@@ -73,9 +76,9 @@ export default function OffersPage() {
     reload,
     setData: setOffers,
   } = useCachedQuery<JobOffer[]>(
-    `offers:${activeOrgId ?? 'none'}:${statusFilter}`,
+    `offers:${activeOrgId ?? 'none'}:${statusFilter}:${showArchived ? 'arch' : 'live'}`,
     async () => {
-      const res = await jobOfferService.list(statusFilter);
+      const res = await jobOfferService.list(statusFilter, showArchived);
       return res.data ?? [];
     },
     { enabled: !!activeOrgId },
@@ -134,6 +137,33 @@ export default function OffersPage() {
     reload();
   }
 
+  async function archiveOffer(o: JobOffer) {
+    if (
+      !confirm(
+        `Archiver l'offre "${o.title}" ?\n\nElle disparaît du KPI "Opportunités ouvertes" et de la liste par défaut. Reste consultable via "Voir les archivées".`,
+      )
+    ) {
+      return;
+    }
+    const res = await jobOfferService.update(o.id, { archived: true });
+    if (res.error) {
+      toast.error('Erreur : ' + res.error.message);
+      return;
+    }
+    toast.success(`Offre "${o.title}" archivée`);
+    setOffers((prev) => (prev ?? []).filter((x) => x.id !== o.id));
+  }
+
+  async function unarchiveOffer(o: JobOffer) {
+    const res = await jobOfferService.update(o.id, { archived: false });
+    if (res.error) {
+      toast.error('Erreur : ' + res.error.message);
+      return;
+    }
+    toast.success(`Offre "${o.title}" restaurée`);
+    setOffers((prev) => (prev ?? []).filter((x) => x.id !== o.id));
+  }
+
   return (
     <AppShell>
       <div className="flex items-center justify-between mb-6">
@@ -147,16 +177,37 @@ export default function OffersPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
-            <Link href="/matching" className="inline-flex items-center gap-1.5">
-              <Target className="h-4 w-4" />
-              Lancer matching
-            </Link>
+          <Button
+            variant="outline"
+            onClick={() => setShowArchived((v) => !v)}
+            title={showArchived ? 'Revenir aux offres actives' : 'Voir les offres archivées'}
+          >
+            {showArchived ? (
+              <>
+                <ArchiveRestore className="h-4 w-4" />
+                Voir les actives
+              </>
+            ) : (
+              <>
+                <Archive className="h-4 w-4" />
+                Voir les archivées
+              </>
+            )}
           </Button>
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            Nouvelle offre
-          </Button>
+          {!showArchived && (
+            <>
+              <Button variant="outline" asChild>
+                <Link href="/matching" className="inline-flex items-center gap-1.5">
+                  <Target className="h-4 w-4" />
+                  Lancer matching
+                </Link>
+              </Button>
+              <Button onClick={openCreate}>
+                <Plus className="h-4 w-4" />
+                Nouvelle offre
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -288,47 +339,73 @@ export default function OffersPage() {
                     <TableCell className="text-xs">{relativeDate(o.updated_at)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          asChild
-                          title="Lancer le matching sur cette offre"
-                        >
-                          <Link href={`/matching?offerId=${o.id}`}>
-                            <Target className="h-3.5 w-3.5 text-violet-glow" />
-                          </Link>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => downloadPoster(o)}
-                          disabled={exportingOfferId === o.id}
-                          title="Télécharger la fiche de poste PDF"
-                        >
-                          <FileDown
-                            className={`h-3.5 w-3.5 ${
-                              exportingOfferId === o.id
-                                ? 'animate-pulse text-violet-glow/60'
-                                : 'text-violet-glow'
-                            }`}
-                          />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => openEdit(o)}
-                          title="Éditer"
-                        >
-                          <Pencil className="h-3.5 w-3.5 text-violet-glow" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => deleteOffer(o)}
-                          title="Supprimer"
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-red-400" />
-                        </Button>
+                        {showArchived ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => unarchiveOffer(o)}
+                              title="Restaurer l'offre"
+                              className="text-emerald-300 hover:text-emerald-200"
+                            >
+                              <ArchiveRestore className="h-3.5 w-3.5" />
+                              Restaurer
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => deleteOffer(o)}
+                              title="Supprimer définitivement"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              asChild
+                              title="Lancer le matching sur cette offre"
+                            >
+                              <Link href={`/matching?offerId=${o.id}`}>
+                                <Target className="h-3.5 w-3.5 text-violet-glow" />
+                              </Link>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => downloadPoster(o)}
+                              disabled={exportingOfferId === o.id}
+                              title="Télécharger la fiche de poste PDF"
+                            >
+                              <FileDown
+                                className={`h-3.5 w-3.5 ${
+                                  exportingOfferId === o.id
+                                    ? 'animate-pulse text-violet-glow/60'
+                                    : 'text-violet-glow'
+                                }`}
+                              />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => openEdit(o)}
+                              title="Éditer"
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-violet-glow" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => archiveOffer(o)}
+                              title="Archiver — sort des KPI et de la liste par défaut"
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              <Archive className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

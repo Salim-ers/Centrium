@@ -56,7 +56,7 @@ const GROUPS: NavGroup[] = [
       // Consultants regroupe la bibliothèque + le vivier (prospection), avec
       // un switcher d'onglets sur les pages elles-mêmes. Une seule entrée
       // dans le menu pour ne pas alourdir la navigation.
-      { label: 'Consultants', href: '/consultants', icon: Users, matchAlso: ['/prospects'] },
+      { label: 'Consultants', href: '/consultants', icon: Users, matchAlso: ['/prospects', '/cv-pushed', '/en-mission'] },
       { label: 'CV Optimizer', href: '/cv-optimizer', icon: FileText },
     ],
   },

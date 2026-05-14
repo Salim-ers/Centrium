@@ -1,7 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { Send, Eye, Undo2, Search, UserCircle, UserPlus } from 'lucide-react';
+import {
+  Send,
+  Eye,
+  Search,
+  UserCircle,
+  UserPlus,
+  CheckCircle2,
+  Undo2,
+  Briefcase,
+  Loader2,
+} from 'lucide-react';
 import { useState } from 'react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -19,60 +29,151 @@ import {
 } from '@/components/ui/table';
 import { TalentTabs } from '@/components/consultants/TalentTabs';
 
-import {
-  consultantService,
-  type ConsultantListItem,
-} from '@/lib/services/consultant.service';
+import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { SENIORITY_LABEL } from '@/constants';
 import { formatCurrency, relativeDate } from '@/lib/utils';
-import { notifyDestructive, notifyError } from '@/lib/notify';
+import { notifyDestructive, notifyError, notifyCreated } from '@/lib/notify';
 
 /**
- * Page "CV poussés" — transversale bibliothèque + vivier.
+ * Onglet "CV poussés" — une ligne = une mission en statut `proposed`.
  *
- * Liste les consultants ET prospects dont le CV a été envoyé (cv_pushed=true).
- * Action principale : "Retirer" pour démarquer un profil quand il a été
- * rejeté / la mission est tombée / on veut le pousser ailleurs.
+ * Source de vérité : table `missions` (filtre status='proposed').
+ * Un profil peut apparaître plusieurs fois s'il est positionné sur
+ * plusieurs offres simultanément.
+ *
+ * Actions :
+ * - Valider  → mission passe à `active`. Le profil bascule dans /en-mission
+ *   et est compté dans le KPI "En mission" du dashboard.
+ * - Retirer  → mission supprimée. Le profil revient dans /consultants.
  */
+type PushedRow = {
+  mission_id: string;
+  mission_title: string;
+  daily_rate_eur: number | null;
+  start_date: string | null;
+  end_date: string | null;
+  created_at: string;
+  job_offer_title: string | null;
+  consultant_id: string;
+  first_name: string;
+  last_name: string;
+  job_title: string;
+  seniority: string;
+  is_prospect: boolean;
+};
+
 export default function CvPushedPage() {
   const { activeOrgId } = useOrganization();
   const [search, setSearch] = useState('');
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const {
     data: pushedData,
     loading,
     setData,
-  } = useCachedQuery<ConsultantListItem[]>(
-    `cv-pushed:${activeOrgId ?? 'none'}:${search.toLowerCase()}`,
+    reload,
+  } = useCachedQuery<PushedRow[]>(
+    `cv-pushed-missions:${activeOrgId ?? 'none'}:${search.toLowerCase()}`,
     async () => {
-      const res = await consultantService.list({
-        cv_pushed: true,
-        is_prospect: 'all',
-        archived: 'all',
-        search: search.trim() || undefined,
-      });
-      return res.data ?? [];
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('missions')
+        .select(
+          `id, title, daily_rate_eur, start_date, end_date, created_at,
+           consultant:consultants!consultant_id (
+             id, first_name, last_name, job_title, seniority, is_prospect
+           ),
+           job_offer:job_offers (title)`,
+        )
+        .eq('status', 'proposed')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      const rows: PushedRow[] = (data ?? [])
+        .filter((m: any) => m.consultant)
+        .map((m: any) => ({
+          mission_id: m.id,
+          mission_title: m.title,
+          daily_rate_eur: m.daily_rate_eur,
+          start_date: m.start_date,
+          end_date: m.end_date,
+          created_at: m.created_at,
+          job_offer_title: m.job_offer?.title ?? null,
+          consultant_id: m.consultant.id,
+          first_name: m.consultant.first_name,
+          last_name: m.consultant.last_name,
+          job_title: m.consultant.job_title,
+          seniority: m.consultant.seniority,
+          is_prospect: m.consultant.is_prospect,
+        }));
+      const q = search.trim().toLowerCase();
+      if (!q) return rows;
+      return rows.filter(
+        (r) =>
+          r.first_name.toLowerCase().includes(q) ||
+          r.last_name.toLowerCase().includes(q) ||
+          r.job_title?.toLowerCase().includes(q) ||
+          r.mission_title?.toLowerCase().includes(q) ||
+          r.job_offer_title?.toLowerCase().includes(q),
+      );
     },
     { enabled: !!activeOrgId },
   );
   const pushed = pushedData ?? [];
 
-  async function unmark(c: ConsultantListItem) {
+  async function validateMission(row: PushedRow) {
     if (
       !confirm(
-        `Retirer ${c.first_name} ${c.last_name} de la liste "CV poussés" ?`,
+        `Valider la mission "${row.mission_title}" pour ${row.first_name} ${row.last_name} au TJM ${formatCurrency(row.daily_rate_eur ?? 0)} ?\n\nLa mission devient active et sera comptabilisée dans le dashboard.`,
       )
-    )
-      return;
-    const res = await consultantService.toggleCvPushed(c.id, false);
-    if (res.error || !res.data) {
-      notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
+    ) {
       return;
     }
-    setData((prev) => (prev ?? []).filter((x) => x.id !== c.id));
-    notifyDestructive(`${c.first_name} ${c.last_name} retiré des CV poussés`);
+    setBusyId(row.mission_id);
+    try {
+      const res = await fetch(`/api/missions/${row.mission_id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'active' }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        notifyError(body.message ?? 'Validation impossible');
+        return;
+      }
+      notifyCreated(
+        `Mission validée pour ${row.first_name} ${row.last_name} — visible dans "En Mission"`,
+      );
+      setData((prev) => (prev ?? []).filter((r) => r.mission_id !== row.mission_id));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function unmark(row: PushedRow) {
+    if (
+      !confirm(
+        `Retirer la proposition "${row.mission_title}" pour ${row.first_name} ${row.last_name} ?\n\nLa mission proposée sera supprimée et le profil revient dans l'onglet Consultants.`,
+      )
+    ) {
+      return;
+    }
+    setBusyId(row.mission_id);
+    try {
+      const res = await fetch(`/api/missions/${row.mission_id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        notifyError(body.message ?? 'Suppression impossible');
+        return;
+      }
+      notifyDestructive(`${row.first_name} ${row.last_name} retiré des CV poussés`);
+      setData((prev) => (prev ?? []).filter((r) => r.mission_id !== row.mission_id));
+    } finally {
+      setBusyId(null);
+    }
   }
 
   return (
@@ -86,10 +187,13 @@ export default function CvPushedPage() {
             CV poussés
           </h1>
           <p className="text-muted-foreground mt-1">
-            {pushed.length} profil{pushed.length > 1 ? 's' : ''} positionné
-            {pushed.length > 1 ? 's' : ''} — bibliothèque & vivier confondus
+            {pushed.length} positionnement{pushed.length > 1 ? 's' : ''} en attente de validation
+            — TJM négocié, offre sélectionnée
           </p>
         </div>
+        <Button variant="outline" size="sm" onClick={() => reload()}>
+          Rafraîchir
+        </Button>
       </div>
 
       <Card className="mb-4">
@@ -98,7 +202,7 @@ export default function CvPushedPage() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Rechercher par nom, prénom, intitulé…"
+              placeholder="Rechercher par nom, intitulé, mission, offre…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -115,8 +219,8 @@ export default function CvPushedPage() {
                 <TableHead>Consultant</TableHead>
                 <TableHead>Origine</TableHead>
                 <TableHead>Séniorité</TableHead>
+                <TableHead>Mission / Offre</TableHead>
                 <TableHead>TJM</TableHead>
-                <TableHead>Cible / envoi</TableHead>
                 <TableHead>Poussé</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -134,35 +238,35 @@ export default function CvPushedPage() {
                     <Send className="h-8 w-8 mx-auto mb-3 text-muted-foreground/40" />
                     <p className="text-sm font-medium">Aucun CV poussé pour le moment</p>
                     <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-                      Depuis la bibliothèque ou le vivier, marque un profil comme
-                      "CV poussé" pour le tracer ici et éviter de le re-positionner
-                      par erreur.
+                      Depuis l&apos;onglet Consultants, clique sur « Pousser CV » pour positionner
+                      un profil sur une offre. Tu valideras le TJM puis tu retrouveras la
+                      proposition ici, en attente de validation client.
                     </p>
                   </TableCell>
                 </TableRow>
               ) : (
-                pushed.map((c) => {
-                  const isProspect = c.is_prospect;
+                pushed.map((r) => {
+                  const busy = busyId === r.mission_id;
                   return (
-                    <TableRow key={c.id}>
+                    <TableRow key={r.mission_id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded-full bg-qc-gradient-pink flex items-center justify-center text-white text-[10px] font-semibold shrink-0">
-                            {c.first_name[0]}
-                            {c.last_name[0]}
+                            {r.first_name[0]}
+                            {r.last_name[0]}
                           </div>
                           <div className="min-w-0">
                             <div className="font-medium truncate">
-                              {c.first_name} {c.last_name}
+                              {r.first_name} {r.last_name}
                             </div>
                             <div className="text-xs text-muted-foreground truncate">
-                              {c.job_title}
+                              {r.job_title}
                             </div>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        {isProspect ? (
+                        {r.is_prospect ? (
                           <Badge variant="outline" className="border-amber-500/40 text-amber-300 bg-amber-500/[0.08]">
                             <UserPlus className="h-3 w-3" />
                             Vivier
@@ -175,25 +279,33 @@ export default function CvPushedPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{SENIORITY_LABEL[c.seniority]}</Badge>
+                        <Badge variant="outline">
+                          {SENIORITY_LABEL[r.seniority as keyof typeof SENIORITY_LABEL] ?? r.seniority}
+                        </Badge>
                       </TableCell>
-                      <TableCell className="text-sm">
-                        {formatCurrency(c.daily_rate_eur)}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {c.cv_pushed_target ? (
-                          <span className="text-foreground">{c.cv_pushed_target}</span>
+                      <TableCell className="max-w-[260px]">
+                        <div className="font-medium text-sm truncate">{r.mission_title}</div>
+                        {r.job_offer_title ? (
+                          <div className="text-xs text-violet-300 inline-flex items-center gap-1 mt-0.5">
+                            <Briefcase className="h-3 w-3" />
+                            AO · {r.job_offer_title}
+                          </div>
                         ) : (
-                          <span className="text-muted-foreground italic">—</span>
+                          <div className="text-[11px] text-muted-foreground italic mt-0.5">
+                            Mission libre (sans AO)
+                          </div>
                         )}
                       </TableCell>
+                      <TableCell className="text-sm font-medium">
+                        {formatCurrency(r.daily_rate_eur ?? 0)}
+                      </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {c.cv_pushed_at ? relativeDate(c.cv_pushed_at) : '—'}
+                        {relativeDate(r.created_at)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button size="sm" variant="ghost" asChild>
-                            <Link href={`/consultants/${c.id}`}>
+                            <Link href={`/consultants/${r.consultant_id}`}>
                               <Eye className="h-3.5 w-3.5" />
                               Voir
                             </Link>
@@ -201,8 +313,24 @@ export default function CvPushedPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => unmark(c)}
-                            title="Retirer des CV poussés"
+                            onClick={() => validateMission(r)}
+                            disabled={busy}
+                            title="Valider la mission — passe à actif et entre dans le dashboard"
+                            className="text-emerald-300 hover:bg-emerald-500/10"
+                          >
+                            {busy ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            )}
+                            Valider
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => unmark(r)}
+                            disabled={busy}
+                            title="Retirer cette proposition — supprime la mission"
                             className="text-amber-300 hover:bg-amber-500/10"
                           >
                             <Undo2 className="h-3.5 w-3.5" />

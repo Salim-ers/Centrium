@@ -14,6 +14,7 @@ export const runtime = 'nodejs';
 
 const updateSchema = jobOfferSchema.partial().extend({
   status: z.enum(['open', 'closed', 'won', 'lost']).optional(),
+  archived: z.boolean().optional(),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -45,7 +46,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
-  const payload = normalizeEmpty(parsed.data);
+  const payload: Record<string, unknown> = normalizeEmpty(parsed.data);
+  if (parsed.data.archived === true) {
+    payload.archived_at = new Date().toISOString();
+  } else if (parsed.data.archived === false) {
+    payload.archived_at = null;
+  }
   const { data, error } = await admin
     .from('job_offers')
     .update(payload)
