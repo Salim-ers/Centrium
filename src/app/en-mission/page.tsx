@@ -5,8 +5,6 @@ import {
   BriefcaseBusiness,
   Eye,
   Search,
-  UserCircle,
-  UserPlus,
   Briefcase,
   Loader2,
   CircleStop,
@@ -303,7 +301,6 @@ export default function EnMissionPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Consultant</TableHead>
-                <TableHead>Origine</TableHead>
                 <TableHead>Séniorité</TableHead>
                 <TableHead>Mission / Offre</TableHead>
                 <TableHead>TJM</TableHead>
@@ -314,13 +311,13 @@ export default function EnMissionPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7}>
+                  <TableCell colSpan={6}>
                     <div className="h-10 bg-white/[0.02] animate-pulse rounded" />
                   </TableCell>
                 </TableRow>
               ) : onMission.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-12 text-center">
+                  <TableCell colSpan={6} className="py-12 text-center">
                     <BriefcaseBusiness className="h-8 w-8 mx-auto mb-3 text-muted-foreground/40" />
                     <p className="text-sm font-medium">Aucune mission active</p>
                     <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
@@ -350,19 +347,6 @@ export default function EnMissionPage() {
                             </div>
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        {r.is_prospect ? (
-                          <Badge variant="outline" className="border-amber-500/40 text-amber-300 bg-amber-500/[0.08]">
-                            <UserPlus className="h-3 w-3" />
-                            Vivier
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="border-emerald-500/40 text-emerald-300 bg-emerald-500/[0.08]">
-                            <UserCircle className="h-3 w-3" />
-                            Bibliothèque
-                          </Badge>
-                        )}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
