@@ -194,7 +194,7 @@ export default function ContactsPage() {
               <TableRow>
                 <TableHead>Contact</TableHead>
                 <TableHead className="w-[110px]">Type</TableHead>
-                <TableHead>Poste</TableHead>
+                <TableHead>Entreprise / ESN</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead className="w-[140px]">Téléphone</TableHead>
                 <TableHead className="w-[140px]">Dernier contact</TableHead>
@@ -236,10 +236,16 @@ export default function ContactsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell
-                        className="text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[220px]"
-                        title={c.job_title ?? undefined}
+                        className="text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[240px]"
+                        title={c.source ?? undefined}
                       >
-                        {c.job_title ?? <span className="text-muted-foreground">—</span>}
+                        {c.source ? (
+                          <span className="font-medium">
+                            {c.source.replace(/^ESN:\s*/, '')}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[260px]">
                         {c.email ? (
