@@ -53,15 +53,45 @@ const AUTH_CACHE_TTL_MS = 60_000;
 const AUTH_CACHE_KEY = 'qc_auth_state';
 const AUTH_CACHE_TS_KEY = 'qc_auth_ts';
 
+const EMPTY_STATE: State = {
+  user: null,
+  activeOrgId: null,
+  role: null,
+  memberships: [],
+  branding: null,
+  loading: true,
+};
+
+/**
+ * Hydratation synchrone du contexte d'auth depuis sessionStorage.
+ *
+ * Sans ça, après un F5, `activeOrgId` reste null pendant le premier
+ * render — toutes les pages déclenchent `enabled: !!activeOrgId === false`,
+ * affichent un état "0 résultats" puis se mettent à jour après la
+ * réhydratation. C'est ce que l'utilisateur voyait comme un "flash vide".
+ *
+ * On lit sessionStorage AVANT le premier render. Au prochain mount le
+ * state est déjà peuplé, les queries enabled tournent dès le tick 1.
+ */
+function initialAuthState(): State {
+  if (typeof window === 'undefined') return EMPTY_STATE;
+  try {
+    const cached = window.sessionStorage.getItem(AUTH_CACHE_KEY);
+    if (!cached) return EMPTY_STATE;
+    const parsed = JSON.parse(cached) as Omit<State, 'loading'>;
+    // Sanity check : on rejette les caches cassés (user présent sans
+    // org) qui mèneraient à une boucle de redirect.
+    if (parsed.user && !parsed.activeOrgId) return EMPTY_STATE;
+    return { ...parsed, loading: false };
+  } catch {
+    return EMPTY_STATE;
+  }
+}
+
 export function OrganizationProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<State>({
-    user: null,
-    activeOrgId: null,
-    role: null,
-    memberships: [],
-    branding: null,
-    loading: true,
-  });
+  // initialAuthState() lit la sessionStorage de façon synchrone :
+  // le tout premier render a déjà activeOrgId, role, memberships, branding.
+  const [state, setState] = useState<State>(initialAuthState);
 
   const supabase = useMemo(() => createClient(), []);
 

@@ -380,7 +380,10 @@ export default function ConsultantsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
+              {/* data===null = query pas encore lancée (activeOrgId pas prêt).
+                  On affiche le skeleton plutôt qu'un "Aucun profil disponible"
+                  trompeur le temps que l'auth se réhydrate au F5. */}
+              {loading || consultantsData === null ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <TableRow key={i}>
                     <TableCell colSpan={6}>
