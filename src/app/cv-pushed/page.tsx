@@ -483,7 +483,7 @@ function DualTjm({ client, consultant }: { client: number; consultant: number | 
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
         Client
       </span>
-      <span className="text-sm font-semibold text-emerald-300 text-right">
+      <span className="text-sm font-semibold text-foreground text-right">
         {formatCurrency(client)}
       </span>
 
@@ -491,7 +491,7 @@ function DualTjm({ client, consultant }: { client: number; consultant: number | 
         Consultant
       </span>
       {hasConsultant ? (
-        <span className="text-muted-foreground text-right">
+        <span className="text-violet-300 text-right font-medium">
           {formatCurrency(consultant as number)}
         </span>
       ) : (
