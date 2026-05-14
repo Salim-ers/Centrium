@@ -16,7 +16,10 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 export const runtime = 'nodejs';
 
-const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xyklpeqj';
+// Endpoint Formspree dédié aux demandes de devis (distinct du
+// formulaire de contact landing). Configuré côté Formspree pour
+// forwarder à contact@centrium-platform.com.
+const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xqenvzve';
 const NOTIFICATION_EMAIL = 'contact@centrium-platform.com';
 
 const schema = z.object({
