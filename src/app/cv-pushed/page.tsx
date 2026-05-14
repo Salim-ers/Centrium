@@ -355,16 +355,16 @@ export default function CvPushedPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="max-w-[200px]">
+                      <TableCell className="max-w-[180px]">
                         {r.client_name ? (
                           <div
-                            className="flex items-start gap-1.5 min-w-0 text-sm font-medium"
+                            className="flex items-start gap-1.5 min-w-0 text-xs font-medium"
                             title={r.client_name}
                           >
                             {r.client_kind === 'esn' ? (
-                              <Network className="h-3.5 w-3.5 text-amber-300 shrink-0 mt-0.5" />
+                              <Network className="h-3 w-3 text-amber-300 shrink-0 mt-0.5" />
                             ) : (
-                              <Building2 className="h-3.5 w-3.5 text-violet-300 shrink-0 mt-0.5" />
+                              <Building2 className="h-3 w-3 text-violet-300 shrink-0 mt-0.5" />
                             )}
                             <span className="leading-tight break-words">
                               {r.client_name}
@@ -374,7 +374,7 @@ export default function CvPushedPage() {
                           <span className="text-xs text-muted-foreground italic">— direct</span>
                         )}
                         {r.client_kind && r.client_name && (
-                          <div className="text-[10px] text-muted-foreground mt-0.5 pl-[20px]">
+                          <div className="text-[10px] text-muted-foreground mt-0.5 pl-[18px]">
                             {r.client_kind === 'esn' ? 'ESN partenaire' : 'Client direct'}
                           </div>
                         )}
