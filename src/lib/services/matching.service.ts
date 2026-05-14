@@ -34,6 +34,11 @@ export const matchingService = {
     if (cErr) return { data: null, error: cErr };
 
     const consultantIds = (consultants ?? []).map((c) => c.id);
+    // Pas de consultants → on évite l'IN clause vide qui plante côté
+    // PostgREST et on renvoie une liste vide directement.
+    if (consultantIds.length === 0) {
+      return { data: [], error: null };
+    }
     const { data: skills } = await supabase
       .from('consultant_skills')
       .select('*')

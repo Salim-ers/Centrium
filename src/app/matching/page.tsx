@@ -37,13 +37,22 @@ function MatchingInner() {
   }>({ open: false, consultant: null });
 
   async function loadOffers() {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from('job_offers')
-      .select('*')
-      .eq('status', 'open')
-      .order('updated_at', { ascending: false });
-    if (data) setOffers(data as JobOffer[]);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('job_offers')
+        .select('*')
+        .eq('status', 'open')
+        .eq('archived', false)
+        .order('updated_at', { ascending: false });
+      if (error) {
+        console.warn('[matching] loadOffers failed', error);
+        return;
+      }
+      setOffers((data ?? []) as JobOffer[]);
+    } catch (e) {
+      console.warn('[matching] loadOffers exception', e);
+    }
   }
 
   useEffect(() => {
@@ -62,9 +71,20 @@ function MatchingInner() {
       return;
     }
     setLoading(true);
-    const res = await matchingService.matchConsultantsToOffer(offerId);
-    if (res.data) setResults(res.data);
-    setLoading(false);
+    try {
+      const res = await matchingService.matchConsultantsToOffer(offerId);
+      if (res.error) {
+        toast.error('Matching impossible : ' + (res.error.message ?? 'inconnu'));
+        setResults([]);
+        return;
+      }
+      setResults(res.data ?? []);
+    } catch (e) {
+      toast.error('Erreur inattendue : ' + ((e as Error).message ?? 'inconnu'));
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const selectedOffer = offers.find((o) => o.id === offerId);
@@ -163,41 +183,45 @@ function MatchingInner() {
           <h2 className="text-sm uppercase tracking-wider text-muted-foreground mb-2">
             {results.length} profils classés
           </h2>
-          {results.map((r) => (
-            <Card key={r.consultant.id} className="qc-card-hover">
+          {results.map((r) => {
+            // Garde-fous : profils anciens peuvent avoir des champs nulls.
+            // On préfère afficher "—" qu'un crash render.
+            const c = r.consultant;
+            if (!c) return null;
+            const fn = c.first_name ?? '';
+            const ln = c.last_name ?? '';
+            const initials = `${(fn[0] ?? '?').toUpperCase()}${(ln[0] ?? '').toUpperCase()}`;
+            const statusKey = c.status as keyof typeof CONSULTANT_STATUS_LABEL;
+            const matched = r.matchedSkills ?? [];
+            const missing = r.missingSkills ?? [];
+            return (
+            <Card key={c.id} className="qc-card-hover">
               <CardContent className="p-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="h-12 w-12 rounded-full bg-qc-gradient flex items-center justify-center text-white font-semibold">
-                    {r.consultant.first_name[0]}
-                    {r.consultant.last_name[0]}
+                    {initials}
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="font-semibold flex items-center gap-2 flex-wrap">
-                      {r.consultant.first_name} {r.consultant.last_name}
-                      {r.consultant.is_prospect && (
+                      {fn} {ln}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">{c.job_title ?? '—'}</p>
+                    <div className="flex gap-2 flex-wrap mt-1">
+                      {statusKey && CONSULTANT_STATUS_LABEL[statusKey] && (
                         <Badge
                           variant="outline"
-                          className="border-amber-400/40 bg-amber-400/10 text-amber-300 text-[10px]"
+                          className={CONSULTANT_STATUS_STYLE[statusKey]}
                         >
-                          Vivier
+                          {CONSULTANT_STATUS_LABEL[statusKey]}
                         </Badge>
                       )}
-                    </h3>
-                    <p className="text-xs text-muted-foreground">{r.consultant.job_title}</p>
-                    <div className="flex gap-2 flex-wrap mt-1">
-                      <Badge
-                        variant="outline"
-                        className={CONSULTANT_STATUS_STYLE[r.consultant.status]}
-                      >
-                        {CONSULTANT_STATUS_LABEL[r.consultant.status]}
-                      </Badge>
-                      <Badge variant="outline">{formatCurrency(r.consultant.daily_rate_eur)}</Badge>
+                      <Badge variant="outline">{formatCurrency(c.daily_rate_eur ?? 0)}</Badge>
                     </div>
                   </div>
                 </div>
 
                 <div className="shrink-0 text-right">
-                  <div className="text-3xl font-bold qc-gradient-text">{r.score}</div>
+                  <div className="text-3xl font-bold qc-gradient-text">{r.score ?? 0}</div>
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
                     /100
                   </div>
@@ -208,19 +232,22 @@ function MatchingInner() {
                     Matchées
                   </div>
                   <div className="flex flex-wrap gap-1">
-                    {r.matchedSkills.slice(0, 3).map((s) => (
+                    {matched.slice(0, 3).map((s) => (
                       <Badge key={s} variant="success" className="text-[9px]">
                         {s}
                       </Badge>
                     ))}
+                    {matched.length === 0 && (
+                      <span className="text-[10px] text-muted-foreground italic">aucune</span>
+                    )}
                   </div>
-                  {r.missingSkills.length > 0 && (
+                  {missing.length > 0 && (
                     <>
                       <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-2 mb-1">
                         Manquantes
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        {r.missingSkills.slice(0, 2).map((s) => (
+                        {missing.slice(0, 2).map((s) => (
                           <Badge key={s} variant="warning" className="text-[9px]">
                             {s}
                           </Badge>
@@ -237,10 +264,10 @@ function MatchingInner() {
                       setAssignDialog({
                         open: true,
                         consultant: {
-                          id: r.consultant.id,
-                          first_name: r.consultant.first_name,
-                          last_name: r.consultant.last_name,
-                          daily_rate_eur: r.consultant.daily_rate_eur,
+                          id: c.id,
+                          first_name: fn,
+                          last_name: ln,
+                          daily_rate_eur: c.daily_rate_eur ?? null,
                         },
                       })
                     }
@@ -249,14 +276,15 @@ function MatchingInner() {
                     Affecter
                   </Button>
                   <Button variant="outline" size="sm" asChild>
-                    <a href={`/cv-optimizer?consultantId=${r.consultant.id}&offerId=${offerId}`}>
+                    <Link href={`/cv-optimizer?consultantId=${c.id}&offerId=${offerId}`}>
                       Générer CV
-                    </a>
+                    </Link>
                   </Button>
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 
