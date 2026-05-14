@@ -434,7 +434,11 @@ export default function ConsultantsPage() {
                             handleStatusChange(c.id, e.target.value as Consultant['status'])
                           }
                           className={cn(
-                            'h-7 text-xs font-medium min-w-[130px] border',
+                            // h-8 = plus de chair pour centrer le texte ; px-2 + text-center
+                            // pour que la valeur soit verticalement et horizontalement
+                            // centrée dans la pastille colorée (la flèche native du
+                            // <select> reste à droite, mais le texte est bien lisible).
+                            'h-8 w-[140px] px-2 py-0 text-xs font-medium border text-center leading-none',
                             CONSULTANT_STATUS_STYLE[c.status],
                           )}
                           title="Changer le statut du consultant"

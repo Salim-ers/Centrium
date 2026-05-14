@@ -98,11 +98,15 @@ export default function OffersPage() {
   );
   const allOffers = offersData ?? [];
 
-  // Set des job_offer_id ayant au moins une mission "vivante" (proposed ou
-  // active, non archivée). Sert à splitter l'onglet : disponibles vs déjà
-  // avec un CV poussé. Mêmes données alimentent l'onglet /cv-pushed.
-  const { data: pushedSet, reload: reloadPushed } = useCachedQuery<Set<string>>(
-    `offers-pushed-set:${activeOrgId ?? 'none'}`,
+  // Liste des job_offer_id ayant au moins une mission "vivante" (proposed
+  // ou active, non archivée). On stocke en string[] dans le cache (JSON-
+  // sérialisable ; un Set deviendrait {} après réhydratation et .has()
+  // crasherait) puis on convertit en Set à l'usage.
+  const { data: pushedIds, reload: reloadPushed } = useCachedQuery<string[]>(
+    // v2 du cache : on a basculé Set → string[] (le Set ne survit pas à
+    // un JSON.parse, ça crashait sur .has()). Bump du suffixe pour invalider
+    // l'ancien cache potentiellement corrompu dans la sessionStorage.
+    `offers-pushed-ids-v2:${activeOrgId ?? 'none'}`,
     async () => {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -111,16 +115,19 @@ export default function OffersPage() {
         .in('status', ['proposed', 'active'])
         .eq('archived', false)
         .not('job_offer_id', 'is', null);
-      if (error) return new Set<string>();
-      const set = new Set<string>();
-      (data ?? []).forEach((r: any) => {
-        if (r.job_offer_id) set.add(r.job_offer_id as string);
-      });
-      return set;
+      if (error) return [];
+      return (data ?? [])
+        .map((r: any) => r.job_offer_id as string | null)
+        .filter((id): id is string => !!id);
     },
     { enabled: !!activeOrgId },
   );
-  const offersWithPushedCv = pushedSet ?? new Set<string>();
+  // Double sécurité : si le cache restitue autre chose qu'un tableau
+  // (ancienne version, corruption), on retombe sur Set vide plutôt que
+  // de crasher (`new Set({})` throw car {} n'est pas itérable).
+  const offersWithPushedCv = new Set<string>(
+    Array.isArray(pushedIds) ? pushedIds : [],
+  );
   const pushedCount = allOffers.filter((o) => offersWithPushedCv.has(o.id)).length;
   const availableCount = allOffers.length - pushedCount;
 

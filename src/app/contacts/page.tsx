@@ -67,7 +67,13 @@ export default function ContactsPage() {
     `contacts:${activeOrgId ?? 'none'}`,
     async () => {
       const res = await contactService.list();
-      return res.data ?? [];
+      const rows = res.data ?? [];
+      // Tri alphabétique nom/prénom (locale fr — accents gérés).
+      return rows.slice().sort((a, b) => {
+        const an = `${a.last_name ?? ''} ${a.first_name ?? ''}`.toLowerCase();
+        const bn = `${b.last_name ?? ''} ${b.first_name ?? ''}`.toLowerCase();
+        return an.localeCompare(bn, 'fr');
+      });
     },
     { enabled: !!activeOrgId },
   );
