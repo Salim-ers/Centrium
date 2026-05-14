@@ -405,7 +405,8 @@ export default function ConsultantsPage() {
                         </div>
                         <div>
                           <div className="font-medium">
-                            {c.first_name} {c.last_name}
+                            <span className="uppercase">{c.last_name}</span>{' '}
+                            {c.first_name}
                           </div>
                           <div className="text-xs text-muted-foreground">{c.job_title}</div>
                         </div>

@@ -282,8 +282,9 @@ export default function ContactsPage() {
                   >
                     <TableCell className="whitespace-nowrap">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-medium truncate" title={`${c.first_name} ${c.last_name}`}>
-                          {c.first_name} {c.last_name}
+                        <span className="font-medium truncate" title={`${c.last_name} ${c.first_name}`}>
+                          <span className="uppercase">{c.last_name}</span>{' '}
+                          {c.first_name}
                         </span>
                         {c.source && (
                           <span

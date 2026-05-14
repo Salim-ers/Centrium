@@ -358,7 +358,8 @@ export default function CvPushedPage() {
                           </div>
                           <div className="min-w-0">
                             <div className="font-medium truncate">
-                              {r.first_name} {r.last_name}
+                              <span className="uppercase">{r.last_name}</span>{' '}
+                              {r.first_name}
                             </div>
                             <div className="text-xs text-muted-foreground truncate">
                               {r.job_title}
