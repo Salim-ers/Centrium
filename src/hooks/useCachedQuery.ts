@@ -76,13 +76,24 @@ export function useCachedQuery<T>(
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<unknown>(null);
 
-  // Mémorise la clé courante pour détecter un changement (ex: activeOrgId
-  // arrive en async après le 1er render). Sans ça, `useState(cached?.data)`
-  // ne tournait qu'à la première initialisation → quand la clé change,
-  // `data` restait null et l'écran montrait "Aucun résultat" pendant que
-  // le refetch tournait, au lieu d'afficher instantanément le cache de
-  // la nouvelle clé déjà présent en sessionStorage.
-  const lastKeyRef = useRef<string | null>(null);
+  // Re-hydrate depuis sessionStorage quand la clé change (typiquement :
+  // activeOrgId arrive après le 1er render, donc la clé passe de
+  // "...:none:..." à "...:<uuid>:..."). Sans ça, useState ne se réinit
+  // qu'au mount → la nouvelle clé restait avec data=null pendant que le
+  // refetch tournait (1-2s) et l'écran affichait "Aucun résultat".
+  // On fait le set pendant le render (pattern getDerivedStateFromProps)
+  // pour éviter une seconde passe — React supporte setState during render
+  // tant que c'est gated par une condition.
+  const lastKeyRef = useRef(key);
+  if (lastKeyRef.current !== key) {
+    lastKeyRef.current = key;
+    if (enabled) {
+      const next = readCache<T>(key);
+      setDataState(next?.data ?? null);
+      setLoading(!next);
+      setRefreshing(false);
+    }
+  }
 
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
