@@ -67,7 +67,7 @@ const GROUPS: NavGroup[] = [
     items: [
       { label: 'Offres & missions', href: '/offers', icon: Briefcase },
       { label: 'Matching', href: '/matching', icon: Target },
-      { label: 'Pipeline (CRM)', href: '/crm', icon: Kanban },
+      { label: 'Suivi prospect', href: '/crm', icon: Kanban },
       { label: 'Carnet de contacts', href: '/contacts', icon: UserCircle },
       { label: 'Contrats', href: '/contracts', icon: FileSignature },
     ],
