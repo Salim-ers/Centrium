@@ -342,8 +342,11 @@ export default function OffersPage() {
                   const tjm = o.daily_rate_max ?? o.daily_rate_min ?? null;
                   return (
                     <TableRow key={o.id}>
-                      <TableCell className="max-w-[280px]">
-                        <div className="font-medium text-sm leading-tight truncate">
+                      <TableCell className="max-w-[320px] align-top py-3">
+                        <div
+                          className="font-medium text-sm leading-tight break-words"
+                          title={o.title}
+                        >
                           {o.title}
                         </div>
                         {o.start_date && (
