@@ -9,6 +9,7 @@ import {
   Undo2,
   Briefcase,
   Loader2,
+  Building2,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -16,7 +17,6 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -30,7 +30,6 @@ import { TalentTabs } from '@/components/consultants/TalentTabs';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
-import { SENIORITY_LABEL } from '@/constants';
 import { formatCurrency, relativeDate } from '@/lib/utils';
 import { notifyDestructive, notifyError, notifyCreated } from '@/lib/notify';
 
@@ -49,17 +48,20 @@ import { notifyDestructive, notifyError, notifyCreated } from '@/lib/notify';
 type PushedRow = {
   mission_id: string;
   mission_title: string;
+  /** TJM facturé au client sur la mission (sur quoi on cape la prop). */
   daily_rate_eur: number | null;
   start_date: string | null;
   end_date: string | null;
   created_at: string;
   job_offer_title: string | null;
+  /** Nom du client : company.name, sinon fallback offre. */
+  client_name: string | null;
   consultant_id: string;
   first_name: string;
   last_name: string;
   job_title: string;
-  seniority: string;
-  is_prospect: boolean;
+  /** TJM standard du consultant (≈ ce qu'il touche), pour comparer la marge. */
+  consultant_rate: number | null;
 };
 
 export default function CvPushedPage() {
@@ -81,9 +83,10 @@ export default function CvPushedPage() {
         .select(
           `id, title, daily_rate_eur, start_date, end_date, created_at,
            consultant:consultants!consultant_id (
-             id, first_name, last_name, job_title, seniority, is_prospect
+             id, first_name, last_name, job_title, daily_rate_eur
            ),
-           job_offer:job_offers (title)`,
+           job_offer:job_offers (title),
+           company:companies!company_id (name)`,
         )
         .eq('status', 'proposed')
         .order('created_at', { ascending: false });
@@ -98,12 +101,12 @@ export default function CvPushedPage() {
           end_date: m.end_date,
           created_at: m.created_at,
           job_offer_title: m.job_offer?.title ?? null,
+          client_name: m.company?.name ?? null,
           consultant_id: m.consultant.id,
           first_name: m.consultant.first_name,
           last_name: m.consultant.last_name,
           job_title: m.consultant.job_title,
-          seniority: m.consultant.seniority,
-          is_prospect: m.consultant.is_prospect,
+          consultant_rate: m.consultant.daily_rate_eur ?? null,
         }));
       const q = search.trim().toLowerCase();
       if (!q) return rows;
@@ -113,7 +116,8 @@ export default function CvPushedPage() {
           r.last_name.toLowerCase().includes(q) ||
           r.job_title?.toLowerCase().includes(q) ||
           r.mission_title?.toLowerCase().includes(q) ||
-          r.job_offer_title?.toLowerCase().includes(q),
+          r.job_offer_title?.toLowerCase().includes(q) ||
+          r.client_name?.toLowerCase().includes(q),
       );
     },
     { enabled: !!activeOrgId },
@@ -215,7 +219,7 @@ export default function CvPushedPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Consultant</TableHead>
-                <TableHead>Séniorité</TableHead>
+                <TableHead>Client</TableHead>
                 <TableHead>Mission / Offre</TableHead>
                 <TableHead>TJM</TableHead>
                 <TableHead>Poussé</TableHead>
@@ -262,10 +266,15 @@ export default function CvPushedPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {SENIORITY_LABEL[r.seniority as keyof typeof SENIORITY_LABEL] ?? r.seniority}
-                        </Badge>
+                      <TableCell className="max-w-[180px]">
+                        {r.client_name ? (
+                          <div className="inline-flex items-center gap-1.5 text-sm font-medium">
+                            <Building2 className="h-3.5 w-3.5 text-violet-300 shrink-0" />
+                            <span className="truncate">{r.client_name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">— direct</span>
+                        )}
                       </TableCell>
                       <TableCell className="max-w-[260px]">
                         <div className="font-medium text-sm truncate">{r.mission_title}</div>
@@ -280,8 +289,11 @@ export default function CvPushedPage() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="text-sm font-medium">
-                        {formatCurrency(r.daily_rate_eur ?? 0)}
+                      <TableCell>
+                        <DualTjm
+                          client={r.daily_rate_eur ?? 0}
+                          consultant={r.consultant_rate}
+                        />
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {relativeDate(r.created_at)}
@@ -331,5 +343,48 @@ export default function CvPushedPage() {
         </CardContent>
       </Card>
     </AppShell>
+  );
+}
+
+/**
+ * Affichage double TJM : ce qu'on facture au client (mission) vs le
+ * TJM standard du consultant. Met la marge en évidence.
+ */
+function DualTjm({ client, consultant }: { client: number; consultant: number | null }) {
+  const hasConsultant = consultant != null && consultant > 0;
+  const margin = hasConsultant ? client - (consultant as number) : null;
+  const marginTone =
+    margin == null
+      ? ''
+      : margin > 0
+        ? 'text-emerald-300'
+        : margin < 0
+          ? 'text-red-300'
+          : 'text-muted-foreground';
+  return (
+    <div className="leading-tight">
+      <div className="text-sm font-semibold">{formatCurrency(client)}</div>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80">
+        client
+      </div>
+      {hasConsultant ? (
+        <>
+          <div className="text-xs text-muted-foreground mt-1">
+            {formatCurrency(consultant as number)}{' '}
+            <span className="text-[10px]">consultant</span>
+          </div>
+          {margin != null && (
+            <div className={`text-[10px] ${marginTone}`}>
+              {margin >= 0 ? '+' : ''}
+              {formatCurrency(margin)} marge
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="text-[10px] text-muted-foreground italic mt-1">
+          TJM consultant non renseigné
+        </div>
+      )}
+    </div>
   );
 }

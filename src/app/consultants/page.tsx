@@ -310,7 +310,7 @@ export default function ConsultantsPage() {
 
       <UsageBanner resource="consultants" />
 
-      <Card className="mb-6">
+      <Card className="mb-3">
         <CardContent className="p-4 space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -328,16 +328,18 @@ export default function ConsultantsPage() {
             active={familyFilter}
             onChange={setFamilyFilter}
           />
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <CityFilter
-              cities={cityCounts}
-              selected={cityFilter}
-              onChange={setCityFilter}
-            />
-          </div>
         </CardContent>
       </Card>
+
+      {/* Filtre ville posé en dessous du carré principal : le popover
+          a ainsi toute la place pour s'ouvrir sans recouvrir le tableau. */}
+      <div className="mb-6 flex items-center gap-2 flex-wrap">
+        <CityFilter
+          cities={cityCounts}
+          selected={cityFilter}
+          onChange={setCityFilter}
+        />
+      </div>
 
       <Card>
         <CardContent className="p-0">
