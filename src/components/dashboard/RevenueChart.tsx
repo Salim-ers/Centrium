@@ -17,12 +17,22 @@ import { formatCurrency } from '@/lib/utils';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useOrganization } from '@/lib/auth/context';
 
-type RpcRow = { month: string; ca: number | string; missions: number };
+type RpcRow = {
+  month: string;
+  ca: number | string;
+  /** Legacy = missions_active (rétrocompat). */
+  missions: number;
+  missions_active?: number;
+  missions_proposed?: number;
+};
 type MonthlyPoint = {
   month: string;
   monthLabel: string;
   ca: number;
-  missions: number;
+  /** Missions validées en cours sur le mois (status='active'). */
+  missionsActive: number;
+  /** Snapshot du pipeline pour le mois courant (status='proposed'). */
+  missionsProposed: number;
 };
 
 const MONTHS_SHORT = [
@@ -37,7 +47,8 @@ function rowsToBuckets(rows: RpcRow[]): MonthlyPoint[] {
       month: r.month,
       monthLabel: `${MONTHS_SHORT[m - 1]} ${String(y).slice(2)}`,
       ca: Number(r.ca),
-      missions: Number(r.missions),
+      missionsActive: Number(r.missions_active ?? r.missions ?? 0),
+      missionsProposed: Number(r.missions_proposed ?? 0),
     };
   });
 }
@@ -62,7 +73,9 @@ export function RevenueChart() {
 
   const points = data ?? [];
   const totalCA = points.reduce((s, d) => s + d.ca, 0);
-  const activeCount = points[points.length - 1]?.missions ?? 0;
+  const last = points[points.length - 1];
+  const activeCount = last?.missionsActive ?? 0;
+  const proposedCount = last?.missionsProposed ?? 0;
 
   return (
     <Card className="overflow-hidden">
@@ -84,7 +97,13 @@ export function RevenueChart() {
                 {formatCurrency(totalCA)}
               </div>
             </div>
-            <div>
+            <div title="Propositions envoyées en attente de validation client">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                CV poussés en attente
+              </div>
+              <div className="text-lg font-bold text-amber-300">{proposedCount}</div>
+            </div>
+            <div title="Missions validées et facturables ce mois-ci">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 Missions en cours
               </div>
@@ -148,14 +167,14 @@ export function RevenueChart() {
                   }}
                   formatter={(value, name) => {
                     if (name === 'CA') return [formatCurrency(Number(value)), 'CA'];
-                    return [value, 'Missions actives'];
+                    return [value, name];
                   }}
                 />
                 <Area
                   yAxisId="missions"
                   type="monotone"
-                  dataKey="missions"
-                  name="Missions actives"
+                  dataKey="missionsActive"
+                  name="Missions en cours"
                   stroke="#8b5cf6"
                   strokeWidth={1.5}
                   fill="url(#missions-violet)"

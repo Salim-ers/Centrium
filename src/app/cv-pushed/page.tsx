@@ -460,43 +460,56 @@ export default function CvPushedPage() {
 }
 
 /**
- * Affichage double TJM : ce qu'on facture au client (mission) vs le
- * TJM standard du consultant. Met la marge en évidence.
+ * Affichage TJM en 3 lignes alignées :
+ *   Client      280 €   (emerald, gros)
+ *   Consultant  230 €   (gris)
+ *   Marge       +50 €   (emerald si > 0, rouge si < 0)
+ *
+ * Les codes couleur sont conservés (emerald = gain, rouge = perte).
  */
 function DualTjm({ client, consultant }: { client: number; consultant: number | null }) {
   const hasConsultant = consultant != null && consultant > 0;
   const margin = hasConsultant ? client - (consultant as number) : null;
   const marginTone =
     margin == null
-      ? ''
+      ? 'text-muted-foreground'
       : margin > 0
         ? 'text-emerald-300'
         : margin < 0
           ? 'text-red-300'
           : 'text-muted-foreground';
   return (
-    <div className="leading-tight">
-      <div className="text-sm font-semibold">{formatCurrency(client)}</div>
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground/80">
-        client
-      </div>
+    <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-xs leading-tight items-baseline">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        Client
+      </span>
+      <span className="text-sm font-semibold text-emerald-300 text-right">
+        {formatCurrency(client)}
+      </span>
+
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        Consultant
+      </span>
       {hasConsultant ? (
-        <>
-          <div className="text-xs text-muted-foreground mt-1">
-            {formatCurrency(consultant as number)}{' '}
-            <span className="text-[10px]">consultant</span>
-          </div>
-          {margin != null && (
-            <div className={`text-[10px] ${marginTone}`}>
-              {margin >= 0 ? '+' : ''}
-              {formatCurrency(margin)} marge
-            </div>
-          )}
-        </>
+        <span className="text-muted-foreground text-right">
+          {formatCurrency(consultant as number)}
+        </span>
       ) : (
-        <div className="text-[10px] text-muted-foreground italic mt-1">
-          TJM consultant non renseigné
-        </div>
+        <span className="text-[10px] italic text-muted-foreground/70 text-right">
+          non renseigné
+        </span>
+      )}
+
+      {margin != null && (
+        <>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Marge
+          </span>
+          <span className={`text-right font-medium ${marginTone}`}>
+            {margin >= 0 ? '+' : ''}
+            {formatCurrency(margin)}
+          </span>
+        </>
       )}
     </div>
   );

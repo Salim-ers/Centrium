@@ -400,7 +400,7 @@ export default function OffersPage() {
                             <Badge
                               key={s}
                               variant="outline"
-                              className="text-[10px] font-normal py-0 px-1.5 border-white/10 bg-white/[0.03] text-muted-foreground"
+                              className="text-[10px] font-normal py-0 px-1.5 border-violet-brand/40 bg-violet-brand/10 text-violet-200"
                             >
                               {s}
                             </Badge>
@@ -408,7 +408,7 @@ export default function OffersPage() {
                           {o.required_skills.length > 3 && (
                             <Badge
                               variant="outline"
-                              className="text-[10px] font-normal py-0 px-1.5 border-white/10 bg-white/[0.03] text-muted-foreground"
+                              className="text-[10px] font-normal py-0 px-1.5 border-violet-brand/40 bg-violet-brand/10 text-violet-200"
                             >
                               +{o.required_skills.length - 3}
                             </Badge>
