@@ -318,6 +318,9 @@ export type JobOffer = {
   duration_months: number | null;
   deadline: string | null;
   status: 'open' | 'closed' | 'won' | 'lost';
+  /** Type de la source : client direct vs ESN partenaire qui sous-traite. */
+  source_kind: 'client' | 'esn' | null;
+  /** Nom de la source (client ou ESN) — free-text. */
   source: string | null;
   // Fiche de poste (PDF envoyé aux consultants).
   context: string | null;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import {
@@ -10,16 +10,19 @@ import {
   Trash2,
   Target,
   MapPin,
-  Euro,
   Calendar,
   FileDown,
   Archive,
   ArchiveRestore,
+  Building2,
+  Network,
+  Search,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -29,8 +32,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Select } from '@/components/ui/select';
 import { JobOfferFormDialog } from '@/components/offers/JobOfferFormDialog';
+import { JobFamilyFilter } from '@/components/consultants/JobFamilyFilter';
+import { CityFilter } from '@/components/consultants/CityFilter';
 import { jobOfferService } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
@@ -38,20 +42,10 @@ import type { JobOffer } from '@/types';
 import { formatCurrency, relativeDate } from '@/lib/utils';
 import { exportJobOfferPoster } from '@/lib/offers/export-poster';
 import { resolveBrand } from '@/lib/cv/branding';
-
-const STATUS_LABEL: Record<string, string> = {
-  open: 'Ouverte',
-  closed: 'Fermée',
-  won: 'Gagnée',
-  lost: 'Perdue',
-};
-
-const STATUS_STYLE: Record<string, string> = {
-  open: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-  closed: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
-  won: 'bg-violet-brand/15 text-violet-300 border-violet-brand/30',
-  lost: 'bg-red-500/15 text-red-300 border-red-500/30',
-};
+import {
+  classifyJobFamily,
+  type JobFamilyId,
+} from '@/lib/consultants/job-family';
 
 const SENIORITY_LABEL: Record<string, string> = {
   junior: 'Junior',
@@ -62,13 +56,21 @@ const SENIORITY_LABEL: Record<string, string> = {
   architect: 'Architecte',
 };
 
+/**
+ * Liste des offres / missions. Une seule "vue active" — on ne distingue
+ * plus open/closed/won/lost en colonne (le funnel commercial vit dans le
+ * CRM). Ici, on liste les besoins, on filtre par métier + ville, on
+ * pousse un consultant via matching, on archive quand c'est terminé.
+ */
 export default function OffersPage() {
   const { activeOrgId, branding } = useOrganization();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<JobOffer | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'open' | 'closed' | 'won' | 'lost' | 'all'>('open');
   const [exportingOfferId, setExportingOfferId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [search, setSearch] = useState('');
+  const [familyFilter, setFamilyFilter] = useState<Set<JobFamilyId>>(new Set());
+  const [cityFilter, setCityFilter] = useState<Set<string>>(new Set());
 
   const {
     data: offersData,
@@ -76,14 +78,68 @@ export default function OffersPage() {
     reload,
     setData: setOffers,
   } = useCachedQuery<JobOffer[]>(
-    `offers:${activeOrgId ?? 'none'}:${statusFilter}:${showArchived ? 'arch' : 'live'}`,
+    `offers:${activeOrgId ?? 'none'}:${showArchived ? 'arch' : 'live'}`,
     async () => {
-      const res = await jobOfferService.list(statusFilter, showArchived);
+      // Plus de filtre statut visible : on prend toutes les non-archivées
+      // (ou toutes les archivées si toggle). Les états gagné/perdu vivent
+      // dans le CRM.
+      const res = await jobOfferService.list('all', showArchived);
       return res.data ?? [];
     },
     { enabled: !!activeOrgId },
   );
-  const offers = offersData ?? [];
+  const allOffers = offersData ?? [];
+
+  // Comptes corps de métier sur l'ensemble (chips inactives gardent leur compte).
+  const familyCounts = (() => {
+    const base: Record<JobFamilyId, number> = {
+      qa: 0, dev: 0, data: 0, devops: 0, cyber: 0, pm: 0,
+      ba: 0, architect: 0, support: 0, design: 0, other: 0,
+    };
+    for (const o of allOffers) {
+      base[classifyJobFamily(o.title)] += 1;
+    }
+    return base;
+  })();
+
+  // Filtrage en cascade (search → famille → ville) pour calculer la liste finale.
+  const searchTrim = search.trim().toLowerCase();
+  const afterSearch = !searchTrim
+    ? allOffers
+    : allOffers.filter(
+        (o) =>
+          o.title.toLowerCase().includes(searchTrim) ||
+          (o.source ?? '').toLowerCase().includes(searchTrim) ||
+          (o.location ?? '').toLowerCase().includes(searchTrim) ||
+          (o.required_skills ?? []).some((s) =>
+            s.toLowerCase().includes(searchTrim),
+          ),
+      );
+  const afterFamily =
+    familyFilter.size === 0
+      ? afterSearch
+      : afterSearch.filter((o) => familyFilter.has(classifyJobFamily(o.title)));
+
+  // Comptage villes sur le sous-ensemble post-famille pour que les villes
+  // proposées correspondent au scope visible.
+  const cityCounts = (() => {
+    const map = new Map<string, number>();
+    for (const o of afterFamily) {
+      const city = (o.location ?? '').trim();
+      if (city) map.set(city, (map.get(city) ?? 0) + 1);
+    }
+    return Array.from(map.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  })();
+
+  const offers = afterFamily.filter((o) =>
+    cityFilter.size === 0
+      ? true
+      : o.location
+        ? cityFilter.has(o.location)
+        : false,
+  );
 
   function openCreate() {
     setEditing(null);
@@ -127,20 +183,10 @@ export default function OffersPage() {
     }
   }
 
-  async function changeStatus(o: JobOffer, newStatus: 'open' | 'closed' | 'won' | 'lost') {
-    const res = await jobOfferService.update(o.id, { status: newStatus });
-    if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
-      return;
-    }
-    toast.success('Statut mis à jour');
-    reload();
-  }
-
   async function archiveOffer(o: JobOffer) {
     if (
       !confirm(
-        `Archiver l'offre "${o.title}" ?\n\nElle disparaît du KPI "Opportunités ouvertes" et de la liste par défaut. Reste consultable via "Voir les archivées".`,
+        `Archiver l'offre "${o.title}" ?\n\nElle disparaît du KPI "Opportunités ouvertes" et de la liste par défaut.`,
       )
     ) {
       return;
@@ -170,10 +216,12 @@ export default function OffersPage() {
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
             <Briefcase className="h-7 w-7 text-violet-glow" />
-            Offres & missions
+            Offres &amp; missions
           </h1>
           <p className="text-muted-foreground mt-1">
-            Les besoins clients qui alimentent le matching consultants
+            {offers.length} offre{offers.length > 1 ? 's' : ''}
+            {showArchived ? ' archivée' : ''} • besoins clients qui alimentent le
+            matching
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -222,22 +270,42 @@ export default function OffersPage() {
         onSaved={() => reload()}
       />
 
-      <div className="mb-4 flex items-center gap-3">
-        <label className="text-xs text-muted-foreground uppercase tracking-wider">Statut</label>
-        <Select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-          className="max-w-[200px]"
-        >
-          <option value="open">Ouvertes</option>
-          <option value="closed">Fermées</option>
-          <option value="won">Gagnées</option>
-          <option value="lost">Perdues</option>
-          <option value="all">Toutes</option>
-        </Select>
-        <span className="text-xs text-muted-foreground">
-          {offers.length} offre{offers.length > 1 ? 's' : ''}
-        </span>
+      <Card className="mb-4">
+        <CardContent className="p-3 space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Rechercher par intitulé, skill, source, lieu…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <JobFamilyFilter
+            counts={familyCounts}
+            total={allOffers.length}
+            active={familyFilter}
+            onChange={setFamilyFilter}
+          />
+        </CardContent>
+      </Card>
+
+      <div className="mb-4 flex items-center gap-2 flex-wrap">
+        <CityFilter
+          cities={cityCounts}
+          selected={cityFilter}
+          onChange={setCityFilter}
+        />
+        {cityFilter.size > 0 && (
+          <button
+            type="button"
+            onClick={() => setCityFilter(new Set())}
+            className="text-[11px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+          >
+            Effacer le filtre ville
+          </button>
+        )}
       </div>
 
       <Card>
@@ -246,12 +314,12 @@ export default function OffersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Mission</TableHead>
+                <TableHead>Source</TableHead>
                 <TableHead>Séniorité</TableHead>
                 <TableHead>TJM</TableHead>
-                <TableHead>Lieu / TT</TableHead>
+                <TableHead>Lieu</TableHead>
                 <TableHead>Skills</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Mis à jour</TableHead>
+                <TableHead>Maj</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -265,151 +333,164 @@ export default function OffersPage() {
               ) : offers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
-                    Aucune offre. Clique sur &laquo; Nouvelle offre &raquo; pour en ajouter une.
+                    Aucune offre. Clique sur « Nouvelle offre » pour en ajouter une.
                   </TableCell>
                 </TableRow>
               ) : (
-                offers.map((o) => (
-                  <TableRow key={o.id}>
-                    <TableCell>
-                      <div className="font-medium">{o.title}</div>
-                      {o.start_date && (
-                        <div className="text-xs text-muted-foreground inline-flex items-center gap-1 mt-0.5">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(o.start_date).toLocaleDateString('fr-FR')}
-                          {o.duration_months ? ` · ${o.duration_months} mois` : ''}
+                offers.map((o) => {
+                  // TJM unique : on lit max en priorité, fallback min.
+                  const tjm = o.daily_rate_max ?? o.daily_rate_min ?? null;
+                  return (
+                    <TableRow key={o.id}>
+                      <TableCell className="max-w-[280px]">
+                        <div className="font-medium text-sm leading-tight truncate">
+                          {o.title}
                         </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {o.seniority ? SENIORITY_LABEL[o.seniority] : '—'}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {o.daily_rate_min || o.daily_rate_max ? (
-                        <span className="inline-flex items-center gap-1">
-                          <Euro className="h-3 w-3 text-muted-foreground" />
-                          {o.daily_rate_min ? formatCurrency(o.daily_rate_min) : '?'} –{' '}
-                          {o.daily_rate_max ? formatCurrency(o.daily_rate_max) : '?'}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      <div className="inline-flex items-center gap-1">
-                        <MapPin className="h-3 w-3 text-muted-foreground" />
-                        {o.location ?? '—'}
-                      </div>
-                      {o.remote_days != null && o.remote_days > 0 && (
-                        <div className="text-[10px] text-violet-300 mt-0.5">
-                          {o.remote_days}j TT / sem.
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 flex-wrap max-w-[220px]">
-                        {o.required_skills.slice(0, 3).map((s) => (
-                          <Badge
-                            key={s}
-                            variant="outline"
-                            className="text-[10px] border-violet-brand/40 bg-violet-brand/10"
-                          >
-                            {s}
-                          </Badge>
-                        ))}
-                        {o.required_skills.length > 3 && (
-                          <Badge variant="outline" className="text-[10px]">
-                            +{o.required_skills.length - 3}
-                          </Badge>
+                        {o.start_date && (
+                          <div className="text-[11px] text-muted-foreground inline-flex items-center gap-1 mt-0.5">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(o.start_date).toLocaleDateString('fr-FR')}
+                            {o.duration_months ? ` · ${o.duration_months} mois` : ''}
+                          </div>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        value={o.status}
-                        onChange={(e) => changeStatus(o, e.target.value as 'open' | 'closed' | 'won' | 'lost')}
-                        className={`h-7 text-xs min-w-[120px] ${STATUS_STYLE[o.status] ?? ''}`}
-                      >
-                        <option value="open">{STATUS_LABEL.open}</option>
-                        <option value="closed">{STATUS_LABEL.closed}</option>
-                        <option value="won">{STATUS_LABEL.won}</option>
-                        <option value="lost">{STATUS_LABEL.lost}</option>
-                      </Select>
-                    </TableCell>
-                    <TableCell className="text-xs">{relativeDate(o.updated_at)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {showArchived ? (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => unarchiveOffer(o)}
-                              title="Restaurer l'offre"
-                              className="text-emerald-300 hover:text-emerald-200"
-                            >
-                              <ArchiveRestore className="h-3.5 w-3.5" />
-                              Restaurer
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => deleteOffer(o)}
-                              title="Supprimer définitivement"
-                            >
-                              <Trash2 className="h-3.5 w-3.5 text-red-400" />
-                            </Button>
-                          </>
+                      </TableCell>
+                      <TableCell className="text-xs max-w-[160px]">
+                        {o.source ? (
+                          <div className="inline-flex items-center gap-1.5 truncate">
+                            {o.source_kind === 'esn' ? (
+                              <Network className="h-3 w-3 text-amber-300 shrink-0" />
+                            ) : (
+                              <Building2 className="h-3 w-3 text-violet-300 shrink-0" />
+                            )}
+                            <span className="truncate font-medium">{o.source}</span>
+                          </div>
                         ) : (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              asChild
-                              title="Lancer le matching sur cette offre"
-                            >
-                              <Link href={`/matching?offerId=${o.id}`}>
-                                <Target className="h-3.5 w-3.5 text-violet-glow" />
-                              </Link>
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => downloadPoster(o)}
-                              disabled={exportingOfferId === o.id}
-                              title="Télécharger la fiche de poste PDF"
-                            >
-                              <FileDown
-                                className={`h-3.5 w-3.5 ${
-                                  exportingOfferId === o.id
-                                    ? 'animate-pulse text-violet-glow/60'
-                                    : 'text-violet-glow'
-                                }`}
-                              />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => openEdit(o)}
-                              title="Éditer"
-                            >
-                              <Pencil className="h-3.5 w-3.5 text-violet-glow" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => archiveOffer(o)}
-                              title="Archiver — sort des KPI et de la liste par défaut"
-                              className="text-muted-foreground hover:text-foreground"
-                            >
-                              <Archive className="h-3.5 w-3.5" />
-                            </Button>
-                          </>
+                          <span className="text-muted-foreground italic">—</span>
                         )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                        {o.source_kind && (
+                          <div className="text-[10px] text-muted-foreground mt-0.5">
+                            {o.source_kind === 'esn' ? 'ESN partenaire' : 'Client direct'}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {o.seniority ? SENIORITY_LABEL[o.seniority] : '—'}
+                      </TableCell>
+                      <TableCell className="text-xs font-medium">
+                        {tjm != null ? (
+                          formatCurrency(tjm)
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        <div className="inline-flex items-center gap-1 truncate max-w-[140px]">
+                          <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+                          <span className="truncate">{o.location ?? '—'}</span>
+                        </div>
+                        {o.remote_days != null && o.remote_days > 0 && (
+                          <div className="text-[10px] text-violet-300 mt-0.5">
+                            {o.remote_days}j TT/sem.
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 flex-wrap max-w-[200px]">
+                          {o.required_skills.slice(0, 3).map((s) => (
+                            <Badge
+                              key={s}
+                              variant="outline"
+                              className="text-[10px] font-normal py-0 px-1.5 border-white/10 bg-white/[0.03] text-muted-foreground"
+                            >
+                              {s}
+                            </Badge>
+                          ))}
+                          {o.required_skills.length > 3 && (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] font-normal py-0 px-1.5 border-white/10 bg-white/[0.03] text-muted-foreground"
+                            >
+                              +{o.required_skills.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {relativeDate(o.updated_at)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {showArchived ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => unarchiveOffer(o)}
+                                title="Restaurer l'offre"
+                                className="text-emerald-300 hover:text-emerald-200"
+                              >
+                                <ArchiveRestore className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => deleteOffer(o)}
+                                title="Supprimer définitivement"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                asChild
+                                title="Lancer le matching sur cette offre"
+                              >
+                                <Link href={`/matching?offerId=${o.id}`}>
+                                  <Target className="h-3.5 w-3.5 text-violet-glow" />
+                                </Link>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => downloadPoster(o)}
+                                disabled={exportingOfferId === o.id}
+                                title="Télécharger la fiche de poste PDF"
+                              >
+                                <FileDown
+                                  className={`h-3.5 w-3.5 ${
+                                    exportingOfferId === o.id
+                                      ? 'animate-pulse text-violet-glow/60'
+                                      : 'text-violet-glow'
+                                  }`}
+                                />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => openEdit(o)}
+                                title="Éditer"
+                              >
+                                <Pencil className="h-3.5 w-3.5 text-violet-glow" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => archiveOffer(o)}
+                                title="Archiver — sort des KPI"
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                <Archive className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

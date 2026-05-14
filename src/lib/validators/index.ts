@@ -111,6 +111,11 @@ export const jobOfferSchema = z.object({
     .nullable(),
   daily_rate_min: z.coerce.number().min(0).optional().nullable(),
   daily_rate_max: z.coerce.number().min(0).optional().nullable(),
+  /** TJM unique — quand renseigné, on stocke aussi en min=max pour
+   * rester compatible avec le matching qui lit une plage. */
+  daily_rate_eur: z.coerce.number().min(0).optional().nullable(),
+  source_kind: z.enum(['client', 'esn']).optional().nullable(),
+  source: z.string().max(200).optional().nullable(),
   location: z.string().max(200).optional().nullable(),
   remote_days: z.coerce.number().int().min(0).max(5).optional().nullable(),
   start_date: z.string().optional().nullable(),

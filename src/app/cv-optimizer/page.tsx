@@ -271,6 +271,7 @@ function CVOptimizerPageInner() {
       duration_months: null,
       deadline: null,
       status: 'open',
+      source_kind: null,
       source: null,
       context: null,
       mission_purpose: null,

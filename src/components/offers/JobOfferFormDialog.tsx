@@ -52,21 +52,25 @@ function toFormValues(o: JobOffer | null | undefined): Partial<JobOfferInput> {
       profile_requirements: [],
       working_conditions: [],
       remote_days: 0,
+      source_kind: 'client',
     };
   }
+  // TJM unique : on lit max en priorité, fallback min, fallback eur si présent.
+  const tjm = o.daily_rate_max ?? o.daily_rate_min ?? null;
   return {
     title: o.title,
     description: o.description ?? '',
     required_skills: o.required_skills ?? [],
     nice_to_have: o.nice_to_have ?? [],
     seniority: o.seniority ?? undefined,
-    daily_rate_min: o.daily_rate_min ?? undefined,
-    daily_rate_max: o.daily_rate_max ?? undefined,
+    daily_rate_eur: tjm ?? undefined,
     location: o.location ?? '',
     remote_days: o.remote_days ?? 0,
     start_date: o.start_date ?? '',
     duration_months: o.duration_months ?? undefined,
     deadline: o.deadline ?? '',
+    source_kind: o.source_kind ?? 'client',
+    source: o.source ?? '',
     context: o.context ?? '',
     mission_purpose: o.mission_purpose ?? '',
     tasks: o.tasks ?? [],
@@ -266,6 +270,9 @@ export function JobOfferFormDialog({
   async function onSubmit(values: JobOfferInput) {
     setSaving(true);
     try {
+      // TJM unique : on aligne min = max = daily_rate_eur pour rester
+      // compatible avec le matching / la fiche de poste qui lisent la plage.
+      const tjm = values.daily_rate_eur ?? null;
       const payload = {
         ...values,
         required_skills: requiredSkills,
@@ -274,6 +281,8 @@ export function JobOfferFormDialog({
         tech_stack: linesToArray(techStackText),
         profile_requirements: linesToArray(profileText),
         working_conditions: linesToArray(conditionsText),
+        daily_rate_min: tjm,
+        daily_rate_max: tjm,
       };
       const res = isEdit
         ? await jobOfferService.update(offer!.id, payload)
@@ -517,7 +526,7 @@ export function JobOfferFormDialog({
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Séniorité</Label>
               <Select {...register('seniority')} defaultValue="">
@@ -531,12 +540,26 @@ export function JobOfferFormDialog({
               </Select>
             </div>
             <div>
-              <Label>TJM min (€)</Label>
-              <Input type="number" min="0" step="10" {...register('daily_rate_min')} />
+              <Label>TJM (€)</Label>
+              <Input type="number" min="0" step="10" {...register('daily_rate_eur')} />
             </div>
+          </div>
+
+          {/* Source de l'offre — client final vs ESN partenaire qui sous-traite */}
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label>TJM max (€)</Label>
-              <Input type="number" min="0" step="10" {...register('daily_rate_max')} />
+              <Label>Type d&apos;origine</Label>
+              <Select {...register('source_kind')} defaultValue="client">
+                <option value="client">Client direct</option>
+                <option value="esn">ESN partenaire</option>
+              </Select>
+            </div>
+            <div className="col-span-2">
+              <Label>Nom du client / ESN</Label>
+              <Input
+                {...register('source')}
+                placeholder="ex: Banque Postale, Hays, Open…"
+              />
             </div>
           </div>
 
