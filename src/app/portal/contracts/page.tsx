@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { createClient } from '@/lib/supabase/client';
+import { useBrandName } from '@/components/brand/BrandingStyles';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import type { Contract } from '@/types';
 
@@ -34,6 +35,7 @@ const STATUS_LABEL: Record<Contract['status'], string> = {
 };
 
 export default function PortalContractsPage() {
+  const brandName = useBrandName();
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -57,7 +59,7 @@ export default function PortalContractsPage() {
           Mes contrats
         </h1>
         <p className="text-muted-foreground mt-1">
-          Retrouve tes contrats avec QuadCore et télécharge les PDF.
+          Retrouve tes contrats avec {brandName} et télécharge les PDF.
         </p>
       </div>
 

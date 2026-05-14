@@ -95,10 +95,10 @@ export function Header({ t, locale, onLocaleChange }: Props) {
             {t.nav.login}
           </Link>
           <Link
-            href="/signup"
+            href="/devis"
             className="relative inline-flex items-center h-11 px-5 rounded-full bg-qc-gradient text-white text-sm font-semibold shadow-[0_0_25px_rgba(225,29,116,0.45)] hover:brightness-110 hover:shadow-[0_0_30px_rgba(225,29,116,0.6)] transition-all"
           >
-            {t.nav.signup}
+            Demande de devis
           </Link>
         </div>
       </div>

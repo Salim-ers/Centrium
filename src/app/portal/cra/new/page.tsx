@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
+import { useBrandName } from '@/components/brand/BrandingStyles';
 
 type MissionRow = {
   id: string;
@@ -28,6 +29,7 @@ const MONTHS = [
 
 export default function PortalCraNewPage() {
   const router = useRouter();
+  const brandName = useBrandName();
   const [missions, setMissions] = useState<MissionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -57,7 +59,7 @@ export default function PortalCraNewPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!missionId) {
-      toast.error('Aucune mission active. Contacte ton référent QuadCore.');
+      toast.error(`Aucune mission active. Contacte ton référent ${brandName}.`);
       return;
     }
 
@@ -143,7 +145,7 @@ export default function PortalCraNewPage() {
                   {missions.length === 0 && (
                     <p className="text-xs text-amber-400 mt-1">
                       Aucune mission active n&apos;est rattachée à ton profil. Contacte ton
-                      référent QuadCore.
+                      référent {brandName}.
                     </p>
                   )}
                 </>

@@ -89,7 +89,7 @@ export const DICT: Record<Locale, LandingDict> = {
       pricing: 'Tarifs',
       contact: 'Contact',
       login: 'Se connecter',
-      signup: 'Créer un compte',
+      signup: 'Demande de devis',
       bookMeeting: 'Prendre un rendez-vous',
     },
     hero: {
@@ -319,7 +319,7 @@ export const DICT: Record<Locale, LandingDict> = {
       pricing: 'Pricing',
       contact: 'Contact',
       login: 'Log in',
-      signup: 'Create account',
+      signup: 'Get a quote',
       bookMeeting: 'Book a meeting',
     },
     hero: {

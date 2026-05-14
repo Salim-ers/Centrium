@@ -56,7 +56,7 @@ export function Hero({ t }: { t: LandingDict }) {
             className="mt-8 flex flex-col sm:flex-row gap-3"
           >
             <Button size="lg" asChild className="bg-qc-gradient hover:opacity-90 shadow-glow">
-              <Link href="/signup" className="inline-flex items-center gap-2">
+              <Link href="/devis" className="inline-flex items-center gap-2">
                 {t.hero.ctaPrimary}
                 <ArrowRight className="h-4 w-4" />
               </Link>

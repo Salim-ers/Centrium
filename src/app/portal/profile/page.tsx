@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
+import { useBrandName } from '@/components/brand/BrandingStyles';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import {
@@ -51,6 +52,7 @@ function emptyForm(): EditableForm {
 export default function PortalProfilePage() {
   const { consultantId } = usePortalConsultant();
   const { activeOrgId } = useOrganization();
+  const brandName = useBrandName();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<EditableForm>(emptyForm());
@@ -139,7 +141,7 @@ export default function PortalProfilePage() {
           </h1>
           <p className="text-muted-foreground mt-1">
             Tu peux mettre à jour tes infos personnelles. Les champs business (TJM, séniorité,
-            statut) restent gérés par QuadCore.
+            statut) restent gérés par {brandName}.
           </p>
         </div>
         {!editing && (

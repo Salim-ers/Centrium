@@ -16,10 +16,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { createClient } from '@/lib/supabase/client';
+import { useBrandName } from '@/components/brand/BrandingStyles';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import type { Invoice } from '@/types';
 
 export default function PortalInvoicesPage() {
+  const brandName = useBrandName();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -77,7 +79,7 @@ export default function PortalInvoicesPage() {
                 <TableRow>
                   <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
                     Aucune facture payée pour le moment. Les factures apparaissent ici dès
-                    qu&apos;elles sont marquées payées côté QuadCore.
+                    qu&apos;elles sont marquées payées côté {brandName}.
                   </TableCell>
                 </TableRow>
               ) : (

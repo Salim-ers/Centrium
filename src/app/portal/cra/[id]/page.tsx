@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
+import { useBrandName } from '@/components/brand/BrandingStyles';
 import { timesheetService } from '@/lib/services';
 import type { Timesheet } from '@/types';
 
@@ -32,6 +33,7 @@ const MONTHS = [
 export default function PortalCraDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const brandName = useBrandName();
   const [ts, setTs] = useState<Timesheet | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -196,7 +198,7 @@ export default function PortalCraDetailPage() {
             <div className="text-sm">
               <div className="font-semibold">En attente de validation</div>
               <p className="text-muted-foreground">
-                Ton CRA a été envoyé à QuadCore. Tu seras notifié dès qu&apos;il sera validé ou refusé.
+                Ton CRA a été envoyé à {brandName}. Tu seras notifié dès qu&apos;il sera validé ou refusé.
               </p>
             </div>
           </CardContent>

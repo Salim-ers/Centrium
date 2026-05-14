@@ -1,8 +1,10 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-// Paths accessibles sans session (signup self-serve, invitations, pricing public)
-const PUBLIC_PATHS = ['/login', '/signup', '/register', '/pricing', '/'];
+// Paths accessibles sans session (devis public, login, invitations, pricing, landing).
+// /signup reste public mais redirige côté serveur vers /devis pour les bookmarks
+// externes (cf. src/app/(auth)/signup/page.tsx).
+const PUBLIC_PATHS = ['/login', '/signup', '/register', '/pricing', '/', '/devis'];
 const PUBLIC_PREFIXES = ['/invite/', '/auth/']; // /invite/accept?token=… , /auth/callback?code=…
 
 // Cookie cache pour role + organization_id : évite une query profile à chaque navigation.
@@ -137,7 +139,26 @@ export async function updateSession(request: NextRequest) {
   }
 
   const isConsultant = role === 'consultant';
+  const isSuperAdmin = role === 'super_admin';
+  const isAdminRoute = pathname.startsWith('/admin');
   const hasOrg = !!orgId;
+
+  // Le super_admin n'a pas d'org rattachée et opère sur /admin/*. Il
+  // n'est PAS redirigé vers /onboarding, et c'est le seul rôle autorisé
+  // sur les routes /admin.
+  if (isSuperAdmin) {
+    if (isAdminRoute || pathname.startsWith('/auth/')) return response;
+    // Toute autre URL → on l'envoie sur sa home admin.
+    const url = request.nextUrl.clone();
+    url.pathname = '/admin/clients';
+    return NextResponse.redirect(url);
+  }
+  if (isAdminRoute && !isSuperAdmin) {
+    // Tentative d'accès /admin sans le rôle → 404 logique
+    const url = request.nextUrl.clone();
+    url.pathname = '/dashboard';
+    return NextResponse.redirect(url);
+  }
 
   // Pas d'org active (vient de signer up) → onboarding obligatoire
   //   Exceptions : l'onboarding lui-même, l'acceptation d'invitation,

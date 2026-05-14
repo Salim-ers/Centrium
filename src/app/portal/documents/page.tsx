@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
+import { useBrandName } from '@/components/brand/BrandingStyles';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { formatDate } from '@/lib/utils';
 import { usePortalConsultant } from '../portal-context';
@@ -28,7 +29,7 @@ type DocRow = {
 
 const DOC_KIND_LABEL: Record<string, string> = {
   cv_source: 'CV source',
-  cv_generated: 'CV généré QuadCore',
+  cv_generated: 'CV généré',
   certification: 'Certification',
   id: 'Pièce d\'identité',
   id_card: 'Pièce d\'identité',
@@ -45,6 +46,7 @@ const UPLOADABLE_KINDS = ['cv_source', 'certification', 'id', 'other'] as const;
 export default function PortalDocumentsPage() {
   const { consultantId, userId } = usePortalConsultant();
   const { activeOrgId: orgId } = useOrganization();
+  const brandName = useBrandName();
   const [uploading, setUploading] = useState(false);
   const [kind, setKind] = useState<string>('cv_source');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -149,7 +151,7 @@ export default function PortalDocumentsPage() {
           Mes documents
         </h1>
         <p className="text-muted-foreground mt-1">
-          Partage tes documents avec QuadCore et retrouve ceux qu&apos;on t&apos;a transmis.
+          Partage tes documents avec {brandName} et retrouve ceux qu&apos;on t&apos;a transmis.
         </p>
       </div>
 
@@ -203,7 +205,7 @@ export default function PortalDocumentsPage() {
             <FileText className="h-10 w-10 mx-auto mb-3 opacity-40" />
             <p className="text-sm">Aucun document pour le moment.</p>
             <p className="text-xs mt-1">
-              Uploade ton CV, une certification ou contacte QuadCore.
+              Uploade ton CV, une certification ou contacte {brandName}.
             </p>
           </CardContent>
         </Card>
@@ -225,10 +227,10 @@ export default function PortalDocumentsPage() {
                         {!ownedByMe && (
                           <span
                             className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"
-                            title="Transmis par QuadCore"
+                            title={`Transmis par ${brandName}`}
                           >
                             <Lock className="h-3 w-3" />
-                            QuadCore
+                            {brandName}
                           </span>
                         )}
                       </div>

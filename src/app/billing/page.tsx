@@ -228,7 +228,7 @@ function BillingPageInner() {
             <CardContent className="space-y-3 text-xs text-muted-foreground">
               <p>
                 <strong className="text-foreground">Paiement sécurisé</strong> par Stripe.
-                QuadCore ne stocke jamais tes infos de CB.
+                Centrium ne stocke jamais tes infos de CB.
               </p>
               <p>
                 Pour une facture détaillée, télécharger les factures passées, changer de CB ou
