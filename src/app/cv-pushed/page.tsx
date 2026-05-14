@@ -10,6 +10,7 @@ import {
   Briefcase,
   Loader2,
   Building2,
+  Network,
   Archive,
   ArchiveRestore,
   Trash2,
@@ -59,6 +60,8 @@ type PushedRow = {
   job_offer_title: string | null;
   /** Nom du client : company.name, sinon fallback offre. */
   client_name: string | null;
+  /** Type de source : 'client' (direct) ou 'esn' (partenaire qui sous-traite). */
+  client_kind: 'client' | 'esn' | null;
   consultant_id: string;
   first_name: string;
   last_name: string;
@@ -111,6 +114,11 @@ export default function CvPushedPage() {
           // (champ `source` de l'AO — client final ou ESN partenaire).
           client_name:
             m.company?.name ?? m.job_offer?.source ?? null,
+          // Type d'origine : si on a une `company`, on considère client direct ;
+          // sinon on prend le source_kind explicitement choisi sur l'AO.
+          client_kind: m.company?.name
+            ? 'client'
+            : (m.job_offer?.source_kind ?? null),
           consultant_id: m.consultant.id,
           first_name: m.consultant.first_name,
           last_name: m.consultant.last_name,
@@ -347,14 +355,28 @@ export default function CvPushedPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="max-w-[180px]">
+                      <TableCell className="max-w-[200px]">
                         {r.client_name ? (
-                          <div className="inline-flex items-center gap-1.5 text-sm font-medium">
-                            <Building2 className="h-3.5 w-3.5 text-violet-300 shrink-0" />
-                            <span className="truncate">{r.client_name}</span>
+                          <div
+                            className="flex items-start gap-1.5 min-w-0 text-sm font-medium"
+                            title={r.client_name}
+                          >
+                            {r.client_kind === 'esn' ? (
+                              <Network className="h-3.5 w-3.5 text-amber-300 shrink-0 mt-0.5" />
+                            ) : (
+                              <Building2 className="h-3.5 w-3.5 text-violet-300 shrink-0 mt-0.5" />
+                            )}
+                            <span className="leading-tight break-words">
+                              {r.client_name}
+                            </span>
                           </div>
                         ) : (
                           <span className="text-xs text-muted-foreground italic">— direct</span>
+                        )}
+                        {r.client_kind && r.client_name && (
+                          <div className="text-[10px] text-muted-foreground mt-0.5 pl-[20px]">
+                            {r.client_kind === 'esn' ? 'ESN partenaire' : 'Client direct'}
+                          </div>
                         )}
                       </TableCell>
                       <TableCell className="max-w-[260px]">

@@ -143,7 +143,7 @@ export function OpportunityFormDialog({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>TJM visé (€)</Label>
-              <Input type="number" min="0" step="10" {...register('daily_rate_eur')} placeholder="550" />
+              <Input type="number" min="0" step="1" {...register('daily_rate_eur')} placeholder="550" />
             </div>
             <div>
               <Label>Durée mission (mois)</Label>

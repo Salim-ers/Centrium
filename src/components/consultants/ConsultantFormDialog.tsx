@@ -498,7 +498,7 @@ export function ConsultantFormDialog({
             </div>
             <div>
               <Label>TJM (€)</Label>
-              <Input type="number" min="0" step="10" {...register('daily_rate_eur')} />
+              <Input type="number" min="0" step="1" {...register('daily_rate_eur')} />
             </div>
           </div>
 
