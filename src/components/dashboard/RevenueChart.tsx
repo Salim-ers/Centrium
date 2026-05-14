@@ -24,6 +24,8 @@ type RpcRow = {
   missions: number;
   missions_active?: number;
   missions_proposed?: number;
+  /** Flow : CV poussés créés ce mois-là (cf. migration 053). */
+  proposed_created?: number;
 };
 type MonthlyPoint = {
   month: string;
@@ -33,6 +35,8 @@ type MonthlyPoint = {
   missionsActive: number;
   /** Snapshot du pipeline pour le mois courant (status='proposed'). */
   missionsProposed: number;
+  /** CV poussés créés ce mois-là (historique pour la 3e courbe). */
+  proposedCreated: number;
 };
 
 const MONTHS_SHORT = [
@@ -49,6 +53,7 @@ function rowsToBuckets(rows: RpcRow[]): MonthlyPoint[] {
       ca: Number(r.ca),
       missionsActive: Number(r.missions_active ?? r.missions ?? 0),
       missionsProposed: Number(r.missions_proposed ?? 0),
+      proposedCreated: Number(r.proposed_created ?? 0),
     };
   });
 }
@@ -130,6 +135,10 @@ export function RevenueChart() {
                     <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.35} />
                     <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.02} />
                   </linearGradient>
+                  <linearGradient id="proposed-amber" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#fbbf24" stopOpacity={0.02} />
+                  </linearGradient>
                 </defs>
                 <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
                 <XAxis
@@ -169,6 +178,18 @@ export function RevenueChart() {
                     if (name === 'CA') return [formatCurrency(Number(value)), 'CA'];
                     return [value, name];
                   }}
+                />
+                {/* CV poussés (en attente) — courbe jaune historique
+                    sur le nb créés chaque mois (cf. migration 053). */}
+                <Area
+                  yAxisId="missions"
+                  type="monotone"
+                  dataKey="proposedCreated"
+                  name="CV poussés"
+                  stroke="#fbbf24"
+                  strokeWidth={1.5}
+                  fill="url(#proposed-amber)"
+                  strokeDasharray="4 4"
                 />
                 <Area
                   yAxisId="missions"
