@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { AlertTriangle, RefreshCw, Home, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
@@ -11,8 +11,8 @@ import { Button } from '@/components/ui/button';
  * client throw au render. Évite le blanc total "Application error" et
  * propose à l'utilisateur de retenter ou revenir au dashboard.
  *
- * Le composant Next.js spécifie qu'il DOIT être un client component
- * et accepter { error, reset }.
+ * Affiche aussi un détail technique repliable (message + digest) pour
+ * que l'utilisateur puisse copier-coller la cause exacte en debug.
  */
 export default function ErrorBoundary({
   error,
@@ -21,15 +21,17 @@ export default function ErrorBoundary({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const [showDetails, setShowDetails] = useState(false);
+
   useEffect(() => {
-    // On garde la trace en console pour le debug ; en prod un Sentry / GA
-    // pourrait s'abonner ici.
+    // Trace console détaillée pour debug (visible dans la console F12).
     console.error('[app error boundary]', error);
+    if (error.stack) console.error(error.stack);
   }, [error]);
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6">
-      <div className="max-w-md w-full text-center space-y-6">
+      <div className="max-w-lg w-full text-center space-y-6">
         <div className="mx-auto h-14 w-14 rounded-full bg-amber-500/15 flex items-center justify-center">
           <AlertTriangle className="h-7 w-7 text-amber-300" />
         </div>
@@ -42,11 +44,6 @@ export default function ErrorBoundary({
             c&apos;est un hoquet réseau ou de cache. Si ça persiste, retourne au
             dashboard.
           </p>
-          {error.digest && (
-            <p className="text-[10px] text-muted-foreground/60 mt-3 font-mono">
-              ref · {error.digest}
-            </p>
-          )}
         </div>
         <div className="flex items-center justify-center gap-2">
           <Button onClick={() => reset()} className="bg-violet-glow hover:bg-violet-glow/90">
@@ -59,6 +56,28 @@ export default function ErrorBoundary({
               Dashboard
             </Link>
           </Button>
+        </div>
+
+        {/* Détails techniques repliables — utile pour comprendre la cause
+            sans avoir à ouvrir la console. */}
+        <div className="text-left">
+          <button
+            type="button"
+            onClick={() => setShowDetails((v) => !v)}
+            className="text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mx-auto"
+          >
+            <ChevronDown
+              className={`h-3 w-3 transition ${showDetails ? 'rotate-0' : '-rotate-90'}`}
+            />
+            Détails techniques
+          </button>
+          {showDetails && (
+            <pre className="mt-3 max-h-60 overflow-auto rounded-md border border-hairline bg-white/[0.03] p-3 text-[11px] text-muted-foreground whitespace-pre-wrap break-words">
+              {error.name}: {error.message}
+              {error.digest ? `\n\nref · ${error.digest}` : ''}
+              {error.stack ? `\n\n${error.stack}` : ''}
+            </pre>
+          )}
         </div>
       </div>
     </div>

@@ -111,8 +111,9 @@ export default function ConsultantsPage() {
 
   // Exclusion : profils avec mission proposed/active → ils vivent dans CV poussés
   // ou En Mission. Une seule présence par profil, partout dans l'app.
+  // ⚠️ active_missions peut être absent sur des fiches anciennes (sécurité null).
   const allInPool = (consultantsData ?? []).filter(
-    (c) => c.active_missions.length === 0,
+    (c) => (c.active_missions?.length ?? 0) === 0,
   );
 
   // Comptes par corps de métier (sur la liste avant filtre famille pour rester
