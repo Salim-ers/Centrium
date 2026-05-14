@@ -16,9 +16,12 @@ import { requireOrg } from '@/lib/auth/guards';
 
 export const runtime = 'nodejs';
 
+// Les missions ne sont JAMAIS supprimées par un reset : ce sont des
+// éléments du pipeline commercial (CV poussés + En Mission) qui
+// doivent survivre à un wipe des données comptables.
 const bodySchema = z.object({
   scopes: z
-    .array(z.enum(['missions', 'timesheets', 'invoices', 'alerts']))
+    .array(z.enum(['timesheets', 'invoices', 'alerts']))
     .min(1, 'Sélectionne au moins une catégorie à réinitialiser'),
   confirm: z.literal('RESET'),
 });
@@ -96,55 +99,11 @@ export async function POST(req: NextRequest) {
     counts.timesheets = del?.length ?? 0;
   }
 
-  // 3. Missions (FK timesheets.mission_id, FK invoices.mission_id — déjà
-  // vidées si scopes correspondants ; sinon on bloque proprement).
-  if (scopes.has('missions')) {
-    const { data: tsBlock } = await admin
-      .from('timesheets')
-      .select('id')
-      .eq('organization_id', ctx.organizationId)
-      .limit(1);
-    if (tsBlock && tsBlock.length > 0 && !scopes.has('timesheets')) {
-      return NextResponse.json(
-        {
-          error: 'has_timesheets',
-          message:
-            'Des CRA référencent des missions. Coche "CRAs" pour les supprimer en même temps.',
-        },
-        { status: 409 },
-      );
-    }
-    const { data: invBlock } = await admin
-      .from('invoices')
-      .select('id')
-      .eq('organization_id', ctx.organizationId)
-      .not('mission_id', 'is', null)
-      .limit(1);
-    if (invBlock && invBlock.length > 0 && !scopes.has('invoices')) {
-      return NextResponse.json(
-        {
-          error: 'has_invoices',
-          message:
-            'Des factures référencent des missions. Coche "Factures" pour les supprimer en même temps.',
-        },
-        { status: 409 },
-      );
-    }
-    const { data: del, error } = await admin
-      .from('missions')
-      .delete()
-      .eq('organization_id', ctx.organizationId)
-      .select('id');
-    if (error) {
-      return NextResponse.json(
-        { error: 'delete_failed', scope: 'missions', message: error.message },
-        { status: 500 },
-      );
-    }
-    counts.missions = del?.length ?? 0;
-  }
+  // Les missions ne sont jamais supprimées par cette route — elles
+  // représentent le pipeline commercial vivant (CV poussés + En Mission)
+  // qui doit survivre à un reset comptable.
 
-  // 4. Alertes manuelles (les alertes calculées sont reconstruites par RPC,
+  // 3. Alertes manuelles (les alertes calculées sont reconstruites par RPC,
   // on ne touche que la table `alerts` qui stocke l'état dismissed/résolu).
   if (scopes.has('alerts')) {
     const { data: del, error } = await admin

@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { notifyDestructive, notifyError } from '@/lib/notify';
 
-type Scope = 'missions' | 'timesheets' | 'invoices' | 'alerts';
+type Scope = 'timesheets' | 'invoices' | 'alerts';
 
 type Props = {
   open: boolean;
@@ -24,11 +24,10 @@ type Props = {
   onReset?: () => void;
 };
 
+// Les missions (CV poussés + En Mission) sont du pipeline commercial vivant —
+// elles ne sont JAMAIS supprimées par un reset. Pour retirer une mission, il
+// faut passer par l'action dédiée sur sa fiche (Terminer / Archiver).
 const SCOPE_LABEL: Record<Scope, { label: string; desc: string }> = {
-  missions: {
-    label: 'Missions',
-    desc: 'CV poussés (proposed) + En Mission (active) + archives — réinitialise "En mission" et le CA',
-  },
   timesheets: {
     label: 'CRAs',
     desc: 'Tous les comptes rendus d\'activité — réinitialise "CRA à valider"',
@@ -43,7 +42,7 @@ const SCOPE_LABEL: Record<Scope, { label: string; desc: string }> = {
   },
 };
 
-const ORDERED: Scope[] = ['missions', 'timesheets', 'invoices', 'alerts'];
+const ORDERED: Scope[] = ['timesheets', 'invoices', 'alerts'];
 
 /**
  * Réinitialise les données transactionnelles d'une organisation pour
@@ -54,7 +53,7 @@ const ORDERED: Scope[] = ['missions', 'timesheets', 'invoices', 'alerts'];
  */
 export function ResetDashboardDialog({ open, onOpenChange, onReset }: Props) {
   const [scopes, setScopes] = useState<Set<Scope>>(
-    new Set<Scope>(['missions', 'timesheets', 'invoices', 'alerts']),
+    new Set<Scope>(['timesheets', 'invoices', 'alerts']),
   );
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
