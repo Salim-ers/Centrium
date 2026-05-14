@@ -9,7 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { LandingDict } from '@/lib/i18n/landing';
 
-const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xyklpeqj';
+// Endpoint Formspree centralisé → forwarde à contact@centrium-platform.com
+// (le même que /api/quote-requests).
+const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xqenvzve';
 
 export function Contact({ t }: { t: LandingDict }) {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
@@ -58,13 +60,13 @@ export function Contact({ t }: { t: LandingDict }) {
 
             <div className="mt-8 space-y-3">
               <a
-                href="mailto:contact@quad-core.fr"
+                href="mailto:contact@centrium-platform.com"
                 className="flex items-center gap-3 text-sm text-white/80 hover:text-white transition"
               >
                 <div className="h-9 w-9 rounded-lg bg-violet-brand/15 border border-violet-brand/30 flex items-center justify-center">
                   <Mail className="h-4 w-4 text-violet-300" />
                 </div>
-                contact@quad-core.fr
+                contact@centrium-platform.com
               </a>
               <div className="flex items-center gap-3 text-sm text-white/60">
                 <div className="h-9 w-9 rounded-lg bg-magenta/15 border border-magenta/30 flex items-center justify-center">
@@ -108,7 +110,7 @@ export function Contact({ t }: { t: LandingDict }) {
               />
             </div>
 
-            <input type="hidden" name="_subject" value="Nouveau contact QuadCore" />
+            <input type="hidden" name="_subject" value="Nouveau contact Centrium (landing)" />
 
             <div className="flex items-center justify-between gap-3 pt-2">
               {status === 'sent' ? (

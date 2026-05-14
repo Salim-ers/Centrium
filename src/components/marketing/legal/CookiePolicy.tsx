@@ -70,7 +70,7 @@ export function CookiePolicy() {
       <h2>5. Contact</h2>
       <p>
         Pour toute question relative aux cookies, écrivez à{' '}
-        <a href="mailto:contact@quad-core.fr">contact@quad-core.fr</a> ou consultez notre{' '}
+        <a href="mailto:contact@centrium-platform.com">contact@centrium-platform.com</a> ou consultez notre{' '}
         <strong>Politique de confidentialité</strong>.
       </p>
 

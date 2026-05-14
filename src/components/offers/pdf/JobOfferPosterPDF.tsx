@@ -322,8 +322,8 @@ export function JobOfferPosterPDF({
   offer,
   brand,
   logoSrc,
-  contactEmail = 'contact@quad-core.fr',
-  contactWebsite = 'quad-core.fr',
+  contactEmail = 'contact@centrium-platform.com',
+  contactWebsite = 'centrium-platform.com',
   tagline = 'Réactif. Fiable. Proche.',
 }: Props) {
   const b = brand ?? resolveBrand(null);

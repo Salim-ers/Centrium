@@ -16,7 +16,7 @@ export function PrivacyPolicy() {
         <li><strong>QuadCore SAS</strong>, représentée par Monsieur Mouhamad Moustakine, Président</li>
         <li><strong>Siège social :</strong> 5 Rue du Docteur Roux, 60180 Nogent-sur-Oise, France</li>
         <li><strong>SIREN :</strong> 101 694 016 — <strong>RCS :</strong> Compiègne</li>
-        <li><strong>E-mail du responsable / DPO :</strong> contact@quad-core.fr</li>
+        <li><strong>E-mail du responsable / DPO :</strong> contact@centrium-platform.com</li>
       </ul>
       <p>
         Concernant les données personnelles que vous nous confiez au sujet de <strong>vos consultants, contacts et
@@ -120,7 +120,7 @@ export function PrivacyPolicy() {
         <li><strong>Droit de définir des directives post-mortem</strong> sur le sort de vos données</li>
       </ul>
       <p>
-        Ces droits s&apos;exercent par e-mail à <a href="mailto:contact@quad-core.fr">contact@quad-core.fr</a>,
+        Ces droits s&apos;exercent par e-mail à <a href="mailto:contact@centrium-platform.com">contact@centrium-platform.com</a>,
         accompagné d&apos;un justificatif d&apos;identité. Nous répondons dans un délai maximum de <strong>30 jours</strong>
         (prolongeable de 2 mois pour les demandes complexes).
       </p>

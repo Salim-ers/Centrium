@@ -21,7 +21,7 @@ export function LegalNotice() {
         <li><strong>N° TVA intracommunautaire :</strong> FR85 101 694 016</li>
         <li><strong>Date d&apos;immatriculation :</strong> 18 mars 2026</li>
         <li><strong>Greffe :</strong> Tribunal de Commerce de Compiègne — 2 Rue du Dahomey, 60200 Compiègne (n° de gestion 2026B00505)</li>
-        <li><strong>E-mail :</strong> contact@quad-core.fr</li>
+        <li><strong>E-mail :</strong> contact@centrium-platform.com</li>
       </ul>
 
       <h2>2. Hébergement</h2>
@@ -97,7 +97,7 @@ export function LegalNotice() {
       <h2>8. Accessibilité & signalement</h2>
       <p>
         Pour toute question, signalement de contenu illicite ou demande de modification, contactez-nous à{' '}
-        <a href="mailto:contact@quad-core.fr">contact@quad-core.fr</a>.
+        <a href="mailto:contact@centrium-platform.com">contact@centrium-platform.com</a>.
       </p>
 
       <hr />
