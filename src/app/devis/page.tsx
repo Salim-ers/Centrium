@@ -43,6 +43,70 @@ import { cn } from '@/lib/utils';
  */
 
 const NOTIFICATION_EMAIL = 'contact@centrium-platform.com';
+const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xqenvzve';
+
+const HELP_LABELS: Record<string, string> = {
+  cv_template: 'Template CV à notre image',
+  contract_template: 'Template de contrat à notre image',
+  logo: 'Création / refonte de logo',
+  brand_colors: 'Charte graphique (couleurs)',
+  mentions_legales: 'Aide rédaction mentions légales',
+  signature: 'Signature numérique',
+  fiche_poste: 'Template fiche de poste',
+  autre: 'Autre (voir message)',
+};
+
+/**
+ * Envoi de la notification email côté navigateur — Formspree accepte
+ * mieux les soumissions browser que les fetch server-to-server.
+ * Best-effort : on n'attend pas plus de 5s, et on ne bloque pas
+ * l'UX si l'email échoue (la trace en DB est la source de vérité).
+ */
+async function notifyFormspree(payload: {
+  company_name: string;
+  industry: string;
+  team_size: string;
+  consultants_count: string;
+  contact_name: string;
+  contact_email: string;
+  contact_phone: string;
+  contact_role: string;
+  message: string;
+  wanted_help: string[];
+}): Promise<boolean> {
+  const help = payload.wanted_help.map((k) => HELP_LABELS[k] ?? k).join(', ');
+  const body = new FormData();
+  body.append('_subject', `Nouvelle demande de devis — ${payload.company_name}`);
+  body.append('_replyto', payload.contact_email);
+  body.append('email', payload.contact_email);
+  body.append('Société', payload.company_name);
+  if (payload.industry) body.append('Secteur', payload.industry);
+  if (payload.team_size) body.append('Taille équipe', payload.team_size);
+  if (payload.consultants_count)
+    body.append('Consultants gérés', payload.consultants_count);
+  body.append('Contact', payload.contact_name);
+  if (payload.contact_role) body.append('Fonction', payload.contact_role);
+  body.append('Email', payload.contact_email);
+  if (payload.contact_phone) body.append('Téléphone', payload.contact_phone);
+  if (help) body.append("Besoins d'accompagnement", help);
+  if (payload.message) body.append('Message', payload.message);
+
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const res = await fetch(FORMSPREE_ENDPOINT, {
+      method: 'POST',
+      body,
+      headers: { Accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(t);
+  }
+}
 
 type HelpKey =
   | 'cv_template'
@@ -118,19 +182,34 @@ export default function DevisPage() {
     }
     setBusy(true);
     try {
-      const res = await fetch('/api/quote-requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          wanted_help: Array.from(help),
-          source: 'landing',
+      const wantedHelp = Array.from(help);
+
+      // 1) Save DB (source de vérité) + 2) Email via Formspree depuis
+      // le navigateur (Formspree accepte mieux les requêtes browser).
+      // Les deux partent en parallèle pour ne pas allonger l'UX.
+      const [dbRes, emailOk] = await Promise.all([
+        fetch('/api/quote-requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...form,
+            wanted_help: wantedHelp,
+            source: 'landing',
+          }),
         }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
+        notifyFormspree({ ...form, wanted_help: wantedHelp }),
+      ]);
+
+      const body = await dbRes.json().catch(() => ({}));
+      if (!dbRes.ok) {
         setError(body.message ?? "Envoi impossible — réessaie dans un instant.");
         return;
+      }
+      // On affiche le succès même si l'email a foiré : le record est en DB,
+      // l'équipe Centrium verra la demande dans /admin/clients.
+      if (!emailOk) {
+        // eslint-disable-next-line no-console
+        console.warn('[devis] email notification failed, but DB save OK');
       }
       setDone(true);
     } catch (e) {
