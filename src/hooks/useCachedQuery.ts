@@ -76,6 +76,14 @@ export function useCachedQuery<T>(
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<unknown>(null);
 
+  // Mémorise la clé courante pour détecter un changement (ex: activeOrgId
+  // arrive en async après le 1er render). Sans ça, `useState(cached?.data)`
+  // ne tournait qu'à la première initialisation → quand la clé change,
+  // `data` restait null et l'écran montrait "Aucun résultat" pendant que
+  // le refetch tournait, au lieu d'afficher instantanément le cache de
+  // la nouvelle clé déjà présent en sessionStorage.
+  const lastKeyRef = useRef<string | null>(null);
+
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
   // Compteur de réponses "suspectes" (vides après un cache plein).
@@ -129,6 +137,23 @@ export function useCachedQuery<T>(
   useEffect(() => {
     if (!enabled) return;
     suspiciousEmptyCountRef.current = 0;
+    // Au changement de clé (ex: activeOrgId qui arrive en async après
+    // l'auth, ou search/filter qui change), on relit le cache de la
+    // NOUVELLE clé pour rehydrater data instantanément avant que le
+    // refetch ne se termine. Sans ça, F5 sur une page filtrée par org
+    // montrait "Aucun résultat" pendant 1-2s alors que le cache était
+    // plein côté sessionStorage.
+    if (lastKeyRef.current !== key) {
+      lastKeyRef.current = key;
+      const fresh = readCache<T>(key);
+      if (fresh) {
+        setDataState(fresh.data);
+        setLoading(false);
+      }
+      // Pas de cache : on garde la donnée courante visible pendant le
+      // refetch (évite le flash "vide" entre 2 clés). Le fetch va la
+      // remplacer dès qu'il termine.
+    }
     // Toujours refetch au mount : le cache sert à afficher instantanément
     // le dernier snapshot, mais la donnée doit être fraîche à chaque visite
     // sinon les updates faites par un autre compte n'apparaissent pas.
