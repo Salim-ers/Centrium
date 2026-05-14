@@ -41,6 +41,8 @@ import { CityFilter } from '@/components/consultants/CityFilter';
 import { CsvImportDialog } from '@/components/consultants/CsvImportDialog';
 import { GrantPortalDialog } from '@/components/consultants/GrantPortalDialog';
 import { UsageBanner } from '@/components/billing/UsageBanner';
+import { Select } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import {
   classifyJobFamily,
   type JobFamilyId,
@@ -158,6 +160,21 @@ export default function ConsultantsPage() {
   function openEdit(consultant: Consultant) {
     setEditingConsultant(consultant);
     setDialogOpen(true);
+  }
+
+  async function handleStatusChange(consultantId: string, next: Consultant['status']) {
+    // Optimistic update : la liste se rafraîchit avant l'aller-retour DB.
+    const prev = consultantsData;
+    setConsultants((list) =>
+      (list ?? []).map((c) =>
+        c.id === consultantId ? { ...c, status: next } : c,
+      ),
+    );
+    const res = await consultantService.update(consultantId, { status: next });
+    if (res.error) {
+      notifyError('Mise à jour du statut impossible : ' + res.error.message);
+      setConsultants(prev ?? []);
+    }
   }
 
   async function archiveConsultant(consultant: Consultant) {
@@ -396,9 +413,29 @@ export default function ConsultantsPage() {
                       {c.city ?? '—'}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={CONSULTANT_STATUS_STYLE[c.status]}>
-                        {CONSULTANT_STATUS_LABEL[c.status]}
-                      </Badge>
+                      {showArchived || c.status === 'on_mission' || c.status === 'archived' ? (
+                        // En lecture seule : 'on_mission' est piloté par le trigger
+                        // missions, 'archived' par l'archivage du profil.
+                        <Badge variant="outline" className={CONSULTANT_STATUS_STYLE[c.status]}>
+                          {CONSULTANT_STATUS_LABEL[c.status]}
+                        </Badge>
+                      ) : (
+                        <Select
+                          value={c.status}
+                          onChange={(e) =>
+                            handleStatusChange(c.id, e.target.value as Consultant['status'])
+                          }
+                          className={cn(
+                            'h-7 text-xs font-medium min-w-[130px] border',
+                            CONSULTANT_STATUS_STYLE[c.status],
+                          )}
+                          title="Changer le statut du consultant"
+                        >
+                          <option value="available">Disponible</option>
+                          <option value="soon_available">Bientôt dispo</option>
+                          <option value="unavailable">Indisponible</option>
+                        </Select>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">

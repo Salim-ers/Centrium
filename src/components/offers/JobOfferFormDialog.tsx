@@ -270,11 +270,13 @@ export function JobOfferFormDialog({
   async function onSubmit(values: JobOfferInput) {
     setSaving(true);
     try {
-      // TJM unique : on aligne min = max = daily_rate_eur pour rester
-      // compatible avec le matching / la fiche de poste qui lisent la plage.
-      const tjm = values.daily_rate_eur ?? null;
+      // TJM unique : on aligne min = max = TJM saisi pour rester compatible
+      // avec le matching / la fiche de poste qui lisent encore la plage.
+      // `daily_rate_eur` n'existe pas en DB — on l'extrait du payload.
+      const { daily_rate_eur: tjmInput, ...rest } = values;
+      const tjm = tjmInput ?? null;
       const payload = {
-        ...values,
+        ...rest,
         required_skills: requiredSkills,
         nice_to_have: niceToHave,
         tasks: linesToArray(tasksText),
