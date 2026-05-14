@@ -4,17 +4,13 @@ import { useEffect, useState } from 'react';
 import {
   UserCircle,
   Plus,
-  Linkedin,
   Mail,
   Phone,
   Pencil,
   Trash2,
   PhoneCall,
   FileUp,
-  CheckCheck,
-  Undo2,
   Bell,
-  MessageSquare,
 } from 'lucide-react';
 
 import {
@@ -24,7 +20,6 @@ import {
 } from '@/lib/notify';
 import { ContactCsvImportDialog } from '@/components/crm/ContactCsvImportDialog';
 import { ContactReminderDialog } from '@/components/crm/ContactReminderDialog';
-import { ContactInteractionsDialog } from '@/components/crm/ContactInteractionsDialog';
 import { contactInteractionService } from '@/lib/services';
 import type { ContactInteraction } from '@/types';
 import { AppShell } from '@/components/layout/AppShell';
@@ -47,13 +42,24 @@ import type { Contact } from '@/types';
 import { CONTACT_TYPE_LABEL } from '@/constants';
 import { relativeDate } from '@/lib/utils';
 
+/**
+ * Carnet de contacts — version simplifiée.
+ *
+ * Colonnes essentielles uniquement : qui est-ce, comment le joindre,
+ * quand l'a-t-on contacté pour la dernière fois.
+ *
+ * 4 actions seulement :
+ *   - "Contacté" (stamp last_interaction = NOW())
+ *   - "Rappel" (programmer une relance)
+ *   - "Éditer"
+ *   - "Supprimer"
+ */
 export default function ContactsPage() {
   const { activeOrgId } = useOrganization();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [csvOpen, setCsvOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [reminderContact, setReminderContact] = useState<Contact | null>(null);
-  const [interactionsContact, setInteractionsContact] = useState<Contact | null>(null);
   const [latestByContact, setLatestByContact] = useState<Map<string, ContactInteraction>>(
     new Map(),
   );
@@ -68,7 +74,6 @@ export default function ContactsPage() {
     async () => {
       const res = await contactService.list();
       const rows = res.data ?? [];
-      // Tri alphabétique nom/prénom (locale fr — accents gérés).
       return rows.slice().sort((a, b) => {
         const an = `${a.last_name ?? ''} ${a.first_name ?? ''}`.toLowerCase();
         const bn = `${b.last_name ?? ''} ${b.first_name ?? ''}`.toLowerCase();
@@ -78,8 +83,6 @@ export default function ContactsPage() {
     { enabled: !!activeOrgId },
   );
 
-  // Charge la dernière interaction pour chaque contact en parallèle.
-  // Refait à chaque reload de la liste contacts pour rester synchro.
   useEffect(() => {
     if (!activeOrgId) return;
     let cancelled = false;
@@ -93,12 +96,6 @@ export default function ContactsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeOrgId, contactsData]);
 
-  function refreshInteractions() {
-    if (!activeOrgId) return;
-    contactInteractionService.latestPerContact(activeOrgId).then((res) => {
-      setLatestByContact(res.data ?? new Map());
-    });
-  }
   const contacts = contactsData ?? [];
 
   function openCreate() {
@@ -122,12 +119,8 @@ export default function ContactsPage() {
     setContacts((prev) => (prev ?? []).filter((c) => c.id !== contact.id));
   }
 
-  async function toggleInteraction(contact: Contact) {
-    // Click pour basculer : si le contact a déjà une date d'interaction,
-    // on la garde et on actualise à maintenant ; si on Shift+click, on
-    // efface la date pour repartir de zéro.
-    const isClear = false;
-    const res = await contactService.markInteracted(contact.id, { clear: isClear });
+  async function markContacted(contact: Contact) {
+    const res = await contactService.markInteracted(contact.id, { clear: false });
     if (res.error || !res.data) {
       notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
       return;
@@ -136,44 +129,7 @@ export default function ContactsPage() {
       (prev ?? []).map((c) => (c.id === contact.id ? res.data! : c)),
     );
     notifyUpdated(
-      `${contact.first_name} ${contact.last_name} — interaction enregistrée`,
-      { description: 'Dernière interaction mise à jour à l\'instant' },
-    );
-  }
-
-  async function clearInteraction(contact: Contact) {
-    const res = await contactService.markInteracted(contact.id, { clear: true });
-    if (res.error || !res.data) {
-      notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
-      return;
-    }
-    setContacts((prev) =>
-      (prev ?? []).map((c) => (c.id === contact.id ? res.data! : c)),
-    );
-    notifyUpdated(
-      `${contact.first_name} ${contact.last_name} — date effacée`,
-    );
-  }
-
-  async function toggleProspecting(contact: Contact) {
-    const next = !contact.prospecting_done;
-    const res = await contactService.toggleProspectingDone(contact.id, next);
-    if (res.error || !res.data) {
-      notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
-      return;
-    }
-    setContacts((prev) =>
-      (prev ?? []).map((c) => (c.id === contact.id ? res.data! : c)),
-    );
-    notifyUpdated(
-      next
-        ? `${contact.first_name} ${contact.last_name} — démarchage terminé ✓`
-        : `${contact.first_name} ${contact.last_name} — démarchage rouvert`,
-      {
-        description: next
-          ? 'Le contact sort des listes de prospection active'
-          : 'Le contact réintègre les listes de prospection',
-      },
+      `${contact.first_name} ${contact.last_name} — contacté à l'instant`,
     );
   }
 
@@ -220,21 +176,6 @@ export default function ContactsPage() {
         }}
       />
 
-      <ContactInteractionsDialog
-        open={!!interactionsContact}
-        onOpenChange={(v) => {
-          if (!v) setInteractionsContact(null);
-        }}
-        contact={interactionsContact}
-        organizationId={activeOrgId ?? ''}
-        onChanged={() => {
-          refreshInteractions();
-          // Aussi : last_interaction est bumpée côté DB → on rafraîchit la liste contact
-          // pour que la cellule date se mette à jour.
-          reload();
-        }}
-      />
-
       <ContactFormDialog
         open={dialogOpen}
         onOpenChange={(v) => {
@@ -251,193 +192,141 @@ export default function ContactsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[220px]">Contact</TableHead>
+                <TableHead>Contact</TableHead>
                 <TableHead className="w-[110px]">Type</TableHead>
-                <TableHead className="w-[180px]">Poste</TableHead>
-                <TableHead className="w-[220px]">Email</TableHead>
+                <TableHead>Poste</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead className="w-[140px]">Téléphone</TableHead>
-                <TableHead className="w-[60px] text-center">In</TableHead>
-                <TableHead className="w-[230px]">Suivi</TableHead>
-                <TableHead className="text-right w-[210px]">Actions</TableHead>
+                <TableHead className="w-[140px]">Dernier contact</TableHead>
+                <TableHead className="text-right w-[180px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8}>
+                  <TableCell colSpan={7}>
                     <div className="h-10 bg-white/[0.02] animate-pulse rounded" />
                   </TableCell>
                 </TableRow>
               ) : contacts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
                     Aucun contact
                   </TableCell>
                 </TableRow>
               ) : (
-                contacts.map((c) => (
-                  <TableRow
-                    key={c.id}
-                    className={`${c.prospecting_done ? 'opacity-65' : ''} h-12`}
-                  >
-                    <TableCell className="whitespace-nowrap">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-medium truncate" title={`${c.last_name} ${c.first_name}`}>
+                contacts.map((c) => {
+                  const latest = latestByContact.get(c.id) ?? null;
+                  const lastDate = latest?.created_at ?? c.last_interaction ?? null;
+                  const hasReminder = !!c.next_call_reminder;
+                  return (
+                    <TableRow key={c.id} className="h-12">
+                      <TableCell className="whitespace-nowrap">
+                        <span
+                          className="font-medium"
+                          title={`${c.last_name} ${c.first_name}`}
+                        >
                           <span className="uppercase">{c.last_name}</span>{' '}
                           {c.first_name}
                         </span>
-                        {c.source && (
-                          <span
-                            className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.04] text-muted-foreground truncate max-w-[110px] shrink-0"
-                            title={c.source}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <Badge variant="outline" className="text-[10px]">
+                          {CONTACT_TYPE_LABEL[c.contact_type]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell
+                        className="text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[220px]"
+                        title={c.job_title ?? undefined}
+                      >
+                        {c.job_title ?? <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[260px]">
+                        {c.email ? (
+                          <a
+                            href={`mailto:${c.email}`}
+                            className="inline-flex items-center gap-1 text-muted-foreground hover:text-violet-glow transition-colors max-w-full"
+                            title={c.email}
                           >
-                            {c.source.replace(/^ESN:\s*/, '')}
+                            <Mail className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{c.email}</span>
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {c.phone ? (
+                          <a
+                            href={`tel:${c.phone}`}
+                            className="inline-flex items-center gap-1 text-muted-foreground hover:text-violet-glow transition-colors"
+                          >
+                            <Phone className="h-3 w-3 shrink-0" />
+                            {c.phone}
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs whitespace-nowrap text-muted-foreground">
+                        {lastDate ? (
+                          <span title={new Date(lastDate).toLocaleString('fr-FR')}>
+                            {relativeDate(lastDate)}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground/60 italic">
+                            Jamais contacté
                           </span>
                         )}
-                        {c.prospecting_done && (
-                          <span
-                            className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 text-[8px] uppercase tracking-wider font-semibold shrink-0"
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-0.5 whitespace-nowrap">
+                          <IconButton
+                            onClick={() => markContacted(c)}
+                            title="Marquer comme contacté à l'instant"
+                            colorClass="text-emerald-300 hover:bg-emerald-500/10"
+                          >
+                            <PhoneCall className="h-3.5 w-3.5" />
+                          </IconButton>
+                          <IconButton
+                            onClick={() => setReminderContact(c)}
                             title={
-                              c.prospecting_done_at
-                                ? `Démarchage terminé le ${new Date(
-                                    c.prospecting_done_at,
-                                  ).toLocaleDateString('fr-FR')}`
-                                : 'Démarchage terminé'
+                              hasReminder
+                                ? `Rappel prévu : ${new Date(
+                                    c.next_call_reminder!,
+                                  ).toLocaleString('fr-FR', {
+                                    dateStyle: 'short',
+                                    timeStyle: 'short',
+                                  })}`
+                                : 'Programmer un rappel'
+                            }
+                            colorClass={
+                              hasReminder
+                                ? 'text-amber-200 bg-amber-500/15 hover:bg-amber-500/25'
+                                : 'text-amber-300 hover:bg-amber-500/10'
                             }
                           >
-                            <CheckCheck className="h-2.5 w-2.5" />
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <Badge variant="outline" className="text-[10px]">
-                        {CONTACT_TYPE_LABEL[c.contact_type]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[180px]" title={c.job_title ?? undefined}>
-                      {c.job_title ?? <span className="text-muted-foreground">—</span>}
-                    </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[220px]">
-                      {c.email ? (
-                        <a
-                          href={`mailto:${c.email}`}
-                          className="inline-flex items-center gap-1 text-muted-foreground hover:text-violet-glow transition-colors max-w-full"
-                          title={c.email}
-                        >
-                          <Mail className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{c.email}</span>
-                        </a>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap">
-                      {c.phone ? (
-                        <a
-                          href={`tel:${c.phone}`}
-                          className="inline-flex items-center gap-1 text-muted-foreground hover:text-violet-glow transition-colors"
-                        >
-                          <Phone className="h-3 w-3 shrink-0" />
-                          {c.phone}
-                        </a>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs text-center">
-                      {c.linkedin_url ? (
-                        <a
-                          href={c.linkedin_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center text-muted-foreground hover:text-sky-300 transition-colors"
-                          title="Voir le profil LinkedIn"
-                        >
-                          <Linkedin className="h-3.5 w-3.5" />
-                        </a>
-                      ) : (
-                        <span className="text-muted-foreground/40">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap">
-                      <FollowUpChip
-                        contact={c}
-                        latest={latestByContact.get(c.id) ?? null}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-0.5 whitespace-nowrap">
-                        <IconButton
-                          onClick={() => toggleInteraction(c)}
-                          title={
-                            c.last_interaction
-                              ? 'Re-marquer comme contacté maintenant'
-                              : 'Marquer comme contacté à l\'instant'
-                          }
-                          colorClass="text-emerald-300 hover:bg-emerald-500/10"
-                        >
-                          <PhoneCall className="h-3.5 w-3.5" />
-                        </IconButton>
-                        <IconButton
-                          onClick={() => setReminderContact(c)}
-                          title={
-                            c.next_call_reminder
-                              ? `Rappel : ${new Date(c.next_call_reminder).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}`
-                              : 'Programmer un rappel'
-                          }
-                          colorClass={
-                            c.next_call_reminder
-                              ? 'text-amber-200 bg-amber-500/15 hover:bg-amber-500/25'
-                              : 'text-amber-300 hover:bg-amber-500/10'
-                          }
-                        >
-                          <Bell className="h-3.5 w-3.5" />
-                        </IconButton>
-                        <IconButton
-                          onClick={() => setInteractionsContact(c)}
-                          title="Notes & historique"
-                          colorClass="text-violet-glow hover:bg-violet-glow/10"
-                        >
-                          <MessageSquare className="h-3.5 w-3.5" />
-                        </IconButton>
-                        <IconButton
-                          onClick={() => toggleProspecting(c)}
-                          title={
-                            c.prospecting_done
-                              ? 'Rouvrir le démarchage'
-                              : 'Marquer le démarchage comme terminé'
-                          }
-                          colorClass={
-                            c.prospecting_done
-                              ? 'text-amber-200 bg-amber-500/15 hover:bg-amber-500/25'
-                              : 'text-violet-100 hover:bg-violet-glow/10'
-                          }
-                        >
-                          {c.prospecting_done ? (
-                            <Undo2 className="h-3.5 w-3.5" />
-                          ) : (
-                            <CheckCheck className="h-3.5 w-3.5" />
-                          )}
-                        </IconButton>
-                        <IconButton
-                          onClick={() => openEdit(c)}
-                          title="Éditer"
-                          colorClass="text-violet-glow hover:bg-violet-glow/10"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </IconButton>
-                        <IconButton
-                          onClick={() => deleteContact(c)}
-                          title="Supprimer"
-                          colorClass="text-red-400 hover:bg-red-500/10"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </IconButton>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                            <Bell className="h-3.5 w-3.5" />
+                          </IconButton>
+                          <IconButton
+                            onClick={() => openEdit(c)}
+                            title="Éditer"
+                            colorClass="text-violet-glow hover:bg-violet-glow/10"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </IconButton>
+                          <IconButton
+                            onClick={() => deleteContact(c)}
+                            title="Supprimer"
+                            colorClass="text-red-400 hover:bg-red-500/10"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </IconButton>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -468,109 +357,5 @@ function IconButton({
     >
       {children}
     </button>
-  );
-}
-
-function kindAbbr(kind: ContactInteraction['kind']): string {
-  switch (kind) {
-    case 'call':
-      return 'Tél';
-    case 'email':
-      return 'Mail';
-    case 'meeting':
-      return 'RDV';
-    case 'linkedin':
-      return 'LinkedIn';
-    case 'sms':
-      return 'SMS';
-    case 'note':
-      return 'Note';
-    default:
-      return 'Autre';
-  }
-}
-
-/**
- * Cellule de suivi compacte — UNE seule ligne, priorité :
- *   1. rappel programmé (rouge si en retard, ambre si <24h, violet sinon)
- *   2. dernière note d'interaction ("Tél · Envoyé les CV (il y a 2j)")
- *   3. dernière date de contact ("Contacté il y a Xj")
- *   4. jamais contacté (ambre)
- */
-function FollowUpChip({
-  contact,
-  latest,
-}: {
-  contact: Contact;
-  latest: ContactInteraction | null;
-}) {
-  const { last_interaction, next_call_reminder, next_call_reminder_note } = contact;
-
-  // Priorité 1 : rappel programmé
-  if (next_call_reminder) {
-    const d = new Date(next_call_reminder);
-    const isOverdue = d.getTime() < Date.now();
-    const isSoon = !isOverdue && d.getTime() - Date.now() < 24 * 3600 * 1000;
-    const tone = isOverdue
-      ? 'border-red-500/40 bg-red-500/[0.08] text-red-300'
-      : isSoon
-        ? 'border-amber-500/40 bg-amber-500/[0.08] text-amber-300'
-        : 'border-violet-glow/30 bg-violet-glow/[0.06] text-violet-200';
-    const dateStr = d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
-    const timeStr = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    const tooltipParts = [
-      isOverdue ? 'Rappel en retard' : 'Rappel',
-      `${dateStr} · ${timeStr}`,
-    ];
-    if (next_call_reminder_note) tooltipParts.push(next_call_reminder_note);
-    return (
-      <span
-        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[10px] max-w-[220px] ${tone}`}
-        title={tooltipParts.join(' — ')}
-      >
-        <Bell className="h-3 w-3 shrink-0" />
-        <span className="font-semibold shrink-0">
-          {isOverdue ? 'Retard' : isSoon ? 'Bientôt' : 'Rappel'}
-        </span>
-        <span className="opacity-80 shrink-0">{dateStr}</span>
-        {next_call_reminder_note && (
-          <span className="opacity-70 truncate">— {next_call_reminder_note}</span>
-        )}
-      </span>
-    );
-  }
-
-  // Priorité 2 : dernière note d'interaction
-  if (latest) {
-    return (
-      <span
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-violet-glow/25 bg-violet-glow/[0.05] text-violet-200 text-[10px] max-w-[220px]"
-        title={`${kindAbbr(latest.kind)} · ${latest.note} (${relativeDate(latest.occurred_at)})`}
-      >
-        <span className="font-semibold shrink-0 text-violet-300">{kindAbbr(latest.kind)}</span>
-        <span className="truncate">{latest.note}</span>
-        <span className="opacity-60 shrink-0">· {relativeDate(latest.occurred_at)}</span>
-      </span>
-    );
-  }
-
-  // Priorité 3 : dernière date de contact (sans note)
-  if (last_interaction) {
-    return (
-      <span
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-emerald-500/30 bg-emerald-500/[0.06] text-emerald-300 text-[10px]"
-        title={`Contacté le ${new Date(last_interaction).toLocaleString('fr-FR')}`}
-      >
-        <PhoneCall className="h-3 w-3 shrink-0" />
-        Contacté {relativeDate(last_interaction)}
-      </span>
-    );
-  }
-
-  // Priorité 4 : jamais contacté
-  return (
-    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-amber-400/30 bg-amber-500/[0.06] text-amber-300 text-[10px]">
-      Jamais contacté
-    </span>
   );
 }
