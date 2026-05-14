@@ -12,6 +12,14 @@ import {
   Phone,
   Sparkles,
   User as UserIcon,
+  HandHelping,
+  FileText,
+  FileSignature,
+  Image as ImageIcon,
+  Palette,
+  Scale,
+  PenLine,
+  Briefcase,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -20,15 +28,43 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
+import { cn } from '@/lib/utils';
 
 /**
  * Page publique "Demande de devis" — remplace l'ancien signup self-service.
  *
  * Un prospect (ESN) remplit ses infos, on les insère dans quote_requests
- * via POST /api/quote-requests. Pas de création de compte ici : c'est
- * Salim (super_admin) qui crée ensuite l'organisation client avec son
- * branding via /admin/clients.
+ * via POST /api/quote-requests + on notifie par email à
+ * contact@centrium-platform.com (via Formspree, best-effort).
+ *
+ * Pas de création de compte ici : c'est l'équipe Centrium qui
+ * provisionne ensuite l'organisation client avec son branding via
+ * /admin/clients.
  */
+
+const NOTIFICATION_EMAIL = 'contact@centrium-platform.com';
+
+type HelpKey =
+  | 'cv_template'
+  | 'contract_template'
+  | 'logo'
+  | 'brand_colors'
+  | 'mentions_legales'
+  | 'signature'
+  | 'fiche_poste'
+  | 'autre';
+
+const HELP_OPTIONS: { key: HelpKey; label: string; Icon: typeof FileText }[] = [
+  { key: 'cv_template', label: 'Template CV', Icon: FileText },
+  { key: 'contract_template', label: 'Template contrat', Icon: FileSignature },
+  { key: 'logo', label: 'Logo', Icon: ImageIcon },
+  { key: 'brand_colors', label: 'Charte couleurs', Icon: Palette },
+  { key: 'mentions_legales', label: 'Mentions légales', Icon: Scale },
+  { key: 'signature', label: 'Signature', Icon: PenLine },
+  { key: 'fiche_poste', label: 'Fiche de poste', Icon: Briefcase },
+  { key: 'autre', label: 'Autre', Icon: HandHelping },
+];
+
 type FormState = {
   company_name: string;
   industry: string;
@@ -55,12 +91,22 @@ const INITIAL_FORM: FormState = {
 
 export default function DevisPage() {
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
+  const [help, setHelp] = useState<Set<HelpKey>>(new Set());
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function toggleHelp(key: HelpKey) {
+    setHelp((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   }
 
   async function submit(e: React.FormEvent) {
@@ -75,7 +121,11 @@ export default function DevisPage() {
       const res = await fetch('/api/quote-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, source: 'landing' }),
+        body: JSON.stringify({
+          ...form,
+          wanted_help: Array.from(help),
+          source: 'landing',
+        }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -111,10 +161,19 @@ export default function DevisPage() {
             </h1>
             <p className="text-muted-foreground mt-3 leading-relaxed">
               On a bien reçu ta demande pour <strong>{form.company_name}</strong>.
-              Tu vas recevoir une réponse de notre équipe à
+              Tu vas recevoir une réponse à
               <strong className="text-violet-200"> {form.contact_email}</strong> sous
               24 à 48h ouvrées avec un devis personnalisé et la prochaine étape pour
               activer ton espace.
+            </p>
+            <p className="text-xs text-muted-foreground mt-4">
+              Une question entre-temps ?{' '}
+              <a
+                href={`mailto:${NOTIFICATION_EMAIL}`}
+                className="text-violet-300 hover:text-violet-200 underline underline-offset-2"
+              >
+                {NOTIFICATION_EMAIL}
+              </a>
             </p>
           </div>
           <div className="flex items-center justify-center gap-2">
@@ -166,6 +225,16 @@ export default function DevisPage() {
             avec un devis personnalisé et on configure ensemble ton espace à ton image
             (logo, couleurs, mentions légales, signature) avant l&apos;activation.
           </p>
+          <p className="text-xs text-muted-foreground mt-4 inline-flex items-center gap-1.5">
+            <Mail className="h-3 w-3 text-violet-300" />
+            Réponses envoyées par{' '}
+            <a
+              href={`mailto:${NOTIFICATION_EMAIL}`}
+              className="text-violet-300 hover:text-violet-200 underline underline-offset-2 font-medium"
+            >
+              {NOTIFICATION_EMAIL}
+            </a>
+          </p>
         </div>
 
         <form
@@ -190,7 +259,7 @@ export default function DevisPage() {
               <Input
                 value={form.company_name}
                 onChange={(e) => update('company_name', e.target.value)}
-                placeholder="Futurmaster, Hays France, …"
+                placeholder="ACME Consulting"
                 required
                 autoFocus
               />
@@ -202,7 +271,7 @@ export default function DevisPage() {
                 <Input
                   value={form.industry}
                   onChange={(e) => update('industry', e.target.value)}
-                  placeholder="ESN, conseil IT, recrutement…"
+                  placeholder="ESN, conseil IT…"
                 />
               </div>
               <div>
@@ -249,7 +318,7 @@ export default function DevisPage() {
                 <Input
                   value={form.contact_name}
                   onChange={(e) => update('contact_name', e.target.value)}
-                  placeholder="Salim El Réssalitate"
+                  placeholder="John Doe"
                   required
                 />
               </div>
@@ -273,7 +342,7 @@ export default function DevisPage() {
                   type="email"
                   value={form.contact_email}
                   onChange={(e) => update('contact_email', e.target.value)}
-                  placeholder="salim@futurmaster.com"
+                  placeholder="john.doe@acme.com"
                   required
                 />
               </div>
@@ -286,9 +355,47 @@ export default function DevisPage() {
                   type="tel"
                   value={form.contact_phone}
                   onChange={(e) => update('contact_phone', e.target.value)}
-                  placeholder="+33 …"
+                  placeholder="+33 1 23 45 67 89"
                 />
               </div>
+            </div>
+          </section>
+
+          {/* Bloc besoins d'accompagnement */}
+          <section className="space-y-3 pt-2 border-t border-hairline">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-violet-300 pt-4">
+              <HandHelping className="h-3.5 w-3.5" />
+              Avec quoi peut-on t&apos;aider ?
+            </div>
+            <p className="text-[11px] text-muted-foreground -mt-2">
+              On peut t&apos;accompagner sur la création de tes templates et de ton
+              identité visuelle. Coche tout ce dont tu veux qu&apos;on s&apos;occupe :
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {HELP_OPTIONS.map(({ key, label, Icon }) => {
+                const active = help.has(key);
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => toggleHelp(key)}
+                    className={cn(
+                      'flex items-center gap-2 rounded-md border px-3 py-2 text-xs text-left transition',
+                      active
+                        ? 'border-violet-glow/60 bg-violet-glow/15 text-violet-100 shadow-[0_0_18px_-8px_rgba(168,85,247,0.6)]'
+                        : 'border-hairline bg-white/[0.02] text-muted-foreground hover:text-foreground hover:border-white/20',
+                    )}
+                  >
+                    <Icon
+                      className={cn(
+                        'h-3.5 w-3.5 shrink-0',
+                        active ? 'text-violet-300' : 'text-muted-foreground',
+                      )}
+                    />
+                    <span className="leading-tight">{label}</span>
+                  </button>
+                );
+              })}
             </div>
           </section>
 
