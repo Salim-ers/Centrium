@@ -487,10 +487,18 @@ export default function OffersPage() {
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => archiveOffer(o)}
-                                title="Archiver — sort des KPI"
+                                title="Archiver — sort des KPI, peut être restauré"
                                 className="text-muted-foreground hover:text-foreground"
                               >
                                 <Archive className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => deleteOffer(o)}
+                                title="Supprimer définitivement"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 text-red-400" />
                               </Button>
                             </>
                           )}

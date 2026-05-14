@@ -98,6 +98,19 @@ export async function POST(req: NextRequest) {
     .select('*')
     .single();
   if (consultantErr) {
+    // Conflit unique sur (organization_id, email) — cf. migration 046.
+    if (
+      consultantErr.code === '23505' ||
+      /consultants_org_email_active_unique/i.test(consultantErr.message)
+    ) {
+      return NextResponse.json(
+        {
+          error: 'duplicate_email',
+          message: `Un consultant avec l'email ${emailForConsultant} existe déjà dans cette organisation. Édite la fiche existante au lieu d'en créer une nouvelle.`,
+        },
+        { status: 409 },
+      );
+    }
     return NextResponse.json(
       { error: 'consultant_create_failed', message: consultantErr.message },
       { status: 500 },

@@ -83,6 +83,21 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await admin.from('missions').insert(payload).select().single();
   if (error) {
+    // Conflit unique : déjà une mission proposed/active pour ce
+    // consultant sur cette offre (cf. migration 046).
+    if (
+      error.code === '23505' ||
+      /missions_consultant_offer_live_unique/i.test(error.message)
+    ) {
+      return NextResponse.json(
+        {
+          error: 'duplicate_mission',
+          message:
+            "Ce consultant est déjà positionné sur cette offre (CV poussé ou mission en cours). Refuse l'ancienne proposition avant d'en créer une nouvelle.",
+        },
+        { status: 409 },
+      );
+    }
     return NextResponse.json(
       { error: 'create_failed', message: error.message, details: error },
       { status: 500 },

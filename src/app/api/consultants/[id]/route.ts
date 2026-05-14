@@ -53,6 +53,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     .select('*')
     .single();
   if (error) {
+    if (
+      error.code === '23505' ||
+      /consultants_org_email_active_unique/i.test(error.message)
+    ) {
+      return NextResponse.json(
+        {
+          error: 'duplicate_email',
+          message:
+            "Un autre consultant utilise déjà cet email dans cette organisation.",
+        },
+        { status: 409 },
+      );
+    }
     return NextResponse.json(
       { error: 'update_failed', message: error.message },
       { status: 500 },

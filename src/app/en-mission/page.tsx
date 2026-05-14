@@ -438,6 +438,16 @@ export default function EnMissionPage() {
                               >
                                 <Archive className="h-3.5 w-3.5" />
                               </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => hardDelete(r)}
+                                disabled={busy}
+                                title="Supprimer définitivement la mission"
+                                className="text-red-400 hover:bg-red-500/10"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
                             </>
                           )}
                         </div>
