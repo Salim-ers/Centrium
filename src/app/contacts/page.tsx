@@ -11,6 +11,7 @@ import {
   PhoneCall,
   FileUp,
   Bell,
+  Search,
 } from 'lucide-react';
 
 import {
@@ -35,6 +36,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ContactFormDialog } from '@/components/crm/ContactFormDialog';
+import { Input } from '@/components/ui/input';
 import { contactService } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
@@ -63,6 +65,7 @@ export default function ContactsPage() {
   const [latestByContact, setLatestByContact] = useState<Map<string, ContactInteraction>>(
     new Map(),
   );
+  const [search, setSearch] = useState('');
 
   const {
     data: contactsData,
@@ -96,7 +99,28 @@ export default function ContactsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeOrgId, contactsData]);
 
-  const contacts = contactsData ?? [];
+  const allContacts = contactsData ?? [];
+  // Filtre client-side : nom, prénom, entreprise (source), email, poste,
+  // téléphone. Diacritique-insensitive pour matcher "boubchir" sur
+  // "Boubchir" et "elresalitate" sur "El Réssalitate".
+  const q = search
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+  function norm(s: string | null | undefined): string {
+    return (s ?? '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '');
+  }
+  const contacts = q
+    ? allContacts.filter((c) =>
+        [c.first_name, c.last_name, c.source, c.email, c.phone, c.job_title].some((f) =>
+          norm(f).includes(q),
+        ),
+      )
+    : allContacts;
 
   function openCreate() {
     setEditingContact(null);
@@ -142,7 +166,16 @@ export default function ContactsPage() {
             Carnet de contacts
           </h1>
           <p className="text-muted-foreground mt-1">
-            {contacts.length} contact{contacts.length > 1 ? 's' : ''}
+            {q ? (
+              <>
+                {contacts.length} / {allContacts.length} contact
+                {allContacts.length > 1 ? 's' : ''}
+              </>
+            ) : (
+              <>
+                {allContacts.length} contact{allContacts.length > 1 ? 's' : ''}
+              </>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -187,6 +220,21 @@ export default function ContactsPage() {
         onSaved={() => reload()}
       />
 
+      <Card className="mb-4">
+        <CardContent className="p-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Rechercher par nom, entreprise, email, téléphone, poste…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -211,7 +259,9 @@ export default function ContactsPage() {
               ) : contacts.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                    Aucun contact
+                    {q
+                      ? `Aucun contact ne correspond à « ${search.trim()} »`
+                      : 'Aucun contact'}
                   </TableCell>
                 </TableRow>
               ) : (
