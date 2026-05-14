@@ -354,21 +354,26 @@ export default function OffersPage() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="text-xs max-w-[160px]">
+                      <TableCell className="text-xs max-w-[200px]">
                         {o.source ? (
-                          <div className="inline-flex items-center gap-1.5 truncate">
+                          <div
+                            className="flex items-start gap-1.5 min-w-0"
+                            title={o.source}
+                          >
                             {o.source_kind === 'esn' ? (
-                              <Network className="h-3 w-3 text-amber-300 shrink-0" />
+                              <Network className="h-3 w-3 text-amber-300 shrink-0 mt-0.5" />
                             ) : (
-                              <Building2 className="h-3 w-3 text-violet-300 shrink-0" />
+                              <Building2 className="h-3 w-3 text-violet-300 shrink-0 mt-0.5" />
                             )}
-                            <span className="truncate font-medium">{o.source}</span>
+                            <span className="font-medium leading-tight break-words">
+                              {o.source}
+                            </span>
                           </div>
                         ) : (
                           <span className="text-muted-foreground italic">—</span>
                         )}
                         {o.source_kind && (
-                          <div className="text-[10px] text-muted-foreground mt-0.5">
+                          <div className="text-[10px] text-muted-foreground mt-0.5 pl-[18px]">
                             {o.source_kind === 'esn' ? 'ESN partenaire' : 'Client direct'}
                           </div>
                         )}

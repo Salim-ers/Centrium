@@ -5,12 +5,17 @@ type BrowserClient = ReturnType<typeof createBrowserClient>;
 let singleton: BrowserClient | null = null;
 
 /**
- * Strip maxAge / expires pour rendre tous les cookies "session-only" :
- * ils meurent quand l'utilisateur ferme le navigateur. Évite qu'un autre
- * utilisateur (machine partagée) retombe sur la session précédente après
- * fermeture / réouverture du navigateur.
+ * Strip maxAge / expires pour les cookies internes uniquement.
+ *
+ * ⚠️ EXCEPTION : on PRÉSERVE l'expiration des cookies `sb-*` (auth
+ * Supabase). Sans ça, le refresh token devenait session-only et
+ * expirait dès la moindre interruption d'onglet — F5 tardif → data
+ * vide → l'utilisateur devait se reconnecter pour récupérer son état.
  */
-function sessionOnly(options: CookieOptions): CookieOptions {
+function sessionOnly(name: string, options: CookieOptions): CookieOptions {
+  if (name.startsWith('sb-')) {
+    return options;
+  }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { maxAge, expires, ...rest } = options;
   return rest;
@@ -26,13 +31,19 @@ function readCookie(name: string): string | undefined {
 
 function writeCookie(name: string, value: string, options: CookieOptions) {
   if (typeof document === 'undefined') return;
-  // Reconstruction du Set-Cookie sans maxAge / expires → cookie de session.
-  const opts = sessionOnly(options);
+  const opts = sessionOnly(name, options);
   let cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
   if (opts.path) cookie += `; Path=${opts.path}`;
   if (opts.domain) cookie += `; Domain=${opts.domain}`;
   if (opts.sameSite) cookie += `; SameSite=${opts.sameSite}`;
   if (opts.secure) cookie += `; Secure`;
+  // Préserve l'expiration native pour les cookies d'auth Supabase
+  // (sinon le refresh token devient session-only et casse le F5).
+  if (opts.maxAge != null) cookie += `; Max-Age=${opts.maxAge}`;
+  if (opts.expires) {
+    const exp = opts.expires instanceof Date ? opts.expires : new Date(opts.expires);
+    cookie += `; Expires=${exp.toUTCString()}`;
+  }
   document.cookie = cookie;
 }
 

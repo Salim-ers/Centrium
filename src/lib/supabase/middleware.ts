@@ -11,11 +11,25 @@ const PROFILE_COOKIE = 'qc_profile';
 const PROFILE_COOKIE_TTL_SEC = 300; // 5 min
 
 /**
- * Strip maxAge / expires pour rendre tous les cookies "session-only" :
- * ils meurent quand l'utilisateur ferme le navigateur. Évite qu'un autre
+ * Strip maxAge / expires pour rendre les cookies internes "session-only".
+ * Ils meurent quand l'utilisateur ferme le navigateur — évite qu'un autre
  * utilisateur (machine partagée) retombe sur la session précédente.
+ *
+ * ⚠️ EXCEPTION : on PRÉSERVE les expirations des cookies Supabase
+ * `sb-*-auth-token`. Le refresh token a une durée de vie longue (par
+ * défaut 7 jours côté Supabase) ; le stripper en session-only le
+ * faisait expirer à la fermeture/ouverture d'onglet, ce qui cassait
+ * l'expérience après un F5 tardif (data vide + obligation de déco/reco).
+ * La sécurité "machine partagée" reste assurée par d'autres voies :
+ * - cookies HttpOnly + SameSite=Lax
+ * - JWT court (1h par défaut) + refresh manuel
+ * - bouton déconnexion accessible
  */
-function sessionOnly(options: CookieOptions): CookieOptions {
+function sessionOnly(name: string, options: CookieOptions): CookieOptions {
+  if (name.startsWith('sb-')) {
+    // Cookies d'auth Supabase : on garde leur expiration native.
+    return options;
+  }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { maxAge, expires, ...rest } = options;
   return rest;
@@ -68,13 +82,13 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          const opts = sessionOnly(options);
+          const opts = sessionOnly(name, options);
           request.cookies.set({ name, value, ...opts });
           response = NextResponse.next({ request: { headers: request.headers } });
           response.cookies.set({ name, value, ...opts });
         },
         remove(name: string, options: CookieOptions) {
-          const opts = sessionOnly(options);
+          const opts = sessionOnly(name, options);
           request.cookies.set({ name, value: '', ...opts });
           response = NextResponse.next({ request: { headers: request.headers } });
           response.cookies.set({ name, value: '', ...opts });
