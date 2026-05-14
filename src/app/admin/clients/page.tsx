@@ -42,7 +42,20 @@ type QuoteRequest = {
   source: string | null;
   status: 'new' | 'contacted' | 'quoted' | 'won' | 'lost';
   converted_to_organization_id: string | null;
+  wanted_help: string[] | null;
+  logo_url: string | null;
   created_at: string;
+};
+
+const HELP_LABELS: Record<string, string> = {
+  cv_template: 'Template CV',
+  contract_template: 'Template contrat',
+  logo: 'Logo',
+  brand_colors: 'Charte couleurs',
+  mentions_legales: 'Mentions légales',
+  signature: 'Signature',
+  fiche_poste: 'Fiche de poste',
+  autre: 'Autre',
 };
 
 const STATUS_LABEL: Record<QuoteRequest['status'], string> = {
@@ -197,15 +210,35 @@ export default function AdminClientsPage() {
                   items.map((it) => (
                     <TableRow key={it.id}>
                       <TableCell className="max-w-[260px]">
-                        <div className="font-medium inline-flex items-center gap-1.5">
-                          <Building2 className="h-3.5 w-3.5 text-violet-300 shrink-0" />
-                          {it.company_name}
-                        </div>
-                        {it.industry && (
-                          <div className="text-[11px] text-muted-foreground mt-0.5">
-                            {it.industry}
+                        <div className="flex items-start gap-2">
+                          {it.logo_url ? (
+                            <a
+                              href={it.logo_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              title="Ouvrir le logo"
+                              className="shrink-0"
+                            >
+                              <img
+                                src={it.logo_url}
+                                alt={`Logo ${it.company_name}`}
+                                className="h-10 w-10 rounded bg-white/[0.04] object-contain p-1 border border-hairline hover:border-violet-glow/40"
+                              />
+                            </a>
+                          ) : (
+                            <div className="h-10 w-10 rounded bg-white/[0.04] flex items-center justify-center shrink-0 border border-hairline">
+                              <Building2 className="h-4 w-4 text-violet-300/60" />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <div className="font-medium truncate">{it.company_name}</div>
+                            {it.industry && (
+                              <div className="text-[11px] text-muted-foreground truncate">
+                                {it.industry}
+                              </div>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-xs">
                         <div className="font-medium">{it.contact_name}</div>
@@ -223,12 +256,24 @@ export default function AdminClientsPage() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground space-y-0.5">
+                      <TableCell className="text-xs text-muted-foreground space-y-0.5 max-w-[260px]">
                         {it.team_size && <div>Équipe: {it.team_size}</div>}
                         {it.consultants_count && <div>Consultants: {it.consultants_count}</div>}
+                        {it.wanted_help && it.wanted_help.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {it.wanted_help.map((k) => (
+                              <span
+                                key={k}
+                                className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-violet-glow/15 text-violet-200 border border-violet-glow/30"
+                              >
+                                {HELP_LABELS[k] ?? k}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         {it.message && (
                           <div
-                            className="text-[10px] mt-1 italic line-clamp-2 max-w-[200px]"
+                            className="text-[10px] mt-1 italic line-clamp-2"
                             title={it.message}
                           >
                             « {it.message} »

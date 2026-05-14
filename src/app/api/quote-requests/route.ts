@@ -26,6 +26,8 @@ const schema = z.object({
   message: z.string().max(5000).optional().nullable(),
   source: z.string().max(100).optional().nullable(),
   wanted_help: z.array(z.string().max(60)).max(10).optional().nullable(),
+  /** URL publique du logo uploadé en amont vers le bucket quote-attachments. */
+  logo_url: z.string().url().optional().nullable().or(z.literal('')),
 });
 
 export async function POST(req: NextRequest) {
@@ -53,6 +55,7 @@ export async function POST(req: NextRequest) {
         parsed.data.wanted_help && parsed.data.wanted_help.length > 0
           ? parsed.data.wanted_help
           : null,
+      logo_url: parsed.data.logo_url || null,
     })
     .select('id')
     .single();

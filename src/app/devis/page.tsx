@@ -20,7 +20,10 @@ import {
   Scale,
   PenLine,
   Briefcase,
+  Upload,
+  X,
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,6 +76,7 @@ async function notifyFormspree(payload: {
   contact_role: string;
   message: string;
   wanted_help: string[];
+  logo_url?: string | null;
 }): Promise<boolean> {
   const help = payload.wanted_help.map((k) => HELP_LABELS[k] ?? k).join(', ');
   const body = new FormData();
@@ -90,6 +94,7 @@ async function notifyFormspree(payload: {
   if (payload.contact_phone) body.append('Téléphone', payload.contact_phone);
   if (help) body.append("Besoins d'accompagnement", help);
   if (payload.message) body.append('Message', payload.message);
+  if (payload.logo_url) body.append('Logo (URL)', payload.logo_url);
 
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 5000);
@@ -159,6 +164,57 @@ export default function DevisPage() {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoFileName, setLogoFileName] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+
+  async function handleLogoUpload(file: File) {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Logo trop lourd (max 5 Mo).');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      setError('Format non supporté. Utilise PNG, JPG, SVG ou WebP.');
+      return;
+    }
+    setError(null);
+    setLogoUploading(true);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? 'bin';
+      // Path = uuid + nom slugifié pour éviter les collisions et garder
+      // un nom lisible côté admin (cleanup ultérieur).
+      const safe = file.name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9._-]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      const path = `${crypto.randomUUID()}-${safe}`;
+      const { error: upErr } = await supabase.storage
+        .from('quote-attachments')
+        .upload(path, file, { upsert: false, contentType: file.type });
+      if (upErr) {
+        setError("Upload échoué : " + upErr.message);
+        return;
+      }
+      const { data: pub } = supabase.storage
+        .from('quote-attachments')
+        .getPublicUrl(path);
+      setLogoUrl(pub.publicUrl);
+      setLogoFileName(file.name);
+    } catch (e) {
+      setError('Upload impossible : ' + (e as Error).message);
+    } finally {
+      setLogoUploading(false);
+    }
+  }
+
+  async function removeLogo() {
+    setLogoUrl(null);
+    setLogoFileName(null);
+  }
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -194,10 +250,11 @@ export default function DevisPage() {
           body: JSON.stringify({
             ...form,
             wanted_help: wantedHelp,
+            logo_url: logoUrl,
             source: 'landing',
           }),
         }),
-        notifyFormspree({ ...form, wanted_help: wantedHelp }),
+        notifyFormspree({ ...form, wanted_help: wantedHelp, logo_url: logoUrl }),
       ]);
 
       const body = await dbRes.json().catch(() => ({}));
@@ -476,6 +533,79 @@ export default function DevisPage() {
                 );
               })}
             </div>
+          </section>
+
+          {/* Logo (optionnel) */}
+          <section className="space-y-3 pt-2 border-t border-hairline">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-violet-300 pt-4">
+              <ImageIcon className="h-3.5 w-3.5" />
+              Logo de la société (optionnel)
+            </div>
+            <p className="text-[11px] text-muted-foreground -mt-2">
+              Joins ton logo si tu en as un — on l&apos;intégrera directement
+              dans ton espace, tes CV, contrats et factures. PNG/SVG fond
+              transparent idéalement, 5 Mo max.
+            </p>
+            {logoUrl ? (
+              <div className="flex items-center gap-3 rounded-md border border-emerald-500/30 bg-emerald-500/[0.06] p-3">
+                <img
+                  src={logoUrl}
+                  alt="Logo"
+                  className="h-12 w-12 rounded bg-white/5 object-contain p-1"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium truncate">
+                    {logoFileName ?? 'Logo'}
+                  </div>
+                  <div className="text-[10px] text-emerald-300 inline-flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Bien reçu
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={removeLogo}
+                  className="h-7 w-7 rounded-md border border-hairline text-muted-foreground hover:text-foreground hover:border-white/20 inline-flex items-center justify-center"
+                  title="Retirer le logo"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <label
+                className={cn(
+                  'flex items-center gap-3 rounded-md border border-dashed px-4 py-4 cursor-pointer transition',
+                  logoUploading
+                    ? 'border-violet-glow/40 bg-violet-glow/[0.06] cursor-wait'
+                    : 'border-hairline bg-white/[0.02] hover:border-violet-glow/40 hover:bg-violet-glow/[0.04]',
+                )}
+              >
+                {logoUploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-violet-300" />
+                ) : (
+                  <Upload className="h-4 w-4 text-violet-300" />
+                )}
+                <div className="flex-1">
+                  <div className="text-sm font-medium">
+                    {logoUploading ? 'Envoi en cours…' : 'Choisir un fichier'}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    PNG, JPG, SVG, WebP — 5 Mo max
+                  </div>
+                </div>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                  className="hidden"
+                  disabled={logoUploading}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void handleLogoUpload(f);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+            )}
           </section>
 
           {/* Message libre */}

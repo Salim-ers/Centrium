@@ -21,6 +21,8 @@ type QuoteRequest = {
   company_name: string;
   contact_name: string;
   contact_email: string;
+  /** Logo uploadé par le prospect (URL Supabase Storage public). */
+  logo_url?: string | null;
 };
 
 type Props = {
@@ -128,6 +130,9 @@ export function ProvisionClientDialog({
         name: quoteRequest.company_name,
         slug: slugify(quoteRequest.company_name),
         brand_name: quoteRequest.company_name,
+        // Si le prospect a uploadé un logo via /devis, on le pré-remplit
+        // directement — l'admin n'a plus qu'à valider.
+        logo_url: quoteRequest.logo_url ?? '',
         admin_email: quoteRequest.contact_email,
         admin_first_name: first,
         admin_last_name: last,
