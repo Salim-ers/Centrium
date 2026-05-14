@@ -36,6 +36,8 @@ import { JobOfferFormDialog } from '@/components/offers/JobOfferFormDialog';
 import { JobFamilyFilter } from '@/components/consultants/JobFamilyFilter';
 import { CityFilter } from '@/components/consultants/CityFilter';
 import { jobOfferService } from '@/lib/services';
+import { createClient } from '@/lib/supabase/client';
+import { cn } from '@/lib/utils';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import type { JobOffer } from '@/types';
@@ -68,6 +70,8 @@ export default function OffersPage() {
   const [editing, setEditing] = useState<JobOffer | null>(null);
   const [exportingOfferId, setExportingOfferId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  /** Onglet du pipeline : offres encore disponibles ou déjà avec un CV poussé. */
+  const [pipelineTab, setPipelineTab] = useState<'available' | 'pushed'>('available');
   const [search, setSearch] = useState('');
   const [familyFilter, setFamilyFilter] = useState<Set<JobFamilyId>>(new Set());
   const [cityFilter, setCityFilter] = useState<Set<string>>(new Set());
@@ -90,23 +94,57 @@ export default function OffersPage() {
   );
   const allOffers = offersData ?? [];
 
-  // Comptes corps de métier sur l'ensemble (chips inactives gardent leur compte).
+  // Set des job_offer_id ayant au moins une mission "vivante" (proposed ou
+  // active, non archivée). Sert à splitter l'onglet : disponibles vs déjà
+  // avec un CV poussé. Mêmes données alimentent l'onglet /cv-pushed.
+  const { data: pushedSet, reload: reloadPushed } = useCachedQuery<Set<string>>(
+    `offers-pushed-set:${activeOrgId ?? 'none'}`,
+    async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('missions')
+        .select('job_offer_id')
+        .in('status', ['proposed', 'active'])
+        .eq('archived', false)
+        .not('job_offer_id', 'is', null);
+      if (error) return new Set<string>();
+      const set = new Set<string>();
+      (data ?? []).forEach((r: any) => {
+        if (r.job_offer_id) set.add(r.job_offer_id as string);
+      });
+      return set;
+    },
+    { enabled: !!activeOrgId },
+  );
+  const offersWithPushedCv = pushedSet ?? new Set<string>();
+  const pushedCount = allOffers.filter((o) => offersWithPushedCv.has(o.id)).length;
+  const availableCount = allOffers.length - pushedCount;
+
+  // Split pipeline pré-calculé pour les chips "métier" (sinon elles
+  // affichent les compteurs de l'autre onglet).
+  const inCurrentTab = showArchived
+    ? allOffers
+    : pipelineTab === 'pushed'
+      ? allOffers.filter((o) => offersWithPushedCv.has(o.id))
+      : allOffers.filter((o) => !offersWithPushedCv.has(o.id));
+
+  // Comptes corps de métier sur l'onglet courant (chips inactives gardent leur compte).
   const familyCounts = (() => {
     const base: Record<JobFamilyId, number> = {
       qa: 0, dev: 0, data: 0, devops: 0, cyber: 0, pm: 0,
       ba: 0, architect: 0, support: 0, design: 0, other: 0,
     };
-    for (const o of allOffers) {
+    for (const o of inCurrentTab) {
       base[classifyJobFamily(o.title)] += 1;
     }
     return base;
   })();
 
-  // Filtrage en cascade (search → famille → ville) pour calculer la liste finale.
+  // Filtrage en cascade (pipeline → search → famille → ville).
   const searchTrim = search.trim().toLowerCase();
   const afterSearch = !searchTrim
-    ? allOffers
-    : allOffers.filter(
+    ? inCurrentTab
+    : inCurrentTab.filter(
         (o) =>
           o.title.toLowerCase().includes(searchTrim) ||
           (o.source ?? '').toLowerCase().includes(searchTrim) ||
@@ -267,8 +305,66 @@ export default function OffersPage() {
         }}
         organizationId={activeOrgId ?? ''}
         offer={editing}
-        onSaved={() => reload()}
+        onSaved={() => {
+          reload();
+          reloadPushed();
+        }}
       />
+
+      {/* Switcher pipeline : Disponibles (offres pas encore pushées)
+          / Avec CV poussé (offres déjà engagées). Caché en vue archivée. */}
+      {!showArchived && (
+        <div className="mb-4 flex items-center gap-1 rounded-lg border border-hairline bg-white/[0.02] p-1 w-fit">
+          <button
+            type="button"
+            onClick={() => setPipelineTab('available')}
+            className={cn(
+              'inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm transition',
+              pipelineTab === 'available'
+                ? 'bg-violet-glow/15 text-violet-glow border border-violet-glow/30 shadow-[0_0_30px_-12px_rgba(139,92,246,0.5)]'
+                : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.03] border border-transparent',
+            )}
+            title="Offres encore disponibles pour pousser un CV"
+          >
+            <Briefcase className="h-4 w-4 shrink-0" />
+            <span className="font-medium">Disponibles</span>
+            <span
+              className={cn(
+                'text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
+                pipelineTab === 'available'
+                  ? 'bg-violet-glow/25 text-violet-50'
+                  : 'bg-white/[0.05] text-muted-foreground',
+              )}
+            >
+              {availableCount}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setPipelineTab('pushed')}
+            className={cn(
+              'inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm transition',
+              pipelineTab === 'pushed'
+                ? 'bg-magenta-neon/15 text-magenta-neon border border-magenta-neon/30 shadow-[0_0_30px_-12px_rgba(236,72,153,0.5)]'
+                : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.03] border border-transparent',
+            )}
+            title="Offres déjà avec un CV poussé (en attente de validation ou en mission)"
+          >
+            <Target className="h-4 w-4 shrink-0" />
+            <span className="font-medium">Avec CV poussé</span>
+            <span
+              className={cn(
+                'text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
+                pipelineTab === 'pushed'
+                  ? 'bg-magenta-neon/25 text-magenta-50'
+                  : 'bg-white/[0.05] text-muted-foreground',
+              )}
+            >
+              {pushedCount}
+            </span>
+          </button>
+        </div>
+      )}
 
       <Card className="mb-4">
         <CardContent className="p-3 space-y-3">
