@@ -13,6 +13,8 @@ import {
   Archive,
   ArchiveRestore,
   Trash2,
+  HelpCircle,
+  MessageSquareWarning,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -29,6 +31,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { TalentTabs } from '@/components/consultants/TalentTabs';
+import { RefuseMissionDialog } from '@/components/missions/RefuseMissionDialog';
 
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
@@ -67,6 +70,9 @@ type PushedRow = {
   job_title: string;
   /** TJM standard du consultant (≈ ce qu'il touche), pour comparer la marge. */
   consultant_rate: number | null;
+  /** Renseigné si la mission est en status='rejected'. */
+  rejection_reason: string | null;
+  rejected_at: string | null;
 };
 
 export default function CvPushedPage() {
@@ -76,6 +82,8 @@ export default function CvPushedPage() {
   /** Mode "Voir les refusés" : on liste les status='rejected' au lieu
    *  des status='proposed', avec actions Restaurer / Supprimer définitivement. */
   const [showRejected, setShowRejected] = useState(false);
+  /** Dialog Refuser ouvert sur la mission ciblée. */
+  const [refuseRow, setRefuseRow] = useState<PushedRow | null>(null);
 
   const {
     data: pushedData,
@@ -90,6 +98,7 @@ export default function CvPushedPage() {
         .from('missions')
         .select(
           `id, title, daily_rate_eur, start_date, end_date, created_at,
+           rejection_reason, rejected_at,
            consultant:consultants!consultant_id (
              id, first_name, last_name, job_title, daily_rate_eur
            ),
@@ -97,7 +106,7 @@ export default function CvPushedPage() {
            company:companies!company_id (name)`,
         )
         .eq('status', showRejected ? 'rejected' : 'proposed')
-        .order('created_at', { ascending: false });
+        .order(showRejected ? 'rejected_at' : 'created_at', { ascending: false });
       if (error) throw error;
       const rows: PushedRow[] = (data ?? [])
         .filter((m: any) => m.consultant)
@@ -123,8 +132,16 @@ export default function CvPushedPage() {
           last_name: m.consultant.last_name,
           job_title: m.consultant.job_title,
           consultant_rate: m.consultant.daily_rate_eur ?? null,
+          rejection_reason: m.rejection_reason ?? null,
+          rejected_at: m.rejected_at ?? null,
         }));
       const q = search.trim().toLowerCase();
+      // Tri alphabétique secondaire par nom du consultant.
+      rows.sort((a, b) => {
+        const an = `${a.last_name} ${a.first_name}`.toLowerCase();
+        const bn = `${b.last_name} ${b.first_name}`.toLowerCase();
+        return an.localeCompare(bn, 'fr');
+      });
       if (!q) return rows;
       return rows.filter(
         (r) =>
@@ -169,20 +186,15 @@ export default function CvPushedPage() {
     }
   }
 
-  async function refuseMission(row: PushedRow) {
-    if (
-      !confirm(
-        `Refuser la proposition "${row.mission_title}" pour ${row.first_name} ${row.last_name} ?\n\nLa mission est marquée comme refusée (proposed → rejected). Tu pourras la retrouver via "Voir les refusés". Le profil revient dans l'onglet Consultants.`,
-      )
-    ) {
-      return;
-    }
+  async function confirmRefuse(reason: string) {
+    if (!refuseRow) return;
+    const row = refuseRow;
     setBusyId(row.mission_id);
     try {
       const res = await fetch(`/api/missions/${row.mission_id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'rejected' }),
+        body: JSON.stringify({ status: 'rejected', rejection_reason: reason }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -356,29 +368,43 @@ export default function CvPushedPage() {
                       </TableCell>
                       <TableCell className="max-w-[180px]">
                         {r.client_name ? (
-                          <div
-                            className="flex items-start gap-1.5 min-w-0 text-xs font-medium"
-                            title={r.client_name}
-                          >
-                            {r.client_kind === 'esn' ? (
-                              <Network className="h-3 w-3 text-amber-300 shrink-0 mt-0.5" />
-                            ) : (
-                              <Building2 className="h-3 w-3 text-violet-300 shrink-0 mt-0.5" />
+                          <>
+                            <div
+                              className="flex items-start gap-1.5 min-w-0 text-xs font-medium"
+                              title={r.client_name}
+                            >
+                              {r.client_kind === 'esn' ? (
+                                <Network className="h-3 w-3 text-amber-300 shrink-0 mt-0.5" />
+                              ) : (
+                                <Building2 className="h-3 w-3 text-violet-300 shrink-0 mt-0.5" />
+                              )}
+                              <span className="leading-tight break-words">
+                                {r.client_name}
+                              </span>
+                            </div>
+                            {r.client_kind && (
+                              <div className="text-[10px] text-muted-foreground mt-0.5 pl-[18px]">
+                                {r.client_kind === 'esn' ? 'ESN partenaire' : 'Client direct'}
+                              </div>
                             )}
-                            <span className="leading-tight break-words">
-                              {r.client_name}
-                            </span>
-                          </div>
+                          </>
                         ) : (
-                          <span className="text-xs text-muted-foreground italic">— direct</span>
-                        )}
-                        {r.client_kind && r.client_name && (
-                          <div className="text-[10px] text-muted-foreground mt-0.5 pl-[18px]">
-                            {r.client_kind === 'esn' ? 'ESN partenaire' : 'Client direct'}
-                          </div>
+                          // Pas de nom de client renseigné : placeholder explicite
+                          // avec icône d'attente pour signaler "info à compléter".
+                          <>
+                            <div className="flex items-start gap-1.5 min-w-0 text-xs font-medium text-amber-200/80">
+                              <HelpCircle className="h-3 w-3 text-amber-300/80 shrink-0 mt-0.5" />
+                              <span className="leading-tight break-words">
+                                Client à définir
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5 pl-[18px] italic">
+                              À renseigner sur l&apos;AO
+                            </div>
+                          </>
                         )}
                       </TableCell>
-                      <TableCell className="max-w-[260px]">
+                      <TableCell className="max-w-[280px]">
                         {/* Mission et AO portent souvent le même intitulé. On
                             affiche le titre de l'AO (violet) si présent, sinon
                             le titre brut de la mission. Pas de doublon. */}
@@ -401,6 +427,19 @@ export default function CvPushedPage() {
                               Mission libre (sans AO)
                             </div>
                           </>
+                        )}
+                        {/* Motif du refus : affiché uniquement dans la vue
+                            "rejected", en encart ambre sous le titre. */}
+                        {showRejected && r.rejection_reason && (
+                          <div
+                            className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/[0.06] px-2 py-1.5 text-[11px] text-amber-200/90 leading-snug flex items-start gap-1.5"
+                            title={r.rejection_reason}
+                          >
+                            <MessageSquareWarning className="h-3 w-3 text-amber-300 shrink-0 mt-0.5" />
+                            <span className="line-clamp-3 break-words">
+                              {r.rejection_reason}
+                            </span>
+                          </div>
                         )}
                       </TableCell>
                       <TableCell>
@@ -468,7 +507,7 @@ export default function CvPushedPage() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => refuseMission(r)}
+                                onClick={() => setRefuseRow(r)}
                                 disabled={busy}
                                 title="Refuser la proposition — le client a dit non. Retrouvable via Voir les refusés."
                                 className="text-amber-300 hover:bg-amber-500/10"
@@ -488,6 +527,18 @@ export default function CvPushedPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <RefuseMissionDialog
+        open={!!refuseRow}
+        onOpenChange={(v) => {
+          if (!v) setRefuseRow(null);
+        }}
+        consultantName={
+          refuseRow ? `${refuseRow.first_name} ${refuseRow.last_name}` : ''
+        }
+        missionTitle={refuseRow?.mission_title ?? ''}
+        onConfirm={confirmRefuse}
+      />
     </AppShell>
   );
 }

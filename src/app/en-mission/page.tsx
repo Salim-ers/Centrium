@@ -113,6 +113,12 @@ export default function EnMissionPage() {
           seniority: m.consultant.seniority,
           is_prospect: m.consultant.is_prospect,
         }));
+      // Tri alphabétique par nom du consultant (nom, prénom).
+      rows.sort((a, b) => {
+        const an = `${a.last_name ?? ''} ${a.first_name ?? ''}`.toLowerCase();
+        const bn = `${b.last_name ?? ''} ${b.first_name ?? ''}`.toLowerCase();
+        return an.localeCompare(bn, 'fr');
+      });
       const q = search.trim().toLowerCase();
       if (!q) return rows;
       return rows.filter(

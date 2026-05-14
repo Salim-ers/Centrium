@@ -19,6 +19,7 @@ const patchSchema = z.object({
   end_date: z.string().optional().nullable(),
   contract_number: z.string().optional().nullable(),
   archived: z.boolean().optional(),
+  rejection_reason: z.string().max(2000).optional().nullable(),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -54,6 +55,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     payload.archived_at = new Date().toISOString();
   } else if (parsed.data.archived === false) {
     payload.archived_at = null;
+  }
+  // Stamp rejected_at quand on bascule en rejected ; on l'efface si on
+  // restaure la proposition (rejected → autre statut).
+  if (parsed.data.status === 'rejected') {
+    payload.rejected_at = new Date().toISOString();
+  } else if (parsed.data.status) {
+    payload.rejected_at = null;
+    payload.rejection_reason = null;
   }
 
   const { data, error } = await admin

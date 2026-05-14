@@ -88,7 +88,11 @@ export default function OffersPage() {
       // (ou toutes les archivées si toggle). Les états gagné/perdu vivent
       // dans le CRM.
       const res = await jobOfferService.list('all', showArchived);
-      return res.data ?? [];
+      const rows = res.data ?? [];
+      // Tri alphabétique par intitulé (insensible casse, locale fr).
+      return rows.slice().sort((a, b) =>
+        (a.title ?? '').localeCompare(b.title ?? '', 'fr', { sensitivity: 'base' }),
+      );
     },
     { enabled: !!activeOrgId },
   );

@@ -112,9 +112,16 @@ export default function ConsultantsPage() {
   // Exclusion : profils avec mission proposed/active → ils vivent dans CV poussés
   // ou En Mission. Une seule présence par profil, partout dans l'app.
   // ⚠️ active_missions peut être absent sur des fiches anciennes (sécurité null).
-  const allInPool = (consultantsData ?? []).filter(
-    (c) => (c.active_missions?.length ?? 0) === 0,
-  );
+  const allInPool = (consultantsData ?? [])
+    .filter((c) => (c.active_missions?.length ?? 0) === 0)
+    // Tri alphabétique sur le nom de famille (puis prénom). Stable et
+    // français-friendly grâce à 'fr' qui gère accents et casse.
+    .slice()
+    .sort((a, b) => {
+      const an = `${a.last_name ?? ''} ${a.first_name ?? ''}`.toLowerCase();
+      const bn = `${b.last_name ?? ''} ${b.first_name ?? ''}`.toLowerCase();
+      return an.localeCompare(bn, 'fr');
+    });
 
   // Comptes par corps de métier (sur la liste avant filtre famille pour rester
   // stable visuellement quand on coche/décoche un domaine).
