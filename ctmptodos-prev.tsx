@@ -293,59 +293,48 @@ export default function TodosPage() {
         </Button>
       </div>
 
-      {/* Deux barres sur la MÊME ligne :
-          - À gauche (rouge) : scope = qui voit la tâche
-          - À droite (violet) : status = état de la tâche
-          Les deux gardent leur background neutre mais leurs chips se
-          colorent quand actifs selon la palette du groupe. */}
-      <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-1 rounded-lg border border-hairline bg-white/[0.02] p-1 w-fit">
-          <FilterChip
-            tone="red"
-            active={scope === 'all'}
-            onClick={() => setScope('all')}
-            label="Toutes"
-            count={scopeCounts.all}
-          />
-          <FilterChip
-            tone="red"
-            active={scope === 'mine'}
-            onClick={() => setScope('mine')}
-            label="Mes tâches"
-            count={scopeCounts.mine}
-          />
-          <FilterChip
-            tone="red"
-            active={scope === 'team'}
-            onClick={() => setScope('team')}
-            label="Équipe"
-            count={scopeCounts.team}
-          />
-        </div>
+      {/* Scope : Toutes / Mes / Équipe */}
+      <div className="mb-3 flex items-center gap-1 rounded-lg border border-hairline bg-white/[0.02] p-1 w-fit">
+        <FilterChip
+          active={scope === 'all'}
+          onClick={() => setScope('all')}
+          label="Toutes"
+          count={scopeCounts.all}
+        />
+        <FilterChip
+          active={scope === 'mine'}
+          onClick={() => setScope('mine')}
+          label="Mes tâches"
+          count={scopeCounts.mine}
+        />
+        <FilterChip
+          active={scope === 'team'}
+          onClick={() => setScope('team')}
+          label="Équipe"
+          count={scopeCounts.team}
+        />
+      </div>
 
-        <div className="flex items-center gap-1 rounded-lg border border-hairline bg-white/[0.02] p-1 w-fit">
-          <FilterChip
-            tone="violet"
-            active={filter === 'pending'}
-            onClick={() => setFilter('pending')}
-            label="À faire"
-            count={counts.pending}
-          />
-          <FilterChip
-            tone="violet"
-            active={filter === 'done'}
-            onClick={() => setFilter('done')}
-            label="Terminées"
-            count={counts.done}
-          />
-          <FilterChip
-            tone="violet"
-            active={filter === 'all'}
-            onClick={() => setFilter('all')}
-            label="Toutes"
-            count={counts.all}
-          />
-        </div>
+      {/* Filtre */}
+      <div className="mb-4 flex items-center gap-1 rounded-lg border border-hairline bg-white/[0.02] p-1 w-fit">
+        <FilterChip
+          active={filter === 'pending'}
+          onClick={() => setFilter('pending')}
+          label="À faire"
+          count={counts.pending}
+        />
+        <FilterChip
+          active={filter === 'done'}
+          onClick={() => setFilter('done')}
+          label="Terminées"
+          count={counts.done}
+        />
+        <FilterChip
+          active={filter === 'all'}
+          onClick={() => setFilter('all')}
+          label="Toutes"
+          count={counts.all}
+        />
       </div>
 
       {showForm && (
@@ -544,23 +533,12 @@ function FilterChip({
   onClick,
   label,
   count,
-  tone = 'violet',
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
   count: number;
-  /** Palette du chip quand actif. Rouge = scope (gauche), violet = status (droite). */
-  tone?: 'red' | 'violet';
 }) {
-  const activeChip =
-    tone === 'red'
-      ? 'bg-red-500/15 text-red-300 border border-red-500/30'
-      : 'bg-violet-glow/15 text-violet-glow border border-violet-glow/30';
-  const activeCount =
-    tone === 'red'
-      ? 'bg-red-500/25 text-red-50'
-      : 'bg-violet-glow/25 text-violet-50';
   return (
     <button
       type="button"
@@ -568,7 +546,7 @@ function FilterChip({
       className={cn(
         'inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition',
         active
-          ? activeChip
+          ? 'bg-violet-glow/15 text-violet-glow border border-violet-glow/30'
           : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.03] border border-transparent',
       )}
     >
@@ -576,7 +554,7 @@ function FilterChip({
       <span
         className={cn(
           'text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
-          active ? activeCount : 'bg-white/[0.05] text-muted-foreground',
+          active ? 'bg-violet-glow/25 text-violet-50' : 'bg-white/[0.05] text-muted-foreground',
         )}
       >
         {count}
