@@ -17,6 +17,7 @@ import {
   Building2,
   Network,
   Search,
+  HelpCircle,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -472,26 +473,40 @@ export default function OffersPage() {
                       </TableCell>
                       <TableCell className="text-xs max-w-[200px]">
                         {o.source ? (
-                          <div
-                            className="flex items-start gap-1.5 min-w-0"
-                            title={o.source}
-                          >
-                            {o.source_kind === 'esn' ? (
-                              <Network className="h-3 w-3 text-amber-300 shrink-0 mt-0.5" />
-                            ) : (
-                              <Building2 className="h-3 w-3 text-violet-300 shrink-0 mt-0.5" />
+                          <>
+                            <div
+                              className="flex items-start gap-1.5 min-w-0"
+                              title={o.source}
+                            >
+                              {o.source_kind === 'esn' ? (
+                                <Network className="h-3 w-3 text-amber-300 shrink-0 mt-0.5" />
+                              ) : (
+                                <Building2 className="h-3 w-3 text-violet-300 shrink-0 mt-0.5" />
+                              )}
+                              <span className="font-medium leading-tight break-words">
+                                {o.source}
+                              </span>
+                            </div>
+                            {o.source_kind && (
+                              <div className="text-[10px] text-muted-foreground mt-0.5 pl-[18px]">
+                                {o.source_kind === 'esn' ? 'ESN partenaire' : 'Client direct'}
+                              </div>
                             )}
-                            <span className="font-medium leading-tight break-words">
-                              {o.source}
-                            </span>
-                          </div>
+                          </>
                         ) : (
-                          <span className="text-muted-foreground italic">—</span>
-                        )}
-                        {o.source_kind && (
-                          <div className="text-[10px] text-muted-foreground mt-0.5 pl-[18px]">
-                            {o.source_kind === 'esn' ? 'ESN partenaire' : 'Client direct'}
-                          </div>
+                          // Placeholder explicite quand le nom du client n'est
+                          // pas renseigné — cohérent avec /cv-pushed.
+                          <>
+                            <div className="flex items-start gap-1.5 min-w-0 font-medium text-amber-200/80">
+                              <HelpCircle className="h-3 w-3 text-amber-300/80 shrink-0 mt-0.5" />
+                              <span className="leading-tight break-words">
+                                Client à définir
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5 pl-[18px] italic">
+                              À renseigner sur l&apos;AO
+                            </div>
+                          </>
                         )}
                       </TableCell>
                       <TableCell className="text-xs">
