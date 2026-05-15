@@ -395,44 +395,83 @@ export default function TodosPage() {
                 const ownerName = owner
                   ? presenceDisplayName(owner.first_name, owner.last_name, owner.email)
                   : '';
+                // Indicateur visuel gauche : priorité (haute=rouge intense,
+                // moyenne=rouge moyen, basse=rouge atténué). On garde la
+                // palette "alerte" sur tout le groupe gauche pour signaler
+                // qu'il s'agit de l'état/urgence de la tâche.
+                const priorityIntensity =
+                  t.priority === 'high' ? 'high' : t.priority === 'medium' ? 'mid' : 'low';
+                const dueDateLabel = t.due_date
+                  ? new Date(t.due_date).toLocaleDateString('fr-FR', {
+                      day: '2-digit',
+                      month: 'short',
+                    })
+                  : null;
                 return (
                   <li
                     key={t.id}
                     className={cn(
-                      'flex items-start gap-3 px-4 py-3 transition',
+                      'flex items-center gap-3 px-4 py-3 transition',
                       t.done && 'opacity-60',
                       t.shared && !isMine && 'bg-violet-glow/[0.03]',
                     )}
                   >
-                    <button
-                      type="button"
-                      onClick={() => toggleDone(t)}
-                      className="mt-0.5 shrink-0 text-muted-foreground hover:text-violet-glow transition"
-                      title={t.done ? 'Marquer non fait' : 'Marquer fait'}
-                    >
-                      {t.done ? (
-                        <CheckSquare className="h-5 w-5 text-emerald-400" />
-                      ) : (
-                        <Square className="h-5 w-5" />
-                      )}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
+                    {/* 3 indicateurs gauche, homogénéisés en palette rouge */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <LeftIconBtn
+                        onClick={() => toggleDone(t)}
+                        title={t.done ? 'Marquer non fait' : 'Marquer fait'}
+                        active={t.done}
+                      >
+                        {t.done ? (
+                          <CheckSquare className="h-4 w-4 text-emerald-400" />
+                        ) : (
+                          <Square className="h-4 w-4 text-red-300" />
+                        )}
+                      </LeftIconBtn>
+                      <LeftIconBtn
+                        title={`Priorité ${PRIORITY_LABEL[t.priority].toLowerCase()}`}
+                        intensity={priorityIntensity}
+                      >
                         <span
                           className={cn(
-                            'font-medium',
+                            'h-2 w-2 rounded-full',
+                            t.priority === 'high'
+                              ? 'bg-red-500'
+                              : t.priority === 'medium'
+                                ? 'bg-red-400'
+                                : 'bg-red-300/70',
+                          )}
+                        />
+                      </LeftIconBtn>
+                      <LeftIconBtn
+                        title={dueDateLabel ? `Échéance ${dueDateLabel}` : 'Aucune échéance'}
+                        intensity={dueDateLabel ? 'mid' : 'low'}
+                      >
+                        <Calendar className={cn('h-4 w-4', dueDateLabel ? 'text-red-300' : 'text-red-300/40')} />
+                      </LeftIconBtn>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className={cn(
+                            'font-medium truncate',
                             t.done && 'line-through text-muted-foreground',
                           )}
+                          title={t.title}
                         >
                           {t.title}
                         </span>
-                        <Badge variant="outline" className={cn('text-[10px]', PRIORITY_STYLE[t.priority])}>
-                          {PRIORITY_LABEL[t.priority]}
-                        </Badge>
+                        {dueDateLabel && (
+                          <span className="text-[11px] text-muted-foreground shrink-0">
+                            · {dueDateLabel}
+                          </span>
+                        )}
                         {t.shared && (
                           <Badge
                             variant="outline"
-                            className="text-[10px] border-violet-glow/40 bg-violet-glow/[0.08] text-violet-glow inline-flex items-center gap-1"
+                            className="text-[10px] border-violet-glow/40 bg-violet-glow/[0.08] text-violet-glow inline-flex items-center gap-1 shrink-0"
                             title="Tâche partagée avec l'équipe"
                           >
                             <Globe className="h-3 w-3" />
@@ -441,7 +480,7 @@ export default function TodosPage() {
                         )}
                         {owner && ownerColor && (
                           <span
-                            className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
+                            className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0"
                             title={ownerName}
                           >
                             <span
@@ -456,15 +495,6 @@ export default function TodosPage() {
                             <span className="hidden sm:inline">{ownerName}</span>
                           </span>
                         )}
-                        {t.due_date && (
-                          <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {new Date(t.due_date).toLocaleDateString('fr-FR', {
-                              day: '2-digit',
-                              month: 'short',
-                            })}
-                          </span>
-                        )}
                       </div>
                       {t.description && (
                         <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed">
@@ -472,49 +502,42 @@ export default function TodosPage() {
                         </p>
                       )}
                     </div>
+
+                    {/* 3 actions droite, homogénéisées en palette violette */}
                     <div className="flex items-center gap-1 shrink-0">
-                      {isMine && (
-                        <button
-                          type="button"
+                      {isMine ? (
+                        <RightIconBtn
                           onClick={() => toggleShare(t)}
-                          className={cn(
-                            'h-7 w-7 rounded-md inline-flex items-center justify-center transition',
-                            t.shared
-                              ? 'text-violet-glow bg-violet-glow/15 hover:bg-violet-glow/25'
-                              : 'text-muted-foreground hover:text-violet-glow hover:bg-violet-glow/10',
-                          )}
                           title={t.shared ? 'Repasser en privé' : 'Partager avec l\'équipe'}
-                          aria-label={t.shared ? 'Repasser en privé' : 'Partager avec l\'équipe'}
+                          active={t.shared}
                         >
-                          {t.shared ? (
-                            <Lock className="h-3.5 w-3.5" />
-                          ) : (
-                            <Users className="h-3.5 w-3.5" />
-                          )}
-                        </button>
+                          {t.shared ? <Lock className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />}
+                        </RightIconBtn>
+                      ) : (
+                        <span className="h-7 w-7" aria-hidden />
                       )}
-                      {isMine && (
-                        <button
-                          type="button"
+                      {isMine ? (
+                        <RightIconBtn
                           onClick={() => {
                             setEditing(t);
                             setShowForm(true);
                           }}
-                          className="h-7 w-7 rounded-md inline-flex items-center justify-center text-violet-glow hover:bg-violet-glow/10 transition"
                           title="Éditer"
                         >
                           <Pencil className="h-3.5 w-3.5" />
-                        </button>
+                        </RightIconBtn>
+                      ) : (
+                        <span className="h-7 w-7" aria-hidden />
                       )}
-                      {isMine && (
-                        <button
-                          type="button"
+                      {isMine ? (
+                        <RightIconBtn
                           onClick={() => deleteTodo(t)}
-                          className="h-7 w-7 rounded-md inline-flex items-center justify-center text-red-400 hover:bg-red-500/10 transition"
                           title="Supprimer"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        </RightIconBtn>
+                      ) : (
+                        <span className="h-7 w-7" aria-hidden />
                       )}
                     </div>
                   </li>
@@ -525,6 +548,88 @@ export default function TodosPage() {
         </CardContent>
       </Card>
     </AppShell>
+  );
+}
+
+/**
+ * Indicateur compact côté gauche d'une todo — palette rouge pour grouper
+ * visuellement les éléments "état/urgence" (priorité, échéance, statut).
+ *
+ * Trois variantes d'intensité (high/mid/low) modulent l'opacité du fond
+ * pour refléter le niveau de l'alerte sans changer la couleur de base.
+ */
+function LeftIconBtn({
+  children,
+  onClick,
+  title,
+  active,
+  intensity = 'mid',
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  title: string;
+  active?: boolean;
+  intensity?: 'high' | 'mid' | 'low';
+}) {
+  const bg =
+    active
+      ? 'bg-emerald-500/15 border-emerald-500/40'
+      : intensity === 'high'
+        ? 'bg-red-500/[0.10] border-red-500/30'
+        : intensity === 'mid'
+          ? 'bg-red-500/[0.06] border-red-500/20'
+          : 'bg-red-500/[0.03] border-red-500/15';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      // Pas d'onClick → non-cliquable, on garde le même framing pour la
+      // cohérence visuelle (1 trio à gauche, peu importe l'interactivité).
+      disabled={!onClick}
+      className={cn(
+        'h-7 w-7 rounded-md border inline-flex items-center justify-center transition',
+        bg,
+        onClick && 'hover:brightness-125 cursor-pointer',
+        !onClick && 'cursor-default',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * Bouton d'action compact côté droit d'une todo — palette violette pour
+ * grouper visuellement les actions personnelles (partage, édition, suppression).
+ */
+function RightIconBtn({
+  children,
+  onClick,
+  title,
+  active,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  title: string;
+  active?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      className={cn(
+        'h-7 w-7 rounded-md border inline-flex items-center justify-center transition',
+        active
+          ? 'bg-violet-glow/20 border-violet-glow/50 text-violet-glow'
+          : 'bg-violet-glow/[0.06] border-violet-glow/20 text-violet-glow hover:bg-violet-glow/15 hover:border-violet-glow/40',
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
