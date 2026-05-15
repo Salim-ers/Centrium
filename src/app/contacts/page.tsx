@@ -303,15 +303,14 @@ export default function ContactsPage() {
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[260px]">
+                      <TableCell className="text-xs whitespace-nowrap">
                         {c.email ? (
                           <a
                             href={`mailto:${c.email}`}
-                            className="inline-flex items-center gap-1 text-muted-foreground hover:text-violet-glow transition-colors max-w-full"
-                            title={c.email}
+                            className="inline-flex items-center gap-1 text-muted-foreground hover:text-violet-glow transition-colors"
                           >
                             <Mail className="h-3 w-3 shrink-0" />
-                            <span className="truncate">{c.email}</span>
+                            {c.email}
                           </a>
                         ) : (
                           <span className="text-muted-foreground">—</span>
