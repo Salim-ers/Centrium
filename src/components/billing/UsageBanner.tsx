@@ -31,8 +31,31 @@ type Props = {
  *   - Plan Enterprise (illimité non exempt) : bandeau caché, ça
  *     n'apporte rien d'afficher 12/∞ à un client Enterprise.
  */
+const USAGE_CACHE_KEY = 'qc_usage_banner';
+
+function readCachedUsage(): Usage | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(USAGE_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as Usage) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedUsage(u: Usage) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(USAGE_CACHE_KEY, JSON.stringify(u));
+  } catch {
+    // quota / private mode — silent
+  }
+}
+
 export function UsageBanner({ resource, hideUntilWarn = false }: Props) {
-  const [usage, setUsage] = useState<Usage | null>(null);
+  // Hydratation synchrone depuis sessionStorage : le banner apparaît
+  // instantanément après le 1er fetch, plus de flash blanc.
+  const [usage, setUsage] = useState<Usage | null>(readCachedUsage);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,7 +63,10 @@ export function UsageBanner({ resource, hideUntilWarn = false }: Props) {
       .then((r) => (r.ok ? r.json() : null))
       .then((body: { data: Usage } | null) => {
         if (cancelled) return;
-        if (body?.data) setUsage(body.data);
+        if (body?.data) {
+          setUsage(body.data);
+          writeCachedUsage(body.data);
+        }
       })
       .catch(() => undefined);
     return () => {
@@ -66,7 +92,7 @@ export function UsageBanner({ resource, hideUntilWarn = false }: Props) {
               {used} / illimité {label}
             </span>
             <span className="text-muted-foreground text-xs">
-              · Compte fondateur — aucune limite
+              · Compte Fondateur — aucune limite
             </span>
           </div>
         </div>
