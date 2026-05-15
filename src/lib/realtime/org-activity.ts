@@ -31,7 +31,8 @@ export type ActivityKind =
   | 'invoice_paid'
   | 'timesheet_validated'
   | 'offer_created'
-  | 'offer_archived';
+  | 'offer_archived'
+  | 'todo_shared';
 
 export type ActivityPayload = {
   user_id: string;
@@ -114,6 +115,8 @@ export function describeActivity(kind: ActivityKind, actor: string, label: strin
       return `${actor} a publié l'offre ${label}`;
     case 'offer_archived':
       return `${actor} a archivé l'offre ${label}`;
+    case 'todo_shared':
+      return `${actor} a partagé une tâche avec l'équipe : ${label}`;
     default:
       return `${actor} a fait une modification (${label})`;
   }

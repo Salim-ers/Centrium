@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   CheckSquare,
   Plus,
@@ -11,6 +11,8 @@ import {
   Lock,
   Loader2,
   X,
+  Users,
+  Globe,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -26,11 +28,19 @@ import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { cn } from '@/lib/utils';
-import { notifyDestructive, notifyError, notifyUpdated } from '@/lib/notify';
+import { notifyDestructive, notifyError, notifyUpdated, notifyCreated } from '@/lib/notify';
+import {
+  presenceColor,
+  presenceDisplayName,
+  presenceInitials,
+} from '@/lib/realtime/presence-utils';
+import { broadcastOrgActivity } from '@/lib/realtime/org-activity';
 
 type Todo = {
   id: string;
   user_id: string;
+  organization_id: string | null;
+  shared: boolean;
   title: string;
   description: string | null;
   done: boolean;
@@ -39,6 +49,13 @@ type Todo = {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
+};
+
+type OwnerProfile = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string;
 };
 
 const PRIORITY_LABEL: Record<Todo['priority'], string> = {
@@ -65,8 +82,11 @@ const PRIORITY_RANK: Record<Todo['priority'], number> = { high: 0, medium: 1, lo
 export default function TodosPage() {
   const { user, activeOrgId } = useOrganization();
   const [filter, setFilter] = useState<'pending' | 'done' | 'all'>('pending');
+  const [scope, setScope] = useState<'mine' | 'team' | 'all'>('all');
   const [editing, setEditing] = useState<Todo | null>(null);
   const [showForm, setShowForm] = useState(false);
+  // Profils des auteurs des todos partagés (pour afficher initiales + couleur).
+  const [ownerProfiles, setOwnerProfiles] = useState<Map<string, OwnerProfile>>(new Map());
 
   const {
     data: todosData,
@@ -74,7 +94,9 @@ export default function TodosPage() {
     reload,
     setData: setTodos,
   } = useCachedQuery<Todo[]>(
-    `user-todos:${user?.id ?? 'none'}`,
+    // La clé inclut l'org car la RLS dépend de l'appartenance org pour les
+    // todos partagés. Sans ça, un switch d'org garderait les anciens todos.
+    `user-todos:${user?.id ?? 'none'}:org:${activeOrgId ?? 'none'}`,
     async () => {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -88,12 +110,55 @@ export default function TodosPage() {
     { enabled: !!user?.id },
   );
 
-  // RLS user_todos = strict user_id = auth.uid() : seuls les events
-  // de MES todos arrivent (utile pour multi-onglet du même compte).
+  // Realtime sync : mes todos ET les todos partagés de mes collègues.
+  // RLS appliquée par Realtime → seuls les events accessibles arrivent.
   useRealtimeReload(['user_todos'], () => reload());
 
   const allTodos = todosData ?? [];
-  const filtered = allTodos.filter((t) =>
+
+  // Récupère les profils des auteurs (autres que moi) pour les todos
+  // partagés — utile pour afficher "Salim" + ses initiales colorées.
+  useEffect(() => {
+    if (!user?.id) return;
+    const otherUserIds = Array.from(
+      new Set(
+        allTodos
+          .filter((t) => t.shared && t.user_id !== user.id)
+          .map((t) => t.user_id),
+      ),
+    );
+    const missing = otherUserIds.filter((id) => !ownerProfiles.has(id));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    const supabase = createClient();
+    (async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email')
+        .in('id', missing);
+      if (cancelled || !data) return;
+      setOwnerProfiles((prev) => {
+        const next = new Map(prev);
+        for (const p of data as OwnerProfile[]) next.set(p.id, p);
+        return next;
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // ownerProfiles dans deps relancerait en boucle ; on lit la valeur courante
+    // via le closure.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allTodos, user?.id]);
+
+  const scoped = useMemo(() => {
+    if (!user?.id) return allTodos;
+    if (scope === 'mine') return allTodos.filter((t) => t.user_id === user.id);
+    if (scope === 'team') return allTodos.filter((t) => t.shared);
+    return allTodos;
+  }, [allTodos, scope, user?.id]);
+
+  const filtered = scoped.filter((t) =>
     filter === 'pending' ? !t.done : filter === 'done' ? t.done : true,
   );
   // Tri : non-cochés en haut, par priorité, puis date d'échéance, puis création.
@@ -108,8 +173,13 @@ export default function TodosPage() {
   });
 
   const counts = {
-    pending: allTodos.filter((t) => !t.done).length,
-    done: allTodos.filter((t) => t.done).length,
+    pending: scoped.filter((t) => !t.done).length,
+    done: scoped.filter((t) => t.done).length,
+    all: scoped.length,
+  };
+  const scopeCounts = {
+    mine: user?.id ? allTodos.filter((t) => t.user_id === user.id).length : 0,
+    team: allTodos.filter((t) => t.shared).length,
     all: allTodos.length,
   };
 
@@ -148,17 +218,67 @@ export default function TodosPage() {
     notifyDestructive(`"${todo.title}" supprimé`);
   }
 
+  /**
+   * Bascule un todo entre privé et partagé avec l'organisation.
+   * Seul le propriétaire peut le faire (la RLS le garantit aussi côté DB).
+   */
+  async function toggleShare(todo: Todo) {
+    if (!user?.id || todo.user_id !== user.id) return;
+    if (!activeOrgId) {
+      notifyError('Organisation introuvable — impossible de partager');
+      return;
+    }
+    const nextShared = !todo.shared;
+    const prev = todosData;
+    // Optimistic
+    setTodos((list) =>
+      (list ?? []).map((t) =>
+        t.id === todo.id
+          ? { ...t, shared: nextShared, organization_id: nextShared ? activeOrgId : t.organization_id }
+          : t,
+      ),
+    );
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('user_todos')
+      .update({
+        shared: nextShared,
+        // On stamp l'org même au "unshare" : ça n'a aucun effet vu que
+        // shared=false → invisible via la policy, et ça simplifie un
+        // re-partage ultérieur.
+        organization_id: activeOrgId,
+      })
+      .eq('id', todo.id);
+    if (error) {
+      notifyError('Partage impossible : ' + error.message);
+      setTodos(prev ?? []);
+      return;
+    }
+    if (nextShared) {
+      notifyCreated(`"${todo.title}" partagé avec l'équipe`);
+      void broadcastOrgActivity(
+        activeOrgId,
+        user.id,
+        'todo_shared',
+        todo.title,
+        '/todos',
+      );
+    } else {
+      notifyUpdated(`"${todo.title}" remis en privé`);
+    }
+  }
+
   return (
     <AppShell>
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
             <CheckSquare className="h-7 w-7 text-violet-glow" />
-            Ma to do list
+            To do list
           </h1>
           <p className="text-muted-foreground mt-1 inline-flex items-center gap-1.5 text-sm">
             <Lock className="h-3.5 w-3.5 text-violet-glow" />
-            Liste privée — visible uniquement par toi ({user?.email ?? '…'})
+            Tes tâches privées + les tâches partagées par l&apos;équipe — clique sur l&apos;icône <Users className="inline h-3.5 w-3.5" /> pour partager.
           </p>
         </div>
         <Button
@@ -171,6 +291,28 @@ export default function TodosPage() {
           <Plus className="h-4 w-4" />
           Nouvelle tâche
         </Button>
+      </div>
+
+      {/* Scope : Toutes / Mes / Équipe */}
+      <div className="mb-3 flex items-center gap-1 rounded-lg border border-hairline bg-white/[0.02] p-1 w-fit">
+        <FilterChip
+          active={scope === 'all'}
+          onClick={() => setScope('all')}
+          label="Toutes"
+          count={scopeCounts.all}
+        />
+        <FilterChip
+          active={scope === 'mine'}
+          onClick={() => setScope('mine')}
+          label="Mes tâches"
+          count={scopeCounts.mine}
+        />
+        <FilterChip
+          active={scope === 'team'}
+          onClick={() => setScope('team')}
+          label="Équipe"
+          count={scopeCounts.team}
+        />
       </div>
 
       {/* Filtre */}
@@ -243,78 +385,141 @@ export default function TodosPage() {
             </div>
           ) : (
             <ul className="divide-y divide-hairline">
-              {todos.map((t) => (
-                <li
-                  key={t.id}
-                  className={cn(
-                    'flex items-start gap-3 px-4 py-3 transition',
-                    t.done && 'opacity-60',
-                  )}
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggleDone(t)}
-                    className="mt-0.5 shrink-0 text-muted-foreground hover:text-violet-glow transition"
-                    title={t.done ? 'Marquer non fait' : 'Marquer fait'}
-                  >
-                    {t.done ? (
-                      <CheckSquare className="h-5 w-5 text-emerald-400" />
-                    ) : (
-                      <Square className="h-5 w-5" />
+              {todos.map((t) => {
+                const isMine = t.user_id === user?.id;
+                const owner = isMine ? null : ownerProfiles.get(t.user_id) ?? null;
+                const ownerColor = owner ? presenceColor(owner.id) : null;
+                const ownerInitials = owner
+                  ? presenceInitials(owner.first_name, owner.last_name, owner.email)
+                  : '';
+                const ownerName = owner
+                  ? presenceDisplayName(owner.first_name, owner.last_name, owner.email)
+                  : '';
+                return (
+                  <li
+                    key={t.id}
+                    className={cn(
+                      'flex items-start gap-3 px-4 py-3 transition',
+                      t.done && 'opacity-60',
+                      t.shared && !isMine && 'bg-violet-glow/[0.03]',
                     )}
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span
-                        className={cn(
-                          'font-medium',
-                          t.done && 'line-through text-muted-foreground',
-                        )}
-                      >
-                        {t.title}
-                      </span>
-                      <Badge variant="outline" className={cn('text-[10px]', PRIORITY_STYLE[t.priority])}>
-                        {PRIORITY_LABEL[t.priority]}
-                      </Badge>
-                      {t.due_date && (
-                        <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(t.due_date).toLocaleDateString('fr-FR', {
-                            day: '2-digit',
-                            month: 'short',
-                          })}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => toggleDone(t)}
+                      className="mt-0.5 shrink-0 text-muted-foreground hover:text-violet-glow transition"
+                      title={t.done ? 'Marquer non fait' : 'Marquer fait'}
+                    >
+                      {t.done ? (
+                        <CheckSquare className="h-5 w-5 text-emerald-400" />
+                      ) : (
+                        <Square className="h-5 w-5" />
+                      )}
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className={cn(
+                            'font-medium',
+                            t.done && 'line-through text-muted-foreground',
+                          )}
+                        >
+                          {t.title}
                         </span>
+                        <Badge variant="outline" className={cn('text-[10px]', PRIORITY_STYLE[t.priority])}>
+                          {PRIORITY_LABEL[t.priority]}
+                        </Badge>
+                        {t.shared && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] border-violet-glow/40 bg-violet-glow/[0.08] text-violet-glow inline-flex items-center gap-1"
+                            title="Tâche partagée avec l'équipe"
+                          >
+                            <Globe className="h-3 w-3" />
+                            Équipe
+                          </Badge>
+                        )}
+                        {owner && ownerColor && (
+                          <span
+                            className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
+                            title={ownerName}
+                          >
+                            <span
+                              className={cn(
+                                'inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold',
+                                ownerColor.bg,
+                                ownerColor.text,
+                              )}
+                            >
+                              {ownerInitials}
+                            </span>
+                            <span className="hidden sm:inline">{ownerName}</span>
+                          </span>
+                        )}
+                        {t.due_date && (
+                          <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(t.due_date).toLocaleDateString('fr-FR', {
+                              day: '2-digit',
+                              month: 'short',
+                            })}
+                          </span>
+                        )}
+                      </div>
+                      {t.description && (
+                        <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed">
+                          {t.description}
+                        </p>
                       )}
                     </div>
-                    {t.description && (
-                      <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed">
-                        {t.description}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditing(t);
-                        setShowForm(true);
-                      }}
-                      className="h-7 w-7 rounded-md inline-flex items-center justify-center text-violet-glow hover:bg-violet-glow/10 transition"
-                      title="Éditer"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => deleteTodo(t)}
-                      className="h-7 w-7 rounded-md inline-flex items-center justify-center text-red-400 hover:bg-red-500/10 transition"
-                      title="Supprimer"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </li>
-              ))}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {isMine && (
+                        <button
+                          type="button"
+                          onClick={() => toggleShare(t)}
+                          className={cn(
+                            'h-7 w-7 rounded-md inline-flex items-center justify-center transition',
+                            t.shared
+                              ? 'text-violet-glow bg-violet-glow/15 hover:bg-violet-glow/25'
+                              : 'text-muted-foreground hover:text-violet-glow hover:bg-violet-glow/10',
+                          )}
+                          title={t.shared ? 'Repasser en privé' : 'Partager avec l\'équipe'}
+                          aria-label={t.shared ? 'Repasser en privé' : 'Partager avec l\'équipe'}
+                        >
+                          {t.shared ? (
+                            <Lock className="h-3.5 w-3.5" />
+                          ) : (
+                            <Users className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      )}
+                      {isMine && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditing(t);
+                            setShowForm(true);
+                          }}
+                          className="h-7 w-7 rounded-md inline-flex items-center justify-center text-violet-glow hover:bg-violet-glow/10 transition"
+                          title="Éditer"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      {isMine && (
+                        <button
+                          type="button"
+                          onClick={() => deleteTodo(t)}
+                          className="h-7 w-7 rounded-md inline-flex items-center justify-center text-red-400 hover:bg-red-500/10 transition"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardContent>
