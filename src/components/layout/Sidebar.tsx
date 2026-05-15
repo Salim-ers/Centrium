@@ -22,6 +22,7 @@ import {
   Activity,
   Building2,
   Package,
+  CheckSquare,
 } from 'lucide-react';
 import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -46,6 +47,8 @@ const GROUPS: NavGroup[] = [
     items: [
       { label: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
       { label: 'Alertes', href: '/alerts', icon: BellRing },
+      // To do list privée par utilisateur (RLS stricte sur user_todos.user_id).
+      { label: 'To do list', href: '/todos', icon: CheckSquare },
     ],
   },
   {
