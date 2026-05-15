@@ -32,6 +32,7 @@ import { useOrganization } from '@/lib/auth/context';
 import { useBrandName } from '@/components/brand/BrandingStyles';
 import { NewUserTutorial } from '@/components/onboarding/NewUserTutorial';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { formatCurrency, relativeDate } from '@/lib/utils';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { ResetDashboardDialog } from '@/components/dashboard/ResetDashboardDialog';
@@ -110,6 +111,23 @@ export default function DashboardPage() {
   const kpis = data?.kpis ?? null;
   const alerts = data?.alerts ?? [];
   const [resetOpen, setResetOpen] = useState(false);
+
+  // Auto-invalidation : dès qu'une table impactant un KPI change (chez moi
+  // ou un collègue), on relance les RPC dashboard. Évite le bug "11 en
+  // mission alors qu'il y en a 0" qui demandait un F5 manuel.
+  useRealtimeReload(
+    [
+      'missions',
+      'invoices',
+      'timesheets',
+      'opportunities',
+      'job_offers',
+      'consultants',
+      'alerts',
+    ],
+    () => reload(),
+    { debounceMs: 400 },
+  );
 
   return (
     <AppShell>

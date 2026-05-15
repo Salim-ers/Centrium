@@ -69,9 +69,15 @@ export default function CRMPage() {
 
   // Temps réel : les déplacements faits par les collègues atterrissent dans
   // notre liste sans refresh, et leurs drag-states en cours s'affichent en
-  // direct (peerByOpp / peerByColumn).
-  const { broadcastDrag, peerByOpp, peerByColumn } = useCrmRealtime({
+  // direct (peerByOpp / peerByColumn). onPeerDrop applique l'optimistic
+  // move dès qu'un collègue dépose, pour ne pas attendre postgres_changes.
+  const { broadcastDrag, broadcastDrop, broadcastCancel, peerByOpp, peerByColumn } = useCrmRealtime({
     onDataChange: () => reload(),
+    onPeerDrop: (oppId, toStatus) => {
+      setOpportunities((list) =>
+        (list ?? []).map((o) => (o.id === oppId ? { ...o, status: toStatus } : o)),
+      );
+    },
   });
 
   function openEdit(opp: Opportunity) {
@@ -135,9 +141,13 @@ export default function CRMPage() {
   }
 
   function onDragEndCard() {
+    // Note : onDragEnd fire SYSTEMATIQUEMENT après onDrop (HTML5 spec). On
+    // ne broadcast `cancel` que si aucun drop n'a eu lieu — sinon on
+    // détruirait l'indicateur peer juste après l'avoir mis à jour via drop.
+    const wasDropped = !draggingId;
     setDraggingId(null);
     setDragOverStatus(null);
-    broadcastDrag(null, null);
+    if (!wasDropped) broadcastCancel();
   }
 
   function onDragOverColumn(e: React.DragEvent, status: OpportunityStatus) {
@@ -164,8 +174,14 @@ export default function CRMPage() {
     const id = e.dataTransfer.getData(DRAG_MIME);
     setDragOverStatus(null);
     setDraggingId(null);
-    broadcastDrag(null, null);
-    if (id) void moveOpportunity(id, status);
+    if (id) {
+      // Broadcast SYNCHRONE le drop final pour que les peers appliquent
+      // l'optimistic move immédiatement (avant postgres_changes).
+      broadcastDrop(id, status);
+      void moveOpportunity(id, status);
+    } else {
+      broadcastCancel();
+    }
   }
 
   return (

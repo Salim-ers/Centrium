@@ -40,6 +40,7 @@ import { Input } from '@/components/ui/input';
 import { contactService } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { usePagination } from '@/hooks/usePagination';
 import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import type { Contact } from '@/types';
@@ -87,6 +88,9 @@ export default function ContactsPage() {
     },
     { enabled: !!activeOrgId },
   );
+
+  // Un collègue qui ajoute / édite / archive un contact → on voit la modif sans F5.
+  useRealtimeReload(['contacts'], () => reload());
 
   useEffect(() => {
     if (!activeOrgId) return;

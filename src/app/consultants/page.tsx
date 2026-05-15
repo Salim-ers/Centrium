@@ -54,6 +54,7 @@ import {
 } from '@/lib/services/consultant.service';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { usePagination } from '@/hooks/usePagination';
 import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import type { Consultant } from '@/types';
@@ -110,6 +111,10 @@ export default function ConsultantsPage() {
     },
     { enabled: !!activeOrgId },
   );
+
+  // Sync temps réel : modifs faites par un collègue (édition fiche, ajout
+  // skill, archivage, push CV qui crée une mission…) se voient sans F5.
+  useRealtimeReload(['consultants', 'consultant_skills', 'missions'], () => reload());
 
   // Exclusion : profils avec mission proposed/active → ils vivent dans CV poussés
   // ou En Mission. Une seule présence par profil, partout dans l'app.
