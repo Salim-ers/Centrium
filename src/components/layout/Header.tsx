@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useOrganizationSafe } from '@/lib/auth/context';
 import { createClient } from '@/lib/supabase/client';
 import { TutorialButton } from '@/components/onboarding/NewUserTutorial';
+import { PresenceAvatars } from '@/components/presence/PresenceAvatars';
 
 export function Header() {
   const org = useOrganizationSafe();
@@ -91,7 +92,8 @@ export function Header() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <PresenceAvatars />
           <TutorialButton variant="cta" />
           <Button
             variant="ghost"

@@ -12,6 +12,7 @@ import { opportunityService } from '@/lib/services';
 import { OpportunityFormDialog } from '@/components/crm/OpportunityFormDialog';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { useCrmRealtime, type PeerDrag } from '@/hooks/useCrmRealtime';
 import type { Opportunity, OpportunityStatus } from '@/types';
 import { OPPORTUNITY_STATUS_LABEL } from '@/constants';
 import { formatCurrency, relativeDate, cn } from '@/lib/utils';
@@ -65,6 +66,13 @@ export default function CRMPage() {
     { enabled: !!activeOrgId },
   );
   const opportunities = opportunitiesData ?? [];
+
+  // Temps réel : les déplacements faits par les collègues atterrissent dans
+  // notre liste sans refresh, et leurs drag-states en cours s'affichent en
+  // direct (peerByOpp / peerByColumn).
+  const { broadcastDrag, peerByOpp, peerByColumn } = useCrmRealtime({
+    onDataChange: () => reload(),
+  });
 
   function openEdit(opp: Opportunity) {
     setEditingOpp(opp);
@@ -121,11 +129,15 @@ export default function CRMPage() {
     setDraggingId(id);
     e.dataTransfer.setData(DRAG_MIME, id);
     e.dataTransfer.effectAllowed = 'move';
+    // Diffuse à toute l'organisation : "je viens d'attraper cette carte".
+    const current = opportunities.find((o) => o.id === id);
+    broadcastDrag(id, current?.status ?? null);
   }
 
   function onDragEndCard() {
     setDraggingId(null);
     setDragOverStatus(null);
+    broadcastDrag(null, null);
   }
 
   function onDragOverColumn(e: React.DragEvent, status: OpportunityStatus) {
@@ -133,7 +145,10 @@ export default function CRMPage() {
     if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    if (dragOverStatus !== status) setDragOverStatus(status);
+    if (dragOverStatus !== status) {
+      setDragOverStatus(status);
+      if (draggingId) broadcastDrag(draggingId, status);
+    }
   }
 
   function onDragLeaveColumn(e: React.DragEvent, status: OpportunityStatus) {
@@ -149,6 +164,7 @@ export default function CRMPage() {
     const id = e.dataTransfer.getData(DRAG_MIME);
     setDragOverStatus(null);
     setDraggingId(null);
+    broadcastDrag(null, null);
     if (id) void moveOpportunity(id, status);
   }
 
@@ -193,19 +209,30 @@ export default function CRMPage() {
             const isSource =
               !!draggingId &&
               opportunities.find((o) => o.id === draggingId)?.status === col.status;
+            // Quelqu'un d'autre survole cette colonne avec une carte attrapée.
+            const peerHover = peerByColumn.get(col.status);
             return (
               <div
                 key={col.status}
                 onDragOver={(e) => onDragOverColumn(e, col.status)}
                 onDragLeave={(e) => onDragLeaveColumn(e, col.status)}
                 onDrop={(e) => onDropColumn(e, col.status)}
+                style={
+                  peerHover && !isTarget
+                    ? {
+                        boxShadow: `0 0 30px -12px ${peerHover.user.color.glow}`,
+                      }
+                    : undefined
+                }
                 className={cn(
                   'rounded-xl border p-3 flex flex-col min-h-[220px] transition-all duration-200',
                   isTarget
                     ? 'border-violet-glow/70 bg-violet-glow/[0.06] shadow-[0_0_30px_-12px_rgba(168,85,247,0.65)] scale-[1.01]'
-                    : isSource
-                      ? 'border-hairline bg-white/[0.015] opacity-70'
-                      : 'border-hairline bg-white/[0.015]',
+                    : peerHover
+                      ? cn('bg-white/[0.015] scale-[1.005]', peerHover.user.color.border)
+                      : isSource
+                        ? 'border-hairline bg-white/[0.015] opacity-70'
+                        : 'border-hairline bg-white/[0.015]',
                 )}
               >
                 <div className="flex items-center gap-1.5 mb-2 px-0.5">
@@ -216,6 +243,9 @@ export default function CRMPage() {
                   <span className="text-[9px] text-muted-foreground/60 font-mono ml-auto">
                     {col.items.length}
                   </span>
+                  {peerHover && (
+                    <PeerBadge peer={peerHover} label="vise" />
+                  )}
                 </div>
 
                 <div className="space-y-2.5 flex-1">
@@ -225,10 +255,16 @@ export default function CRMPage() {
                         'rounded-md border border-dashed py-10 text-center text-[11px] transition-all duration-200',
                         isTarget
                           ? 'border-violet-glow/60 text-violet-glow bg-violet-glow/[0.04]'
-                          : 'border-hairline text-muted-foreground/60',
+                          : peerHover
+                            ? cn('bg-white/[0.02]', peerHover.user.color.border)
+                            : 'border-hairline text-muted-foreground/60',
                       )}
                     >
-                      {isTarget ? 'Déposer ici' : '—'}
+                      {isTarget
+                        ? 'Déposer ici'
+                        : peerHover
+                          ? `${peerHover.user.displayName} dépose ici…`
+                          : '—'}
                     </div>
                   ) : (
                     col.items.map((opp) => (
@@ -236,6 +272,7 @@ export default function CRMPage() {
                         key={opp.id}
                         opportunity={opp}
                         isDragging={draggingId === opp.id}
+                        peer={peerByOpp.get(opp.id) ?? null}
                         onDragStart={(e) => onDragStartCard(e, opp.id)}
                         onDragEnd={onDragEndCard}
                         onDelete={() => deleteOpportunity(opp.id, opp.title)}
@@ -253,9 +290,29 @@ export default function CRMPage() {
   );
 }
 
+function PeerBadge({ peer, label }: { peer: PeerDrag; label?: string }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 ml-auto rounded-full px-1.5 py-0.5',
+        'text-[9px] font-bold tracking-wide animate-pulse',
+        peer.user.color.bg,
+        peer.user.color.text,
+      )}
+      style={{ boxShadow: `0 0 12px -2px ${peer.user.color.glow}` }}
+      title={`${peer.user.displayName} est en train de glisser une carte`}
+    >
+      <span className="h-1 w-1 rounded-full bg-white/90" />
+      {peer.user.initials}
+      {label && <span className="font-medium opacity-90 normal-case">{label}</span>}
+    </span>
+  );
+}
+
 function OpportunityCard({
   opportunity,
   isDragging,
+  peer,
   onDragStart,
   onDragEnd,
   onDelete,
@@ -263,24 +320,48 @@ function OpportunityCard({
 }: {
   opportunity: Opportunity;
   isDragging: boolean;
+  peer: PeerDrag | null;
   onDragStart: (e: React.DragEvent) => void;
   onDragEnd: () => void;
   onDelete: () => void;
   onEdit: () => void;
 }) {
+  // Si un collègue est en train de glisser cette carte, on bloque le drag
+  // local (sinon conflit de mises à jour) et on affiche son indicateur.
+  const lockedByPeer = !!peer;
   return (
     <Card
-      draggable
-      onDragStart={onDragStart}
+      draggable={!lockedByPeer}
+      onDragStart={(e) => {
+        if (lockedByPeer) {
+          e.preventDefault();
+          return;
+        }
+        onDragStart(e);
+      }}
       onDragEnd={onDragEnd}
+      style={
+        peer
+          ? {
+              boxShadow: `0 0 24px -6px ${peer.user.color.glow}`,
+            }
+          : undefined
+      }
       className={cn(
         'qc-card-hover group relative select-none transition-all duration-200',
         // Curseur main "grab/grabbing" pour signaler le drag.
-        isDragging ? 'cursor-grabbing opacity-50 rotate-2 scale-95' : 'cursor-grab',
-        'active:cursor-grabbing',
+        isDragging ? 'cursor-grabbing opacity-50 rotate-2 scale-95' : '',
+        lockedByPeer
+          ? cn('cursor-not-allowed ring-2', peer.user.color.ring, peer.user.color.border)
+          : 'cursor-grab active:cursor-grabbing',
       )}
     >
       <CardContent className="p-3 space-y-2">
+        {peer && (
+          <div className="flex items-center justify-end">
+            <PeerBadge peer={peer} label="déplace" />
+          </div>
+        )}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-start gap-1.5 min-w-0">
             <GripVertical
