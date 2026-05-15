@@ -152,10 +152,12 @@ export function Sidebar() {
 
   return (
     <aside className="hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-hairline bg-card/80 backdrop-blur-xl">
-      {/* Halo gradient rose vif derrière le wordmark — effet "C lumineux" */}
+      {/* Halo gradient rose vif derrière le wordmark — effet "C lumineux".
+          opacity-30 en clair (juste un soupçon de rose, le bg reste neutre)
+          et opacity-90 en sombre (plein effet). */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-44 opacity-90"
+        className="pointer-events-none absolute inset-x-0 top-0 h-44 opacity-30 dark:opacity-90"
         style={{
           background:
             'radial-gradient(ellipse 80% 80% at 50% 50%, rgba(236,72,153,0.35), rgba(225,29,116,0.18) 40%, transparent 75%), radial-gradient(ellipse 90% 50% at 50% 100%, rgba(168,85,247,0.18), transparent 65%)',

@@ -25,44 +25,43 @@ section[id] {
      Le fond reste très clair pour la lisibilité mais avec une teinte
      subtile pour éviter l'effet "blanc clinique". */
   :root {
-    /* Background un peu désaturé (95% au lieu de 99%) → moins agressif
-       que du blanc clinique, plus reposant pour les yeux quand le
-       contenu fait beaucoup de lecture. Toujours clair, mais teinté. */
-    --background: 250 30% 96%;
-    --foreground: 240 40% 10%;            /* near-black bleuté profond */
+    /* Background désaturé (93%) — plus reposant qu'un blanc clinique
+       et avec une vraie teinte qui contraste avec les cartes claires. */
+    --background: 250 25% 93%;
+    --foreground: 240 45% 8%;             /* near-black bleuté, encore plus contrasté */
 
-    --card: 250 35% 99%;                  /* cartes légèrement plus claires que le bg */
-    --card-foreground: 240 40% 10%;
+    --card: 250 30% 98%;                  /* cartes nettement plus claires que le bg */
+    --card-foreground: 240 45% 8%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 40% 10%;
+    --popover-foreground: 240 45% 8%;
 
-    --primary: 328 92% 55%;               /* rose-magenta (dominant désormais) */
+    --primary: 328 85% 45%;               /* rose-magenta plus profond (lisible sur clair) */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 330 30% 93%;
-    --secondary-foreground: 240 40% 10%;
+    --secondary: 250 25% 90%;
+    --secondary-foreground: 240 45% 8%;
 
-    --muted: 330 30% 93%;
-    --muted-foreground: 240 12% 38%;      /* un peu plus contrasté pour les textes secondaires */
+    --muted: 250 25% 90%;
+    --muted-foreground: 240 14% 32%;      /* textes secondaires bien lisibles */
 
-    --accent: 270 95% 58%;                /* violet en accent secondaire */
+    --accent: 270 80% 48%;                /* violet plus profond */
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 75% 52%;
+    --destructive: 0 75% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 250 25% 85%;
-    --input: 250 25% 85%;
-    --ring: 328 92% 55%;
+    --border: 250 22% 80%;
+    --input: 250 22% 80%;
+    --ring: 328 85% 45%;
 
     --radius: 0.75rem;
 
-    /* Surfaces neutres réutilisables — substituts des `bg-white/X` du dark. */
-    --surface-1: 250 35% 99%;             /* card top */
-    --surface-2: 250 30% 95%;             /* card hover */
-    --surface-3: 250 25% 91%;             /* divider doux */
-    --hairline: 250 22% 83%;              /* trait fin plus visible */
+    /* Surfaces neutres réutilisables. */
+    --surface-1: 250 30% 98%;             /* card top */
+    --surface-2: 250 25% 93%;             /* card hover */
+    --surface-3: 250 22% 88%;             /* divider doux */
+    --hairline: 250 20% 78%;              /* trait fin bien visible */
   }
 
   /* ============ DARK MODE ============ */
@@ -112,6 +111,73 @@ section[id] {
   body {
     @apply bg-background text-foreground antialiased;
   }
+
+  /* ============ LIGHT MODE COLOR OVERRIDES ============
+     L'app a été designée dark-first : énormément de classes
+     `text-violet-300`, `text-emerald-300`, `text-pink-300`… qui sont
+     calibrées pour ressortir sur fond sombre mais sont quasi-illisibles
+     sur fond clair. Plutôt que d'éditer tous les composants un par un,
+     on shift ces classes vers leur variante 700 en light mode.
+     Les `.dark text-X-300` continuent à utiliser la valeur Tailwind native.
+
+     Pattern : on cible :root:not(.dark) pour ne toucher QUE le clair. */
+  :root:not(.dark) {
+    /* Violets — accents secondaires de l'app */
+    --text-violet-300: 76 29 149;         /* violet-800 (équivalent profond) */
+    --text-violet-200: 88 28 135;         /* violet-900 — chiffres clés */
+    --text-violet-100: 67 20 116;
+    /* Roses / magenta — accents primaires */
+    --text-pink-300: 157 23 77;           /* pink-700 */
+    --text-rose-300: 159 18 57;           /* rose-700 */
+    --text-magenta-neon: 157 23 77;
+    /* Vert (statut OK, gain, validation) */
+    --text-emerald-300: 4 120 87;         /* emerald-700 */
+    --text-emerald-200: 6 95 70;          /* emerald-800 */
+    --text-emerald-400: 4 120 87;
+    /* Ambre (avertissement, attente) */
+    --text-amber-300: 180 83 9;           /* amber-700 */
+    --text-amber-200: 146 64 14;          /* amber-800 */
+    --text-amber-400: 180 83 9;
+    /* Rouge (erreur, destructif) */
+    --text-red-300: 185 28 28;            /* red-700 */
+    --text-red-400: 185 28 28;
+    /* Bleu (info, en attente) */
+    --text-blue-300: 29 78 216;           /* blue-700 */
+    --text-blue-400: 29 78 216;
+    /* Slate (neutre) */
+    --text-slate-300: 51 65 85;           /* slate-700 */
+    --text-slate-400: 51 65 85;
+  }
+
+  /* Application des overrides : on rebind chaque utilitaire Tailwind
+     vers son token CSS quand on est en clair. Plus contraste, mieux
+     lisible, sans toucher un seul fichier composant. */
+  :root:not(.dark) .text-violet-300 { color: rgb(var(--text-violet-300)); }
+  :root:not(.dark) .text-violet-200 { color: rgb(var(--text-violet-200)); }
+  :root:not(.dark) .text-violet-100 { color: rgb(var(--text-violet-100)); }
+  :root:not(.dark) .text-pink-300 { color: rgb(var(--text-pink-300)); }
+  :root:not(.dark) .text-rose-300 { color: rgb(var(--text-rose-300)); }
+  :root:not(.dark) .text-magenta-neon { color: rgb(var(--text-magenta-neon)); }
+  :root:not(.dark) .text-emerald-300 { color: rgb(var(--text-emerald-300)); }
+  :root:not(.dark) .text-emerald-200 { color: rgb(var(--text-emerald-200)); }
+  :root:not(.dark) .text-emerald-400 { color: rgb(var(--text-emerald-400)); }
+  :root:not(.dark) .text-amber-300 { color: rgb(var(--text-amber-300)); }
+  :root:not(.dark) .text-amber-200 { color: rgb(var(--text-amber-200)); }
+  :root:not(.dark) .text-amber-400 { color: rgb(var(--text-amber-400)); }
+  :root:not(.dark) .text-red-300 { color: rgb(var(--text-red-300)); }
+  :root:not(.dark) .text-red-400 { color: rgb(var(--text-red-400)); }
+  :root:not(.dark) .text-blue-300 { color: rgb(var(--text-blue-300)); }
+  :root:not(.dark) .text-blue-400 { color: rgb(var(--text-blue-400)); }
+  :root:not(.dark) .text-slate-300 { color: rgb(var(--text-slate-300)); }
+  :root:not(.dark) .text-slate-400 { color: rgb(var(--text-slate-400)); }
+
+  /* violet-glow et magenta-neon sont des couleurs custom du tailwind config.
+     En clair, on les rebind vers leurs équivalents profonds. */
+  :root:not(.dark) .text-violet-glow { color: rgb(91 33 182); /* violet-800 */ }
+  :root:not(.dark) .bg-violet-glow\/15 { background-color: rgb(91 33 182 / 0.10); }
+  :root:not(.dark) .border-violet-glow\/30 { border-color: rgb(91 33 182 / 0.30); }
+  :root:not(.dark) .border-violet-glow\/40 { border-color: rgb(91 33 182 / 0.40); }
+  :root:not(.dark) .border-violet-glow\/60 { border-color: rgb(91 33 182 / 0.55); }
 }
 
 @layer utilities {
@@ -160,14 +226,15 @@ section[id] {
     inset: 0;
     z-index: -1;
     pointer-events: none;
+    /* Halos plus profonds et plus petits en mode clair : ils contrastent
+       avec le bg gris-violet sans virer au rose layout-wide. */
     background:
-      radial-gradient(ellipse 50% 40% at 15% 20%, hsl(328 92% 60% / 0.18), transparent 60%),
-      radial-gradient(ellipse 45% 50% at 85% 70%, hsl(285 90% 65% / 0.16), transparent 60%),
-      radial-gradient(ellipse 60% 45% at 50% 100%, hsl(328 92% 60% / 0.14), transparent 60%),
-      radial-gradient(ellipse 40% 35% at 75% 15%, hsl(265 90% 70% / 0.12), transparent 60%);
+      radial-gradient(ellipse 35% 30% at 15% 20%, hsl(328 90% 50% / 0.10), transparent 65%),
+      radial-gradient(ellipse 30% 40% at 85% 70%, hsl(285 85% 55% / 0.08), transparent 65%),
+      radial-gradient(ellipse 45% 35% at 50% 100%, hsl(328 90% 50% / 0.07), transparent 65%);
     background-size: 200% 200%;
     animation: aurora-drift 22s ease-in-out infinite;
-    filter: blur(40px);
+    filter: blur(60px);
   }
   .dark .app-bg::before {
     background:
