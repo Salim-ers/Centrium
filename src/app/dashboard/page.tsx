@@ -36,6 +36,8 @@ import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { formatCurrency, relativeDate } from '@/lib/utils';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { ResetDashboardDialog } from '@/components/dashboard/ResetDashboardDialog';
+import { LiveSyncBadge } from '@/components/dashboard/LiveSyncBadge';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 
 type DashboardData = { kpis: DashboardKPIs | null; alerts: ComputedAlert[] };
 
@@ -144,6 +146,9 @@ export default function DashboardPage() {
           <p className="text-muted-foreground mt-1">
             Vue d&apos;ensemble de votre activité {brandName}
           </p>
+          <div className="mt-3">
+            <LiveSyncBadge />
+          </div>
         </div>
         <Button
           variant="outline"
@@ -188,25 +193,25 @@ export default function DashboardPage() {
         <KPICard
           icon={<Users className="h-4 w-4" />}
           label="En mission"
-          value={kpis?.consultantsOnMission ?? '—'}
+          value={<AnimatedNumber value={kpis?.consultantsOnMission} />}
           accent="violet"
         />
         <KPICard
           icon={<CheckCircle2 className="h-4 w-4" />}
           label="Disponibles"
-          value={kpis?.consultantsAvailable ?? '—'}
+          value={<AnimatedNumber value={kpis?.consultantsAvailable} />}
           accent="emerald"
         />
         <KPICard
           icon={<TrendingUp className="h-4 w-4" />}
           label="Opportunités ouvertes"
-          value={kpis?.openOpportunities ?? '—'}
+          value={<AnimatedNumber value={kpis?.openOpportunities} />}
           accent="magenta"
         />
         <KPICard
           icon={<Banknote className="h-4 w-4" />}
           label="CA du mois"
-          value={kpis ? formatCurrency(kpis.revenueThisMonth) : '—'}
+          value={<AnimatedNumber value={kpis?.revenueThisMonth} format={(n) => formatCurrency(n)} />}
           accent="violet"
           hint={
             kpis
@@ -265,18 +270,18 @@ export default function DashboardPage() {
             <StatRow
               icon={<Send className="h-4 w-4 text-blue-400" />}
               label="En attente"
-              value={kpis?.pendingInvoices ?? '—'}
+              value={<AnimatedNumber value={kpis?.pendingInvoices} />}
             />
             <StatRow
               icon={<AlertTriangle className="h-4 w-4 text-red-400" />}
               label="En retard"
-              value={kpis?.overdueInvoices ?? '—'}
+              value={<AnimatedNumber value={kpis?.overdueInvoices} />}
               highlight={kpis?.overdueInvoices ? kpis.overdueInvoices > 0 : false}
             />
             <StatRow
               icon={<Clock className="h-4 w-4 text-amber-400" />}
               label="CRA à valider"
-              value={kpis?.pendingTimesheets ?? '—'}
+              value={<AnimatedNumber value={kpis?.pendingTimesheets} />}
             />
             <Button variant="outline" className="w-full mt-2" asChild>
               <Link href="/invoices">Gérer la facturation</Link>
@@ -311,7 +316,7 @@ function KPICard({
 }: {
   icon: React.ReactNode;
   label: string;
-  value: string | number;
+  value: React.ReactNode;
   accent: 'violet' | 'magenta' | 'emerald';
   hint?: string;
   title?: string;
@@ -347,7 +352,7 @@ function StatRow({
 }: {
   icon: React.ReactNode;
   label: string;
-  value: string | number;
+  value: React.ReactNode;
   highlight?: boolean;
 }) {
   return (

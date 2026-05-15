@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { cn } from '@/lib/utils';
 import { notifyDestructive, notifyError, notifyUpdated } from '@/lib/notify';
 
@@ -86,6 +87,10 @@ export default function TodosPage() {
     },
     { enabled: !!user?.id },
   );
+
+  // RLS user_todos = strict user_id = auth.uid() : seuls les events
+  // de MES todos arrivent (utile pour multi-onglet du même compte).
+  useRealtimeReload(['user_todos'], () => reload());
 
   const allTodos = todosData ?? [];
   const filtered = allTodos.filter((t) =>

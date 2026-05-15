@@ -32,6 +32,7 @@ import { InvoiceFormDialog } from '@/components/invoices/InvoiceFormDialog';
 import { invoiceService, type InvoiceListItem } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { usePagination } from '@/hooks/usePagination';
 import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE } from '@/constants';
@@ -57,6 +58,11 @@ export default function InvoicesPage() {
     { enabled: !!activeOrgId },
   );
   const invoices = invoicesData ?? [];
+
+  // Auto-sync : un collègue qui crée/édite/paie une facture est visible
+  // sans F5. invoice_items est inclus car les totaux peuvent changer.
+  useRealtimeReload(['invoices', 'invoice_items'], () => reload());
+
   const pagination = usePagination(invoices.length, {
     storageKey: 'invoices-page-size',
   });

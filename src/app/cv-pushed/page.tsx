@@ -36,6 +36,7 @@ import { RefuseMissionDialog } from '@/components/missions/RefuseMissionDialog';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { usePagination } from '@/hooks/usePagination';
 import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import { formatCurrency, relativeDate } from '@/lib/utils';
@@ -158,6 +159,9 @@ export default function CvPushedPage() {
     { enabled: !!activeOrgId },
   );
   const pushed = pushedData ?? [];
+
+  useRealtimeReload(['missions'], () => reload());
+
   const pagination = usePagination(pushed.length, {
     storageKey: 'cv-pushed-page-size',
   });

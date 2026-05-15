@@ -33,6 +33,7 @@ import { ContractFormDialog } from '@/components/contracts/ContractFormDialog';
 import { contractService } from '@/lib/services/contract.service';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { usePagination } from '@/hooks/usePagination';
 import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import type { Contract, ContractStatus } from '@/types';
@@ -82,6 +83,9 @@ export default function ContractsPage() {
     { enabled: !!activeOrgId },
   );
   const contracts = contractsData ?? [];
+
+  useRealtimeReload(['contracts'], () => reload());
+
   const pagination = usePagination(contracts.length, {
     storageKey: 'contracts-page-size',
   });

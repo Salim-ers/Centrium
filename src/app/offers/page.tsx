@@ -41,6 +41,7 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { usePagination } from '@/hooks/usePagination';
 import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import type { JobOffer } from '@/types';
@@ -100,6 +101,13 @@ export default function OffersPage() {
     { enabled: !!activeOrgId },
   );
   const allOffers = offersData ?? [];
+
+  // Sync temps réel : un collègue qui crée/édite/archive une offre, ou
+  // qui pousse un CV (crée une mission), est visible sans F5.
+  useRealtimeReload(['job_offers', 'missions'], () => {
+    reload();
+    reloadPushed();
+  });
 
   // Liste des job_offer_id ayant au moins une mission "vivante" (proposed
   // ou active, non archivée). On stocke en string[] dans le cache (JSON-

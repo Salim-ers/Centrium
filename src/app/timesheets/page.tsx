@@ -14,6 +14,7 @@ import { TimesheetFormDialog } from '@/components/timesheets/TimesheetFormDialog
 import { timesheetService } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { usePagination } from '@/hooks/usePagination';
 import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import type { Timesheet } from '@/types';
@@ -65,6 +66,9 @@ export default function TimesheetsPage() {
     { enabled: !!activeOrgId },
   );
   const timesheets = timesheetsData ?? [];
+
+  useRealtimeReload(['timesheets', 'timesheet_days'], () => reload());
+
   const pagination = usePagination(timesheets.length, {
     storageKey: 'timesheets-page-size',
   });

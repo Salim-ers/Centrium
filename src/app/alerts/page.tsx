@@ -17,6 +17,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { alertService, type ComputedAlert } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { relativeDate } from '@/lib/utils';
 import { notifyDestructive, notifyError } from '@/lib/notify';
 
@@ -117,6 +118,7 @@ export default function AlertsPage() {
     data: alertsData,
     loading,
     setData: setAlerts,
+    reload: reloadAlerts,
   } = useCachedQuery<ComputedAlert[]>(
     `alerts-computed:${activeOrgId ?? 'none'}`,
     async () => {
@@ -126,6 +128,15 @@ export default function AlertsPage() {
     { enabled: !!activeOrgId },
   );
   const alerts = alertsData ?? [];
+
+  // Les alertes computed se basent sur consultants/missions/invoices/timesheets/contacts.
+  // Le moindre changement sur l'une de ces tables peut faire apparaître ou
+  // disparaître une alerte — on relance le calcul.
+  useRealtimeReload(
+    ['alerts', 'consultants', 'missions', 'invoices', 'timesheets', 'contacts'],
+    () => reloadAlerts(),
+    { debounceMs: 500 },
+  );
 
   async function handleDismiss(alert: ComputedAlert) {
     if (!activeOrgId) return;

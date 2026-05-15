@@ -33,6 +33,7 @@ import { TalentTabs } from '@/components/consultants/TalentTabs';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { usePagination } from '@/hooks/usePagination';
 import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import { SENIORITY_LABEL } from '@/constants';
@@ -135,6 +136,9 @@ export default function EnMissionPage() {
     { enabled: !!activeOrgId },
   );
   const onMission = onMissionData ?? [];
+
+  useRealtimeReload(['missions', 'consultants'], () => reload());
+
   const pagination = usePagination(onMission.length, {
     storageKey: 'en-mission-page-size',
   });

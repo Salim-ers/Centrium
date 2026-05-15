@@ -29,6 +29,8 @@ import type { ParsedCV } from '@/lib/cv/parse-cv';
 import type { Consultant } from '@/types';
 import { PlanLimitDialog, type PlanLimitPayload } from '@/components/billing/PlanLimitDialog';
 import { AvailableFromField } from '@/components/consultants/AvailableFromField';
+import { broadcastOrgActivity } from '@/lib/realtime/org-activity';
+import { useOrganizationSafe } from '@/lib/auth/context';
 
 type Props = {
   open: boolean;
@@ -100,6 +102,7 @@ export function ConsultantFormDialog({
 }: Props) {
   const [saving, setSaving] = useState(false);
   const [planLimit, setPlanLimit] = useState<PlanLimitPayload | null>(null);
+  const org = useOrganizationSafe();
   const [createPortal, setCreatePortal] = useState(false);
   const [portalEmail, setPortalEmail] = useState('');
   const [parsingCV, setParsingCV] = useState(false);
@@ -284,6 +287,13 @@ export function ConsultantFormDialog({
           return;
         }
         notifyUpdated(`${values.first_name} ${values.last_name} mis à jour`);
+        void broadcastOrgActivity(
+          org?.activeOrgId,
+          org?.user?.id,
+          'consultant_updated',
+          `${values.first_name} ${values.last_name}`,
+          '/consultants',
+        );
         onSaved?.(payload.data as Consultant);
       } else {
         // Création via API — gère optionnellement la création du compte portail
@@ -338,6 +348,13 @@ export function ConsultantFormDialog({
           ? ` · ${applied.skillsAdded} compétences + ${applied.experiencesAdded} expériences importées`
           : '';
         notifyCreated(baseMsg + cvMsg);
+        void broadcastOrgActivity(
+          org?.activeOrgId,
+          org?.user?.id,
+          'consultant_created',
+          `${values.first_name} ${values.last_name}`,
+          '/consultants',
+        );
         onSaved?.(payload.data);
       }
       reset();

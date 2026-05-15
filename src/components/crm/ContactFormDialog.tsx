@@ -25,6 +25,8 @@ import { contactSchema, type ContactInput } from '@/lib/validators';
 import { contactService } from '@/lib/services';
 import { CONTACT_TYPE_LABEL } from '@/constants';
 import type { Contact } from '@/types';
+import { broadcastOrgActivity } from '@/lib/realtime/org-activity';
+import { useOrganizationSafe } from '@/lib/auth/context';
 
 type Props = {
   open: boolean;
@@ -59,6 +61,7 @@ export function ContactFormDialog({
 }: Props) {
   const [saving, setSaving] = useState(false);
   const isEdit = !!contact;
+  const org = useOrganizationSafe();
 
   const {
     register,
@@ -101,6 +104,14 @@ export function ContactFormDialog({
       } else {
         notifyCreated(`${fullName} ajouté au carnet`);
       }
+      // Diffuse aux collègues — toast non bloquant chez eux.
+      void broadcastOrgActivity(
+        org?.activeOrgId,
+        org?.user?.id,
+        isEdit ? 'contact_updated' : 'contact_created',
+        fullName,
+        '/contacts',
+      );
       onSaved?.(res.data);
       reset();
       onOpenChange(false);

@@ -13,6 +13,7 @@ import { OpportunityFormDialog } from '@/components/crm/OpportunityFormDialog';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useCrmRealtime, type PeerDrag } from '@/hooks/useCrmRealtime';
+import { broadcastOrgActivity } from '@/lib/realtime/org-activity';
 import type { Opportunity, OpportunityStatus } from '@/types';
 import { OPPORTUNITY_STATUS_LABEL } from '@/constants';
 import { formatCurrency, relativeDate, cn } from '@/lib/utils';
@@ -45,7 +46,7 @@ const COLUMN_DOT: Record<OpportunityStatus, string> = {
 const DRAG_MIME = 'application/x-opportunity-id';
 
 export default function CRMPage() {
-  const { activeOrgId } = useOrganization();
+  const { activeOrgId, user } = useOrganization();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingOpp, setEditingOpp] = useState<Opportunity | null>(null);
   // États drag & drop
@@ -117,6 +118,14 @@ export default function CRMPage() {
       return;
     }
     toast.success(`Déplacé vers ${OPPORTUNITY_STATUS_LABEL[newStatus]}`);
+    // Notifie les collègues : "Salim a déplacé Mission Acme"
+    void broadcastOrgActivity(
+      activeOrgId,
+      user?.id,
+      'opportunity_moved',
+      `${current.title} → ${OPPORTUNITY_STATUS_LABEL[newStatus]}`,
+      '/crm',
+    );
   }
 
   async function deleteOpportunity(id: string, title: string) {
@@ -128,6 +137,7 @@ export default function CRMPage() {
     }
     setOpportunities((prev) => (prev ?? []).filter((o) => o.id !== id));
     toast.success('Opportunité supprimée');
+    void broadcastOrgActivity(activeOrgId, user?.id, 'opportunity_deleted', title, '/crm');
   }
 
   // ============ Handlers Drag & Drop ============
