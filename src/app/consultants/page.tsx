@@ -435,7 +435,7 @@ export default function ConsultantsPage() {
                   <TableRow key={c.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-full bg-qc-gradient flex items-center justify-center text-white text-xs font-semibold">
+                        <div className="h-9 w-9 shrink-0 rounded-full bg-qc-gradient flex items-center justify-center text-white text-xs font-semibold">
                           {c.first_name[0]}
                           {c.last_name[0]}
                         </div>
