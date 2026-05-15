@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 
+import { toast } from 'sonner';
 import { notifyCreated, notifyUpdated, notifyError } from '@/lib/notify';
 
 import {
@@ -80,6 +81,17 @@ export function ContactFormDialog({
         ? await contactService.update(contact!.id, values)
         : await contactService.create(values, organizationId);
       if (res.error) {
+        // Cas anti-doublon : on a injecté un message explicite côté service.
+        // On le toast en "warning" plutôt qu'en "error" — c'est une saisie à
+        // corriger, pas un bug technique.
+        const code = (res.error as { code?: string }).code;
+        if (
+          code === '23505' ||
+          /existe déjà dans le carnet/i.test(res.error.message)
+        ) {
+          toast.warning(res.error.message, { duration: 6000 });
+          return;
+        }
         notifyError('Erreur : ' + res.error.message);
         return;
       }

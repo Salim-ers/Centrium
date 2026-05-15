@@ -25,6 +25,37 @@ import type {
 } from '@/lib/validators';
 
 // =========================================================================
+// Helpers anti-doublon
+// =========================================================================
+
+/**
+ * Détecte un conflit d'unicité sur (org, email) côté contacts (cf. migration
+ * 055) et renvoie un Error avec un message explicite que les dialogs CRUD
+ * peuvent toaster directement. Les autres erreurs sont passées telles quelles.
+ *
+ * Postgres renvoie code='23505' pour une violation d'index unique ;
+ * Supabase expose ça dans `error.code`. On garde aussi un fallback regex
+ * sur le nom de l'index au cas où.
+ */
+type PgLikeError = Error & { code?: string };
+
+function mapContactDuplicate(error: Error & { code?: string }, email?: string | null): PgLikeError {
+  const isDup =
+    error.code === '23505' || /contacts_org_email_active_unique/i.test(error.message);
+  if (!isDup) return error;
+  const target = email?.trim() ? ` (${email.trim()})` : '';
+  // On ne mute pas l'erreur d'origine : on retourne une copie qui conserve
+  // .code (utile pour discriminer côté UI) et hérite du nom "Error".
+  const friendly: PgLikeError = Object.assign(
+    new Error(
+      `Ce contact${target} existe déjà dans le carnet. Édite la fiche existante au lieu d'en créer une nouvelle.`,
+    ),
+    { code: error.code },
+  );
+  return friendly;
+}
+
+// =========================================================================
 // Opportunities
 // =========================================================================
 
@@ -202,7 +233,7 @@ export const contactService = {
       .insert({ ...input, organization_id: organizationId })
       .select()
       .single();
-    if (error) return { data: null, error };
+    if (error) return { data: null, error: mapContactDuplicate(error, input.email) };
     return { data: data as Contact, error: null };
   },
 
@@ -214,7 +245,7 @@ export const contactService = {
       .eq('id', id)
       .select()
       .single();
-    if (error) return { data: null, error };
+    if (error) return { data: null, error: mapContactDuplicate(error, input.email) };
     return { data: data as Contact, error: null };
   },
 
