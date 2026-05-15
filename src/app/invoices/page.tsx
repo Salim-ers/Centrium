@@ -32,6 +32,8 @@ import { InvoiceFormDialog } from '@/components/invoices/InvoiceFormDialog';
 import { invoiceService, type InvoiceListItem } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE } from '@/constants';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
@@ -55,6 +57,10 @@ export default function InvoicesPage() {
     { enabled: !!activeOrgId },
   );
   const invoices = invoicesData ?? [];
+  const pagination = usePagination(invoices.length, {
+    storageKey: 'invoices-page-size',
+  });
+  const paginatedInvoices = pagination.paginate(invoices);
 
   async function markPaid(id: string) {
     const res = await invoiceService.markAsPaid(id);
@@ -196,7 +202,7 @@ export default function InvoicesPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                invoices.map((inv) => {
+                paginatedInvoices.map((inv) => {
                   // Le consultant peut venir d'une mission liée OU d'un
                   // lien direct sur la facture (cas des factures manuelles).
                   const c = inv.mission?.consultant ?? inv.consultant ?? null;
@@ -304,6 +310,12 @@ export default function InvoicesPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <PaginationFooter
+        pagination={pagination}
+        total={invoices.length}
+        itemLabel="facture"
+      />
     </AppShell>
   );
 }

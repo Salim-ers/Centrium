@@ -36,6 +36,8 @@ import { RefuseMissionDialog } from '@/components/missions/RefuseMissionDialog';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import { formatCurrency, relativeDate } from '@/lib/utils';
 import { notifyDestructive, notifyError, notifyCreated } from '@/lib/notify';
 
@@ -156,6 +158,10 @@ export default function CvPushedPage() {
     { enabled: !!activeOrgId },
   );
   const pushed = pushedData ?? [];
+  const pagination = usePagination(pushed.length, {
+    storageKey: 'cv-pushed-page-size',
+  });
+  const paginatedPushed = pagination.paginate(pushed);
 
   async function validateMission(row: PushedRow) {
     if (
@@ -346,7 +352,7 @@ export default function CvPushedPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                pushed.map((r) => {
+                paginatedPushed.map((r) => {
                   const busy = busyId === r.mission_id;
                   return (
                     <TableRow key={r.mission_id}>
@@ -528,6 +534,12 @@ export default function CvPushedPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <PaginationFooter
+        pagination={pagination}
+        total={pushed.length}
+        itemLabel="proposition"
+      />
 
       <RefuseMissionDialog
         open={!!refuseRow}

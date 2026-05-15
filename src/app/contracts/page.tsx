@@ -33,6 +33,8 @@ import { ContractFormDialog } from '@/components/contracts/ContractFormDialog';
 import { contractService } from '@/lib/services/contract.service';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import type { Contract, ContractStatus } from '@/types';
 import { formatDate, formatCurrency } from '@/lib/utils';
 
@@ -80,6 +82,10 @@ export default function ContractsPage() {
     { enabled: !!activeOrgId },
   );
   const contracts = contractsData ?? [];
+  const pagination = usePagination(contracts.length, {
+    storageKey: 'contracts-page-size',
+  });
+  const paginatedContracts = pagination.paginate(contracts);
 
   async function updateStatus(id: string, status: ContractStatus) {
     const res = await contractService.updateStatus(id, status);
@@ -201,7 +207,7 @@ export default function ContractsPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    contracts.map((c) => (
+                    paginatedContracts.map((c) => (
                       <TableRow key={c.id}>
                         <TableCell className="font-mono font-medium">{c.contract_number}</TableCell>
                         <TableCell className="max-w-xs">
@@ -309,6 +315,12 @@ export default function ContractsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <PaginationFooter
+        pagination={pagination}
+        total={contracts.length}
+        itemLabel="contrat"
+      />
 
       <ContractFormDialog
         open={dialogOpen}

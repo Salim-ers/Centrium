@@ -40,6 +40,8 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import type { JobOffer } from '@/types';
 import { formatCurrency, relativeDate } from '@/lib/utils';
 import { exportJobOfferPoster } from '@/lib/offers/export-poster';
@@ -189,6 +191,10 @@ export default function OffersPage() {
         ? cityFilter.has(o.location)
         : false,
   );
+  const pagination = usePagination(offers.length, {
+    storageKey: 'offers-page-size',
+  });
+  const paginatedOffers = pagination.paginate(offers);
 
   function openCreate() {
     setEditing(null);
@@ -444,7 +450,7 @@ export default function OffersPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                offers.map((o) => {
+                paginatedOffers.map((o) => {
                   // TJM unique : on lit max en priorité, fallback min.
                   const tjm = o.daily_rate_max ?? o.daily_rate_min ?? null;
                   return (
@@ -619,6 +625,12 @@ export default function OffersPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <PaginationFooter
+        pagination={pagination}
+        total={offers.length}
+        itemLabel="offre"
+      />
     </AppShell>
   );
 }

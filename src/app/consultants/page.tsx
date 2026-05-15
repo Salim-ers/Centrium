@@ -18,8 +18,6 @@ import {
   FileUp,
   KeyRound,
   Send,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -56,6 +54,8 @@ import {
 } from '@/lib/services/consultant.service';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import type { Consultant } from '@/types';
 import {
   CONSULTANT_STATUS_LABEL,
@@ -86,34 +86,11 @@ export default function ConsultantsPage() {
   const [cityFilter, setCityFilter] = useState<Set<string>>(new Set());
   const [csvOpen, setCsvOpen] = useState(false);
   const [grantingPortal, setGrantingPortal] = useState<Consultant | null>(null);
-  // Pagination : page courante (1-indexed) + nb d'éléments / page.
-  // Préférence persistée en localStorage pour rester stable d'une visite à l'autre.
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState<number>(() => {
-    if (typeof window === 'undefined') return 20;
-    const stored = window.localStorage.getItem('consultants-page-size');
-    const n = stored ? Number(stored) : NaN;
-    return Number.isFinite(n) && n > 0 ? n : 20;
-  });
-
-  function changePageSize(n: number) {
-    setPageSize(n);
-    setPage(1);
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('consultants-page-size', String(n));
-    }
-  }
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 200);
     return () => clearTimeout(t);
   }, [search]);
-
-  // Reset page à 1 quand les filtres changent — sinon on peut se retrouver
-  // sur une page vide après avoir réduit le périmètre.
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, showArchived, familyFilter, cityFilter]);
 
   const {
     data: consultantsData,
@@ -184,14 +161,11 @@ export default function ConsultantsPage() {
   const consultants = familyFiltered.filter((c) =>
     cityFilter.size === 0 ? true : c.city ? cityFilter.has(c.city) : false,
   );
-
-  // Pagination dérivée
   const totalCount = consultants.length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const safePage = Math.min(Math.max(1, page), totalPages);
-  const paginated = consultants.slice((safePage - 1) * pageSize, safePage * pageSize);
-  const firstShown = totalCount === 0 ? 0 : (safePage - 1) * pageSize + 1;
-  const lastShown = Math.min(safePage * pageSize, totalCount);
+  const pagination = usePagination(totalCount, {
+    storageKey: 'consultants-page-size',
+  });
+  const paginated = pagination.paginate(consultants);
 
   function openCreate() {
     setEditingConsultant(null);
@@ -568,55 +542,11 @@ export default function ConsultantsPage() {
         </CardContent>
       </Card>
 
-      {/* Pagination footer */}
-      {totalCount > 0 && (
-        <div className="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="text-xs text-muted-foreground">
-            {firstShown}–{lastShown} sur {totalCount} profil{totalCount > 1 ? 's' : ''}
-          </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <label className="text-xs text-muted-foreground inline-flex items-center gap-2">
-              Par page
-              <Select
-                value={String(pageSize)}
-                onChange={(e) => changePageSize(Number(e.target.value))}
-                className="h-8 w-[80px] text-xs px-2"
-              >
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </Select>
-            </label>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={safePage <= 1}
-                className="h-8 px-2"
-                title="Page précédente"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-xs text-muted-foreground px-2 min-w-[80px] text-center">
-                Page {safePage} / {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={safePage >= totalPages}
-                className="h-8 px-2"
-                title="Page suivante"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PaginationFooter
+        pagination={pagination}
+        total={totalCount}
+        itemLabel="profil"
+      />
     </AppShell>
   );
 }

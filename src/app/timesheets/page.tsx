@@ -14,6 +14,8 @@ import { TimesheetFormDialog } from '@/components/timesheets/TimesheetFormDialog
 import { timesheetService } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import type { Timesheet } from '@/types';
 
 const MONTHS = [
@@ -63,6 +65,10 @@ export default function TimesheetsPage() {
     { enabled: !!activeOrgId },
   );
   const timesheets = timesheetsData ?? [];
+  const pagination = usePagination(timesheets.length, {
+    storageKey: 'timesheets-page-size',
+  });
+  const paginatedTimesheets = pagination.paginate(timesheets);
 
   async function removeTimesheet(t: Timesheet) {
     const period = `${MONTHS[t.period_month - 1]} ${t.period_year}`;
@@ -155,7 +161,7 @@ export default function TimesheetsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                timesheets.map((t) => (
+                paginatedTimesheets.map((t) => (
                   <TableRow key={t.id}>
                     <TableCell className="font-medium">
                       {MONTHS[t.period_month - 1]} {t.period_year}
@@ -199,6 +205,13 @@ export default function TimesheetsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <PaginationFooter
+        pagination={pagination}
+        total={timesheets.length}
+        itemLabel="CRA"
+        itemLabelPlural="CRA"
+      />
     </AppShell>
   );
 }

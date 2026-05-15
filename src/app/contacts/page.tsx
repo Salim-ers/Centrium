@@ -40,6 +40,8 @@ import { Input } from '@/components/ui/input';
 import { contactService } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import type { Contact } from '@/types';
 import { CONTACT_TYPE_LABEL } from '@/constants';
 import { relativeDate } from '@/lib/utils';
@@ -121,6 +123,10 @@ export default function ContactsPage() {
         ),
       )
     : allContacts;
+  const pagination = usePagination(contacts.length, {
+    storageKey: 'contacts-page-size',
+  });
+  const paginatedContacts = pagination.paginate(contacts);
 
   function openCreate() {
     setEditingContact(null);
@@ -265,7 +271,7 @@ export default function ContactsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                contacts.map((c) => {
+                paginatedContacts.map((c) => {
                   const latest = latestByContact.get(c.id) ?? null;
                   const lastDate = latest?.created_at ?? c.last_interaction ?? null;
                   const hasReminder = !!c.next_call_reminder;
@@ -388,6 +394,12 @@ export default function ContactsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <PaginationFooter
+        pagination={pagination}
+        total={contacts.length}
+        itemLabel="contact"
+      />
     </AppShell>
   );
 }

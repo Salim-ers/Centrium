@@ -33,6 +33,8 @@ import { TalentTabs } from '@/components/consultants/TalentTabs';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import { SENIORITY_LABEL } from '@/constants';
 import { formatCurrency } from '@/lib/utils';
 import { notifyDestructive, notifyError } from '@/lib/notify';
@@ -133,6 +135,10 @@ export default function EnMissionPage() {
     { enabled: !!activeOrgId },
   );
   const onMission = onMissionData ?? [];
+  const pagination = usePagination(onMission.length, {
+    storageKey: 'en-mission-page-size',
+  });
+  const paginatedMissions = pagination.paginate(onMission);
 
   const totalDailyRevenue = onMission.reduce(
     (sum, r) => sum + (r.daily_rate_eur ?? 0),
@@ -334,7 +340,7 @@ export default function EnMissionPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                onMission.map((r) => {
+                paginatedMissions.map((r) => {
                   const busy = busyId === r.mission_id;
                   return (
                     <TableRow key={r.mission_id}>
@@ -467,6 +473,12 @@ export default function EnMissionPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <PaginationFooter
+        pagination={pagination}
+        total={onMission.length}
+        itemLabel="mission"
+      />
     </AppShell>
   );
 }
