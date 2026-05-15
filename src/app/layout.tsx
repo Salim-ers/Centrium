@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk } from 'next/font/google';
 import { Toaster } from 'sonner';
 import './globals.css';
 import { OrganizationProvider } from '@/lib/auth/context';
+import { RouteThemeManager } from '@/components/theme/RouteThemeManager';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const spaceGrotesk = Space_Grotesk({
@@ -17,14 +18,28 @@ export const metadata: Metadata = {
 };
 
 // Script inline exécuté avant l'hydratation React pour appliquer la bonne classe
-// de thème sans flash. Lit localStorage puis fallback préférence système.
+// de thème sans flash. Cas particulier : les pages publiques (landing, login,
+// devis, pricing, auth/invite) sont FORCÉES en sombre indépendamment de la
+// préférence utilisateur — seules les pages connectées de l'app proposent
+// le clair/sombre.
 const themeBootstrapScript = `
 (function() {
   try {
-    var stored = localStorage.getItem('centrium-theme');
-    var theme = stored;
-    if (theme !== 'light' && theme !== 'dark') {
-      theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    var path = window.location.pathname;
+    var forcedDarkPaths = ['/', '/login', '/signup', '/register', '/devis', '/pricing'];
+    var forcedDarkPrefixes = ['/auth/', '/invite/'];
+    var isForcedDark =
+      forcedDarkPaths.indexOf(path) !== -1 ||
+      forcedDarkPrefixes.some(function (p) { return path.indexOf(p) === 0; });
+    var theme;
+    if (isForcedDark) {
+      theme = 'dark';
+    } else {
+      var stored = localStorage.getItem('centrium-theme');
+      theme = stored;
+      if (theme !== 'light' && theme !== 'dark') {
+        theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      }
     }
     if (theme === 'dark') document.documentElement.classList.add('dark');
     document.documentElement.style.colorScheme = theme;
@@ -45,6 +60,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
       </head>
       <body className="font-sans">
+        <RouteThemeManager />
         <OrganizationProvider>{children}</OrganizationProvider>
         <Toaster
           position="top-right"
