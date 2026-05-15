@@ -25,10 +25,13 @@ section[id] {
      Le fond reste très clair pour la lisibilité mais avec une teinte
      subtile pour éviter l'effet "blanc clinique". */
   :root {
-    --background: 250 50% 99%;            /* presque blanc, teinté violet */
+    /* Background un peu désaturé (95% au lieu de 99%) → moins agressif
+       que du blanc clinique, plus reposant pour les yeux quand le
+       contenu fait beaucoup de lecture. Toujours clair, mais teinté. */
+    --background: 250 30% 96%;
     --foreground: 240 40% 10%;            /* near-black bleuté profond */
 
-    --card: 0 0% 100%;
+    --card: 250 35% 99%;                  /* cartes légèrement plus claires que le bg */
     --card-foreground: 240 40% 10%;
 
     --popover: 0 0% 100%;
@@ -37,11 +40,11 @@ section[id] {
     --primary: 328 92% 55%;               /* rose-magenta (dominant désormais) */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 330 30% 96%;
+    --secondary: 330 30% 93%;
     --secondary-foreground: 240 40% 10%;
 
-    --muted: 330 30% 96%;
-    --muted-foreground: 240 12% 42%;
+    --muted: 330 30% 93%;
+    --muted-foreground: 240 12% 38%;      /* un peu plus contrasté pour les textes secondaires */
 
     --accent: 270 95% 58%;                /* violet en accent secondaire */
     --accent-foreground: 0 0% 100%;
@@ -49,17 +52,17 @@ section[id] {
     --destructive: 0 75% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 330 30% 90%;
-    --input: 330 30% 90%;
+    --border: 250 25% 85%;
+    --input: 250 25% 85%;
     --ring: 328 92% 55%;
 
     --radius: 0.75rem;
 
     /* Surfaces neutres réutilisables — substituts des `bg-white/X` du dark. */
-    --surface-1: 250 50% 100%;            /* card top */
-    --surface-2: 250 40% 97%;             /* card hover */
-    --surface-3: 250 35% 94%;             /* divider doux */
-    --hairline: 250 30% 88%;              /* trait fin */
+    --surface-1: 250 35% 99%;             /* card top */
+    --surface-2: 250 30% 95%;             /* card hover */
+    --surface-3: 250 25% 91%;             /* divider doux */
+    --hairline: 250 22% 83%;              /* trait fin plus visible */
   }
 
   /* ============ DARK MODE ============ */

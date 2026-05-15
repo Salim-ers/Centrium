@@ -84,11 +84,11 @@ export function UsageBanner({ resource, hideUntilWarn = false }: Props) {
   // fondateurs ("où en sommes-nous ?").
   if (usage.exempt) {
     return (
-      <div className="mb-4 rounded-lg border border-amber-400/40 bg-gradient-to-r from-amber-500/[0.07] to-rose-500/[0.05] px-4 py-3">
+      <div className="mb-4 rounded-lg border border-amber-500/50 dark:border-amber-400/40 bg-gradient-to-r from-amber-500/[0.12] to-rose-500/[0.08] dark:from-amber-500/[0.07] dark:to-rose-500/[0.05] px-4 py-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 text-sm">
-            <Sparkles className="h-4 w-4 text-amber-300" />
-            <span className="font-semibold text-amber-200">
+            <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-300" />
+            <span className="font-semibold text-amber-700 dark:text-amber-200">
               {used} / illimité {label}
             </span>
             <span className="text-muted-foreground text-xs">
@@ -112,24 +112,24 @@ export function UsageBanner({ resource, hideUntilWarn = false }: Props) {
 
   const tone = isFull
     ? {
-        border: 'border-red-500/40',
-        bg: 'bg-red-500/[0.06]',
-        text: 'text-red-300',
+        border: 'border-red-500/50 dark:border-red-500/40',
+        bg: 'bg-red-500/[0.08] dark:bg-red-500/[0.06]',
+        text: 'text-red-700 dark:text-red-300',
         bar: 'bg-red-500',
         Icon: ShieldAlert,
       }
     : isWarn
       ? {
-          border: 'border-amber-500/40',
-          bg: 'bg-amber-500/[0.06]',
-          text: 'text-amber-300',
+          border: 'border-amber-500/50 dark:border-amber-500/40',
+          bg: 'bg-amber-500/[0.10] dark:bg-amber-500/[0.06]',
+          text: 'text-amber-700 dark:text-amber-300',
           bar: 'bg-amber-500',
           Icon: AlertTriangle,
         }
       : {
-          border: 'border-violet-500/30',
-          bg: 'bg-violet-500/[0.04]',
-          text: 'text-violet-300',
+          border: 'border-violet-500/40 dark:border-violet-500/30',
+          bg: 'bg-violet-500/[0.07] dark:bg-violet-500/[0.04]',
+          text: 'text-violet-700 dark:text-violet-300',
           bar: 'bg-violet-500',
           Icon: TrendingUp,
         };

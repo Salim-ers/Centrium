@@ -35,11 +35,11 @@ export function JobFamilyFilter({ counts, total, active, onChange }: Props) {
           'h-7 px-3 rounded-full text-[11px] font-semibold uppercase tracking-wider border transition',
           active.size === 0
             ? 'border-violet-glow/60 bg-violet-glow/15 text-violet-glow'
-            : 'border-hairline text-white/60 hover:border-white/25 hover:text-white/80',
+            : 'border-hairline text-muted-foreground hover:border-foreground/25 hover:text-foreground',
         )}
       >
         Tous
-        <span className="ml-1.5 text-white/40">{total}</span>
+        <span className="ml-1.5 text-muted-foreground/60">{total}</span>
       </button>
 
       {visible.map((fam) => {
@@ -54,11 +54,11 @@ export function JobFamilyFilter({ counts, total, active, onChange }: Props) {
               'h-7 px-3 rounded-full text-[11px] font-semibold uppercase tracking-wider border transition',
               isActive
                 ? 'border-violet-glow/60 bg-violet-glow/15 text-violet-glow'
-                : 'border-hairline text-white/60 hover:border-white/25 hover:text-white/80',
+                : 'border-hairline text-muted-foreground hover:border-foreground/25 hover:text-foreground',
             )}
           >
             {fam.label}
-            <span className="ml-1.5 text-white/40">{count}</span>
+            <span className="ml-1.5 text-muted-foreground/60">{count}</span>
           </button>
         );
       })}
@@ -71,11 +71,11 @@ export function JobFamilyFilter({ counts, total, active, onChange }: Props) {
             'h-7 px-3 rounded-full text-[11px] font-semibold uppercase tracking-wider border transition',
             active.has('other')
               ? 'border-violet-glow/60 bg-violet-glow/15 text-violet-glow'
-              : 'border-hairline text-white/60 hover:border-white/25 hover:text-white/80',
+              : 'border-hairline text-muted-foreground hover:border-foreground/25 hover:text-foreground',
           )}
         >
           Autres
-          <span className="ml-1.5 text-white/40">{otherCount}</span>
+          <span className="ml-1.5 text-muted-foreground/60">{otherCount}</span>
         </button>
       )}
     </div>
