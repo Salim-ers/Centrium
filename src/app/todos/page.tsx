@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -98,7 +98,6 @@ const PRIORITY_RANK: Record<Todo['priority'], number> = { high: 0, medium: 1, lo
 export default function TodosPage() {
   const { user, activeOrgId } = useOrganization();
   const [filter, setFilter] = useState<'pending' | 'done' | 'all'>('pending');
-  const [scope, setScope] = useState<'mine' | 'team' | 'all'>('all');
   const [editing, setEditing] = useState<Todo | null>(null);
   const [showForm, setShowForm] = useState(false);
   // Dialog "détail" : ouvert au clic sur le titre/description d'une todo.
@@ -200,36 +199,42 @@ export default function TodosPage() {
     return m;
   }, [orgMembers]);
 
-  const scoped = useMemo(() => {
-    if (!user?.id) return allTodos;
-    if (scope === 'mine') return allTodos.filter((t) => t.user_id === user.id);
-    if (scope === 'team') return allTodos.filter((t) => t.shared);
-    return allTodos;
-  }, [allTodos, scope, user?.id]);
+  // Tri commun : non-cochés en haut, par priorité, puis date d'échéance,
+  // puis création. Appliqué à chaque sous-liste.
+  const sortTodos = (list: Todo[]) =>
+    list.slice().sort((a, b) => {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      if (a.priority !== b.priority)
+        return PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
+      const ad = a.due_date ? new Date(a.due_date).getTime() : Infinity;
+      const bd = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+      if (ad !== bd) return ad - bd;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
-  const filtered = scoped.filter((t) =>
-    filter === 'pending' ? !t.done : filter === 'done' ? t.done : true,
+  // Split en deux tableaux distincts :
+  //   - Perso : tâches que j'ai créées (peu importe partagées/pinguées)
+  //   - Équipe : tâches que je vois sans en être l'auteur (partagées par
+  //     un collègue, ou pinguées sur moi)
+  const myId = user?.id ?? null;
+  const filterByStatus = (t: Todo) =>
+    filter === 'pending' ? !t.done : filter === 'done' ? t.done : true;
+
+  const mineAll = useMemo(
+    () => allTodos.filter((t) => myId !== null && t.user_id === myId),
+    [allTodos, myId],
   );
-  // Tri : non-cochés en haut, par priorité, puis date d'échéance, puis création.
-  const todos = filtered.slice().sort((a, b) => {
-    if (a.done !== b.done) return a.done ? 1 : -1;
-    if (a.priority !== b.priority)
-      return PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
-    const ad = a.due_date ? new Date(a.due_date).getTime() : Infinity;
-    const bd = b.due_date ? new Date(b.due_date).getTime() : Infinity;
-    if (ad !== bd) return ad - bd;
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+  const teamAll = useMemo(
+    () => allTodos.filter((t) => myId !== null && t.user_id !== myId),
+    [allTodos, myId],
+  );
+  const mineTodos = sortTodos(mineAll.filter(filterByStatus));
+  const teamTodos = sortTodos(teamAll.filter(filterByStatus));
 
   const counts = {
-    pending: scoped.filter((t) => !t.done).length,
-    done: scoped.filter((t) => t.done).length,
-    all: scoped.length,
-  };
-  const scopeCounts = {
-    mine: user?.id ? allTodos.filter((t) => t.user_id === user.id).length : 0,
-    team: allTodos.filter((t) => t.shared).length,
-    all: allTodos.length,
+    pending: mineAll.filter((t) => !t.done).length + teamAll.filter((t) => !t.done).length,
+    done: mineAll.filter((t) => t.done).length + teamAll.filter((t) => t.done).length,
+    all: mineAll.length + teamAll.length,
   };
 
   async function toggleDone(todo: Todo) {
@@ -342,59 +347,31 @@ export default function TodosPage() {
         </Button>
       </div>
 
-      {/* Deux barres sur la MÊME ligne :
-          - À gauche (rouge) : scope = qui voit la tâche
-          - À droite (violet) : status = état de la tâche
-          Les deux gardent leur background neutre mais leurs chips se
-          colorent quand actifs selon la palette du groupe. */}
-      <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-1 rounded-lg border border-hairline bg-white/[0.02] p-1 w-fit">
-          <FilterChip
-            tone="red"
-            active={scope === 'all'}
-            onClick={() => setScope('all')}
-            label="Toutes"
-            count={scopeCounts.all}
-          />
-          <FilterChip
-            tone="red"
-            active={scope === 'mine'}
-            onClick={() => setScope('mine')}
-            label="Mes tâches"
-            count={scopeCounts.mine}
-          />
-          <FilterChip
-            tone="red"
-            active={scope === 'team'}
-            onClick={() => setScope('team')}
-            label="Équipe"
-            count={scopeCounts.team}
-          />
-        </div>
-
-        <div className="flex items-center gap-1 rounded-lg border border-hairline bg-white/[0.02] p-1 w-fit">
-          <FilterChip
-            tone="violet"
-            active={filter === 'pending'}
-            onClick={() => setFilter('pending')}
-            label="À faire"
-            count={counts.pending}
-          />
-          <FilterChip
-            tone="violet"
-            active={filter === 'done'}
-            onClick={() => setFilter('done')}
-            label="Terminées"
-            count={counts.done}
-          />
-          <FilterChip
-            tone="violet"
-            active={filter === 'all'}
-            onClick={() => setFilter('all')}
-            label="Toutes"
-            count={counts.all}
-          />
-        </div>
+      {/* Une seule barre maintenant : status (À faire / Terminées / Toutes)
+          appliqué aux deux tableaux. Le "scope" est devenu superflu puisque
+          la séparation visuelle Perso / Équipe le remplace. */}
+      <div className="mb-4 flex items-center gap-1 rounded-lg border border-hairline bg-white/[0.02] p-1 w-fit">
+        <FilterChip
+          tone="violet"
+          active={filter === 'pending'}
+          onClick={() => setFilter('pending')}
+          label="À faire"
+          count={counts.pending}
+        />
+        <FilterChip
+          tone="violet"
+          active={filter === 'done'}
+          onClick={() => setFilter('done')}
+          label="Terminées"
+          count={counts.done}
+        />
+        <FilterChip
+          tone="violet"
+          active={filter === 'all'}
+          onClick={() => setFilter('all')}
+          label="Toutes"
+          count={counts.all}
+        />
       </div>
 
       {showForm && (
@@ -448,198 +425,240 @@ export default function TodosPage() {
         onToggleShare={(t) => toggleShare(t)}
       />
 
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
+      {/* Helper inline pour rendre une ligne de todo, réutilisé par les
+          deux tableaux Perso / Équipe pour éviter la duplication. */}
+      {(() => {
+        const renderRow = (t: Todo) => {
+          const isMine = t.user_id === user?.id;
+          const owner = isMine ? null : ownerProfiles.get(t.user_id) ?? null;
+          const ownerColor = owner ? presenceColor(owner.id) : null;
+          const ownerInitials = owner
+            ? presenceInitials(owner.first_name, owner.last_name, owner.email)
+            : '';
+          const ownerName = owner
+            ? presenceDisplayName(owner.first_name, owner.last_name, owner.email)
+            : '';
+          return (
+            <li
+              key={t.id}
+              className={cn(
+                'flex items-start gap-3 px-4 py-3 transition',
+                t.done && 'opacity-60',
+                t.shared && !isMine && 'bg-violet-glow/[0.03]',
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => toggleDone(t)}
+                className="mt-0.5 shrink-0 text-muted-foreground hover:text-violet-glow transition"
+                title={t.done ? 'Marquer non fait' : 'Marquer fait'}
+              >
+                {t.done ? (
+                  <CheckSquare className="h-5 w-5 text-emerald-400" />
+                ) : (
+                  <Square className="h-5 w-5" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewing(t)}
+                className="flex-1 min-w-0 text-left rounded-md -mx-2 px-2 py-1 hover:bg-white/[0.02] transition cursor-pointer"
+                title="Voir les détails"
+              >
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    className={cn(
+                      'font-medium',
+                      t.done && 'line-through text-muted-foreground',
+                    )}
+                  >
+                    {t.title}
+                  </span>
+                  <Badge variant="outline" className={cn('text-[10px]', PRIORITY_STYLE[t.priority])}>
+                    {PRIORITY_LABEL[t.priority]}
+                  </Badge>
+                  {t.shared && (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] border-violet-glow/40 bg-violet-glow/[0.08] text-violet-glow inline-flex items-center gap-1"
+                      title="Tâche partagée avec l'équipe"
+                    >
+                      <Globe className="h-3 w-3" />
+                      Équipe
+                    </Badge>
+                  )}
+                  {t.pinged_user_id &&
+                    (() => {
+                      const m = memberById.get(t.pinged_user_id);
+                      if (!m) return null;
+                      const name = `${m.first_name ?? ''} ${m.last_name ?? ''}`.trim() || m.email;
+                      const pingedSelf = t.pinged_user_id === user?.id;
+                      const fromName = pingedSelf
+                        ? memberById.get(t.user_id)?.first_name ?? 'Un collègue'
+                        : '';
+                      return (
+                        <span
+                          className={cn(
+                            'inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border',
+                            pingedSelf
+                              ? 'border-amber-500/60 bg-amber-500/15 text-amber-300'
+                              : 'border-violet-glow/40 bg-violet-glow/[0.08] text-violet-glow',
+                          )}
+                          title={pingedSelf ? `${fromName} t'a pingué sur cette tâche` : `Ping → ${name}`}
+                        >
+                          <Users className="h-3 w-3" />
+                          {pingedSelf ? `Pingué par ${fromName}` : `→ ${name}`}
+                        </span>
+                      );
+                    })()}
+                  {owner && ownerColor && (
+                    <span
+                      className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
+                      title={ownerName}
+                    >
+                      <span
+                        className={cn(
+                          'inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold',
+                          ownerColor.bg,
+                          ownerColor.text,
+                        )}
+                      >
+                        {ownerInitials}
+                      </span>
+                      <span className="hidden sm:inline">{ownerName}</span>
+                    </span>
+                  )}
+                  {t.due_date && (
+                    <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {new Date(t.due_date).toLocaleDateString('fr-FR', {
+                        day: '2-digit',
+                        month: 'short',
+                      })}
+                    </span>
+                  )}
+                </div>
+                {t.description && (
+                  <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed line-clamp-2">
+                    {t.description}
+                  </p>
+                )}
+              </button>
+              <div className="flex items-center gap-1 shrink-0">
+                {isMine && (
+                  <button
+                    type="button"
+                    onClick={() => toggleShare(t)}
+                    className={cn(
+                      'h-7 w-7 rounded-md inline-flex items-center justify-center transition',
+                      t.shared
+                        ? 'text-violet-glow bg-violet-glow/15 hover:bg-violet-glow/25'
+                        : 'text-muted-foreground hover:text-violet-glow hover:bg-violet-glow/10',
+                    )}
+                    title={t.shared ? 'Repasser en privé' : 'Partager avec l\'équipe'}
+                    aria-label={t.shared ? 'Repasser en privé' : 'Partager avec l\'équipe'}
+                  >
+                    {t.shared ? (
+                      <Lock className="h-3.5 w-3.5" />
+                    ) : (
+                      <Users className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                )}
+                {isMine && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditing(t);
+                      setShowForm(true);
+                    }}
+                    className="h-7 w-7 rounded-md inline-flex items-center justify-center text-violet-glow hover:bg-violet-glow/10 transition"
+                    title="Éditer"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                {isMine && (
+                  <button
+                    type="button"
+                    onClick={() => deleteTodo(t)}
+                    className="h-7 w-7 rounded-md inline-flex items-center justify-center text-red-400 hover:bg-red-500/10 transition"
+                    title="Supprimer"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </li>
+          );
+        };
+
+        const renderList = (
+          list: Todo[],
+          emptyText: string,
+        ) =>
+          loading ? (
             <div className="p-6 space-y-2">
               {[0, 1, 2].map((i) => (
                 <div key={i} className="h-12 bg-white/[0.02] animate-pulse rounded-md" />
               ))}
             </div>
-          ) : todos.length === 0 ? (
-            <div className="py-16 text-center">
-              <CheckSquare className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
-              <p className="text-sm font-medium">
-                {filter === 'pending'
-                  ? 'Rien à faire — tout est sous contrôle 🎯'
-                  : filter === 'done'
-                    ? 'Aucune tâche terminée pour le moment'
-                    : 'Aucune tâche'}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Clique sur « Nouvelle tâche » pour en ajouter une.
-              </p>
+          ) : list.length === 0 ? (
+            <div className="py-12 text-center px-4">
+              <p className="text-sm text-muted-foreground">{emptyText}</p>
             </div>
           ) : (
-            <ul className="divide-y divide-hairline">
-              {todos.map((t) => {
-                const isMine = t.user_id === user?.id;
-                const owner = isMine ? null : ownerProfiles.get(t.user_id) ?? null;
-                const ownerColor = owner ? presenceColor(owner.id) : null;
-                const ownerInitials = owner
-                  ? presenceInitials(owner.first_name, owner.last_name, owner.email)
-                  : '';
-                const ownerName = owner
-                  ? presenceDisplayName(owner.first_name, owner.last_name, owner.email)
-                  : '';
-                return (
-                  <li
-                    key={t.id}
-                    className={cn(
-                      'flex items-start gap-3 px-4 py-3 transition',
-                      t.done && 'opacity-60',
-                      t.shared && !isMine && 'bg-violet-glow/[0.03]',
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => toggleDone(t)}
-                      className="mt-0.5 shrink-0 text-muted-foreground hover:text-violet-glow transition"
-                      title={t.done ? 'Marquer non fait' : 'Marquer fait'}
-                    >
-                      {t.done ? (
-                        <CheckSquare className="h-5 w-5 text-emerald-400" />
-                      ) : (
-                        <Square className="h-5 w-5" />
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViewing(t)}
-                      className="flex-1 min-w-0 text-left rounded-md -mx-2 px-2 py-1 hover:bg-white/[0.02] transition cursor-pointer"
-                      title="Voir les détails"
-                    >
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={cn(
-                            'font-medium',
-                            t.done && 'line-through text-muted-foreground',
-                          )}
-                        >
-                          {t.title}
-                        </span>
-                        <Badge variant="outline" className={cn('text-[10px]', PRIORITY_STYLE[t.priority])}>
-                          {PRIORITY_LABEL[t.priority]}
-                        </Badge>
-                        {t.shared && (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] border-violet-glow/40 bg-violet-glow/[0.08] text-violet-glow inline-flex items-center gap-1"
-                            title="Tâche partagée avec l'équipe"
-                          >
-                            <Globe className="h-3 w-3" />
-                            Équipe
-                          </Badge>
-                        )}
-                        {t.pinged_user_id &&
-                          (() => {
-                            const m = memberById.get(t.pinged_user_id);
-                            if (!m) return null;
-                            const name = `${m.first_name ?? ''} ${m.last_name ?? ''}`.trim() || m.email;
-                            const pingedSelf = t.pinged_user_id === user?.id;
-                            const ownerName = pingedSelf
-                              ? memberById.get(t.user_id)?.first_name ?? 'Un collègue'
-                              : '';
-                            return (
-                              <span
-                                className={cn(
-                                  'inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border',
-                                  pingedSelf
-                                    ? 'border-amber-500/60 bg-amber-500/15 text-amber-300'
-                                    : 'border-violet-glow/40 bg-violet-glow/[0.08] text-violet-glow',
-                                )}
-                                title={pingedSelf ? `${ownerName} t'a pingué sur cette tâche` : `Ping → ${name}`}
-                              >
-                                <Users className="h-3 w-3" />
-                                {pingedSelf ? `Pingué par ${ownerName}` : `→ ${name}`}
-                              </span>
-                            );
-                          })()}
-                        {owner && ownerColor && (
-                          <span
-                            className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
-                            title={ownerName}
-                          >
-                            <span
-                              className={cn(
-                                'inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold',
-                                ownerColor.bg,
-                                ownerColor.text,
-                              )}
-                            >
-                              {ownerInitials}
-                            </span>
-                            <span className="hidden sm:inline">{ownerName}</span>
-                          </span>
-                        )}
-                        {t.due_date && (
-                          <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {new Date(t.due_date).toLocaleDateString('fr-FR', {
-                              day: '2-digit',
-                              month: 'short',
-                            })}
-                          </span>
-                        )}
-                      </div>
-                      {t.description && (
-                        <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed line-clamp-2">
-                          {t.description}
-                        </p>
-                      )}
-                    </button>
-                    <div className="flex items-center gap-1 shrink-0">
-                      {isMine && (
-                        <button
-                          type="button"
-                          onClick={() => toggleShare(t)}
-                          className={cn(
-                            'h-7 w-7 rounded-md inline-flex items-center justify-center transition',
-                            t.shared
-                              ? 'text-violet-glow bg-violet-glow/15 hover:bg-violet-glow/25'
-                              : 'text-muted-foreground hover:text-violet-glow hover:bg-violet-glow/10',
-                          )}
-                          title={t.shared ? 'Repasser en privé' : 'Partager avec l\'équipe'}
-                          aria-label={t.shared ? 'Repasser en privé' : 'Partager avec l\'équipe'}
-                        >
-                          {t.shared ? (
-                            <Lock className="h-3.5 w-3.5" />
-                          ) : (
-                            <Users className="h-3.5 w-3.5" />
-                          )}
-                        </button>
-                      )}
-                      {isMine && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditing(t);
-                            setShowForm(true);
-                          }}
-                          className="h-7 w-7 rounded-md inline-flex items-center justify-center text-violet-glow hover:bg-violet-glow/10 transition"
-                          title="Éditer"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                      {isMine && (
-                        <button
-                          type="button"
-                          onClick={() => deleteTodo(t)}
-                          className="h-7 w-7 rounded-md inline-flex items-center justify-center text-red-400 hover:bg-red-500/10 transition"
-                          title="Supprimer"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+            <ul className="divide-y divide-hairline">{list.map(renderRow)}</ul>
+          );
+
+        return (
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-violet-glow" />
+                  Mes tâches
+                  <span className="ml-auto text-[10px] font-mono text-muted-foreground">
+                    {mineTodos.length}
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {renderList(
+                  mineTodos,
+                  filter === 'pending'
+                    ? 'Rien à faire — tout est sous contrôle 🎯'
+                    : filter === 'done'
+                      ? 'Aucune tâche terminée pour le moment'
+                      : 'Aucune tâche perso. Clique sur « Nouvelle tâche ».',
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Users className="h-4 w-4 text-violet-glow" />
+                  Tâches équipe
+                  <span className="ml-auto text-[10px] font-mono text-muted-foreground">
+                    {teamTodos.length}
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {renderList(
+                  teamTodos,
+                  filter === 'pending'
+                    ? 'Aucune tâche d’équipe en cours'
+                    : filter === 'done'
+                      ? 'Aucune tâche d’équipe terminée'
+                      : 'Aucune tâche partagée ou pinguée sur toi pour le moment.',
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
     </AppShell>
   );
 }
