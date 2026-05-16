@@ -49,6 +49,7 @@ type Todo = {
   user_id: string;
   organization_id: string | null;
   shared: boolean;
+  pinged_user_id: string | null;
   title: string;
   description: string | null;
   done: boolean;
@@ -65,6 +66,8 @@ type OwnerProfile = {
   last_name: string | null;
   email: string;
 };
+
+type OrgMember = OwnerProfile;
 
 const PRIORITY_LABEL: Record<Todo['priority'], string> = {
   high: 'Haute',
@@ -98,6 +101,10 @@ export default function TodosPage() {
   const [viewing, setViewing] = useState<Todo | null>(null);
   // Profils des auteurs des todos partagés (pour afficher initiales + couleur).
   const [ownerProfiles, setOwnerProfiles] = useState<Map<string, OwnerProfile>>(new Map());
+  // Liste de tous les membres de l'org (pour le sélecteur "Ping" + résolution
+  // des noms des personnes pinguées dans la liste). RLS profiles_select_same_org
+  // permet de tous les voir.
+  const [orgMembers, setOrgMembers] = useState<OrgMember[]>([]);
 
   const {
     data: todosData,
@@ -126,6 +133,25 @@ export default function TodosPage() {
   useRealtimeReload(['user_todos'], () => reload());
 
   const allTodos = todosData ?? [];
+
+  // Récupère tous les membres de l'org (pour le ping + résolution nom).
+  // Un seul fetch au mount + reload sur changement d'org.
+  useEffect(() => {
+    if (!activeOrgId) return;
+    let cancelled = false;
+    const supabase = createClient();
+    (async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email')
+        .eq('organization_id', activeOrgId);
+      if (cancelled || !data) return;
+      setOrgMembers(data as OrgMember[]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeOrgId]);
 
   // Récupère les profils des auteurs (autres que moi) pour les todos
   // partagés — utile pour afficher "Salim" + ses initiales colorées.
@@ -161,6 +187,13 @@ export default function TodosPage() {
     // via le closure.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allTodos, user?.id]);
+
+  // Lookup membre par id (pour résoudre les noms pingués dans la liste).
+  const memberById = useMemo(() => {
+    const m = new Map<string, OrgMember>();
+    for (const om of orgMembers) m.set(om.id, om);
+    return m;
+  }, [orgMembers]);
 
   const scoped = useMemo(() => {
     if (!user?.id) return allTodos;
@@ -364,6 +397,7 @@ export default function TodosPage() {
           todo={editing}
           userId={user?.id ?? null}
           orgIdHint={activeOrgId}
+          orgMembers={orgMembers}
           onClose={() => {
             setShowForm(false);
             setEditing(null);
@@ -391,6 +425,10 @@ export default function TodosPage() {
             ? ownerProfiles.get(viewing.user_id) ?? null
             : null
         }
+        pingedMember={
+          viewing?.pinged_user_id ? memberById.get(viewing.pinged_user_id) ?? null : null
+        }
+        ownerMember={viewing ? memberById.get(viewing.user_id) ?? null : null}
         onClose={() => setViewing(null)}
         onToggleDone={(t) => toggleDone(t)}
         onEdit={(t) => {
@@ -488,6 +526,30 @@ export default function TodosPage() {
                             Équipe
                           </Badge>
                         )}
+                        {t.pinged_user_id &&
+                          (() => {
+                            const m = memberById.get(t.pinged_user_id);
+                            if (!m) return null;
+                            const name = `${m.first_name ?? ''} ${m.last_name ?? ''}`.trim() || m.email;
+                            const pingedSelf = t.pinged_user_id === user?.id;
+                            const ownerName = pingedSelf
+                              ? memberById.get(t.user_id)?.first_name ?? 'Un collègue'
+                              : '';
+                            return (
+                              <span
+                                className={cn(
+                                  'inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border',
+                                  pingedSelf
+                                    ? 'border-amber-500/60 bg-amber-500/15 text-amber-300'
+                                    : 'border-violet-glow/40 bg-violet-glow/[0.08] text-violet-glow',
+                                )}
+                                title={pingedSelf ? `${ownerName} t'a pingué sur cette tâche` : `Ping → ${name}`}
+                              >
+                                <Users className="h-3 w-3" />
+                                {pingedSelf ? `Pingué par ${ownerName}` : `→ ${name}`}
+                              </span>
+                            );
+                          })()}
                         {owner && ownerColor && (
                           <span
                             className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
@@ -637,6 +699,8 @@ function TodoDetailDialog({
   todo,
   currentUserId,
   owner,
+  pingedMember,
+  ownerMember,
   onClose,
   onToggleDone,
   onEdit,
@@ -646,6 +710,8 @@ function TodoDetailDialog({
   todo: Todo | null;
   currentUserId: string | null;
   owner: OwnerProfile | null;
+  pingedMember: OrgMember | null;
+  ownerMember: OrgMember | null;
   onClose: () => void;
   onToggleDone: (t: Todo) => void;
   onEdit: (t: Todo) => void;
@@ -704,6 +770,31 @@ function TodoDetailDialog({
                 Partagé avec l&apos;équipe
               </Badge>
             )}
+            {pingedMember &&
+              (() => {
+                const name =
+                  `${pingedMember.first_name ?? ''} ${pingedMember.last_name ?? ''}`.trim() ||
+                  pingedMember.email;
+                const pingedSelf = pingedMember.id === currentUserId;
+                const ownerName = ownerMember
+                  ? `${ownerMember.first_name ?? ''} ${ownerMember.last_name ?? ''}`.trim() ||
+                    ownerMember.email
+                  : 'un collègue';
+                return (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'text-[10px] inline-flex items-center gap-1',
+                      pingedSelf
+                        ? 'border-amber-500/60 bg-amber-500/15 text-amber-300'
+                        : 'border-violet-glow/40 bg-violet-glow/[0.08] text-violet-glow',
+                    )}
+                  >
+                    <Users className="h-3 w-3" />
+                    {pingedSelf ? `Pingué par ${ownerName}` : `Pinge ${name}`}
+                  </Badge>
+                );
+              })()}
             {!isMine && owner && ownerColor && (
               <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <span
@@ -838,18 +929,26 @@ type FormProps = {
   todo: Todo | null;
   userId: string | null;
   orgIdHint?: string | null;
+  orgMembers: OrgMember[];
   onClose: () => void;
   onSaved: (todo: Todo) => void;
 };
 
-function TodoForm({ todo, userId, onClose, onSaved }: FormProps) {
+function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
   const [title, setTitle] = useState(todo?.title ?? '');
   const [description, setDescription] = useState(todo?.description ?? '');
   const [priority, setPriority] = useState<Todo['priority']>(todo?.priority ?? 'medium');
   const [dueDate, setDueDate] = useState(todo?.due_date ?? '');
+  // "" = pas de ping. On stocke '' au lieu de null pour matcher le <Select>.
+  const [pingedUserId, setPingedUserId] = useState<string>(todo?.pinged_user_id ?? '');
   const [busy, setBusy] = useState(false);
 
   const isEdit = !!todo;
+  // On ne propose pas de se pinger soi-même.
+  const pingCandidates = useMemo(
+    () => orgMembers.filter((m) => m.id !== userId),
+    [orgMembers, userId],
+  );
 
   const submit = useCallback(
     async (e: React.FormEvent) => {
@@ -870,6 +969,7 @@ function TodoForm({ todo, userId, onClose, onSaved }: FormProps) {
           description: description.trim() || null,
           priority,
           due_date: dueDate || null,
+          pinged_user_id: pingedUserId || null,
         };
         if (isEdit) {
           const { data, error } = await supabase
@@ -901,7 +1001,7 @@ function TodoForm({ todo, userId, onClose, onSaved }: FormProps) {
         setBusy(false);
       }
     },
-    [title, description, priority, dueDate, isEdit, todo, userId, onSaved],
+    [title, description, priority, dueDate, pingedUserId, isEdit, todo, userId, onSaved],
   );
 
   return (
@@ -956,6 +1056,27 @@ function TodoForm({ todo, userId, onClose, onSaved }: FormProps) {
               <Label>Échéance</Label>
               <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </div>
+          </div>
+
+          <div>
+            <Label className="inline-flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5 text-violet-glow" />
+              Ping une personne <span className="text-muted-foreground/60 font-normal">(optionnel)</span>
+            </Label>
+            <Select value={pingedUserId} onChange={(e) => setPingedUserId(e.target.value)}>
+              <option value="">— Personne —</option>
+              {pingCandidates.map((m) => {
+                const name = `${m.first_name ?? ''} ${m.last_name ?? ''}`.trim() || m.email;
+                return (
+                  <option key={m.id} value={m.id}>
+                    {name}
+                  </option>
+                );
+              })}
+            </Select>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              La personne pinguée verra la tâche et pourra la cocher. Elle ne peut ni l&apos;éditer ni la supprimer.
+            </p>
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-1">

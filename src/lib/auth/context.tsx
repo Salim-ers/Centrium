@@ -33,7 +33,12 @@ export type OrgBranding = {
 };
 
 type State = {
-  user: { id: string; email: string } | null;
+  user: {
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+  } | null;
   activeOrgId: string | null;
   role: UserRole | null;
   memberships: Membership[];
@@ -165,8 +170,18 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
       // Les PostgrestBuilder sont thenable ; Promise.resolve suffit pour les
       // "terminer".
       const profileQ = Promise.resolve(
-        supabase.from('profiles').select('organization_id').eq('id', user.id).single(),
-      ) as Promise<{ data: { organization_id: string | null } | null }>;
+        supabase
+          .from('profiles')
+          .select('organization_id, first_name, last_name')
+          .eq('id', user.id)
+          .single(),
+      ) as Promise<{
+        data: {
+          organization_id: string | null;
+          first_name: string | null;
+          last_name: string | null;
+        } | null;
+      }>;
       // my_organizations expose aussi les colonnes de branding depuis 020.
       type MembershipRow = Membership & {
         logo_url: string | null;
@@ -185,7 +200,13 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
           ),
       ) as Promise<{ data: MembershipRow[] | null }>;
 
-      let profileRes: { data: { organization_id: string | null } | null };
+      let profileRes: {
+        data: {
+          organization_id: string | null;
+          first_name: string | null;
+          last_name: string | null;
+        } | null;
+      };
       let memberRes: { data: MembershipRow[] | null };
       try {
         [profileRes, memberRes] = await Promise.all([
@@ -227,7 +248,12 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         : null;
 
       const next = {
-        user: { id: user.id, email: user.email ?? '' },
+        user: {
+          id: user.id,
+          email: user.email ?? '',
+          firstName: profileRes.data?.first_name ?? null,
+          lastName: profileRes.data?.last_name ?? null,
+        },
         activeOrgId,
         role: activeRole,
         memberships,

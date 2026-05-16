@@ -129,9 +129,21 @@ export function Header() {
                   <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
                     Connecté en tant que
                   </div>
-                  <div className="text-sm font-medium truncate mt-0.5">
-                    {org?.user?.email ?? '—'}
-                  </div>
+                  {(() => {
+                    const fullName = `${org?.user?.firstName ?? ''} ${org?.user?.lastName ?? ''}`.trim();
+                    return (
+                      <>
+                        <div className="text-sm font-medium truncate mt-0.5">
+                          {fullName || org?.user?.email || '—'}
+                        </div>
+                        {fullName && (
+                          <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                            {org?.user?.email}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                   {activeMembership && (
                     <div className="text-xs text-muted-foreground mt-1 truncate">
                       {activeMembership.name} · {activeMembership.role}
