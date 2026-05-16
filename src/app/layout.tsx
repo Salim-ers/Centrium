@@ -64,10 +64,12 @@ export default function RootLayout({
         <OrganizationProvider>{children}</OrganizationProvider>
         <Toaster
           position="top-right"
-          richColors
-          closeButton
           toastOptions={{
             duration: 4500,
+            // Pas de wrapper Sonner (background gris, padding, etc.) sur les
+            // toasts custom — on a notre propre design (BrandToast).
+            unstyled: true,
+            classNames: { toast: 'pointer-events-auto' },
           }}
         />
       </body>

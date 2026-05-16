@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import {
   CheckSquare,
   Plus,
@@ -88,6 +89,9 @@ const PRIORITY_STYLE: Record<Todo['priority'], string> = {
 
 const PRIORITY_RANK: Record<Todo['priority'], number> = { high: 0, medium: 1, low: 2 };
 
+/** MIME type pour le drag&drop d'une todo entre les deux tableaux. */
+const DRAG_MIME = 'application/x-todo-id';
+
 /**
  * To do list personnelle de l'utilisateur connecté.
  *
@@ -103,6 +107,9 @@ export default function TodosPage() {
   // Dialog "détail" : ouvert au clic sur le titre/description d'une todo.
   // Distinct de l'édition — l'édition reste un formulaire séparé.
   const [viewing, setViewing] = useState<Todo | null>(null);
+  // Drag & drop entre tableaux Perso / Équipe.
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverTarget, setDragOverTarget] = useState<'mine' | 'team' | null>(null);
   // Profils des auteurs des todos partagés (pour afficher initiales + couleur).
   const [ownerProfiles, setOwnerProfiles] = useState<Map<string, OwnerProfile>>(new Map());
   // Liste de tous les membres de l'org (pour le sélecteur "Ping" + résolution
@@ -220,12 +227,29 @@ export default function TodosPage() {
   const filterByStatus = (t: Todo) =>
     filter === 'pending' ? !t.done : filter === 'done' ? t.done : true;
 
+  // Une tâche est "perso" si elle n'a AUCUN aspect équipe : créée par moi,
+  // pas partagée, et sans ping sur quelqu'un d'autre. Sinon elle est "équipe".
+  // → toggle share ou ping sur un collègue déplace la tâche vers l'équipe.
   const mineAll = useMemo(
-    () => allTodos.filter((t) => myId !== null && t.user_id === myId),
+    () =>
+      allTodos.filter((t) => {
+        if (!myId) return false;
+        if (t.user_id !== myId) return false;
+        if (t.shared) return false;
+        if (t.pinged_user_id && t.pinged_user_id !== myId) return false;
+        return true;
+      }),
     [allTodos, myId],
   );
   const teamAll = useMemo(
-    () => allTodos.filter((t) => myId !== null && t.user_id !== myId),
+    () =>
+      allTodos.filter((t) => {
+        if (!myId) return false;
+        if (t.user_id !== myId) return true; // tâche d'un collègue qu'on voit
+        if (t.shared) return true;
+        if (t.pinged_user_id && t.pinged_user_id !== myId) return true;
+        return false;
+      }),
     [allTodos, myId],
   );
   const mineTodos = sortTodos(mineAll.filter(filterByStatus));
@@ -320,6 +344,51 @@ export default function TodosPage() {
     } else {
       notifyUpdated(`"${todo.title}" remis en privé`);
     }
+  }
+
+  // ============ Drag & Drop entre tableaux ============
+  // Seules les tâches que je possède sont draggable — RLS empêcherait
+  // d'éditer celles d'un collègue de toute façon, mais on l'enforce
+  // côté UI pour éviter un drop visuel trompeur.
+  function onDragStartTodo(e: React.DragEvent, t: Todo) {
+    if (!user?.id || t.user_id !== user.id) {
+      e.preventDefault();
+      return;
+    }
+    e.dataTransfer.setData(DRAG_MIME, t.id);
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggingId(t.id);
+  }
+
+  function onDragEndTodo() {
+    setDraggingId(null);
+    setDragOverTarget(null);
+  }
+
+  function onDragOverTarget(e: React.DragEvent, target: 'mine' | 'team') {
+    if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverTarget !== target) setDragOverTarget(target);
+  }
+
+  function onDragLeaveTarget(e: React.DragEvent, target: 'mine' | 'team') {
+    const next = e.relatedTarget as Node | null;
+    if (next && (e.currentTarget as Node).contains(next)) return;
+    if (dragOverTarget === target) setDragOverTarget(null);
+  }
+
+  function onDropTarget(e: React.DragEvent, target: 'mine' | 'team') {
+    e.preventDefault();
+    const id = e.dataTransfer.getData(DRAG_MIME);
+    setDraggingId(null);
+    setDragOverTarget(null);
+    if (!id) return;
+    const t = allTodos.find((x) => x.id === id);
+    if (!t || !user?.id || t.user_id !== user.id) return;
+    const desiredShared = target === 'team';
+    if (t.shared === desiredShared) return; // déjà dans le bon tableau
+    void toggleShare(t);
   }
 
   return (
@@ -438,13 +507,25 @@ export default function TodosPage() {
           const ownerName = owner
             ? presenceDisplayName(owner.first_name, owner.last_name, owner.email)
             : '';
+          const canDrag = isMine; // seules mes tâches sont déplaçables
           return (
-            <li
+            <motion.li
               key={t.id}
+              layoutId={`todo-${t.id}`}
+              layout
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 32, mass: 0.6 }}
+              draggable={canDrag}
+              onDragStart={(e) => onDragStartTodo(e as unknown as React.DragEvent, t)}
+              onDragEnd={onDragEndTodo}
               className={cn(
                 'flex items-start gap-3 px-4 py-3 transition',
                 t.done && 'opacity-60',
                 t.shared && !isMine && 'bg-violet-glow/[0.03]',
+                canDrag && 'cursor-grab active:cursor-grabbing',
+                draggingId === t.id && 'opacity-40',
               )}
             >
               <button
@@ -589,13 +670,14 @@ export default function TodosPage() {
                   </button>
                 )}
               </div>
-            </li>
+            </motion.li>
           );
         };
 
         const renderList = (
           list: Todo[],
           emptyText: string,
+          dropTarget: 'mine' | 'team',
         ) =>
           loading ? (
             <div className="p-6 space-y-2">
@@ -604,59 +686,96 @@ export default function TodosPage() {
               ))}
             </div>
           ) : list.length === 0 ? (
-            <div className="py-12 text-center px-4">
-              <p className="text-sm text-muted-foreground">{emptyText}</p>
+            <div
+              className={cn(
+                'py-12 text-center px-4 transition rounded-b-lg',
+                dragOverTarget === dropTarget &&
+                  draggingId !== null &&
+                  'bg-violet-glow/[0.06] text-violet-glow ring-2 ring-violet-glow/40 ring-inset',
+              )}
+            >
+              <p className="text-sm">
+                {dragOverTarget === dropTarget && draggingId !== null
+                  ? `Déposer ici pour ${dropTarget === 'team' ? 'partager' : 'repasser en privé'}`
+                  : emptyText}
+              </p>
             </div>
           ) : (
-            <ul className="divide-y divide-hairline">{list.map(renderRow)}</ul>
+            <ul className="divide-y divide-hairline">
+              <AnimatePresence initial={false}>{list.map(renderRow)}</AnimatePresence>
+            </ul>
           );
 
         return (
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-violet-glow" />
-                  Mes tâches
-                  <span className="ml-auto text-[10px] font-mono text-muted-foreground">
-                    {mineTodos.length}
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                {renderList(
-                  mineTodos,
-                  filter === 'pending'
-                    ? 'Rien à faire — tout est sous contrôle 🎯'
-                    : filter === 'done'
-                      ? 'Aucune tâche terminée pour le moment'
-                      : 'Aucune tâche perso. Clique sur « Nouvelle tâche ».',
+          <LayoutGroup>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Card
+                onDragOver={(e) => onDragOverTarget(e, 'mine')}
+                onDragLeave={(e) => onDragLeaveTarget(e, 'mine')}
+                onDrop={(e) => onDropTarget(e, 'mine')}
+                className={cn(
+                  'transition',
+                  dragOverTarget === 'mine' &&
+                    draggingId !== null &&
+                    'border-violet-glow/60 shadow-[0_0_30px_-12px_rgba(168,85,247,0.55)]',
                 )}
-              </CardContent>
-            </Card>
+              >
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Lock className="h-4 w-4 text-violet-glow" />
+                    Mes tâches
+                    <span className="ml-auto text-[10px] font-mono text-muted-foreground">
+                      {mineTodos.length}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {renderList(
+                    mineTodos,
+                    filter === 'pending'
+                      ? 'Rien à faire — tout est sous contrôle 🎯'
+                      : filter === 'done'
+                        ? 'Aucune tâche terminée pour le moment'
+                        : 'Aucune tâche perso. Clique sur « Nouvelle tâche ».',
+                    'mine',
+                  )}
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Users className="h-4 w-4 text-violet-glow" />
-                  Tâches équipe
-                  <span className="ml-auto text-[10px] font-mono text-muted-foreground">
-                    {teamTodos.length}
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                {renderList(
-                  teamTodos,
-                  filter === 'pending'
-                    ? 'Aucune tâche d’équipe en cours'
-                    : filter === 'done'
-                      ? 'Aucune tâche d’équipe terminée'
-                      : 'Aucune tâche partagée ou pinguée sur toi pour le moment.',
+              <Card
+                onDragOver={(e) => onDragOverTarget(e, 'team')}
+                onDragLeave={(e) => onDragLeaveTarget(e, 'team')}
+                onDrop={(e) => onDropTarget(e, 'team')}
+                className={cn(
+                  'transition',
+                  dragOverTarget === 'team' &&
+                    draggingId !== null &&
+                    'border-violet-glow/60 shadow-[0_0_30px_-12px_rgba(168,85,247,0.55)]',
                 )}
-              </CardContent>
-            </Card>
-          </div>
+              >
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Users className="h-4 w-4 text-violet-glow" />
+                    Tâches équipe
+                    <span className="ml-auto text-[10px] font-mono text-muted-foreground">
+                      {teamTodos.length}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {renderList(
+                    teamTodos,
+                    filter === 'pending'
+                      ? 'Aucune tâche d’équipe en cours'
+                      : filter === 'done'
+                        ? 'Aucune tâche d’équipe terminée'
+                        : 'Glisse une de tes tâches ici pour la partager avec l’équipe.',
+                    'team',
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </LayoutGroup>
         );
       })()}
     </AppShell>

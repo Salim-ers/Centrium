@@ -1,46 +1,73 @@
 'use client';
 
 import {
-  CheckCircle2,
-  AlertTriangle,
+  Check,
+  Pencil,
   Trash2,
   Info,
+  AlertTriangle,
   Sparkles,
+  XCircle,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+/**
+ * Sémantique des variants :
+ *   - success  → création (vert)        ex: "X ajouté"
+ *   - update   → modification (violet)  ex: "X mis à jour", "X partagé"
+ *   - destructive → destructive réussie (rouge)  ex: "X supprimé"
+ *   - error    → erreur réelle (rouge bordeau)   ex: "Mise à jour impossible"
+ *   - warning  → avertissement (ambre)            ex: "Quota presque atteint"
+ *   - info     → info neutre (bleu)
+ *   - celebration → événement spécial (violet/magenta brand)
+ *
+ * Icônes choisies pour matcher le verbe — pas d'AlertTriangle pour une
+ * simple modif, Trash2 réservé aux suppressions, etc.
+ */
 export type BrandToastVariant =
   | 'success'
-  | 'warning'
+  | 'update'
+  | 'destructive'
   | 'error'
+  | 'warning'
   | 'info'
   | 'celebration';
 
 type ToastConfig = {
-  /** Couleur d'accent — bordure latérale et icône. */
+  /** Couleur d'accent — trait latéral et icône. */
   accent: string;
-  /** Couleur de l'icône (souvent dérivée de l'accent). */
+  /** Couleur de l'icône. */
   iconColor: string;
-  /** Icône Lucide à utiliser. */
-  Icon: typeof CheckCircle2;
+  /** Icône Lucide. */
+  Icon: typeof Check;
 };
 
 const VARIANTS: Record<BrandToastVariant, ToastConfig> = {
   success: {
     accent: '#10b981',
     iconColor: '#34d399',
-    Icon: CheckCircle2,
+    Icon: Check,
+  },
+  update: {
+    accent: '#8b5cf6',
+    iconColor: '#c4b5fd',
+    Icon: Pencil,
+  },
+  destructive: {
+    accent: '#f43f5e',
+    iconColor: '#fb7185',
+    Icon: Trash2,
+  },
+  error: {
+    accent: '#dc2626',
+    iconColor: '#fca5a5',
+    Icon: XCircle,
   },
   warning: {
     accent: '#f59e0b',
     iconColor: '#fbbf24',
     Icon: AlertTriangle,
-  },
-  error: {
-    accent: '#f43f5e',
-    iconColor: '#fb7185',
-    Icon: Trash2,
   },
   info: {
     accent: '#0ea5e9',

@@ -34,32 +34,32 @@ function pack(opts?: Opts): BrandToastOptions {
   };
 }
 
-/** Création d'une ressource — vert. */
+/** Création d'une ressource — vert (icône Check). */
 export function notifyCreated(message: string, opts?: Opts) {
   return showBrandToast('success', message, pack(opts));
 }
 
-/** Édition / mise à jour — orange. */
+/** Édition / mise à jour — violet (icône Pencil). */
 export function notifyUpdated(message: string, opts?: Opts) {
-  return showBrandToast('warning', message, pack(opts));
+  return showBrandToast('update', message, pack(opts));
 }
 
-/** Action destructive réussie (archive, suppression, retrait du vivier) — rouge. */
+/** Action destructive réussie (archive, suppression) — rouge (icône Trash). */
 export function notifyDestructive(message: string, opts?: Opts) {
-  return showBrandToast('error', message, pack(opts));
+  return showBrandToast('destructive', message, pack(opts));
 }
 
-/** Promotion d'un prospect en consultant — variant célébration brand. */
+/** Promotion d'un prospect en consultant — célébration brand. */
 export function notifyPromoted(message: string, opts?: Opts) {
   return showBrandToast('celebration', message, { duration: 6000, ...pack(opts) });
 }
 
-/** Erreur réelle (réseau, validation serveur, etc.) — rouge. */
+/** Erreur réelle (réseau, validation serveur, etc.) — rouge XCircle. */
 export function notifyError(message: string, opts?: Opts) {
   return showBrandToast('error', message, pack(opts));
 }
 
-/** Avertissement — orange. */
+/** Avertissement (quota, action déconseillée) — ambre AlertTriangle. */
 export function notifyWarning(message: string, opts?: Opts) {
   return showBrandToast('warning', message, pack(opts));
 }
