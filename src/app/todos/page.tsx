@@ -508,6 +508,7 @@ export default function TodosPage() {
             ? presenceDisplayName(owner.first_name, owner.last_name, owner.email)
             : '';
           const canDrag = isMine; // seules mes tâches sont déplaçables
+          const isDragging = draggingId === t.id;
           return (
             <motion.li
               key={t.id}
@@ -521,11 +522,12 @@ export default function TodosPage() {
               onDragStart={(e) => onDragStartTodo(e as unknown as React.DragEvent, t)}
               onDragEnd={onDragEndTodo}
               className={cn(
-                'flex items-start gap-3 px-4 py-3 transition',
+                'flex items-start gap-3 px-4 py-3 transition-all duration-200 select-none',
                 t.done && 'opacity-60',
                 t.shared && !isMine && 'bg-violet-glow/[0.03]',
-                canDrag && 'cursor-grab active:cursor-grabbing',
-                draggingId === t.id && 'opacity-40',
+                canDrag && !isDragging && 'cursor-grab',
+                // Animation drag façon CRM : rotation + scale + opacity
+                isDragging && 'cursor-grabbing rotate-2 scale-95 opacity-50',
               )}
             >
               <button
@@ -686,25 +688,47 @@ export default function TodosPage() {
               ))}
             </div>
           ) : list.length === 0 ? (
-            <div
-              className={cn(
-                'py-12 text-center px-4 transition rounded-b-lg',
-                dragOverTarget === dropTarget &&
-                  draggingId !== null &&
-                  'bg-violet-glow/[0.06] text-violet-glow ring-2 ring-violet-glow/40 ring-inset',
-              )}
-            >
-              <p className="text-sm">
-                {dragOverTarget === dropTarget && draggingId !== null
-                  ? `Déposer ici pour ${dropTarget === 'team' ? 'partager' : 'repasser en privé'}`
-                  : emptyText}
-              </p>
+            <div className="py-12 text-center px-4 transition-all duration-200">
+              <div
+                className={cn(
+                  'mx-3 rounded-lg border border-dashed py-8 px-4 transition-all duration-200',
+                  dragOverTarget === dropTarget && draggingId !== null
+                    ? 'border-violet-glow/60 bg-violet-glow/[0.06] text-violet-glow'
+                    : 'border-hairline text-muted-foreground/60',
+                )}
+              >
+                <p className="text-sm font-medium">
+                  {dragOverTarget === dropTarget && draggingId !== null
+                    ? `Déposer ici pour ${dropTarget === 'team' ? 'partager avec l’équipe' : 'repasser en privé'}`
+                    : emptyText}
+                </p>
+              </div>
             </div>
           ) : (
             <ul className="divide-y divide-hairline">
               <AnimatePresence initial={false}>{list.map(renderRow)}</AnimatePresence>
             </ul>
           );
+
+        // Source = la carte d'où vient la tâche draggée. Elle s'atténue
+        // pour mettre en avant la cible (façon CRM).
+        const sourceTarget: 'mine' | 'team' | null = (() => {
+          if (!draggingId) return null;
+          const t = allTodos.find((x) => x.id === draggingId);
+          if (!t) return null;
+          const inMine = mineAll.some((x) => x.id === t.id);
+          return inMine ? 'mine' : 'team';
+        })();
+        const cardClass = (target: 'mine' | 'team') => {
+          const isTarget = dragOverTarget === target && draggingId !== null && sourceTarget !== target;
+          const isSource = sourceTarget === target && draggingId !== null;
+          return cn(
+            'transition-all duration-200',
+            isTarget &&
+              'border-violet-glow/70 bg-violet-glow/[0.06] shadow-[0_0_30px_-12px_rgba(168,85,247,0.65)] scale-[1.01]',
+            isSource && !isTarget && 'opacity-70',
+          );
+        };
 
         return (
           <LayoutGroup>
@@ -713,12 +737,7 @@ export default function TodosPage() {
                 onDragOver={(e) => onDragOverTarget(e, 'mine')}
                 onDragLeave={(e) => onDragLeaveTarget(e, 'mine')}
                 onDrop={(e) => onDropTarget(e, 'mine')}
-                className={cn(
-                  'transition',
-                  dragOverTarget === 'mine' &&
-                    draggingId !== null &&
-                    'border-violet-glow/60 shadow-[0_0_30px_-12px_rgba(168,85,247,0.55)]',
-                )}
+                className={cardClass('mine')}
               >
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
@@ -746,12 +765,7 @@ export default function TodosPage() {
                 onDragOver={(e) => onDragOverTarget(e, 'team')}
                 onDragLeave={(e) => onDragLeaveTarget(e, 'team')}
                 onDrop={(e) => onDropTarget(e, 'team')}
-                className={cn(
-                  'transition',
-                  dragOverTarget === 'team' &&
-                    draggingId !== null &&
-                    'border-violet-glow/60 shadow-[0_0_30px_-12px_rgba(168,85,247,0.55)]',
-                )}
+                className={cardClass('team')}
               >
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
