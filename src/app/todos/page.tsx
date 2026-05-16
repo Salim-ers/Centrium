@@ -949,12 +949,12 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
   const [busy, setBusy] = useState(false);
 
   const isEdit = !!todo;
-  // On ne propose pas de se pinger soi-même, ni de pinger les consultants
-  // (les comptes role='consultant' n'ont pas vocation à se voir assigner
-  // des tâches internes — ils ont leur propre portail).
+  // On peut se pinger soi-même (rappel visuel "à faire perso") mais pas
+  // pinger les consultants — leurs comptes ne traitent pas les tâches
+  // internes, ils ont leur propre portail.
   const pingCandidates = useMemo(
-    () => orgMembers.filter((m) => m.id !== userId && m.role !== 'consultant'),
-    [orgMembers, userId],
+    () => orgMembers.filter((m) => m.role !== 'consultant'),
+    [orgMembers],
   );
 
   const submit = useCallback(
