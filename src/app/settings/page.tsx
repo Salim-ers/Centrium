@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Settings as SettingsIcon, LogOut, Palette, Users } from 'lucide-react';
+import { Settings as SettingsIcon, LogOut, Palette, Users, User } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -50,7 +50,21 @@ export default function SettingsPage() {
         </h1>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
+        <Link href="/settings/profile" className="group">
+          <Card className="h-full transition-colors group-hover:border-violet-glow/50">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <User className="h-4 w-4 text-violet-glow" />
+                Mon profil
+              </CardTitle>
+              <CardDescription>
+                Tes infos personnelles (poste, contact, adresse, contact d&apos;urgence) — visibles uniquement par toi.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+
         <Link href="/settings/branding" className="group">
           <Card className="h-full transition-colors group-hover:border-violet-glow/50">
             <CardHeader>
@@ -73,7 +87,7 @@ export default function SettingsPage() {
                 Équipe
               </CardTitle>
               <CardDescription>
-                Membres, invitations et rôles de l'organisation.
+                Membres, invitations et rôles de l&apos;organisation.
               </CardDescription>
             </CardHeader>
           </Card>
