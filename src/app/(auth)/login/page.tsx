@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -16,17 +16,41 @@ import { createClient } from '@/lib/supabase/client';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { toastWelcome } from '@/components/auth/WelcomeToast';
 
+// Clé localStorage pour mémoriser l'email du dernier login.
+// On NE stocke PAS le mot de passe ici : c'est le rôle du gestionnaire
+// de mots de passe du navigateur (autocomplete="current-password"), qui
+// chiffre la donnée côté OS et la verrouille derrière le device unlock.
+// Stocker un mdp en localStorage le rendrait volable par n'importe quel XSS.
+const REMEMBER_EMAIL_KEY = 'centrium-remember-email';
+
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [remember, setRemember] = useState(true);
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   });
+
+  // Pré-remplit l'email à partir du dernier login mémorisé.
+  // localStorage n'existe pas au SSR → on lit dans un useEffect.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem(REMEMBER_EMAIL_KEY);
+    if (stored) {
+      setValue('email', stored);
+      setRemember(true);
+    } else {
+      // Si aucune mémo précédente, on décoche par défaut pour respecter
+      // un choix explicite à la prochaine connexion.
+      setRemember(false);
+    }
+  }, [setValue]);
 
   async function onSubmit(values: LoginInput) {
     setLoading(true);
@@ -66,6 +90,15 @@ export default function LoginPage() {
       profilePromise,
       timeoutPromise,
     ])) as { data: { role: string; first_name: string | null } | null };
+
+    // Persiste / efface l'email mémorisé selon le choix "Se souvenir".
+    if (typeof window !== 'undefined') {
+      if (remember) {
+        window.localStorage.setItem(REMEMBER_EMAIL_KEY, values.email);
+      } else {
+        window.localStorage.removeItem(REMEMBER_EMAIL_KEY);
+      }
+    }
 
     setLoading(false);
     toastWelcome({ firstName: profile?.first_name ?? null });
@@ -127,6 +160,24 @@ export default function LoginPage() {
             <p className="text-xs text-red-400">{errors.password.message}</p>
           )}
         </div>
+
+        <label className="flex items-center gap-2 cursor-pointer select-none group">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+            className="h-4 w-4 rounded border-white/20 bg-white/[0.04] accent-magenta-neon cursor-pointer"
+          />
+          <span className="text-sm text-white/70 group-hover:text-white/90 transition">
+            Se souvenir de moi
+          </span>
+          <span
+            className="ml-auto text-[10px] text-white/30"
+            title="L'email est mémorisé localement. Le mot de passe reste géré par le gestionnaire de mots de passe du navigateur — beaucoup plus sécurisé."
+          >
+            Email uniquement
+          </span>
+        </label>
 
         <Button
           type="submit"
