@@ -67,7 +67,12 @@ type OwnerProfile = {
   email: string;
 };
 
-type OrgMember = OwnerProfile;
+type OrgMember = OwnerProfile & {
+  /** Rôle dans l'org. On exclut 'consultant' du sélecteur de ping :
+   *  les consultants n'ont pas vocation à recevoir des tâches CRM /
+   *  pilotage de la part des BM / recruteurs. */
+  role: string | null;
+};
 
 const PRIORITY_LABEL: Record<Todo['priority'], string> = {
   high: 'Haute',
@@ -143,7 +148,7 @@ export default function TodosPage() {
     (async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, email')
+        .select('id, first_name, last_name, email, role')
         .eq('organization_id', activeOrgId);
       if (cancelled || !data) return;
       setOrgMembers(data as OrgMember[]);
@@ -944,9 +949,11 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
   const [busy, setBusy] = useState(false);
 
   const isEdit = !!todo;
-  // On ne propose pas de se pinger soi-même.
+  // On ne propose pas de se pinger soi-même, ni de pinger les consultants
+  // (les comptes role='consultant' n'ont pas vocation à se voir assigner
+  // des tâches internes — ils ont leur propre portail).
   const pingCandidates = useMemo(
-    () => orgMembers.filter((m) => m.id !== userId),
+    () => orgMembers.filter((m) => m.id !== userId && m.role !== 'consultant'),
     [orgMembers, userId],
   );
 
