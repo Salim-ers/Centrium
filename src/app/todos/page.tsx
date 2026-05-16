@@ -18,6 +18,14 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
@@ -85,6 +93,9 @@ export default function TodosPage() {
   const [scope, setScope] = useState<'mine' | 'team' | 'all'>('all');
   const [editing, setEditing] = useState<Todo | null>(null);
   const [showForm, setShowForm] = useState(false);
+  // Dialog "détail" : ouvert au clic sur le titre/description d'une todo.
+  // Distinct de l'édition — l'édition reste un formulaire séparé.
+  const [viewing, setViewing] = useState<Todo | null>(null);
   // Profils des auteurs des todos partagés (pour afficher initiales + couleur).
   const [ownerProfiles, setOwnerProfiles] = useState<Map<string, OwnerProfile>>(new Map());
 
@@ -372,6 +383,28 @@ export default function TodosPage() {
         />
       )}
 
+      <TodoDetailDialog
+        todo={viewing}
+        currentUserId={user?.id ?? null}
+        owner={
+          viewing && viewing.user_id !== user?.id
+            ? ownerProfiles.get(viewing.user_id) ?? null
+            : null
+        }
+        onClose={() => setViewing(null)}
+        onToggleDone={(t) => toggleDone(t)}
+        onEdit={(t) => {
+          setEditing(t);
+          setShowForm(true);
+          setViewing(null);
+        }}
+        onDelete={(t) => {
+          setViewing(null);
+          void deleteTodo(t);
+        }}
+        onToggleShare={(t) => toggleShare(t)}
+      />
+
       <Card>
         <CardContent className="p-0">
           {loading ? (
@@ -427,7 +460,12 @@ export default function TodosPage() {
                         <Square className="h-5 w-5" />
                       )}
                     </button>
-                    <div className="flex-1 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => setViewing(t)}
+                      className="flex-1 min-w-0 text-left rounded-md -mx-2 px-2 py-1 hover:bg-white/[0.02] transition cursor-pointer"
+                      title="Voir les détails"
+                    >
                       <div className="flex items-center gap-2 flex-wrap">
                         <span
                           className={cn(
@@ -478,11 +516,11 @@ export default function TodosPage() {
                         )}
                       </div>
                       {t.description && (
-                        <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed">
+                        <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed line-clamp-2">
                           {t.description}
                         </p>
                       )}
-                    </div>
+                    </button>
                     <div className="flex items-center gap-1 shrink-0">
                       {isMine && (
                         <button
@@ -582,6 +620,217 @@ function FilterChip({
         {count}
       </span>
     </button>
+  );
+}
+
+/**
+ * Dialog "détail" — ouvert au clic sur le titre/description d'une todo.
+ * Lecture seule par défaut, avec :
+ * - le titre, la description complète, la priorité, l'échéance
+ * - le statut partagé (Équipe) + l'auteur si ce n'est pas moi
+ * - les dates created_at / completed_at
+ * - les actions disponibles selon que je suis propriétaire ou non :
+ *   - tout le monde : toggle "Fait / Pas fait"
+ *   - propriétaire uniquement : Éditer, Partager/Privatiser, Supprimer
+ */
+function TodoDetailDialog({
+  todo,
+  currentUserId,
+  owner,
+  onClose,
+  onToggleDone,
+  onEdit,
+  onDelete,
+  onToggleShare,
+}: {
+  todo: Todo | null;
+  currentUserId: string | null;
+  owner: OwnerProfile | null;
+  onClose: () => void;
+  onToggleDone: (t: Todo) => void;
+  onEdit: (t: Todo) => void;
+  onDelete: (t: Todo) => void;
+  onToggleShare: (t: Todo) => void;
+}) {
+  if (!todo) return null;
+  const isMine = currentUserId !== null && todo.user_id === currentUserId;
+  const ownerColor = owner ? presenceColor(owner.id) : null;
+  const ownerInitials = owner
+    ? presenceInitials(owner.first_name, owner.last_name, owner.email)
+    : '';
+  const ownerName = owner
+    ? presenceDisplayName(owner.first_name, owner.last_name, owner.email)
+    : '';
+  const dueLabel = todo.due_date
+    ? new Date(todo.due_date).toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      })
+    : null;
+  const createdLabel = new Date(todo.created_at).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+  const completedLabel = todo.completed_at
+    ? new Date(todo.completed_at).toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      })
+    : null;
+
+  return (
+    <Dialog open={!!todo} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-start gap-3 pr-6">
+            <span className={cn('flex-1', todo.done && 'line-through text-muted-foreground')}>
+              {todo.title}
+            </span>
+          </DialogTitle>
+          <DialogDescription className="flex items-center gap-2 flex-wrap pt-1">
+            <Badge variant="outline" className={cn('text-[10px]', PRIORITY_STYLE[todo.priority])}>
+              Priorité {PRIORITY_LABEL[todo.priority].toLowerCase()}
+            </Badge>
+            {todo.shared && (
+              <Badge
+                variant="outline"
+                className="text-[10px] border-violet-glow/40 bg-violet-glow/[0.08] text-violet-glow inline-flex items-center gap-1"
+              >
+                <Globe className="h-3 w-3" />
+                Partagé avec l&apos;équipe
+              </Badge>
+            )}
+            {!isMine && owner && ownerColor && (
+              <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <span
+                  className={cn(
+                    'inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold',
+                    ownerColor.bg,
+                    ownerColor.text,
+                  )}
+                >
+                  {ownerInitials}
+                </span>
+                Créée par {ownerName}
+              </span>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 pt-1">
+          {todo.description ? (
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1.5">
+                Notes
+              </div>
+              <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/90">
+                {todo.description}
+              </p>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground italic">Aucune note.</p>
+          )}
+
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <DetailRow
+              icon={<Calendar className="h-3.5 w-3.5 text-violet-glow" />}
+              label="Échéance"
+              value={dueLabel ?? 'Aucune'}
+            />
+            <DetailRow
+              icon={<Plus className="h-3.5 w-3.5 text-muted-foreground" />}
+              label="Créée le"
+              value={createdLabel}
+            />
+            {completedLabel && (
+              <DetailRow
+                icon={<CheckSquare className="h-3.5 w-3.5 text-emerald-400" />}
+                label="Terminée le"
+                value={completedLabel}
+              />
+            )}
+          </div>
+        </div>
+
+        <DialogFooter className="flex-wrap gap-2 sm:gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onToggleDone(todo)}
+            className={todo.done ? '' : 'border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10'}
+          >
+            {todo.done ? (
+              <>
+                <Square className="h-4 w-4" />
+                Remettre à faire
+              </>
+            ) : (
+              <>
+                <CheckSquare className="h-4 w-4" />
+                Marquer fait
+              </>
+            )}
+          </Button>
+
+          {isMine && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onToggleShare(todo)}
+                className="border-violet-glow/40 text-violet-glow hover:bg-violet-glow/10"
+              >
+                {todo.shared ? (
+                  <>
+                    <Lock className="h-4 w-4" />
+                    Repasser en privé
+                  </>
+                ) : (
+                  <>
+                    <Users className="h-4 w-4" />
+                    Partager avec l&apos;équipe
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onEdit(todo)}
+                className="border-violet-glow/40 text-violet-glow hover:bg-violet-glow/10"
+              >
+                <Pencil className="h-4 w-4" />
+                Éditer
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onDelete(todo)}
+                className="border-red-500/40 text-red-300 hover:bg-red-500/10"
+              >
+                <Trash2 className="h-4 w-4" />
+                Supprimer
+              </Button>
+            </>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-hairline bg-white/[0.02] px-2.5 py-2">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+        {icon}
+        {label}
+      </div>
+      <div className="mt-0.5 text-sm font-medium">{value}</div>
+    </div>
   );
 }
 
