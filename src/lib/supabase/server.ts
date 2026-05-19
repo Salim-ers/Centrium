@@ -2,15 +2,15 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 /**
- * Strip maxAge / expires pour les cookies internes uniquement.
+ * Strip maxAge / expires pour rendre TOUS les cookies session-only,
+ * y compris les cookies d'auth Supabase.
  *
- * ⚠️ EXCEPTION : on PRÉSERVE l'expiration des cookies `sb-*-auth-token`
- * (refresh token Supabase). Sinon, le serveur les réécrit en session-only
- * à chaque round-trip et l'utilisateur perd sa session dès la moindre
- * interruption d'onglet — F5 vide tout, comme on l'a vu en prod.
+ * Effet : à la fermeture du navigateur (tous onglets fermés), les
+ * cookies sont purgés et l'utilisateur doit se reconnecter au prochain
+ * démarrage. F5 ne casse pas la session (le processus navigateur reste
+ * en vie).
  */
-function sessionOnly(name: string, options: CookieOptions): CookieOptions {
-  if (name.startsWith('sb-')) return options;
+function sessionOnly(_name: string, options: CookieOptions): CookieOptions {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { maxAge, expires, ...rest } = options;
   return rest;

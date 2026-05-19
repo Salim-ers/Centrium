@@ -5,17 +5,18 @@ type BrowserClient = ReturnType<typeof createBrowserClient>;
 let singleton: BrowserClient | null = null;
 
 /**
- * Strip maxAge / expires pour les cookies internes uniquement.
+ * Strip maxAge / expires pour rendre TOUS les cookies session-only,
+ * y compris les cookies d'auth Supabase (`sb-*`).
  *
- * ⚠️ EXCEPTION : on PRÉSERVE l'expiration des cookies `sb-*` (auth
- * Supabase). Sans ça, le refresh token devenait session-only et
- * expirait dès la moindre interruption d'onglet — F5 tardif → data
- * vide → l'utilisateur devait se reconnecter pour récupérer son état.
+ * Comportement attendu : à la fermeture du navigateur, les cookies
+ * sont purgés → l'utilisateur n'est plus connecté au prochain démarrage
+ * et doit ressaisir son mot de passe (email pré-rempli via "Se souvenir
+ * de moi" si coché).
+ *
+ * F5 ne casse rien : un cookie de session survit aux rafraîchissements
+ * tant que le PROCESSUS navigateur reste vivant.
  */
-function sessionOnly(name: string, options: CookieOptions): CookieOptions {
-  if (name.startsWith('sb-')) {
-    return options;
-  }
+function sessionOnly(_name: string, options: CookieOptions): CookieOptions {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { maxAge, expires, ...rest } = options;
   return rest;
@@ -37,13 +38,7 @@ function writeCookie(name: string, value: string, options: CookieOptions) {
   if (opts.domain) cookie += `; Domain=${opts.domain}`;
   if (opts.sameSite) cookie += `; SameSite=${opts.sameSite}`;
   if (opts.secure) cookie += `; Secure`;
-  // Préserve l'expiration native pour les cookies d'auth Supabase
-  // (sinon le refresh token devient session-only et casse le F5).
-  if (opts.maxAge != null) cookie += `; Max-Age=${opts.maxAge}`;
-  if (opts.expires) {
-    const exp = opts.expires instanceof Date ? opts.expires : new Date(opts.expires);
-    cookie += `; Expires=${exp.toUTCString()}`;
-  }
+  // Pas de Max-Age / Expires : le cookie meurt avec la session navigateur.
   document.cookie = cookie;
 }
 

@@ -13,25 +13,19 @@ const PROFILE_COOKIE = 'qc_profile';
 const PROFILE_COOKIE_TTL_SEC = 300; // 5 min
 
 /**
- * Strip maxAge / expires pour rendre les cookies internes "session-only".
- * Ils meurent quand l'utilisateur ferme le navigateur — évite qu'un autre
- * utilisateur (machine partagée) retombe sur la session précédente.
+ * Strip maxAge / expires pour rendre TOUS les cookies session-only,
+ * y compris les cookies d'auth Supabase (`sb-*`).
  *
- * ⚠️ EXCEPTION : on PRÉSERVE les expirations des cookies Supabase
- * `sb-*-auth-token`. Le refresh token a une durée de vie longue (par
- * défaut 7 jours côté Supabase) ; le stripper en session-only le
- * faisait expirer à la fermeture/ouverture d'onglet, ce qui cassait
- * l'expérience après un F5 tardif (data vide + obligation de déco/reco).
- * La sécurité "machine partagée" reste assurée par d'autres voies :
- * - cookies HttpOnly + SameSite=Lax
- * - JWT court (1h par défaut) + refresh manuel
- * - bouton déconnexion accessible
+ * Comportement attendu :
+ *   - L'utilisateur ferme son navigateur (tous onglets fermés) → cookies
+ *     purgés → re-login obligatoire au prochain démarrage.
+ *   - F5 / changement d'onglet / fermeture d'un onglet seul → la session
+ *     navigateur est toujours vivante → cookies préservés.
+ *
+ * Utile pour les machines partagées et pour respecter une attente
+ * "je ferme, je suis déco" sans dépendre d'un bouton logout.
  */
-function sessionOnly(name: string, options: CookieOptions): CookieOptions {
-  if (name.startsWith('sb-')) {
-    // Cookies d'auth Supabase : on garde leur expiration native.
-    return options;
-  }
+function sessionOnly(_name: string, options: CookieOptions): CookieOptions {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { maxAge, expires, ...rest } = options;
   return rest;
