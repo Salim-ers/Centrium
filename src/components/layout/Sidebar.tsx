@@ -99,16 +99,19 @@ const GROUPS: NavGroup[] = [
 
 const STORAGE_KEY = 'quadcore-sidebar-open-groups';
 
-export function Sidebar() {
+/**
+ * Contenu intérieur de la sidebar : halo, wordmark, nav, footer.
+ * Réutilisé par la Sidebar desktop (fixed) ET le MobileNav (drawer).
+ *
+ * `onItemClick` est appelé après chaque tap sur un lien — utile en mobile
+ * pour fermer le drawer après navigation.
+ */
+export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) {
   const pathname = usePathname();
   const org = useOrganizationSafe();
-  // Hint visuel sur "Paramètres" quand l'identité visuelle n'a pas encore
-  // été configurée (logo manquant ET pas de couleur perso définie).
   const brandingMissing =
     !!org?.branding && !org.branding.logoUrl && !org.branding.primaryColor;
 
-  // État ouvert/fermé par groupe (persisté en localStorage).
-  // Par défaut tout est fermé ; seul le groupe contenant la page active est ouvert.
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     GROUPS.forEach((g) => (initial[g.id] = false));
@@ -154,10 +157,8 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-hairline bg-card/80 backdrop-blur-xl">
-      {/* Halo gradient rose vif derrière le wordmark — effet "C lumineux".
-          opacity-30 en clair (juste un soupçon de rose, le bg reste neutre)
-          et opacity-90 en sombre (plein effet). */}
+    <>
+      {/* Halo gradient rose vif derrière le wordmark — effet "C lumineux". */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-44 opacity-30 dark:opacity-90"
@@ -167,17 +168,16 @@ export function Sidebar() {
         }}
       />
 
-      {/* Wordmark Centrium grand format — vertical, centré H+V dans une
-          zone agrandie. Adapte automatiquement ses couleurs au thème. */}
+      {/* Wordmark Centrium grand format */}
       <Link
         href="/dashboard"
+        onClick={onItemClick}
         className="relative flex h-44 items-center justify-center border-b border-hairline px-3 shrink-0 group hover:opacity-95 transition"
         aria-label="Centrium — accueil"
       >
         <CentriumWordmark size="lg" orientation="vertical" />
       </Link>
 
-      {/* Nav */}
       <nav className="relative flex-1 overflow-y-auto px-2 py-3 space-y-3">
         {GROUPS.map((group) => {
           const open = openGroups[group.id] ?? false;
@@ -217,6 +217,7 @@ export function Sidebar() {
               {open && group.id === 'organisation' && brandingMissing && (
                 <Link
                   href="/onboarding/setup"
+                  onClick={onItemClick}
                   className="mt-2 mx-1 flex items-start gap-2 rounded-lg border border-violet-glow/30 bg-violet-glow/[0.06] px-3 py-2 hover:border-violet-glow/60 transition-colors"
                   title="Configure le logo, les couleurs et l'identité légale de ton ESN"
                 >
@@ -253,6 +254,7 @@ export function Sidebar() {
                       <li key={item.href}>
                         <Link
                           href={item.href}
+                          onClick={onItemClick}
                           className={cn(
                             'group flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm transition-all',
                             active
@@ -273,11 +275,17 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer sidebar : juste le toggle thème. Le wordmark Centrium est
-          déjà gros en haut, pas besoin de re-marquer. */}
       <div className="relative border-t border-hairline px-4 py-3 flex items-center justify-end">
         <ThemeToggle />
       </div>
+    </>
+  );
+}
+
+export function Sidebar() {
+  return (
+    <aside className="hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-hairline bg-card/80 backdrop-blur-xl">
+      <SidebarBody />
     </aside>
   );
 }

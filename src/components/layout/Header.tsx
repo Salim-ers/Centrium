@@ -9,6 +9,8 @@ import { useOrganizationSafe } from '@/lib/auth/context';
 import { createClient } from '@/lib/supabase/client';
 import { TutorialButton } from '@/components/onboarding/NewUserTutorial';
 import { PresenceAvatars } from '@/components/presence/PresenceAvatars';
+import { MobileNav } from '@/components/layout/MobileNav';
+import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 
 export function Header() {
   const org = useOrganizationSafe();
@@ -82,19 +84,34 @@ export function Header() {
           animation: 'gradient-pan 12s ease-in-out infinite',
         }}
       />
-      <div className="relative flex h-full items-center justify-between gap-4 px-6">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Rechercher un consultant, contact, opportunité…"
-            className="pl-9 h-9"
-          />
+      <div className="relative flex h-full items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6">
+        {/* À gauche : burger + wordmark sur mobile (la sidebar est cachée).
+            Sur desktop : barre de recherche large. */}
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <MobileNav />
+          {/* Wordmark seulement sur mobile (la sidebar le montre sur desktop) */}
+          <Link
+            href="/dashboard"
+            className="md:hidden inline-flex items-center"
+            aria-label="Centrium — accueil"
+          >
+            <CentriumWordmark size="sm" orientation="horizontal" />
+          </Link>
+          <div className="relative w-full max-w-sm hidden md:block">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Rechercher un consultant, contact, opportunité…"
+              className="pl-9 h-9"
+            />
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <PresenceAvatars />
-          <TutorialButton variant="cta" />
+          <div className="hidden sm:block">
+            <TutorialButton variant="cta" />
+          </div>
           <Button
             variant="ghost"
             size="icon"
