@@ -15,6 +15,8 @@ import {
   Trash2,
   HelpCircle,
   MessageSquareWarning,
+  Plus,
+  UserPlus,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -32,6 +34,8 @@ import {
 } from '@/components/ui/table';
 import { TalentTabs } from '@/components/consultants/TalentTabs';
 import { RefuseMissionDialog } from '@/components/missions/RefuseMissionDialog';
+import { AssignMissionDialog } from '@/components/missions/AssignMissionDialog';
+import type { JobOffer, Consultant } from '@/types';
 
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
@@ -62,6 +66,8 @@ type PushedRow = {
   start_date: string | null;
   end_date: string | null;
   created_at: string;
+  /** ID de l'offre rattachée (pour pousser un autre consultant dessus). */
+  job_offer_id: string | null;
   job_offer_title: string | null;
   /** Nom du client : company.name, sinon fallback offre. */
   client_name: string | null;
@@ -87,6 +93,12 @@ export default function CvPushedPage() {
   const [showRejected, setShowRejected] = useState(false);
   /** Dialog Refuser ouvert sur la mission ciblée. */
   const [refuseRow, setRefuseRow] = useState<PushedRow | null>(null);
+  /** Dialog "pousser sur autre offre" pour un consultant donné. */
+  const [pushOtherForConsultant, setPushOtherForConsultant] = useState<
+    Pick<Consultant, 'id' | 'first_name' | 'last_name' | 'daily_rate_eur'> | null
+  >(null);
+  /** Dialog "pousser autre consultant" pour une offre donnée. */
+  const [pushOtherForOffer, setPushOtherForOffer] = useState<JobOffer | null>(null);
 
   const {
     data: pushedData,
@@ -101,11 +113,11 @@ export default function CvPushedPage() {
         .from('missions')
         .select(
           `id, title, daily_rate_eur, start_date, end_date, created_at,
-           rejection_reason, rejected_at,
+           rejection_reason, rejected_at, job_offer_id,
            consultant:consultants!consultant_id (
              id, first_name, last_name, job_title, daily_rate_eur
            ),
-           job_offer:job_offers (title, source, source_kind),
+           job_offer:job_offers (id, title, source, source_kind, daily_rate_min, daily_rate_max, start_date, duration_months),
            company:companies!company_id (name)`,
         )
         .eq('status', showRejected ? 'rejected' : 'proposed')
@@ -120,6 +132,7 @@ export default function CvPushedPage() {
           start_date: m.start_date,
           end_date: m.end_date,
           created_at: m.created_at,
+          job_offer_id: m.job_offer_id ?? null,
           job_offer_title: m.job_offer?.title ?? null,
           // Client = company.name si rattachée, sinon nom libre de l'offre
           // (champ `source` de l'AO — client final ou ESN partenaire).
@@ -161,6 +174,21 @@ export default function CvPushedPage() {
   const pushed = pushedData ?? [];
 
   useRealtimeReload(['missions'], () => reload());
+
+  /** Charge l'offre complète puis ouvre le dialog "Pousser un autre consultant". */
+  async function openPushOtherConsultant(jobOfferId: string) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('job_offers')
+      .select('*')
+      .eq('id', jobOfferId)
+      .maybeSingle();
+    if (error || !data) {
+      notifyError('Offre introuvable');
+      return;
+    }
+    setPushOtherForOffer(data as JobOffer);
+  }
 
   const pagination = usePagination(pushed.length, {
     storageKey: 'cv-pushed-page-size',
@@ -463,7 +491,45 @@ export default function CvPushedPage() {
                         {relativeDate(r.created_at)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-1 flex-wrap">
+                          {!showRejected && (
+                            <>
+                              {/* "+ Autre offre" → pousser ce consultant sur
+                                  une autre offre (consultant verrouillé). */}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                  setPushOtherForConsultant({
+                                    id: r.consultant_id,
+                                    first_name: r.first_name,
+                                    last_name: r.last_name,
+                                    daily_rate_eur: r.consultant_rate,
+                                  })
+                                }
+                                title={`Pousser ${r.first_name} ${r.last_name} sur une autre offre`}
+                                className="text-violet-glow hover:bg-violet-glow/10"
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                                Autre offre
+                              </Button>
+                              {/* "+ Autre consultant" → pousser un autre
+                                  consultant sur cette même offre. Désactivé
+                                  si la mission n'a pas d'AO rattachée. */}
+                              {r.job_offer_id && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => openPushOtherConsultant(r.job_offer_id!)}
+                                  title={`Pousser un autre consultant sur ${r.job_offer_title ?? 'cette offre'}`}
+                                  className="text-violet-glow hover:bg-violet-glow/10"
+                                >
+                                  <UserPlus className="h-3.5 w-3.5" />
+                                  Autre profil
+                                </Button>
+                              )}
+                            </>
+                          )}
                           <Button size="sm" variant="ghost" asChild>
                             <Link href={`/consultants/${r.consultant_id}`}>
                               <Eye className="h-3.5 w-3.5" />
@@ -555,6 +621,32 @@ export default function CvPushedPage() {
         }
         missionTitle={refuseRow?.mission_title ?? ''}
         onConfirm={confirmRefuse}
+      />
+
+      {/* "+ Autre offre" : consultant locked, offre à choisir */}
+      <AssignMissionDialog
+        open={!!pushOtherForConsultant}
+        onOpenChange={(v) => {
+          if (!v) setPushOtherForConsultant(null);
+        }}
+        consultant={pushOtherForConsultant}
+        onAssigned={() => {
+          setPushOtherForConsultant(null);
+          reload();
+        }}
+      />
+
+      {/* "+ Autre profil" : offre locked, consultant à choisir */}
+      <AssignMissionDialog
+        open={!!pushOtherForOffer}
+        onOpenChange={(v) => {
+          if (!v) setPushOtherForOffer(null);
+        }}
+        offer={pushOtherForOffer}
+        onAssigned={() => {
+          setPushOtherForOffer(null);
+          reload();
+        }}
       />
     </AppShell>
   );

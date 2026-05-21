@@ -17,18 +17,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { jobOfferService } from '@/lib/services';
+import { consultantService } from '@/lib/services/consultant.service';
 import type { JobOffer, Consultant } from '@/types';
+
+type ConsultantPick = Pick<Consultant, 'id' | 'first_name' | 'last_name' | 'daily_rate_eur'>;
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /**
-   * Si fourni : flow "offre → consultant" (depuis Matching). L'offre est verrouillée.
-   * Si null : flow "consultant → offre" (depuis la fiche/liste consultants), affiche
-   * un sélecteur d'AO. L'AO reste optionnelle (mission libre possible).
+   * - offer set, consultant set : tout verrouillé (flow standard)
+   * - offer null, consultant set : flow "consultant → offre" (sélecteur AO)
+   * - offer set, consultant null : flow "offre → consultant" inverse (sélecteur consultant)
+   *   Permet de pousser plusieurs consultants sur la même offre.
    */
   offer?: JobOffer | null;
-  consultant: Pick<Consultant, 'id' | 'first_name' | 'last_name' | 'daily_rate_eur'> | null;
+  consultant?: ConsultantPick | null;
   onAssigned?: () => void;
 };
 
@@ -40,9 +44,14 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
   const [endDate, setEndDate] = useState('');
   const [offers, setOffers] = useState<JobOffer[]>([]);
   const [selectedOfferId, setSelectedOfferId] = useState<string>('');
+  const [consultantsList, setConsultantsList] = useState<ConsultantPick[]>([]);
+  const [selectedConsultantId, setSelectedConsultantId] = useState<string>('');
 
   const offerLocked = !!offer;
+  const consultantLocked = !!consultant;
   const activeOffer = offer ?? offers.find((o) => o.id === selectedOfferId) ?? null;
+  const activeConsultant =
+    consultant ?? consultantsList.find((c) => c.id === selectedConsultantId) ?? null;
 
   useEffect(() => {
     if (!open) return;
@@ -52,8 +61,54 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
     });
   }, [open, offerLocked]);
 
+  // Fetch des consultants quand on est en mode "consultant à choisir".
+  // On ne montre que les profils actifs (non archivés, non prospects).
   useEffect(() => {
-    if (!open || !consultant) return;
+    if (!open || consultantLocked) return;
+    consultantService
+      .list({ is_prospect: 'all', archived: false })
+      .then((res) => {
+        if (!res.data) return;
+        setConsultantsList(
+          res.data
+            .filter((c) => !c.is_prospect)
+            .map((c) => ({
+              id: c.id,
+              first_name: c.first_name,
+              last_name: c.last_name,
+              daily_rate_eur: c.daily_rate_eur ?? null,
+            })),
+        );
+      });
+  }, [open, consultantLocked]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    // Mode "consultant à choisir" + offre verrouillée :
+    // pré-remplit ce qu'on peut depuis l'offre, le consultant viendra après.
+    if (!consultantLocked && offerLocked && offer) {
+      setTitle(offer.title);
+      setTjm(
+        offer.daily_rate_max?.toString()
+          ?? offer.daily_rate_min?.toString()
+          ?? '',
+      );
+      setStartDate(offer.start_date ?? new Date().toISOString().slice(0, 10));
+      const start = offer.start_date ? new Date(offer.start_date) : new Date();
+      if (offer.duration_months) {
+        const end = new Date(start);
+        end.setMonth(end.getMonth() + offer.duration_months);
+        setEndDate(end.toISOString().slice(0, 10));
+      } else {
+        setEndDate('');
+      }
+      setSelectedConsultantId('');
+      return;
+    }
+
+    if (!consultant) return;
+
     // Flow offre verrouillée : préremplir depuis l'offre.
     if (offerLocked && offer) {
       setTitle(offer.title);
@@ -80,7 +135,16 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
     setStartDate(new Date().toISOString().slice(0, 10));
     setEndDate('');
     setSelectedOfferId('');
-  }, [open, offer, offerLocked, consultant]);
+  }, [open, offer, offerLocked, consultant, consultantLocked]);
+
+  function handleConsultantSelect(id: string) {
+    setSelectedConsultantId(id);
+    const c = consultantsList.find((x) => x.id === id);
+    if (c?.daily_rate_eur && !consultantLocked) {
+      // TJM = celui du consultant si défini, sinon on garde celui pré-rempli depuis l'AO.
+      setTjm(String(c.daily_rate_eur));
+    }
+  }
 
   function handleOfferSelect(id: string) {
     setSelectedOfferId(id);
@@ -101,7 +165,10 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
   }
 
   async function submit() {
-    if (!consultant) return;
+    if (!activeConsultant) {
+      toast.error('Consultant requis');
+      return;
+    }
     if (!title.trim()) {
       toast.error('Titre requis');
       return;
@@ -116,7 +183,7 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          consultant_id: consultant.id,
+          consultant_id: activeConsultant.id,
           job_offer_id: activeOffer?.id ?? null,
           title: title.trim(),
           daily_rate_eur: Number(tjm) || 0,
@@ -130,7 +197,7 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
         return;
       }
       toast.success(
-        `Mission proposée pour ${consultant.first_name} ${consultant.last_name} — à valider sur sa fiche.`,
+        `Mission proposée pour ${activeConsultant.first_name} ${activeConsultant.last_name} — à valider sur sa fiche.`,
       );
       onAssigned?.();
       onOpenChange(false);
@@ -150,9 +217,9 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
             Affecter à une mission
           </DialogTitle>
           <DialogDescription>
-            {consultant && (
+            {activeConsultant ? (
               <>
-                <strong>{consultant.first_name} {consultant.last_name}</strong>
+                <strong>{activeConsultant.first_name} {activeConsultant.last_name}</strong>
                 {activeOffer ? (
                   <>
                     {' '}sur <strong>{activeOffer.title}</strong>
@@ -161,11 +228,37 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
                 . Statut initial : <em>proposed</em>. À valider ensuite depuis la fiche consultant
                 ou la page Missions.
               </>
-            )}
+            ) : activeOffer ? (
+              <>
+                Pousser un consultant sur <strong>{activeOffer.title}</strong>. Choisis la
+                personne et ajuste le TJM négocié.
+              </>
+            ) : null}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
+          {!consultantLocked && (
+            <div>
+              <Label>Consultant à positionner</Label>
+              <Select
+                value={selectedConsultantId}
+                onChange={(e) => handleConsultantSelect(e.target.value)}
+              >
+                <option value="">— Sélectionner —</option>
+                {consultantsList.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.last_name.toUpperCase()} {c.first_name}
+                    {c.daily_rate_eur ? ` · TJM ${c.daily_rate_eur}€` : ''}
+                  </option>
+                ))}
+              </Select>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Plusieurs consultants peuvent être poussés sur la même offre (1 ligne par
+                proposition dans CV poussés).
+              </p>
+            </div>
+          )}
           {!offerLocked && (
             <div>
               <Label>Offre client (AO) — optionnel</Label>
