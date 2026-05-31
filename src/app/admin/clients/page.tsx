@@ -153,9 +153,14 @@ export default function AdminClientsPage() {
               </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={load}>
-            Rafraîchir
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <a href="/admin/audit">Audit &amp; conformité</a>
+            </Button>
+            <Button variant="outline" size="sm" onClick={load}>
+              Rafraîchir
+            </Button>
+          </div>
         </div>
       </header>
 

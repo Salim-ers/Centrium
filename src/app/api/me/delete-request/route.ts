@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth/guards';
+import { logAudit } from '@/lib/audit/log';
 
 export const runtime = 'nodejs';
 
@@ -62,12 +63,12 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (profile?.organization_id) {
-    await admin.from('activities').insert({
-      organization_id: profile.organization_id,
-      user_id: user.id,
-      entity_type: 'account_deletion_request',
-      entity_id: user.id,
-      action: 'requested',
+    await logAudit({
+      organizationId: profile.organization_id,
+      userId: user.id,
+      entityType: 'account_deletion_request',
+      entityId: user.id,
+      action: 'data.deletion_requested',
       details: {
         email: user.email,
         reason: parsed.data.reason ?? null,

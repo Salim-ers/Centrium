@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { rateLimit, clientIp } from '@/lib/ratelimit/in-memory';
 
 // =========================================================================
 // POST /api/quote-requests — Formulaire public "Demande de devis".
@@ -31,6 +32,28 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // Anti-spam : 5 requêtes par IP par minute. La route est exposée au
+  // formulaire public /devis donc on protège contre les bots.
+  const rl = rateLimit({
+    key: `quote-requests:${clientIp(req)}`,
+    limit: 5,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      {
+        error: 'too_many_requests',
+        message: 'Trop de demandes envoyées. Réessayez dans une minute.',
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': Math.max(1, Math.ceil((rl.resetAt - Date.now()) / 1000)).toString(),
+        },
+      },
+    );
+  }
+
   const parsed = schema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json(

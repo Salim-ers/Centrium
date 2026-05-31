@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth/guards';
+import { logAudit } from '@/lib/audit/log';
 
 export const runtime = 'nodejs';
 
@@ -75,6 +76,17 @@ export async function POST() {
 
   const body = JSON.stringify(payload, null, 2);
   const filename = `centrium-export-${user.id}-${new Date().toISOString().slice(0, 10)}.json`;
+
+  if (profileRes.data?.organization_id) {
+    await logAudit({
+      organizationId: profileRes.data.organization_id,
+      userId: user.id,
+      entityType: 'user_data',
+      entityId: user.id,
+      action: 'data.exported',
+      details: { format: 'json', size_bytes: body.length },
+    });
+  }
 
   return new NextResponse(body, {
     status: 200,
