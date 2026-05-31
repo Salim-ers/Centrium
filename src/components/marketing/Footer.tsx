@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { LegalLinks } from './legal/LegalLinks';
+import { ManageCookiesLink } from './CookieBanner';
 import type { LandingDict } from '@/lib/i18n/landing';
 
 export function Footer({ t }: { t: LandingDict }) {
@@ -47,6 +48,24 @@ export function Footer({ t }: { t: LandingDict }) {
 
       <div className="max-w-7xl mx-auto px-6 mt-10 pt-6 border-t border-hairline flex flex-col gap-4">
         <LegalLinks />
+        <nav
+          aria-label="Pages légales et sécurité"
+          className="flex flex-wrap items-center justify-center sm:justify-start gap-x-5 gap-y-2 text-[11px] text-white/40"
+        >
+          <Link href="/legal/privacy" className="hover:text-white/80 transition">
+            Confidentialité (page)
+          </Link>
+          <Link href="/legal/cgu" className="hover:text-white/80 transition">
+            CGU (page)
+          </Link>
+          <Link href="/legal/mentions" className="hover:text-white/80 transition">
+            Mentions légales (page)
+          </Link>
+          <Link href="/security" className="hover:text-white/80 transition">
+            Sécurité &amp; conformité
+          </Link>
+          <ManageCookiesLink className="hover:text-white/80 transition" />
+        </nav>
         <div className="text-xs text-white/40 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div>{t.footer.rights}</div>
           <div className="flex items-center gap-2">

@@ -238,7 +238,7 @@ export default function OnboardingPage() {
             <div className="space-y-1.5">
               <Label htmlFor="slug">Identifiant (URL)</Label>
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground">quadcore.app/</span>
+                <span className="text-xs text-muted-foreground">centrium-platform.com/</span>
                 <Input id="slug" {...register('slug')} />
               </div>
               {errors.slug && <p className="text-xs text-red-400">{errors.slug.message}</p>}

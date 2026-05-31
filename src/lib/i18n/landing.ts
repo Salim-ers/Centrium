@@ -308,7 +308,7 @@ export const DICT: Record<Locale, LandingDict> = {
           ],
         },
       },
-      rights: '© 2026 QuadCore. Tous droits réservés.',
+      rights: '© 2026 Centrium — édité par QuadCore SAS. Tous droits réservés.',
     },
   },
   en: {
@@ -510,7 +510,7 @@ export const DICT: Record<Locale, LandingDict> = {
           ],
         },
       },
-      rights: '© 2026 QuadCore. All rights reserved.',
+      rights: '© 2026 Centrium — published by QuadCore SAS. All rights reserved.',
     },
   },
 };

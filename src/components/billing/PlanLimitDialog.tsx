@@ -64,7 +64,7 @@ export function PlanLimitDialog({ payload, onOpenChange }: Props) {
   async function upgrade() {
     if (!nextPlanId) return;
     if (nextPlanId === 'enterprise') {
-      window.location.href = 'mailto:sales@quadcore.app?subject=Upgrade Enterprise';
+      window.location.href = 'mailto:contact@centrium-platform.com?subject=Upgrade Enterprise';
       return;
     }
     setUpgrading(true);

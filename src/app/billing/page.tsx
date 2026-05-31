@@ -237,7 +237,7 @@ function BillingPageInner() {
               <p>
                 Besoin d&apos;un plan custom / Enterprise ?{' '}
                 <a
-                  href="mailto:sales@quadcore.app"
+                  href="mailto:contact@centrium-platform.com"
                   className="text-violet-300 hover:text-violet-200"
                 >
                   Contacte-nous

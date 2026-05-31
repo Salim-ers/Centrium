@@ -115,7 +115,11 @@
       "PowerShell($token = [Environment]::GetEnvironmentVariable\\('SUPABASE_ACCESS_TOKEN','User'\\); $ref = 'actpzvkorgxkgwutwaud'; $payload = @{ uri_allow_list = \"https://quadcore-platform.vercel.app/,https://quad-core-platform.fr/,http://localhost:3000/,https://quadcore-platform.vercel.app/auth/callback,https://quad-core-platform.fr/auth/callback,http://localhost:3000/auth/callback\" } | ConvertTo-Json -Compress; $bytes = [System.Text.Encoding]::UTF8.GetBytes\\($payload\\); $headers = @{ Authorization = \"Bearer $token\"; \"Content-Type\" = \"application/json\" }; $r = Invoke-RestMethod -Method PATCH -Uri \"https://api.supabase.com/v1/projects/$ref/config/auth\" -Headers $headers -Body $bytes; Write-Output \\(\"uri_allow_list: \" + $r.uri_allow_list\\))",
       "mcp__supabase__apply_migration",
       "Bash(git restore *)",
-      "mcp__supabase__execute_sql"
+      "mcp__supabase__execute_sql",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Salim\\\\Desktop\\\\quadcore-platform\" -Force)",
+      "Bash(Select-Object Name, FullName)",
+      "Bash(Select-Object Name, Mode)",
+      "Bash(Get-ChildItem -Path \"public\\\\brand\\\\\" -Force)"
     ],
     "deny": [
       "Write(.env*)",

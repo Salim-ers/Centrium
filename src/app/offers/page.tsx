@@ -231,7 +231,7 @@ export default function OffersPage() {
     try {
       const brand = resolveBrand(branding);
       const safeTitle = o.title.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 60);
-      const brandSlug = brand.brandName.replace(/[^a-zA-Z0-9]/g, '') || 'QuadCore';
+      const brandSlug = brand.brandName.replace(/[^a-zA-Z0-9]/g, '') || 'Centrium';
       await exportJobOfferPoster(o, {
         filename: `Fiche_Poste_${safeTitle}_${brandSlug}`,
         brand,

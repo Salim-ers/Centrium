@@ -113,9 +113,9 @@ export const CONTACT_TYPE_LABEL: Record<ContactType, string> = {
 };
 
 export const CV_TEMPLATE_LABEL: Record<CVTemplateId, string> = {
-  standard: 'QuadCore Standard',
-  dense: 'QuadCore Dense',
-  executive: 'QuadCore Executive',
+  standard: 'Centrium Standard',
+  dense: 'Centrium Dense',
+  executive: 'Centrium Executive',
 };
 
 export const SKILL_CATEGORIES = [

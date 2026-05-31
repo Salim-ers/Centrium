@@ -433,7 +433,7 @@ export function ContractFormDialog({
               </div>
               <div className="col-span-2">
                 <Label>Email de facturation</Label>
-                <Input type="email" {...register('billing_email')} placeholder="facturation@quadcore.fr" />
+                <Input type="email" {...register('billing_email')} placeholder="facturation@centrium-platform.com" />
               </div>
             </div>
           </section>

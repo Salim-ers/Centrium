@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Settings as SettingsIcon, LogOut, Palette, Users, User } from 'lucide-react';
+import { Settings as SettingsIcon, LogOut, Palette, Users, User, ShieldCheck } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -88,6 +88,20 @@ export default function SettingsPage() {
               </CardTitle>
               <CardDescription>
                 Membres, invitations et rôles de l&apos;organisation.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link href="/settings/privacy" className="group">
+          <Card className="h-full transition-colors group-hover:border-violet-glow/50">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-violet-glow" />
+                Mes données & confidentialité
+              </CardTitle>
+              <CardDescription>
+                Exportez vos données, gérez vos cookies, exercez vos droits RGPD.
               </CardDescription>
             </CardHeader>
           </Card>

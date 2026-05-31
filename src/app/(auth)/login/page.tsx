@@ -132,7 +132,7 @@ export default function LoginPage() {
               id="email"
               type="email"
               autoComplete="email"
-              placeholder="vous@quadcore.fr"
+              placeholder="vous@centrium-platform.com"
               className="pl-9"
               {...register('email')}
             />

@@ -130,7 +130,7 @@ export default function TemplatesPage() {
     setExporting('pdf');
     try {
       await downloadElementAsPdf(docRef.current, {
-        fileName: `CV_QuadCore_${template}_demo`,
+        fileName: `CV_Centrium_${template}_demo`,
       });
     } finally {
       setExporting(null);
@@ -144,7 +144,7 @@ export default function TemplatesPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `CV_QuadCore_${template}_demo.docx`;
+      a.download = `CV_Centrium_${template}_demo.docx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -165,7 +165,7 @@ export default function TemplatesPage() {
       <div className="no-print mb-8">
         <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
           <FileSignature className="h-7 w-7 text-violet-glow" />
-          Templates CV QuadCore
+          Templates CV Centrium
         </h1>
         <p className="text-muted-foreground mt-1">
           Trois variantes propriétaires pour couvrir tous les profils consultants.
@@ -175,9 +175,9 @@ export default function TemplatesPage() {
       <div className="no-print">
         <Tabs value={template} onValueChange={(v) => setTemplate(v as CVTemplateId)}>
           <TabsList>
-            <TabsTrigger value="standard">QuadCore Standard</TabsTrigger>
-            <TabsTrigger value="dense">QuadCore Dense</TabsTrigger>
-            <TabsTrigger value="executive">QuadCore Executive</TabsTrigger>
+            <TabsTrigger value="standard">Centrium Standard</TabsTrigger>
+            <TabsTrigger value="dense">Centrium Dense</TabsTrigger>
+            <TabsTrigger value="executive">Centrium Executive</TabsTrigger>
           </TabsList>
 
           <TabsContent value={template}>

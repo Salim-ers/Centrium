@@ -4,6 +4,7 @@ import { Toaster } from 'sonner';
 import './globals.css';
 import { OrganizationProvider } from '@/lib/auth/context';
 import { RouteThemeManager } from '@/components/theme/RouteThemeManager';
+import { CookieBanner } from '@/components/marketing/CookieBanner';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const spaceGrotesk = Space_Grotesk({
@@ -26,8 +27,8 @@ const themeBootstrapScript = `
 (function() {
   try {
     var path = window.location.pathname;
-    var forcedDarkPaths = ['/', '/login', '/signup', '/register', '/devis', '/pricing'];
-    var forcedDarkPrefixes = ['/auth/', '/invite/'];
+    var forcedDarkPaths = ['/', '/login', '/signup', '/register', '/devis', '/pricing', '/security'];
+    var forcedDarkPrefixes = ['/auth/', '/invite/', '/legal/'];
     var isForcedDark =
       forcedDarkPaths.indexOf(path) !== -1 ||
       forcedDarkPrefixes.some(function (p) { return path.indexOf(p) === 0; });
@@ -62,6 +63,7 @@ export default function RootLayout({
       <body className="font-sans">
         <RouteThemeManager />
         <OrganizationProvider>{children}</OrganizationProvider>
+        <CookieBanner />
         <Toaster
           position="top-right"
           toastOptions={{
