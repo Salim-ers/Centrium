@@ -2,7 +2,7 @@
 
 import { ArrowRight } from 'lucide-react';
 
-import { HeroScene3D } from './HeroScene3D';
+import { FluidField } from './FluidField';
 import { MagneticButton } from './MagneticButton';
 import type { LandingDict } from '@/lib/i18n/landing';
 
@@ -23,8 +23,8 @@ export function Hero({ t }: { t: LandingDict }) {
       id="home"
       className="relative min-h-[90vh] flex items-center overflow-hidden"
     >
-      {/* Scène 3D plein écran derrière le contenu */}
-      <HeroScene3D className="z-0" />
+      {/* Fond dynamique léger style 4DX (SVG waves + particules Canvas) */}
+      <FluidField className="z-0" />
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 text-center pt-24 pb-16">
         {/* Titre — sans badge — directement éditorial */}

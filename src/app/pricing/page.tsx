@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
+import { MarketingShell } from '@/components/marketing/MarketingShell';
 
 /**
  * Page /pricing — plan unique "Sur devis".
@@ -149,24 +149,8 @@ export default function PricingPage() {
   }, []);
 
   return (
-    <div ref={rootRef} className="min-h-screen bg-background text-white overflow-x-hidden">
-      <header className="border-b border-hairline bg-background/80 backdrop-blur-xl sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href="/" aria-label="Accueil Centrium">
-            <CentriumWordmark size="sm" />
-          </Link>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" asChild size="sm" className="hidden sm:inline-flex">
-              <Link href="/login">Se connecter</Link>
-            </Button>
-            <Button asChild className="bg-qc-gradient hover:opacity-95 shadow-[0_0_20px_rgba(225,29,116,0.4)]">
-              <Link href="/devis">Demander un devis</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main>
+    <MarketingShell>
+      <main ref={rootRef} className="pt-20">
         <section className="relative overflow-hidden">
           <div
             aria-hidden
@@ -393,25 +377,6 @@ export default function PricingPage() {
           </div>
         </section>
       </main>
-
-      <footer className="border-t border-hairline py-8">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/50">
-          <div>
-            © {new Date().getFullYear()} QuadCore SAS — Centrium est une marque éditée par QuadCore SAS.
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/legal/privacy" className="hover:text-white transition">
-              Confidentialité
-            </Link>
-            <Link href="/legal/cgu" className="hover:text-white transition">
-              CGU
-            </Link>
-            <Link href="/security" className="hover:text-white transition">
-              Sécurité
-            </Link>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </MarketingShell>
   );
 }

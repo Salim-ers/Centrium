@@ -1,6 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 
-import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
+import { MarketingShell } from '@/components/marketing/MarketingShell';
 
 export const LEGAL_PAGES = [
   { slug: 'privacy', label: 'Confidentialité', href: '/legal/privacy' },
@@ -19,32 +21,20 @@ type Props = {
   children: React.ReactNode;
 };
 
+/**
+ * Shell des pages /legal/* — réutilise MarketingShell (donc même
+ * header + StarField + footer que partout) et ajoute :
+ *   - le bandeau "Document de travail à valider par juriste"
+ *   - la sidebar de navigation entre documents légaux
+ *   - le contenu de l'article
+ *
+ * Garantit la cohérence visuelle avec /, /plateforme, /security…
+ */
 export function LegalShell({ title, updatedAt, currentSlug, children }: Props) {
   return (
-    <div className="min-h-screen bg-background text-white flex flex-col">
-      <header className="border-b border-hairline bg-background/80 backdrop-blur-xl sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href="/" aria-label="Accueil Centrium" className="flex items-center">
-            <CentriumWordmark size="sm" />
-          </Link>
-          <nav className="flex items-center gap-2 text-sm">
-            <Link
-              href="/"
-              className="hidden sm:inline-flex items-center h-9 px-3 rounded-full text-white/70 hover:text-white hover:bg-white/5 transition"
-            >
-              Accueil
-            </Link>
-            <Link
-              href="/devis"
-              className="inline-flex items-center h-10 px-4 rounded-full bg-qc-gradient text-white text-sm font-semibold shadow-[0_0_22px_rgba(225,29,116,0.4)] hover:brightness-110 transition"
-            >
-              Demander un devis
-            </Link>
-          </nav>
-        </div>
-      </header>
-
-      <div className="border-b border-amber-500/30 bg-amber-500/10">
+    <MarketingShell>
+      {/* Bandeau "document de travail" sous le header */}
+      <div className="relative pt-20 border-b border-amber-500/30 bg-amber-500/10">
         <div className="max-w-6xl mx-auto px-6 py-3 text-xs leading-relaxed text-amber-200">
           <strong className="font-semibold">Document de travail.</strong> Ce texte
           est un projet rédigé avec sérieux mais ne constitue pas un avis juridique
@@ -53,7 +43,7 @@ export function LegalShell({ title, updatedAt, currentSlug, children }: Props) {
         </div>
       </div>
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-12 md:py-16">
+      <main className="relative max-w-6xl mx-auto w-full px-6 py-12 md:py-16">
         <div className="grid md:grid-cols-[230px_1fr] gap-10 md:gap-14">
           <aside className="md:sticky md:top-28 md:self-start">
             <div className="text-[11px] font-semibold tracking-[0.2em] text-white/40 mb-3 uppercase">
@@ -82,7 +72,7 @@ export function LegalShell({ title, updatedAt, currentSlug, children }: Props) {
               })}
             </nav>
 
-            <div className="hidden md:block mt-8 rounded-xl border border-hairline bg-white/[0.02] p-4 text-xs text-white/60">
+            <div className="hidden md:block mt-8 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-xs text-white/60">
               <div className="font-semibold text-white/80 mb-1">Une question ?</div>
               <p className="leading-relaxed mb-3">
                 Pour toute demande relative à vos données ou à un document légal,
@@ -114,7 +104,7 @@ export function LegalShell({ title, updatedAt, currentSlug, children }: Props) {
               {children}
             </div>
 
-            <div className="mt-14 pt-8 border-t border-hairline text-xs text-white/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="mt-14 pt-8 border-t border-white/10 text-xs text-white/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 Vous avez une remarque sur ce document ?{' '}
                 <a
@@ -131,23 +121,6 @@ export function LegalShell({ title, updatedAt, currentSlug, children }: Props) {
           </article>
         </div>
       </main>
-
-      <footer className="border-t border-hairline py-8 mt-8">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/50">
-          <div>
-            © {new Date().getFullYear()} QuadCore SAS — Centrium est une marque
-            éditée par QuadCore SAS.
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/security" className="hover:text-white transition">
-              Sécurité & conformité
-            </Link>
-            <Link href="/" className="hover:text-white transition">
-              Retour à l’accueil
-            </Link>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </MarketingShell>
   );
 }

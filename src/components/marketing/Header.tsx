@@ -14,6 +14,7 @@ type Props = {
 };
 
 const NAV = [
+  { label: 'Accueil', href: '/' },
   { label: 'Plateforme', href: '/plateforme' },
   { label: 'Manifeste', href: '/manifesto' },
   { label: 'Sécurité', href: '/security' },

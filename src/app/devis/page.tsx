@@ -30,7 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
-import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
+import { MarketingShell } from '@/components/marketing/MarketingShell';
 import { cn } from '@/lib/utils';
 
 /**
@@ -278,76 +278,50 @@ export default function DevisPage() {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-background text-white flex items-center justify-center px-6 relative overflow-hidden">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-60"
-          style={{
-            background:
-              'radial-gradient(ellipse 60% 50% at 50% 0%, rgba(168,85,247,0.18), transparent 60%), radial-gradient(ellipse 50% 40% at 50% 100%, rgba(236,72,153,0.14), transparent 70%)',
-          }}
-        />
-        <div className="relative max-w-lg w-full text-center space-y-6">
-          <div className="mx-auto h-16 w-16 rounded-full bg-emerald-500/15 flex items-center justify-center">
-            <CheckCircle2 className="h-8 w-8 text-emerald-300" />
+      <MarketingShell>
+        <main className="min-h-[80vh] flex items-center justify-center px-6 pt-24">
+          <div className="relative max-w-lg w-full text-center space-y-6">
+            <div className="mx-auto h-16 w-16 rounded-full bg-emerald-500/15 flex items-center justify-center">
+              <CheckCircle2 className="h-8 w-8 text-emerald-300" />
+            </div>
+            <div>
+              <h1 className="font-display text-3xl font-bold tracking-tight">
+                Demande envoyée ✓
+              </h1>
+              <p className="text-muted-foreground mt-3 leading-relaxed">
+                On a bien reçu ta demande pour <strong>{form.company_name}</strong>.
+                Tu vas recevoir une réponse à
+                <strong className="text-violet-200"> {form.contact_email}</strong> sous
+                24 à 48h ouvrées avec un devis personnalisé et la prochaine étape pour
+                activer ton espace.
+              </p>
+              <p className="text-xs text-muted-foreground mt-4">
+                Une question entre-temps ?{' '}
+                <a
+                  href={`mailto:${NOTIFICATION_EMAIL}`}
+                  className="text-violet-300 hover:text-violet-200 underline underline-offset-2"
+                >
+                  {NOTIFICATION_EMAIL}
+                </a>
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2">
+              <Button asChild variant="outline">
+                <Link href="/">
+                  <ArrowLeft className="h-4 w-4" />
+                  Retour à l&apos;accueil
+                </Link>
+              </Button>
+            </div>
           </div>
-          <div>
-            <h1 className="font-display text-3xl font-bold tracking-tight">
-              Demande envoyée ✓
-            </h1>
-            <p className="text-muted-foreground mt-3 leading-relaxed">
-              On a bien reçu ta demande pour <strong>{form.company_name}</strong>.
-              Tu vas recevoir une réponse à
-              <strong className="text-violet-200"> {form.contact_email}</strong> sous
-              24 à 48h ouvrées avec un devis personnalisé et la prochaine étape pour
-              activer ton espace.
-            </p>
-            <p className="text-xs text-muted-foreground mt-4">
-              Une question entre-temps ?{' '}
-              <a
-                href={`mailto:${NOTIFICATION_EMAIL}`}
-                className="text-violet-300 hover:text-violet-200 underline underline-offset-2"
-              >
-                {NOTIFICATION_EMAIL}
-              </a>
-            </p>
-          </div>
-          <div className="flex items-center justify-center gap-2">
-            <Button asChild variant="outline">
-              <Link href="/">
-                <ArrowLeft className="h-4 w-4" />
-                Retour à l&apos;accueil
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
+        </main>
+      </MarketingShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background text-white relative overflow-hidden">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-70"
-        style={{
-          background:
-            'radial-gradient(ellipse 60% 50% at 50% 0%, rgba(168,85,247,0.18), transparent 60%), radial-gradient(ellipse 50% 40% at 50% 100%, rgba(236,72,153,0.12), transparent 70%)',
-        }}
-      />
-
-      <header className="relative border-b border-hairline">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-3">
-            <CentriumWordmark size="md" />
-          </Link>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/login">Déjà client ? Se connecter</Link>
-          </Button>
-        </div>
-      </header>
-
-      <main className="relative max-w-3xl mx-auto px-6 py-10 md:py-16">
+    <MarketingShell>
+      <main className="relative max-w-3xl mx-auto px-6 pt-32 pb-16">
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 rounded-full border border-violet-glow/40 bg-violet-glow/10 px-3 py-1 text-xs text-violet-200 mb-4">
             <Sparkles className="h-3 w-3" />
@@ -648,6 +622,6 @@ export default function DevisPage() {
           </div>
         </form>
       </main>
-    </div>
+    </MarketingShell>
   );
 }

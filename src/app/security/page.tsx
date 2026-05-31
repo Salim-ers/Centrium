@@ -15,7 +15,7 @@ import {
   HeartHandshake,
 } from 'lucide-react';
 
-import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
+import { MarketingShell } from '@/components/marketing/MarketingShell';
 
 export const metadata: Metadata = {
   title: 'Sécurité & conformité — Centrium',
@@ -134,30 +134,8 @@ const SUBPROCESSORS = [
 
 export default function SecurityPage() {
   return (
-    <div className="min-h-screen bg-background text-white flex flex-col">
-      <header className="border-b border-hairline bg-background/80 backdrop-blur-xl sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href="/" aria-label="Accueil Centrium" className="flex items-center">
-            <CentriumWordmark size="sm" />
-          </Link>
-          <nav className="flex items-center gap-2 text-sm">
-            <Link
-              href="/legal/privacy"
-              className="hidden sm:inline-flex items-center h-9 px-3 rounded-full text-white/70 hover:text-white hover:bg-white/5 transition"
-            >
-              Politique de confidentialité
-            </Link>
-            <Link
-              href="/devis"
-              className="inline-flex items-center h-10 px-4 rounded-full bg-qc-gradient text-white text-sm font-semibold shadow-[0_0_22px_rgba(225,29,116,0.4)] hover:brightness-110 transition"
-            >
-              Demander un devis
-            </Link>
-          </nav>
-        </div>
-      </header>
-
-      <main className="flex-1">
+    <MarketingShell>
+      <main className="relative pt-20">
         <section className="relative overflow-hidden">
           <div
             aria-hidden
@@ -395,26 +373,6 @@ export default function SecurityPage() {
           </div>
         </section>
       </main>
-
-      <footer className="border-t border-hairline py-8">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/50">
-          <div>
-            © {new Date().getFullYear()} QuadCore SAS — Centrium est une marque
-            éditée par QuadCore SAS.
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/legal/privacy" className="hover:text-white transition">
-              Confidentialité
-            </Link>
-            <Link href="/legal/cgu" className="hover:text-white transition">
-              CGU
-            </Link>
-            <Link href="/legal/mentions" className="hover:text-white transition">
-              Mentions légales
-            </Link>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </MarketingShell>
   );
 }
