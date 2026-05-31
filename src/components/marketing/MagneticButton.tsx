@@ -17,15 +17,14 @@ type Props = {
 };
 
 /**
- * Bouton premium :
- *   - effet magnétique : suit légèrement le pointer quand il s'approche
- *   - glow gradient qui suit la position du pointer dans le bouton
- *   - dégradé conic subtil au repos sur la bordure
+ * Bouton premium dynamique avec :
+ *   - effet magnétique (suit le pointer)
+ *   - tilt 3D perspective (rotateX/Y selon position pointer dans bouton)
+ *   - shine sweep diagonal au hover (gradient blanc qui glisse)
+ *   - glow radial qui suit le pointer
+ *   - bordure conic-gradient au repos
  *
- * Respecte prefers-reduced-motion (effet magnétique désactivé).
- *
- * Usage :
- *   <MagneticButton href="/devis" variant="primary">Demander une démo</MagneticButton>
+ * Respecte prefers-reduced-motion (magnétisme + tilt désactivés).
  */
 export function MagneticButton({
   href,
@@ -33,11 +32,13 @@ export function MagneticButton({
   variant = 'primary',
   className,
   children,
-  strength = 14,
+  strength = 12,
 }: Props) {
   const ref = useRef<HTMLButtonElement | HTMLAnchorElement | null>(null);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [pointer, setPointer] = useState({ x: 50, y: 50 });
+  const [hovering, setHovering] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
@@ -54,51 +55,58 @@ export function MagneticButton({
     const rect = ref.current.getBoundingClientRect();
     const relX = e.clientX - rect.left;
     const relY = e.clientY - rect.top;
-    setPointer({
-      x: (relX / rect.width) * 100,
-      y: (relY / rect.height) * 100,
-    });
+    const px = (relX / rect.width) * 100;
+    const py = (relY / rect.height) * 100;
+    setPointer({ x: px, y: py });
     if (!reducedMotion) {
       const cx = rect.width / 2;
       const cy = rect.height / 2;
       const dx = (relX - cx) / cx;
       const dy = (relY - cy) / cy;
       setTranslate({ x: dx * strength, y: dy * strength });
+      // Tilt 3D : intensité douce (max 8°)
+      setTilt({ x: -dy * 8, y: dx * 8 });
     }
   }
 
   function handleLeave() {
     setTranslate({ x: 0, y: 0 });
+    setTilt({ x: 0, y: 0 });
+    setHovering(false);
+  }
+  function handleEnter() {
+    setHovering(true);
   }
 
   const baseClasses = cn(
     'relative inline-flex items-center justify-center gap-2',
-    'h-12 px-7 rounded-full font-semibold text-[15px] tracking-tight',
-    'transition-transform duration-300 ease-out will-change-transform',
+    'h-12 px-7 rounded-full font-medium text-[15px] tracking-tight',
+    'transition-transform duration-[320ms] ease-out will-change-transform',
     'overflow-hidden select-none',
     className,
   );
 
   const variantClasses =
     variant === 'primary'
-      ? 'text-white bg-black/40 border border-white/15 shadow-[0_18px_60px_-20px_rgba(225,29,116,0.6)] backdrop-blur'
+      ? 'text-white bg-black/40 border border-white/15 shadow-[0_22px_60px_-22px_rgba(225,29,116,0.65)] backdrop-blur'
       : 'text-white/90 border border-white/15 bg-white/[0.04] backdrop-blur';
 
   const style: React.CSSProperties = {
-    transform: `translate3d(${translate.x}px, ${translate.y}px, 0)`,
+    transform: `perspective(800px) translate3d(${translate.x}px, ${translate.y}px, 0) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+    transformStyle: 'preserve-3d',
   };
 
   const content = (
     <>
-      {/* gradient conic au repos sur la bordure */}
+      {/* bordure conic au repos */}
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-0 rounded-full opacity-70"
+        className="pointer-events-none absolute inset-0 rounded-full opacity-80"
         style={{
           background:
             variant === 'primary'
-              ? 'conic-gradient(from 90deg at 50% 50%, rgba(236,72,153,0.55), rgba(168,85,247,0.35), rgba(236,72,153,0.55))'
-              : 'conic-gradient(from 90deg at 50% 50%, rgba(255,255,255,0.15), rgba(255,255,255,0.05), rgba(255,255,255,0.15))',
+              ? 'conic-gradient(from 90deg at 50% 50%, rgba(236,72,153,0.55), rgba(168,85,247,0.4), rgba(236,72,153,0.55))'
+              : 'conic-gradient(from 90deg at 50% 50%, rgba(255,255,255,0.16), rgba(255,255,255,0.05), rgba(255,255,255,0.16))',
           padding: '1px',
           WebkitMask:
             'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
@@ -106,29 +114,51 @@ export function MagneticButton({
           maskComposite: 'exclude',
         }}
       />
-      {/* glow qui suit le pointer */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-        style={{
-          background:
-            variant === 'primary'
-              ? `radial-gradient(140px circle at ${pointer.x}% ${pointer.y}%, rgba(236,72,153,0.45), transparent 70%)`
-              : `radial-gradient(140px circle at ${pointer.x}% ${pointer.y}%, rgba(255,255,255,0.18), transparent 70%)`,
-        }}
-      />
-      {/* fond rose/violet primary */}
+
+      {/* fond gradient pour primary */}
       {variant === 'primary' && (
         <span
           aria-hidden
           className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-br from-pink-500/30 via-magenta/20 to-violet-glow/20"
         />
       )}
-      <span className="relative z-10 inline-flex items-center gap-2">{children}</span>
+
+      {/* glow radial qui suit le pointer */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-full transition-opacity duration-300"
+        style={{
+          opacity: hovering ? 1 : 0,
+          background:
+            variant === 'primary'
+              ? `radial-gradient(150px circle at ${pointer.x}% ${pointer.y}%, rgba(236,72,153,0.55), transparent 70%)`
+              : `radial-gradient(150px circle at ${pointer.x}% ${pointer.y}%, rgba(255,255,255,0.22), transparent 70%)`,
+        }}
+      />
+
+      {/* shine sweep diagonal au hover */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-full overflow-hidden"
+      >
+        <span
+          className="absolute top-0 -left-1/2 h-full w-1/2 transition-transform duration-700 ease-out"
+          style={{
+            transform: hovering ? 'translateX(280%) skewX(-18deg)' : 'translateX(0) skewX(-18deg)',
+            background:
+              'linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%)',
+          }}
+        />
+      </span>
+
+      <span
+        className="relative z-10 inline-flex items-center gap-2"
+        style={{ transform: 'translateZ(20px)' }}
+      >
+        {children}
+      </span>
     </>
   );
-
-  const groupClass = 'group';
 
   if (href) {
     return (
@@ -136,8 +166,9 @@ export function MagneticButton({
         href={href}
         ref={ref as React.Ref<HTMLAnchorElement>}
         onPointerMove={handleMove}
+        onPointerEnter={handleEnter}
         onPointerLeave={handleLeave}
-        className={cn(groupClass, baseClasses, variantClasses)}
+        className={cn(baseClasses, variantClasses)}
         style={style}
       >
         {content}
@@ -151,8 +182,9 @@ export function MagneticButton({
       ref={ref as React.Ref<HTMLButtonElement>}
       onClick={onClick}
       onPointerMove={handleMove}
+      onPointerEnter={handleEnter}
       onPointerLeave={handleLeave}
-      className={cn(groupClass, baseClasses, variantClasses)}
+      className={cn(baseClasses, variantClasses)}
       style={style}
     >
       {content}

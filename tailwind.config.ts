@@ -83,6 +83,10 @@ const config: Config = {
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
         display: ['var(--font-space-grotesk)', 'Inter', 'sans-serif'],
+        // Serif éditoriale noble — pour les titres premium, accents,
+        // chiffres clés. À utiliser via font-editorial (chic, italique
+        // magnifique). Georgia en fallback.
+        editorial: ['var(--font-instrument-serif)', 'Georgia', 'serif'],
         serif: ['Georgia', 'serif'],
       },
       backgroundImage: {

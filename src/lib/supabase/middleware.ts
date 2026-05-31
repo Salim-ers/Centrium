@@ -4,8 +4,8 @@ import { NextResponse, type NextRequest } from 'next/server';
 // Paths accessibles sans session (devis public, login, invitations, pricing, landing).
 // /signup reste public mais redirige côté serveur vers /devis pour les bookmarks
 // externes (cf. src/app/(auth)/signup/page.tsx).
-const PUBLIC_PATHS = ['/login', '/signup', '/register', '/pricing', '/', '/devis', '/security'];
-const PUBLIC_PREFIXES = ['/invite/', '/auth/', '/legal/']; // /invite/accept?token=… , /auth/callback?code=…, pages légales
+const PUBLIC_PATHS = ['/login', '/signup', '/register', '/pricing', '/', '/devis', '/security', '/plateforme', '/manifesto'];
+const PUBLIC_PREFIXES = ['/invite/', '/auth/', '/legal/']; // /invite/accept?token=…, /auth/callback?code=…, pages légales
 
 // Cookie cache pour role + organization_id : évite une query profile à chaque navigation.
 // Le RLS applique toujours la vraie sécurité côté DB, le cookie ne guide que le routing.

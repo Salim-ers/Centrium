@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter, Space_Grotesk } from 'next/font/google';
+import { Inter, Space_Grotesk, Instrument_Serif } from 'next/font/google';
 import { Toaster } from 'sonner';
 import './globals.css';
 import { OrganizationProvider } from '@/lib/auth/context';
@@ -10,6 +10,14 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
   variable: '--font-space-grotesk',
+});
+// Serif "noble" — italique éditoriale type Vogue / The New Yorker.
+// Utilisé pour les titres XL hero, les nombres clés, les accents éditoriaux.
+const instrumentSerif = Instrument_Serif({
+  weight: '400',
+  style: ['normal', 'italic'],
+  subsets: ['latin'],
+  variable: '--font-instrument-serif',
 });
 
 export const metadata: Metadata = {
@@ -27,7 +35,7 @@ const themeBootstrapScript = `
 (function() {
   try {
     var path = window.location.pathname;
-    var forcedDarkPaths = ['/', '/login', '/signup', '/register', '/devis', '/pricing', '/security'];
+    var forcedDarkPaths = ['/', '/login', '/signup', '/register', '/devis', '/pricing', '/security', '/plateforme', '/manifesto'];
     var forcedDarkPrefixes = ['/auth/', '/invite/', '/legal/'];
     var isForcedDark =
       forcedDarkPaths.indexOf(path) !== -1 ||
@@ -56,7 +64,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr" className={`${inter.variable} ${spaceGrotesk.variable}`} suppressHydrationWarning>
+    <html lang="fr" className={`${inter.variable} ${spaceGrotesk.variable} ${instrumentSerif.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
       </head>

@@ -126,7 +126,8 @@
       "Read(//c//**)",
       "Bash(cp \"c:/Users/Salim/Desktop/quadcore-platform/.env.local\" \"c:/Users/Salim/Desktop/qc-test-build/.env.local\" && ls \"c:/Users/Salim/Desktop/qc-test-build/\" | head -5)",
       "Bash(echo \"Exit code: $?\")",
-      "WebFetch(domain:www.onevms.io)"
+      "WebFetch(domain:www.onevms.io)",
+      "Bash(npm ls *)"
     ],
     "deny": [
       "Write(.env*)",
