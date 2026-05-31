@@ -335,12 +335,38 @@ section[id] {
     z-index: 1;
     transition: opacity 320ms ease-out;
   }
+  /** Au hover : bascule rose → violet/indigo/cyan + lift 3px + pulse accéléré */
   .qc-luminous:hover {
-    transform: translateY(-2px);
-    animation-duration: 2.5s;
+    transform: translateY(-3px);
+    animation-duration: 2s;
+    animation-name: qc-luminous-pulse-violet;
   }
   .qc-luminous:hover::before {
     opacity: 1;
+    background: linear-gradient(
+      120deg,
+      rgba(168, 85, 247, 0.75),
+      rgba(99, 102, 241, 0.65),
+      rgba(34, 211, 238, 0.5),
+      rgba(168, 85, 247, 0.75)
+    );
+    background-size: 200% 100%;
+    animation-duration: 3.5s;
+  }
+
+  @keyframes qc-luminous-pulse-violet {
+    0%, 100% {
+      box-shadow:
+        0 0 0 1px rgba(168, 85, 247, 0.4),
+        0 0 30px -6px rgba(168, 85, 247, 0.45),
+        0 0 80px -20px rgba(99, 102, 241, 0.35);
+    }
+    50% {
+      box-shadow:
+        0 0 0 1px rgba(99, 102, 241, 0.5),
+        0 0 42px -6px rgba(168, 85, 247, 0.6),
+        0 0 110px -20px rgba(34, 211, 238, 0.4);
+    }
   }
 
   /* Variante "static" — même look mais sans pulse continu */
@@ -377,15 +403,29 @@ section[id] {
     z-index: 1;
     transition: opacity 320ms ease-out;
   }
+  /** Au hover : la teinte BASCULE vers le violet/indigo (au lieu de rester
+   *  rose). Box-shadow intensifié, border-gradient remplacé par une variante
+   *  violet→indigo→cyan pour vraiment marquer le changement. Transition
+   *  600ms ease-out pour une bascule smooth, pas brutale. */
   .qc-luminous-static:hover {
-    transform: translateY(-2px);
+    transform: translateY(-3px);
     box-shadow:
-      0 0 0 1px rgba(168, 85, 247, 0.35),
-      0 0 32px -6px rgba(236, 72, 153, 0.45),
-      0 0 80px -20px rgba(168, 85, 247, 0.35);
+      0 0 0 1px rgba(168, 85, 247, 0.55),
+      0 0 36px -6px rgba(168, 85, 247, 0.55),
+      0 0 90px -20px rgba(99, 102, 241, 0.45),
+      0 0 140px -40px rgba(34, 211, 238, 0.25);
   }
   .qc-luminous-static:hover::before {
     opacity: 1;
+    background: linear-gradient(
+      120deg,
+      rgba(168, 85, 247, 0.7),
+      rgba(99, 102, 241, 0.6),
+      rgba(34, 211, 238, 0.45),
+      rgba(168, 85, 247, 0.7)
+    );
+    background-size: 200% 100%;
+    animation-duration: 4s;
   }
 
   /* Variante "hover only" — glow apparaît au hover */

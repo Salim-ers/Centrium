@@ -69,7 +69,7 @@ export function Testimonials() {
         </div>
 
         <p className="mt-10 text-center text-[12px] text-white/40 italic">
-          Témoignages anonymisés — clients en pilote de design partner.
+          Témoignages clients · noms et organisations préservés à leur demande.
         </p>
       </div>
     </section>

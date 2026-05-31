@@ -9,7 +9,7 @@ export default function ManifestoPage() {
       <main className="relative pt-32 pb-20">
         <article className="max-w-3xl mx-auto px-6">
           <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-6 text-center">
-            Manifeste
+            Vision
           </div>
 
           <h1 className="font-display font-light tracking-[-0.04em] leading-[0.95] text-[clamp(2.6rem,6vw,5rem)] text-white text-center">
