@@ -7,7 +7,9 @@ import { Header } from '@/components/marketing/Header';
 import { Hero } from '@/components/marketing/Hero';
 import { Pillars } from '@/components/marketing/Pillars';
 import { Modules } from '@/components/marketing/Modules';
+import { ProductShowcase } from '@/components/marketing/ProductShowcase';
 import { HowItWorks } from '@/components/marketing/HowItWorks';
+import { TrustedBy } from '@/components/marketing/TrustedBy';
 import { PricingPreview } from '@/components/marketing/PricingPreview';
 import { Contact } from '@/components/marketing/Contact';
 import { Footer } from '@/components/marketing/Footer';
@@ -41,7 +43,9 @@ export default function LandingPage() {
         <Hero t={t} />
         <Pillars t={t} />
         <Modules t={t} />
+        <ProductShowcase />
         <HowItWorks t={t} />
+        <TrustedBy />
         <PricingPreview t={t} />
         <Contact t={t} />
       </main>
