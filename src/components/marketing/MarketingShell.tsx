@@ -54,7 +54,10 @@ export function MarketingShell({ children, noReveal, noFooter }: Props) {
 
   return (
     <MarketingCtx.Provider value={ctxValue}>
-      <div className="min-h-screen bg-background text-white relative overflow-x-hidden">
+      {/* Le StarField (position fixed) fournit déjà le fond noir #05060c
+          — on ne met PAS bg-background sur le wrapper, sinon il couvre
+          les étoiles. */}
+      <div className="min-h-screen text-white relative overflow-x-hidden">
         <StarField />
         <Header t={t} locale={locale} onLocaleChange={handleLocaleChange} />
         <div className="relative z-[1]">{inner}</div>
