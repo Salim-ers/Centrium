@@ -273,6 +273,35 @@ section[id] {
     border-color: rgba(236, 72, 153, 0.4);
   }
 
+  /* ============ COLOR CYCLE ANIMATION ============
+     Animations qui font cycler les accents rose → violet → cyan → rose
+     pour donner du dynamisme. À utiliser sur cards / boutons via
+     .qc-color-cycle (hover) ou .qc-color-cycle-always (en continu). */
+  @keyframes qc-hue-cycle {
+    0%   { filter: hue-rotate(0deg); }
+    33%  { filter: hue-rotate(-35deg); }
+    66%  { filter: hue-rotate(40deg); }
+    100% { filter: hue-rotate(0deg); }
+  }
+
+  .qc-color-cycle:hover {
+    animation: qc-hue-cycle 5s ease-in-out infinite;
+  }
+  .qc-color-cycle-always {
+    animation: qc-hue-cycle 8s ease-in-out infinite;
+  }
+
+  /* Bordure couleur cycle au hover — gradient animé qui rotate */
+  @keyframes qc-border-cycle {
+    0%   { border-color: rgba(236, 72, 153, 0.6); box-shadow: 0 0 30px -10px rgba(236, 72, 153, 0.55); }
+    33%  { border-color: rgba(168, 85, 247, 0.6); box-shadow: 0 0 30px -10px rgba(168, 85, 247, 0.55); }
+    66%  { border-color: rgba(34, 211, 238, 0.5); box-shadow: 0 0 30px -10px rgba(34, 211, 238, 0.45); }
+    100% { border-color: rgba(236, 72, 153, 0.6); box-shadow: 0 0 30px -10px rgba(236, 72, 153, 0.55); }
+  }
+  .qc-border-cycle:hover {
+    animation: qc-border-cycle 4.5s ease-in-out infinite;
+  }
+
   /* ============ PREMIUM CARD UTILITIES ============
      Utilitaires réutilisables pour donner un look haut de gamme aux cards
      internes (settings, dashboard, listes). Hover lift + bordure dégradée

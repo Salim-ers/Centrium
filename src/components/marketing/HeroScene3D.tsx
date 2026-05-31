@@ -41,19 +41,11 @@ export function HeroScene3D({ className }: { className?: string }) {
         <SceneInner />
       </Suspense>
 
-      {/* Voile bas pour fondre la scène dans la section suivante */}
+      {/* Voile bas léger pour fondre la scène dans la section suivante,
+          sans masquer les étoiles du StarField global */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-b from-transparent to-background"
-      />
-      {/* Vignette latérale subtile pour focus central */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 70% 65% at 50% 45%, transparent 50%, rgba(10,11,20,0.55) 100%)',
-        }}
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-background/60"
       />
     </div>
   );
