@@ -137,19 +137,17 @@ export default function SecurityPage() {
     <MarketingShell>
       <main className="relative pt-20">
         <section className="relative overflow-hidden">
-          <div
-            aria-hidden
-            className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(225,29,116,0.18),transparent_70%)]"
-          />
-          <div className="relative max-w-6xl mx-auto px-6 pt-20 pb-16 md:pt-28 md:pb-24 text-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-hairline bg-white/5 text-xs font-medium text-white/70 mb-6">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
-              Sécurité & conformité
+          <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-12 md:pt-24 md:pb-20 text-center">
+            <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-4">
+              Sécurité &amp; conformité
             </div>
-            <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight max-w-3xl mx-auto leading-[1.1]">
-              Une plateforme conçue pour la confiance des ESN.
+            <h1 className="font-display font-light tracking-[-0.035em] leading-[1] text-[clamp(2.2rem,5.5vw,4.5rem)] text-white max-w-4xl mx-auto">
+              Une plateforme conçue pour
+              <span className="block mt-2 font-editorial italic font-normal">
+                la confiance des ESN.
+              </span>
             </h1>
-            <p className="mt-6 text-white/65 text-lg leading-relaxed max-w-2xl mx-auto">
+            <p className="mt-6 sm:mt-8 text-white/65 text-[15px] sm:text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
               Vos consultants, vos contacts et vos missions sont des données
               critiques. Centrium applique les standards attendus en B2B :
               isolation stricte par organisation, chiffrement de bout en bout,

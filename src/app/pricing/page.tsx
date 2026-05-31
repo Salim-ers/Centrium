@@ -1,9 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
-  Sparkles,
   Users,
   Building2,
   ShieldCheck,
@@ -122,71 +120,31 @@ const FAQ: { q: string; a: string }[] = [
 ];
 
 export default function PricingPage() {
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    let ctx: { kill(): void } | undefined;
-    (async () => {
-      const { gsap } = await import('gsap');
-      const { ScrollTrigger } = await import('gsap/ScrollTrigger');
-      gsap.registerPlugin(ScrollTrigger);
-      if (!rootRef.current) return;
-      ctx = gsap.context(() => {
-        gsap.from('[data-anim="rise"]', {
-          opacity: 0,
-          y: 30,
-          duration: 0.7,
-          ease: 'power3.out',
-          stagger: 0.08,
-          scrollTrigger: {
-            trigger: '[data-anim-root]',
-            start: 'top 80%',
-          },
-        });
-      }, rootRef);
-    })();
-    return () => ctx?.kill();
-  }, []);
-
   return (
     <MarketingShell>
-      <main ref={rootRef} className="pt-20">
+      <main className="pt-20">
         <section className="relative overflow-hidden">
-          <div
-            aria-hidden
-            className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(225,29,116,0.2),transparent_70%)]"
-          />
-          <div className="relative max-w-5xl mx-auto px-6 pt-20 pb-16 md:pt-28 md:pb-24 text-center">
-            <div
-              data-anim="rise"
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-violet-glow/40 bg-violet-glow/10 text-xs font-medium text-violet-200 mb-6"
-            >
-              <Sparkles className="h-3 w-3" />
+          <div className="relative max-w-5xl mx-auto px-4 sm:px-6 pt-16 pb-12 md:pt-24 md:pb-20 text-center">
+            <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-4">
               Tarification personnalisée
             </div>
-            <h1
-              data-anim="rise"
-              className="font-display text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05]"
-            >
-              Un seul prix : <span className="qc-gradient-text">le vôtre.</span>
+            <h1 className="font-display font-light tracking-[-0.035em] leading-[1] text-[clamp(2.2rem,5.5vw,4.5rem)] text-white max-w-4xl mx-auto">
+              Un seul prix :
+              <span className="block mt-2 font-editorial italic font-normal">
+                le vôtre.
+              </span>
             </h1>
-            <p
-              data-anim="rise"
-              className="mt-6 text-white/65 text-lg leading-relaxed max-w-2xl mx-auto"
-            >
+            <p className="mt-6 sm:mt-8 text-white/65 text-[15px] sm:text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
               Chaque ESN est unique. Centrium s’adapte à votre volume de
               consultants, vos modules IA, vos intégrations et votre
               accompagnement — pas l’inverse. On chiffre ensemble en 20 minutes.
             </p>
 
-            <div
-              data-anim="rise"
-              className="mt-8 flex flex-wrap items-center justify-center gap-3"
-            >
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button
                 asChild
                 size="lg"
-                className="h-12 px-6 bg-qc-gradient hover:opacity-95 shadow-[0_0_30px_rgba(225,29,116,0.45)]"
+                className="w-full sm:w-auto h-12 px-6 bg-qc-gradient hover:opacity-95 shadow-[0_0_30px_rgba(225,29,116,0.45)]"
               >
                 <Link href="/devis" className="inline-flex items-center gap-2">
                   Obtenir une estimation
@@ -197,16 +155,13 @@ export default function PricingPage() {
                 asChild
                 size="lg"
                 variant="outline"
-                className="h-12 px-6 border-hairline"
+                className="w-full sm:w-auto h-12 px-6 border-hairline"
               >
-                <Link href="/security">Sécurité & conformité</Link>
+                <Link href="/security">Sécurité &amp; conformité</Link>
               </Button>
             </div>
 
-            <div
-              data-anim="rise"
-              className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-white/55"
-            >
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-white/55">
               <span className="inline-flex items-center gap-1.5">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
                 Réponse sous 24-48 h
@@ -223,31 +178,28 @@ export default function PricingPage() {
           </div>
         </section>
 
-        <section
-          data-anim-root
-          className="max-w-6xl mx-auto px-6 py-16 border-t border-hairline"
-        >
-          <div data-anim="rise" className="mb-10 text-center max-w-2xl mx-auto">
-            <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-magenta mb-2">
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16 border-t border-white/5">
+          <div className="mb-10 sm:mb-14 text-center max-w-2xl mx-auto">
+            <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-3">
               Comment on calcule
             </div>
-            <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">
-              5 critères, une proposition claire
+            <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(1.8rem,3.8vw,3rem)] text-white">
+              5 critères, une{' '}
+              <span className="font-editorial italic">proposition claire.</span>
             </h2>
-            <p className="mt-3 text-white/60">
+            <p className="mt-5 text-white/60 text-[15px] sm:text-base">
               On vous remet un devis détaillé, ligne par ligne, sans surprise
               et sans engagement avant que vous l’ayez signé.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {FACTORS.map((f) => {
               const Icon = f.icon;
               return (
                 <div
                   key={f.title}
-                  data-anim="rise"
-                  className="rounded-2xl border border-hairline bg-white/[0.02] p-6 hover:bg-white/[0.04] hover:border-magenta/30 transition group"
+                  className="qc-luminous-static rounded-2xl border border-white/10 bg-white/[0.02] p-6 hover:bg-white/[0.04] transition group"
                 >
                   <div className="h-10 w-10 rounded-xl bg-magenta/15 border border-magenta/30 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                     <Icon className="h-5 w-5 text-magenta" />
@@ -260,28 +212,25 @@ export default function PricingPage() {
           </div>
         </section>
 
-        <section
-          data-anim-root
-          className="max-w-6xl mx-auto px-6 py-16 border-t border-hairline"
-        >
-          <div data-anim="rise" className="mb-10 text-center max-w-2xl mx-auto">
-            <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-magenta mb-2">
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16 border-t border-white/5">
+          <div className="mb-10 sm:mb-14 text-center max-w-2xl mx-auto">
+            <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-3">
               Pour qui
             </div>
-            <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">
-              Pensé pour votre profil
+            <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(1.8rem,3.8vw,3rem)] text-white">
+              Pensé pour{' '}
+              <span className="font-editorial italic">votre profil.</span>
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-5">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {PERSONAS.map((p, i) => (
               <div
                 key={p.title}
-                data-anim="rise"
-                className={`rounded-2xl border p-6 flex flex-col ${
+                className={`qc-luminous-static rounded-2xl border p-6 flex flex-col ${
                   i === 1
-                    ? 'border-magenta/40 bg-gradient-to-b from-magenta/10 to-transparent shadow-glow-magenta'
-                    : 'border-hairline bg-white/[0.02]'
+                    ? 'border-magenta/40 bg-gradient-to-b from-magenta/10 to-transparent'
+                    : 'border-white/10 bg-white/[0.02]'
                 }`}
               >
                 <div className="font-display text-lg font-bold text-white">
@@ -308,17 +257,17 @@ export default function PricingPage() {
           </div>
         </section>
 
-        <section
-          data-anim-root
-          className="max-w-4xl mx-auto px-6 py-16 border-t border-hairline"
-        >
-          <div data-anim="rise" className="mb-10 text-center">
-            <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-magenta mb-2 inline-flex items-center gap-2">
+        <section className="max-w-4xl mx-auto px-4 sm:px-6 py-16 border-t border-white/5">
+          <div className="mb-10 sm:mb-14 text-center">
+            <div className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-3">
               <HelpCircle className="h-3.5 w-3.5" />
               Questions fréquentes
             </div>
-            <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">
-              Ce que les ESN nous demandent souvent
+            <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(1.8rem,3.8vw,3rem)] text-white">
+              Ce que les ESN nous
+              <span className="block mt-1 font-editorial italic">
+                demandent souvent.
+              </span>
             </h2>
           </div>
 
@@ -326,8 +275,7 @@ export default function PricingPage() {
             {FAQ.map((item) => (
               <details
                 key={item.q}
-                data-anim="rise"
-                className="group rounded-xl border border-hairline bg-white/[0.02] open:bg-white/[0.04] transition"
+                className="group rounded-xl border border-white/10 bg-white/[0.02] open:bg-white/[0.04] transition"
               >
                 <summary className="cursor-pointer list-none px-5 py-4 flex items-center justify-between gap-4 font-medium text-white">
                   {item.q}
