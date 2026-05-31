@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 
@@ -11,7 +10,7 @@ import { Metrics } from '@/components/marketing/Metrics';
 import { Testimonials } from '@/components/marketing/Testimonials';
 import { MarketingShell, useLandingDict } from '@/components/marketing/MarketingShell';
 import { MagneticButton } from '@/components/marketing/MagneticButton';
-import { LoadingSplash } from '@/components/marketing/LoadingSplash';
+import { BootIntro } from '@/components/marketing/BootIntro';
 
 /**
  * Page d'accueil enrichie (réponse au feedback "trop vide / pas assez de démos") :
@@ -24,11 +23,9 @@ import { LoadingSplash } from '@/components/marketing/LoadingSplash';
  *   7. CTA finale
  */
 export default function LandingPage() {
-  const [showSplash] = useState(true);
-
   return (
     <>
-      {showSplash && <LoadingSplash />}
+      <BootIntro />
       <MarketingShell>
         <HomeContent />
       </MarketingShell>
