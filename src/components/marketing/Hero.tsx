@@ -2,7 +2,7 @@
 
 import { ArrowRight } from 'lucide-react';
 
-import { ElectronField } from './ElectronField';
+import { GalaxyField } from './GalaxyField';
 import { MagneticButton } from './MagneticButton';
 import type { LandingDict } from '@/lib/i18n/landing';
 
@@ -23,10 +23,11 @@ export function Hero({ t }: { t: LandingDict }) {
       id="home"
       className="relative min-h-[90vh] flex items-center overflow-hidden"
     >
-      {/* Champ d'électrons libres — particules chaotiques scintillantes
-          avec trails courts, sauts quantiques et arcs électriques entre
-          particules proches. Canvas 2D 60fps. */}
-      <ElectronField className="z-0" />
+      {/* Fond galactique contemplatif — nébuleuses colorées (rose/violet/
+          bleu/cyan/indigo) + 280 étoiles avec scintillation lente +
+          12 constellations qui fade in/out + shooting stars occasionnelles.
+          Canvas 2D 60fps, mouvement lent et cosmique. */}
+      <GalaxyField className="z-0" />
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 text-center pt-24 pb-16">
         {/* Titre — sans badge — directement éditorial */}
