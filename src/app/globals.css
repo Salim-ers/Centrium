@@ -273,6 +273,79 @@ section[id] {
     border-color: rgba(236, 72, 153, 0.4);
   }
 
+  /* ============ PREMIUM CARD UTILITIES ============
+     Utilitaires réutilisables pour donner un look haut de gamme aux cards
+     internes (settings, dashboard, listes). Hover lift + bordure dégradée
+     très subtile + ombre profonde. À utiliser sur Card / div parent.
+
+     Usage :
+       <Card className="qc-premium">…</Card>
+       <Link className="qc-premium-link">…</Link>                            */
+  .qc-premium {
+    position: relative;
+    isolation: isolate;
+    transition: transform 350ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 350ms cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 200ms ease-out;
+    will-change: transform;
+  }
+  .qc-premium:hover {
+    transform: translateY(-2px);
+    border-color: hsl(var(--hairline) / 1.5);
+    box-shadow:
+      0 24px 60px -20px rgba(236, 72, 153, 0.25),
+      0 6px 20px -8px rgba(168, 85, 247, 0.18);
+  }
+  .qc-premium::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(236,72,153,0), rgba(236,72,153,0.35), rgba(168,85,247,0.25), rgba(236,72,153,0));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 320ms ease-out;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .qc-premium:hover::before {
+    opacity: 1;
+  }
+
+  /* Variante "link" pour les <Link>/<a> sur cards cliquables — légère
+     translation à droite pour suggérer la navigation. */
+  .qc-premium-link {
+    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .qc-premium-link:hover {
+    transform: translateY(-1px);
+  }
+
+  /* Bouton premium "outline + glow" — alternative au bouton plein
+     gradient pour les actions secondaires haut de gamme. */
+  .qc-btn-premium {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    transition: all 250ms ease-out;
+  }
+  .qc-btn-premium::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(120px circle at var(--x, 50%) var(--y, 50%), rgba(236,72,153,0.35), transparent 70%);
+    opacity: 0;
+    transition: opacity 260ms ease-out;
+    pointer-events: none;
+  }
+  .qc-btn-premium:hover::after {
+    opacity: 1;
+  }
+
   /* Bordure gradient animée — pour zones premium (header, kpi cards). */
   .border-gradient-pink {
     position: relative;

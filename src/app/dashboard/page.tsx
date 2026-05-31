@@ -229,7 +229,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Alertes prioritaires */}
-        <Card className="lg:col-span-2">
+        <Card className="qc-premium lg:col-span-2">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -258,7 +258,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* État facturation */}
-        <Card>
+        <Card className="qc-premium">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -291,7 +291,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Raccourcis */}
-      <Card className="mt-6">
+      <Card className="qc-premium mt-6">
         <CardHeader>
           <CardTitle>Actions rapides</CardTitle>
         </CardHeader>

@@ -52,7 +52,7 @@ export default function SettingsPage() {
 
       <div className="grid gap-4 md:grid-cols-3">
         <Link href="/settings/profile" className="group">
-          <Card className="h-full transition-colors group-hover:border-violet-glow/50">
+          <Card className="qc-premium h-full">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <User className="h-4 w-4 text-violet-glow" />
@@ -66,7 +66,7 @@ export default function SettingsPage() {
         </Link>
 
         <Link href="/settings/branding" className="group">
-          <Card className="h-full transition-colors group-hover:border-violet-glow/50">
+          <Card className="qc-premium h-full">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Palette className="h-4 w-4 text-violet-glow" />
@@ -80,7 +80,7 @@ export default function SettingsPage() {
         </Link>
 
         <Link href="/settings/team" className="group">
-          <Card className="h-full transition-colors group-hover:border-violet-glow/50">
+          <Card className="qc-premium h-full">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Users className="h-4 w-4 text-violet-glow" />
@@ -94,7 +94,7 @@ export default function SettingsPage() {
         </Link>
 
         <Link href="/settings/privacy" className="group">
-          <Card className="h-full transition-colors group-hover:border-violet-glow/50">
+          <Card className="qc-premium h-full">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-violet-glow" />
