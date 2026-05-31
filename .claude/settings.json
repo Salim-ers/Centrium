@@ -119,7 +119,14 @@
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Salim\\\\Desktop\\\\quadcore-platform\" -Force)",
       "Bash(Select-Object Name, FullName)",
       "Bash(Select-Object Name, Mode)",
-      "Bash(Get-ChildItem -Path \"public\\\\brand\\\\\" -Force)"
+      "Bash(Get-ChildItem -Path \"public\\\\brand\\\\\" -Force)",
+      "Bash(awk -F= '{print $1}')",
+      "Bash(git worktree *)",
+      "Bash(ls \"c:/\" | head -20)",
+      "Read(//c//**)",
+      "Bash(cp \"c:/Users/Salim/Desktop/quadcore-platform/.env.local\" \"c:/Users/Salim/Desktop/qc-test-build/.env.local\" && ls \"c:/Users/Salim/Desktop/qc-test-build/\" | head -5)",
+      "Bash(echo \"Exit code: $?\")",
+      "WebFetch(domain:www.onevms.io)"
     ],
     "deny": [
       "Write(.env*)",
@@ -131,7 +138,8 @@
     ],
     "additionalDirectories": [
       "C:\\Users\\Salim\\Desktop\\quadcore-platform\\.next",
-      "\\tmp"
+      "\\tmp",
+      "c:\\Users\\Salim\\Desktop\\qc-test-build"
     ]
   },
   "model": "claude-opus-4-7",

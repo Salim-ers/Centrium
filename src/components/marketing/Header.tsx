@@ -96,9 +96,13 @@ export function Header({ t, locale, onLocaleChange }: Props) {
           </Link>
           <Link
             href="/devis"
-            className="relative inline-flex items-center h-11 px-5 rounded-full bg-qc-gradient text-white text-sm font-semibold shadow-[0_0_25px_rgba(225,29,116,0.45)] hover:brightness-110 hover:shadow-[0_0_30px_rgba(225,29,116,0.6)] transition-all"
+            className="group relative inline-flex items-center gap-2 h-11 px-5 rounded-full border border-white/15 bg-white/[0.04] backdrop-blur text-white text-[14px] font-medium tracking-tight overflow-hidden transition-all hover:bg-white/[0.08] hover:border-white/30"
           >
-            Demande de devis
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-r from-pink-500/25 via-magenta/15 to-violet-500/20"
+            />
+            <span className="relative">{t.nav.bookMeeting}</span>
           </Link>
         </div>
       </div>

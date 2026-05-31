@@ -1,87 +1,128 @@
 'use client';
 
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { Check, Sparkles, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Sparkles, Calendar, FileText, ShieldCheck } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
+import { MagneticButton } from './MagneticButton';
+import { useGsapReveal } from '@/hooks/useGsapReveal';
 import type { LandingDict } from '@/lib/i18n/landing';
 
+const HIGHLIGHTS = [
+  {
+    icon: Calendar,
+    title: '30 min de cadrage',
+    body: 'Découverte, démo, questions. Sans pression commerciale agressive.',
+  },
+  {
+    icon: FileText,
+    title: 'Devis chiffré 48 h',
+    body: 'Ligne par ligne, lisible. Vous décidez en toute connaissance de cause.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Aucun engagement avant signature',
+    body: 'Vous gardez la main jusqu’à validation contractuelle.',
+  },
+];
+
 export function PricingPreview({ t }: { t: LandingDict }) {
+  const ref = useGsapReveal<HTMLDivElement>();
+  const plan = t.pricing.plans[0];
+
   return (
-    <section id="pricing" className="relative py-24 border-t border-hairline">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(225,29,116,0.08),transparent_70%)] pointer-events-none" />
+    <section id="pricing" ref={ref} className="relative py-28 border-t border-hairline">
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(225,29,116,0.12),transparent_70%)] pointer-events-none"
+      />
       <div className="relative max-w-6xl mx-auto px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 0.6 }}
-          className="text-center max-w-2xl mx-auto mb-14"
-        >
-          <div className="text-xs font-semibold tracking-widest text-magenta mb-3">
+        <div className="text-center max-w-2xl mx-auto mb-16" data-reveal>
+          <div className="text-[11px] font-semibold tracking-[0.25em] text-magenta mb-3">
             {t.pricing.kicker}
           </div>
-          <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight">
+          <h2 className="font-display text-3xl md:text-5xl font-medium tracking-[-0.03em] leading-[1.05]">
             {t.pricing.title}
           </h2>
-          <p className="mt-4 text-white/60 leading-relaxed">{t.pricing.subtitle}</p>
-        </motion.div>
+          <p className="mt-6 text-white/60 leading-relaxed text-[15px] md:text-base">
+            {t.pricing.subtitle}
+          </p>
+        </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {t.pricing.plans.map((p, i) => (
-            <motion.div
-              key={p.name}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
-              className={`relative rounded-xl border p-6 flex flex-col ${
-                p.popular
-                  ? 'border-violet-brand/50 bg-gradient-to-b from-violet-brand/10 to-transparent shadow-glow'
-                  : 'border-hairline bg-white/[0.02]'
-              }`}
-            >
-              {p.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-qc-gradient px-3 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-semibold flex items-center gap-1 whitespace-nowrap">
-                  <Sparkles className="h-3 w-3" />
-                  {p.desc}
-                </div>
-              )}
-              <div className="font-display text-lg font-bold">{p.name}</div>
-              {!p.popular && <div className="text-xs text-white/50 mt-0.5">{p.desc}</div>}
-              <div className="mt-5 flex items-baseline gap-1">
-                <span className="font-display text-4xl font-bold">{p.price}</span>
-                {!p.isQuote && (
-                  <span className="text-sm text-white/50">{t.pricing.monthSuffix}</span>
-                )}
+        <div className="grid lg:grid-cols-[1.1fr_1fr] gap-6 items-stretch">
+          {/* Carte principale tarif */}
+          <div
+            data-reveal
+            className="relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-xl p-10 overflow-hidden shadow-[0_60px_120px_-40px_rgba(225,29,116,0.35)]"
+          >
+            <div
+              aria-hidden
+              className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-pink-500/20 blur-3xl"
+            />
+            <div
+              aria-hidden
+              className="absolute -bottom-32 -left-20 h-80 w-80 rounded-full bg-violet-500/15 blur-3xl"
+            />
+
+            <div className="relative">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 bg-white/5 text-[11px] uppercase tracking-[0.18em] text-white/75 mb-8">
+                <Sparkles className="h-3 w-3 text-magenta" />
+                {plan.desc}
               </div>
-              <ul className="mt-6 space-y-2.5 text-sm flex-1">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-white/80">
-                    <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+
+              <div className="flex items-baseline gap-3 mb-2">
+                <span className="font-display text-5xl md:text-6xl font-medium tracking-[-0.03em] text-white">
+                  {plan.price}
+                </span>
+              </div>
+              <p className="text-white/55 text-sm mb-8 max-w-md">
+                Tarification calibrée selon votre volume de consultants, vos modules
+                IA et votre niveau d’accompagnement.
+              </p>
+
+              <ul className="space-y-3 mb-10">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-3 text-white/85 text-[15px]">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-300 shrink-0 mt-1" />
                     {f}
                   </li>
                 ))}
               </ul>
-              <Button
-                asChild
-                className={`mt-6 w-full ${p.popular ? 'bg-qc-gradient hover:opacity-90' : ''}`}
-                variant={p.popular ? 'default' : 'outline'}
-              >
-                <Link href={p.isQuote ? '#contact' : '/pricing'}>{p.ctaLabel}</Link>
-              </Button>
-            </motion.div>
-          ))}
-        </div>
 
-        <div className="mt-10 text-center">
-          <Button variant="ghost" asChild>
-            <Link href="/pricing" className="inline-flex items-center gap-1.5">
-              {t.pricing.ctaView}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
+              <div className="flex flex-wrap items-center gap-3">
+                <MagneticButton href="/devis" variant="primary">
+                  {plan.ctaLabel}
+                </MagneticButton>
+                <MagneticButton href="/pricing" variant="ghost">
+                  {t.pricing.ctaView}
+                </MagneticButton>
+              </div>
+            </div>
+          </div>
+
+          {/* Colonne droite : 3 promesses */}
+          <div className="grid gap-4 content-start">
+            {HIGHLIGHTS.map((h) => {
+              const Icon = h.icon;
+              return (
+                <div
+                  key={h.title}
+                  data-reveal
+                  className="group rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20 backdrop-blur-md p-6 transition"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="h-10 w-10 rounded-xl border border-white/10 bg-white/[0.04] flex items-center justify-center shrink-0 group-hover:border-magenta/40 transition">
+                      <Icon className="h-4 w-4 text-white/85 group-hover:text-magenta transition" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-white text-[15px]">{h.title}</div>
+                      <p className="text-white/55 text-sm leading-relaxed mt-1">
+                        {h.body}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>

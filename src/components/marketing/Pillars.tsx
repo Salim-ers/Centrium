@@ -3,44 +3,55 @@
 import { motion } from 'framer-motion';
 import type { LandingDict } from '@/lib/i18n/landing';
 
-const GRADIENTS = [
-  'from-magenta to-violet-brand',
-  'from-violet-brand to-violet-glow',
-  'from-violet-glow to-cyan-400',
-  'from-cyan-400 to-emerald-400',
-];
-
+/**
+ * "Pillars" repensé en cards glassmorphic plus chic, moins "data dense".
+ * Chaque card a un numéro éditorial fin en haut à gauche, un titre
+ * display medium, et une description courte. Hover : lift + glow bordure.
+ */
 export function Pillars({ t }: { t: LandingDict }) {
   return (
-    <section className="relative py-16 border-t border-hairline">
+    <section className="relative py-24 border-t border-hairline">
       <div className="max-w-7xl mx-auto px-6">
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 0.5 }}
-          className="text-center text-sm text-white/50 uppercase tracking-widest mb-10"
+          transition={{ duration: 0.6 }}
+          className="text-center max-w-2xl mx-auto mb-14"
         >
-          {t.pillars.title}
-        </motion.p>
+          <div className="text-[11px] font-semibold tracking-[0.25em] text-magenta mb-3">
+            L’ARCHITECTURE
+          </div>
+          <h2 className="font-display text-2xl md:text-3xl font-medium tracking-[-0.02em] text-white">
+            {t.pillars.title}
+          </h2>
+        </motion.div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {t.pillars.items.map((it, i) => (
             <motion.div
               key={it.title}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 18 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
-              className="relative"
+              transition={{ duration: 0.55, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+              className="group relative rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.045] hover:border-white/20 backdrop-blur-md p-7 transition will-change-transform hover:-translate-y-0.5"
             >
-              <div className={`text-3xl md:text-4xl font-display font-bold bg-gradient-to-r ${GRADIENTS[i]} bg-clip-text text-transparent`}>
+              <div className="text-[10px] font-mono text-white/30 mb-5">
+                0{i + 1}
+              </div>
+              <div className="font-display text-xl md:text-2xl font-medium text-white tracking-tight mb-2">
                 {it.title}
               </div>
-              <div className="mt-2 text-[10px] font-semibold tracking-widest text-white/40">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-magenta/80 mb-3">
                 {it.label}
               </div>
-              <p className="mt-2 text-sm text-white/60 leading-relaxed">{it.desc}</p>
+              <p className="text-[13px] text-white/55 leading-relaxed">{it.desc}</p>
+
+              <div
+                aria-hidden
+                className="absolute inset-x-7 bottom-0 h-px bg-gradient-to-r from-transparent via-magenta/40 to-transparent opacity-0 group-hover:opacity-100 transition"
+              />
             </motion.div>
           ))}
         </div>
