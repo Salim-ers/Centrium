@@ -273,6 +273,141 @@ section[id] {
     border-color: rgba(236, 72, 153, 0.4);
   }
 
+  /* ============ LUMINOUS GLOW SYSTEM ============
+     Système de glow signature aligné sur l'identité visuelle du logo
+     Centrium (rose magenta + violet). À appliquer sur cards, boutons,
+     encadrés pour donner un look "ultra haut de gamme néon" cohérent
+     partout sur le site.
+
+     Variantes :
+       .qc-luminous          → bordure dégradée rose→violet + glow pulse
+                                en CONTINU (subtil au repos, marqué au hover)
+       .qc-luminous-static   → même look mais sans pulse (cards calmes)
+       .qc-luminous-hover    → glow uniquement au hover (CTA discrets) */
+
+  @keyframes qc-luminous-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 0 1px rgba(236, 72, 153, 0.18),
+        0 0 22px -6px rgba(236, 72, 153, 0.28),
+        0 0 60px -20px rgba(168, 85, 247, 0.22);
+    }
+    50% {
+      box-shadow:
+        0 0 0 1px rgba(168, 85, 247, 0.25),
+        0 0 32px -6px rgba(236, 72, 153, 0.45),
+        0 0 80px -20px rgba(168, 85, 247, 0.35);
+    }
+  }
+
+  @keyframes qc-luminous-border-pan {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+
+  .qc-luminous {
+    position: relative;
+    isolation: isolate;
+    animation: qc-luminous-pulse 4.5s ease-in-out infinite;
+    transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform, box-shadow;
+  }
+  .qc-luminous::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      120deg,
+      rgba(236, 72, 153, 0.6),
+      rgba(168, 85, 247, 0.55),
+      rgba(34, 211, 238, 0.45),
+      rgba(236, 72, 153, 0.6)
+    );
+    background-size: 200% 100%;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.5;
+    animation: qc-luminous-border-pan 6s linear infinite;
+    pointer-events: none;
+    z-index: 1;
+    transition: opacity 320ms ease-out;
+  }
+  .qc-luminous:hover {
+    transform: translateY(-2px);
+    animation-duration: 2.5s;
+  }
+  .qc-luminous:hover::before {
+    opacity: 1;
+  }
+
+  /* Variante "static" — même look mais sans pulse continu */
+  .qc-luminous-static {
+    position: relative;
+    isolation: isolate;
+    box-shadow:
+      0 0 0 1px rgba(236, 72, 153, 0.15),
+      0 0 22px -8px rgba(236, 72, 153, 0.25),
+      0 0 50px -20px rgba(168, 85, 247, 0.20);
+    transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 380ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .qc-luminous-static::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      120deg,
+      rgba(236, 72, 153, 0.5),
+      rgba(168, 85, 247, 0.45),
+      rgba(34, 211, 238, 0.3),
+      rgba(236, 72, 153, 0.5)
+    );
+    background-size: 200% 100%;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.4;
+    animation: qc-luminous-border-pan 8s linear infinite;
+    pointer-events: none;
+    z-index: 1;
+    transition: opacity 320ms ease-out;
+  }
+  .qc-luminous-static:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 1px rgba(168, 85, 247, 0.35),
+      0 0 32px -6px rgba(236, 72, 153, 0.45),
+      0 0 80px -20px rgba(168, 85, 247, 0.35);
+  }
+  .qc-luminous-static:hover::before {
+    opacity: 1;
+  }
+
+  /* Variante "hover only" — glow apparaît au hover */
+  .qc-luminous-hover {
+    transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 380ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .qc-luminous-hover:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 1px rgba(236, 72, 153, 0.4),
+      0 0 28px -6px rgba(236, 72, 153, 0.45),
+      0 0 70px -20px rgba(168, 85, 247, 0.32);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .qc-luminous, .qc-luminous::before,
+    .qc-luminous-static::before {
+      animation: none !important;
+    }
+  }
+
   /* ============ COLOR CYCLE ANIMATION ============
      Animations qui font cycler les accents rose → violet → cyan → rose
      pour donner du dynamisme. À utiliser sur cards / boutons via

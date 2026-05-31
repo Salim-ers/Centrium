@@ -85,7 +85,7 @@ function HomeContent() {
               <Link
                 key={c.href}
                 href={c.href}
-                className="group qc-border-cycle relative block rounded-3xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] backdrop-blur-md p-8 md:p-10 overflow-hidden transition-transform hover:-translate-y-1"
+                className="group qc-luminous relative block rounded-3xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] backdrop-blur-md p-8 md:p-10 overflow-hidden"
               >
                 <div
                   aria-hidden

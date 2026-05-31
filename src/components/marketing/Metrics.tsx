@@ -90,7 +90,7 @@ export function Metrics() {
             <div
               key={it.label}
               data-reveal
-              className="rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-md p-7 text-center"
+              className="qc-luminous-static rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-md p-7 text-center"
             >
               <div className="font-editorial italic text-[clamp(2.4rem,4.5vw,3.6rem)] text-white leading-none">
                 <AnimatedNum target={it.value} suffix={it.suffix} />

@@ -46,7 +46,7 @@ export default function ManifestoPage() {
             </p>
           </div>
 
-          <div className="mt-20 grid md:grid-cols-3 gap-px bg-white/5 border border-white/10 rounded-2xl overflow-hidden qc-border-cycle">
+          <div className="qc-luminous-static mt-20 grid md:grid-cols-3 gap-px bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
             {[
               {
                 num: '01',

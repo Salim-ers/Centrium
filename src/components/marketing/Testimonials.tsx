@@ -49,7 +49,7 @@ export function Testimonials() {
             <figure
               key={q.author}
               data-reveal
-              className="relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.01] backdrop-blur-md p-10 overflow-hidden"
+              className="qc-luminous-static relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.01] backdrop-blur-md p-10 overflow-hidden"
             >
               <div
                 aria-hidden

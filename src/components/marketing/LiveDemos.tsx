@@ -76,7 +76,7 @@ function DemoFrame({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.01] backdrop-blur-md p-6 overflow-hidden h-full flex flex-col">
+    <div className="qc-luminous-static relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.01] backdrop-blur-md p-6 overflow-hidden h-full flex flex-col">
       {/* halo radial subtil au coin */}
       <div
         aria-hidden

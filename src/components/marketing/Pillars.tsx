@@ -35,7 +35,7 @@ export function Pillars({ t }: { t: LandingDict }) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-60px' }}
               transition={{ duration: 0.55, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
-              className="group relative rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.045] hover:border-white/20 backdrop-blur-md p-7 transition will-change-transform hover:-translate-y-0.5"
+              className="qc-luminous-static group relative rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.045] backdrop-blur-md p-7"
             >
               <div className="text-[10px] font-mono text-white/30 mb-5">
                 0{i + 1}
