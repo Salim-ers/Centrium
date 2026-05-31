@@ -111,6 +111,11 @@ function CVOptimizerPageInner() {
     noInvention: boolean;
     flaggedClaims: string[];
   } | null>(null);
+  const [confidence, setConfidence] = useState<{
+    overall: number;
+    perDimension: { sourceQuality: number; offerMatch: number; noInvention: number };
+    reasoning: string;
+  } | null>(null);
   const [exporting, setExporting] = useState<'pdf' | 'docx' | null>(null);
 
   // === Édition inline "à la Canva" sur le preview ===
@@ -434,6 +439,7 @@ function CVOptimizerPageInner() {
         setMatching(result.matching);
         setWarnings(result.warnings);
         setGuardrails(result.guardrails);
+        setConfidence(result.confidence);
       } catch (e) {
         if (!cancelled) toast.error('Erreur de génération');
         console.error(e);
@@ -922,6 +928,49 @@ function CVOptimizerPageInner() {
                     )}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {confidence && generated && (
+            <Card className="border-violet-glow/30 bg-gradient-to-br from-violet-glow/5 to-magenta/5">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-widest text-violet-300 font-semibold">
+                      Niveau de confiance IA
+                    </div>
+                    <div className="font-display text-3xl font-bold qc-gradient-text">
+                      {confidence.overall}%
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-amber-400/30 bg-amber-400/10 text-[10px] uppercase tracking-wider text-amber-300 font-semibold">
+                    Brouillon
+                  </span>
+                </div>
+                <div className="space-y-2 mb-3">
+                  {[
+                    { label: 'Qualité de la source', value: confidence.perDimension.sourceQuality },
+                    { label: 'Match avec l’offre', value: confidence.perDimension.offerMatch },
+                    { label: 'Aucune invention', value: confidence.perDimension.noInvention },
+                  ].map((d) => (
+                    <div key={d.label}>
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-0.5">
+                        <span>{d.label}</span>
+                        <span className="font-mono">{d.value}%</span>
+                      </div>
+                      <div className="h-1 rounded-full bg-white/5 overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-violet-glow to-magenta transition-all duration-700"
+                          style={{ width: `${d.value}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+                  {confidence.reasoning}
+                </p>
               </CardContent>
             </Card>
           )}

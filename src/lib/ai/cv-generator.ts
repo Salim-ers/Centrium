@@ -50,6 +50,37 @@ export type GenerateCVOutput = {
     noInvention: boolean;
     flaggedClaims: string[];
   };
+  /**
+   * Niveau de confiance global et par dimension (0-100).
+   * Combine couverture matching, qualité des données source et absence
+   * de claim flaggée. Plus c'est haut, moins l'humain a besoin de relire.
+   */
+  confidence: {
+    overall: number;
+    perDimension: {
+      sourceQuality: number;
+      offerMatch: number;
+      noInvention: number;
+    };
+    reasoning: string;
+  };
+  /**
+   * Mode "brouillon" par défaut : aucun output IA ne doit être envoyé,
+   * exporté ou signé sans validation humaine explicite. La page UI
+   * affiche un badge tant que status !== 'validated'.
+   */
+  status: 'draft';
+  /**
+   * Pour chaque section de l'output, indique d'où elle vient.
+   * Permet à l'utilisateur de comprendre pourquoi telle compétence
+   * ressort et de cliquer pour voir la source.
+   */
+  sources: {
+    summary: 'consultant.summary' | 'derived.from.experiences';
+    skills: 'consultant.skills';
+    experiences: 'consultant.experiences';
+    educations: 'consultant.educations';
+  };
 };
 
 // ---------- Matching local ----------
@@ -304,6 +335,55 @@ export async function generateCVContent(input: GenerateCVInput): Promise<Generat
   const recommendation: 'recommend' | 'maybe' | 'not_recommended' =
     matching.score >= 80 ? 'recommend' : matching.score >= 60 ? 'maybe' : 'not_recommended';
 
+  // ----- Scoring de confiance multi-dimensions -----
+  // sourceQuality : volume et structure du CV source
+  //   - 100 si > 3 expériences détaillées + > 5 compétences highlighted + summary non vide
+  //   - dégrade selon ce qui manque
+  const hasGoodSummary = !!consultant.summary && consultant.summary.trim().length > 80;
+  const richExperiences = experiences.filter((e) => (e.tasks ?? []).length >= 2).length;
+  const highlightedSkills = skills.filter((s) => s.is_highlighted).length;
+  const sourceQuality = Math.round(
+    Math.min(
+      100,
+      (hasGoodSummary ? 30 : 0) +
+        Math.min(40, richExperiences * 12) +
+        Math.min(30, highlightedSkills * 6),
+    ),
+  );
+
+  // offerMatch : reprend le score matching (cap à 100 même sans offre)
+  const offerMatch = jobOffer ? matching.score : 70; // sans offre, on suppose neutre
+
+  // noInvention : binaire 100 si OK, 30 si flaggé (jamais 0 pour ne pas masquer)
+  const noInventionScore = guardrails.noInvention ? 100 : 30;
+
+  // Confiance globale : moyenne pondérée + pénalité warnings
+  const warningPenalty = Math.min(15, warnings.length * 3);
+  const overall = Math.max(
+    0,
+    Math.round(
+      sourceQuality * 0.35 + offerMatch * 0.4 + noInventionScore * 0.25 - warningPenalty,
+    ),
+  );
+
+  const reasoningParts: string[] = [];
+  if (overall >= 85) reasoningParts.push('Source riche et bien structurée.');
+  else if (overall >= 70) reasoningParts.push('Confiance correcte, relecture recommandée.');
+  else reasoningParts.push('Confiance modérée — relecture humaine indispensable.');
+  if (!guardrails.noInvention) {
+    reasoningParts.push(
+      `${guardrails.flaggedClaims.length} claim(s) potentiellement inventé(s) détecté(s).`,
+    );
+  }
+  if (warnings.length) {
+    reasoningParts.push(`${warnings.length} avertissement(s) à examiner.`);
+  }
+  if (jobOffer && matching.missingSkills.length) {
+    reasoningParts.push(
+      `${matching.missingSkills.length} compétence(s) demandée(s) absente(s) du CV source.`,
+    );
+  }
+
   // templateId peut influencer le rendu (densité, sections visibles) côté React
   void templateId;
 
@@ -312,6 +392,22 @@ export async function generateCVContent(input: GenerateCVInput): Promise<Generat
     matching: { ...matching, recommendation },
     warnings,
     guardrails,
+    confidence: {
+      overall,
+      perDimension: {
+        sourceQuality,
+        offerMatch,
+        noInvention: noInventionScore,
+      },
+      reasoning: reasoningParts.join(' '),
+    },
+    status: 'draft',
+    sources: {
+      summary: hasGoodSummary ? 'consultant.summary' : 'derived.from.experiences',
+      skills: 'consultant.skills',
+      experiences: 'consultant.experiences',
+      educations: 'consultant.educations',
+    },
   };
 }
 
