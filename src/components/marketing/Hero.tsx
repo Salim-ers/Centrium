@@ -2,7 +2,7 @@
 
 import { ArrowRight } from 'lucide-react';
 
-import { CentriumOrbits } from './CentriumOrbits';
+import { SolarSystem } from './SolarSystem';
 import { MagneticButton } from './MagneticButton';
 import type { LandingDict } from '@/lib/i18n/landing';
 
@@ -23,8 +23,10 @@ export function Hero({ t }: { t: LandingDict }) {
       id="home"
       className="relative min-h-[90vh] flex items-center overflow-hidden"
     >
-      {/* Système orbital signature — espace + informatique, pure SVG très léger */}
-      <CentriumOrbits className="z-0" />
+      {/* Système solaire informatique en Canvas 2D 60fps — soleil Centrium
+          + 6 planètes (modules métier) en orbites elliptiques + lunes +
+          connexions data pulsantes */}
+      <SolarSystem className="z-0" />
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 text-center pt-24 pb-16">
         {/* Titre — sans badge — directement éditorial */}
