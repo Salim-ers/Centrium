@@ -351,10 +351,52 @@ const Starfield = ({
       el.addEventListener('mouseup', clickHandler);
     }
 
+    // Au resize (incluant le zoom navigateur Ctrl+/-) ou au changement
+    // de visualViewport (pinch zoom mobile), on remet à plat les
+    // dimensions du canvas pour qu'il suive le viewport actuel.
+    // Sinon le buffer interne reste figé et l'image part "en cacahuète".
+    let resizeRaf = 0;
+    const onResize = () => {
+      // Debounce léger via rAF pour ne pas reflow à chaque event
+      cancelAnimationFrame(resizeRaf);
+      resizeRaf = requestAnimationFrame(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        measureViewport();
+        canvas.width = sd.current.w;
+        canvas.height = sd.current.h;
+        sd.current.cw = canvas.width;
+        sd.current.ch = canvas.height;
+        if (sd.current.ctx) {
+          sd.current.ctx.fillStyle = colors.fill;
+          sd.current.ctx.strokeStyle = starColor;
+        }
+        // Recentre le cursor sur le nouveau centre
+        cursor.current.x = sd.current.x;
+        cursor.current.y = sd.current.y;
+        // Re-bigBang : redistribue les étoiles selon les nouvelles dimensions
+        sd.current.star.arr = [];
+        bigBang();
+      });
+    };
+
+    window.addEventListener('resize', onResize, { passive: true });
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+    if (vv) {
+      vv.addEventListener('resize', onResize);
+      vv.addEventListener('scroll', onResize);
+    }
+
     init();
 
     return () => {
       destroy();
+      cancelAnimationFrame(resizeRaf);
+      window.removeEventListener('resize', onResize);
+      if (vv) {
+        vv.removeEventListener('resize', onResize);
+        vv.removeEventListener('scroll', onResize);
+      }
       if (mouseAdjust && el) {
         el.removeEventListener('mousemove', mouseHandler);
       }
@@ -386,8 +428,11 @@ const Starfield = ({
   }, [state.reset, state.stop, state.start]);
 
   return (
-    <div style={{ position: 'absolute', width: '100%', height: '100%' }}>
-      <canvas ref={canvasRef} />
+    <div style={{ position: 'absolute', width: '100%', height: '100%', overflow: 'hidden' }}>
+      <canvas
+        ref={canvasRef}
+        style={{ display: 'block', width: '100%', height: '100%' }}
+      />
     </div>
   );
 };
