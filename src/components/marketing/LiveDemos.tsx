@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 
 import { useGsapReveal } from '@/hooks/useGsapReveal';
+import { useLandingDict } from '@/components/marketing/MarketingShell';
 
 /**
  * Section "Démos vivantes" — 3 cartes stables qui défilent étape par
@@ -32,6 +33,7 @@ import { useGsapReveal } from '@/hooks/useGsapReveal';
 
 export function LiveDemos() {
   const ref = useGsapReveal<HTMLDivElement>();
+  const { t } = useLandingDict();
 
   return (
     <section
@@ -42,15 +44,14 @@ export function LiveDemos() {
       <div className="relative max-w-7xl mx-auto px-6">
         <div className="text-center max-w-2xl mx-auto mb-16" data-reveal>
           <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-3">
-            Démos vivantes
+            {t.liveDemos.kicker}
           </div>
           <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(2rem,4vw,3.2rem)] text-white">
-            Trois usages,{' '}
-            <span className="qc-italic-accent font-editorial italic">en direct.</span>
+            {t.liveDemos.titleA}{' '}
+            <span className="qc-italic-accent font-editorial italic">{t.liveDemos.titleB}</span>
           </h2>
           <p className="mt-5 mx-auto max-w-xl text-white/55 text-[15px] leading-relaxed">
-            Pas de slides, pas de promesses. Centrium tourne. Cliquez sur les
-            étapes pour piloter, ou laissez défiler.
+            {t.liveDemos.sub}
           </p>
         </div>
 
@@ -139,6 +140,7 @@ function DemoFrame({
   onPointerLeave: () => void;
   children: React.ReactNode;
 }) {
+  const { t } = useLandingDict();
   return (
     <div
       onPointerEnter={onPointerEnter}
@@ -160,7 +162,7 @@ function DemoFrame({
             </div>
           </div>
           <div className="flex flex-col items-end gap-2 shrink-0">
-            <div role="tablist" aria-label="Étapes de la démo" className="flex gap-1.5">
+            <div role="tablist" aria-label={t.liveDemos.aria.steps} className="flex gap-1.5">
               {Array.from({ length: totalSteps }).map((_, i) => {
                 const active = i === step;
                 return (
@@ -168,7 +170,7 @@ function DemoFrame({
                     key={i}
                     role="tab"
                     aria-selected={active}
-                    aria-label={`Étape ${i + 1} sur ${totalSteps}`}
+                    aria-label={t.liveDemos.aria.stepOf(i, totalSteps)}
                     onClick={() => onStep(i)}
                     className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
                       active
@@ -190,18 +192,18 @@ function DemoFrame({
           <button
             type="button"
             onClick={onTogglePause}
-            aria-label={paused ? 'Reprendre la démo' : 'Mettre la démo en pause'}
+            aria-label={paused ? t.liveDemos.aria.resume : t.liveDemos.aria.pause}
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-[10px] uppercase tracking-[0.18em] text-white/60 hover:text-white transition"
           >
             {paused ? (
               <>
                 <Play className="h-3 w-3" />
-                Reprendre
+                {t.liveDemos.cta.resume}
               </>
             ) : (
               <>
                 <Pause className="h-3 w-3" />
-                Pause
+                {t.liveDemos.cta.pause}
               </>
             )}
           </button>
@@ -231,6 +233,7 @@ function Step({
 }
 
 function DemoCvOptimizer() {
+  const { t } = useLandingDict();
   const [hovering, setHovering] = useState(false);
   const [forcedPause, setForcedPause] = useState(false);
   const { i: step, setIndex } = useCycle(4, 3500, hovering || forcedPause);
@@ -245,7 +248,7 @@ function DemoCvOptimizer() {
   return (
     <DemoFrame
       subtitle="CV OPTIMIZER"
-      title="Du brouillon au CV brandé."
+      title={t.liveDemos.cvDraft.title}
       step={step}
       totalSteps={4}
       onStep={setIndex}
@@ -259,7 +262,7 @@ function DemoCvOptimizer() {
         <div className="border-2 border-dashed border-white/15 rounded-xl py-12 text-center text-white/45 text-[13px] h-full flex flex-col items-center justify-center">
           <Upload className="h-7 w-7 mb-3 text-magenta/70" />
           cv-jean-dupont.pdf
-          <div className="text-[10px] mt-2 text-white/30">Glisser-déposer accepté</div>
+          <div className="text-[10px] mt-2 text-white/30">{t.liveDemos.cvDraft.dropAccepted}</div>
         </div>
       </Step>
 
@@ -293,7 +296,7 @@ function DemoCvOptimizer() {
               <div className="mt-3 rounded-lg border border-emerald-400/30 bg-emerald-400/[0.08] p-3 text-[11px] text-emerald-200 flex items-center gap-2">
                 <Sparkles className="h-3.5 w-3.5" />
                 <span>
-                  <strong>CV prêt</strong> · 0 invention · confiance{' '}
+                  <strong>{t.liveDemos.cvDraft.cvReady}</strong> · {t.liveDemos.cvDraft.noInvention} · confiance{' '}
                   <span className="font-mono">89 %</span>
                 </span>
               </div>
@@ -306,6 +309,7 @@ function DemoCvOptimizer() {
 }
 
 function DemoMatching() {
+  const { t } = useLandingDict();
   const [hovering, setHovering] = useState(false);
   const [forcedPause, setForcedPause] = useState(false);
   const { i: step, setIndex } = useCycle(4, 3500, hovering || forcedPause);
@@ -319,7 +323,7 @@ function DemoMatching() {
   return (
     <DemoFrame
       subtitle="MATCHING IA"
-      title="Les bons profils. Tout de suite."
+      title={t.liveDemos.matching.title}
       step={step}
       totalSteps={4}
       onStep={setIndex}
@@ -333,10 +337,10 @@ function DemoMatching() {
         <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4 h-full flex flex-col justify-center">
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-white/40 mb-1.5">
             <Search className="h-3 w-3 text-magenta" />
-            Mission Capgemini
+            {t.liveDemos.matching.mission}
           </div>
           <div className="text-[14px] text-white font-medium">
-            Tech Lead React · Paris · TJM 650 €
+            {t.liveDemos.matching.profile}
           </div>
           <div className="mt-3 flex flex-wrap gap-1.5 text-[10px]">
             {['React', 'TypeScript', 'Lead', 'Micro-FE'].map((tag) => (
@@ -368,7 +372,7 @@ function DemoMatching() {
                     {m.role}
                   </div>
                   <div className="text-[10px] text-white/45">
-                    Disponible sous 7j
+                    {t.liveDemos.matching.available}
                   </div>
                 </div>
                 <div className={`text-lg font-display font-medium ${m.color}`}>
@@ -384,6 +388,7 @@ function DemoMatching() {
 }
 
 function DemoCraInvoice() {
+  const { t } = useLandingDict();
   const [hovering, setHovering] = useState(false);
   const [forcedPause, setForcedPause] = useState(false);
   const { i: step, setIndex } = useCycle(4, 3500, hovering || forcedPause);
@@ -395,7 +400,7 @@ function DemoCraInvoice() {
   return (
     <DemoFrame
       subtitle="CRA → FACTURE"
-      title="Le temps devient cash."
+      title={t.liveDemos.cra.title}
       step={step}
       totalSteps={4}
       onStep={setIndex}
@@ -410,7 +415,7 @@ function DemoCraInvoice() {
         <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
           <div className="flex items-center justify-between mb-2">
             <div className="text-[10px] uppercase tracking-wider text-white/40">
-              CRA · mai 2026
+              {t.liveDemos.cra.craMonth}
             </div>
             <div className="text-[10px] text-white/50 font-mono">
               {Math.min(totalDays, validatedDays)}/{totalDays} j
@@ -440,10 +445,10 @@ function DemoCraInvoice() {
         >
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-white/40 mb-1.5">
             <FileSignature className="h-3 w-3 text-magenta" />
-            Facture générée
+            {t.liveDemos.cra.invoiceGenerated}
           </div>
-          <div className="font-mono text-[11px] text-white/75">FAC-2026-0048</div>
-          <div className="mt-1 font-display text-xl text-white">13 000 €</div>
+          <div className="font-mono text-[11px] text-white/75">{t.liveDemos.cra.ref}</div>
+          <div className="mt-1 font-display text-xl text-white">{t.liveDemos.cra.amount}</div>
         </div>
 
         {/* Envoyé — apparaît step 3 */}
@@ -452,7 +457,7 @@ function DemoCraInvoice() {
           style={{ opacity: step >= 3 ? 1 : 0 }}
         >
           <ArrowRight className="h-3.5 w-3.5" />
-          Envoyée à Capgemini · échéance 30 j
+          {t.liveDemos.cra.sentTo}
         </div>
       </div>
     </DemoFrame>

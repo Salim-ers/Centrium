@@ -7,6 +7,7 @@ import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { Starfield } from '@/components/ui/starfield-1';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { PageReveal } from '@/components/marketing/PageReveal';
+import { LocaleToggle } from '@/components/i18n/LocaleToggle';
 
 type Props = {
   children: React.ReactNode;
@@ -50,6 +51,11 @@ export function AuthShell({ children, title, subtitle, footer }: Props) {
         <ArrowLeft className="h-3.5 w-3.5" />
         Retour
       </Link>
+
+      {/* Toggle FR/EN — symétrique au lien Retour, en haut à droite */}
+      <div className="absolute top-6 right-6 z-20">
+        <LocaleToggle variant="default" />
+      </div>
 
       {/* PageReveal : sweep gradient rose + fade + scale + blur,
           identique aux pages marketing pour cohérence des transitions */}

@@ -14,13 +14,7 @@ import {
 } from 'lucide-react';
 
 import { useGsapReveal } from '@/hooks/useGsapReveal';
-
-const KPIS: { label: string; target: number; suffix?: string; prefix?: string; tone: string }[] = [
-  { label: 'Consultants actifs', target: 87, tone: 'text-emerald-300' },
-  { label: 'Missions ouvertes', target: 12, tone: 'text-violet-300' },
-  { label: 'Taux d’intercontrat', target: 8, suffix: '%', tone: 'text-amber-300' },
-  { label: 'CA M+1', target: 412, prefix: '', suffix: 'k €', tone: 'text-pink-300' },
-];
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 function AnimatedNumber({
   target,
@@ -81,7 +75,15 @@ function AnimatedNumber({
  * de ce que voit un BM dans Centrium. Animé au scroll via GSAP.
  */
 function DashboardMockup() {
+  const { t } = useLocale();
   const sparklineRef = useRef<SVGPathElement>(null);
+
+  const KPIS: { label: string; target: number; suffix?: string; prefix?: string; tone: string }[] = [
+    { label: t.productShowcase.dashboard.activeConsultants, target: 87, tone: 'text-emerald-300' },
+    { label: t.productShowcase.dashboard.openMissions, target: 12, tone: 'text-violet-300' },
+    { label: t.productShowcase.dashboard.benchRate, target: 8, suffix: '%', tone: 'text-amber-300' },
+    { label: t.productShowcase.dashboard.revenueNext, target: 412, prefix: '', suffix: 'k €', tone: 'text-pink-300' },
+  ];
 
   useEffect(() => {
     if (!sparklineRef.current) return;
@@ -123,11 +125,11 @@ function DashboardMockup() {
       <div className="p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <div className="text-[10px] uppercase tracking-widest text-white/40">Bonjour,</div>
-            <div className="font-display text-base font-semibold text-white">Marc, BM senior</div>
+            <div className="text-[10px] uppercase tracking-widest text-white/40">{t.productShowcase.dashboard.hello}</div>
+            <div className="font-display text-base font-semibold text-white">{t.productShowcase.dashboard.role}</div>
           </div>
           <div className="text-[10px] px-2 py-1 rounded-full bg-emerald-400/15 text-emerald-300 border border-emerald-400/30">
-            Tout va bien · 0 alerte
+            {t.productShowcase.dashboard.ok}
           </div>
         </div>
 
@@ -150,11 +152,11 @@ function DashboardMockup() {
         <div className="rounded-lg border border-hairline bg-white/[0.02] p-3 mb-4">
           <div className="flex items-center justify-between mb-2">
             <div className="text-[10px] uppercase tracking-widest text-white/50">
-              CA mensuel
+              {t.productShowcase.dashboard.revenue}
             </div>
             <div className="text-[10px] text-emerald-300 inline-flex items-center gap-0.5">
               <ArrowUpRight className="h-3 w-3" />
-              +18 %
+              {t.productShowcase.dashboard.growth}
             </div>
           </div>
           <svg viewBox="0 0 320 60" className="w-full h-12">
@@ -180,10 +182,10 @@ function DashboardMockup() {
             <Bot className="h-3.5 w-3.5 text-violet-200" />
           </div>
           <div className="text-[11px] leading-relaxed text-white/85">
-            <span className="font-semibold text-violet-200">Suggestion IA — </span>
-            3 consultants correspondent à la mission « Tech Lead React » de Capgemini.
+            <span className="font-semibold text-violet-200">{t.productShowcase.dashboard.aiSuggestion} </span>
+            {t.productShowcase.dashboard.aiSuggestionBody}{' '}
             Score moyen <span className="text-emerald-300 font-mono">87 %</span>.
-            <button className="ml-1 text-magenta hover:underline">Voir la sélection</button>
+            <button className="ml-1 text-magenta hover:underline">{t.productShowcase.dashboard.seeSelection}</button>
           </div>
         </div>
       </div>
@@ -196,6 +198,7 @@ function DashboardMockup() {
  * "extraction → réécriture" pour montrer le mécanisme IA.
  */
 function CvOptimizerMockup() {
+  const { t } = useLocale();
   return (
     <div className="relative rounded-2xl border border-hairline bg-gradient-to-br from-card to-card/40 backdrop-blur-xl shadow-[0_30px_80px_-40px_rgba(168,85,247,0.4)] overflow-hidden p-5">
       <div className="flex items-center gap-2 mb-4">
@@ -203,8 +206,8 @@ function CvOptimizerMockup() {
           <Sparkles className="h-4 w-4 text-magenta animate-pulse" />
         </div>
         <div>
-          <div className="font-display text-sm font-semibold text-white">CV Optimizer</div>
-          <div className="text-[10px] text-white/50">en train d’aligner sur l’offre…</div>
+          <div className="font-display text-sm font-semibold text-white">{t.productShowcase.cvOptimizer.label}</div>
+          <div className="text-[10px] text-white/50">{t.productShowcase.cvOptimizer.aligning}</div>
         </div>
       </div>
 
@@ -256,8 +259,7 @@ function CvOptimizerMockup() {
       </div>
 
       <div className="mt-4 rounded-md border border-emerald-400/30 bg-emerald-400/[0.07] p-2.5 text-[11px] text-emerald-200">
-        <span className="font-semibold">CV prêt</span> · 4 sections optimisées,
-        0 invention détectée, conforme contraintes Centrium.
+        <span className="font-semibold">{t.productShowcase.cvOptimizer.ready}</span> · {t.productShowcase.cvOptimizer.readyDesc}
       </div>
     </div>
   );
@@ -268,7 +270,15 @@ function CvOptimizerMockup() {
  * Reveal au scroll via le hook GSAP partagé.
  */
 export function ProductShowcase() {
+  const { t } = useLocale();
   const ref = useGsapReveal<HTMLDivElement>();
+
+  const gridItems = [
+    { icon: Users, label: t.productShowcase.grid.directory.t, desc: t.productShowcase.grid.directory.d },
+    { icon: Briefcase, label: t.productShowcase.grid.pipeline.t, desc: t.productShowcase.grid.pipeline.d },
+    { icon: FileText, label: t.productShowcase.grid.cv.t, desc: t.productShowcase.grid.cv.d },
+    { icon: TrendingUp, label: t.productShowcase.grid.reporting.t, desc: t.productShowcase.grid.reporting.d },
+  ];
 
   return (
     <section
@@ -280,14 +290,13 @@ export function ProductShowcase() {
         <div className="text-center max-w-2xl mx-auto mb-14" data-reveal>
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-magenta/30 bg-magenta/10 text-xs font-medium text-magenta mb-4">
             <Sparkles className="h-3 w-3" />
-            Aperçu produit
+            {t.productShowcase.eyebrow}
           </div>
           <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight">
-            La salle de pilotage de votre ESN.
+            {t.productShowcase.titleA} {t.productShowcase.titleB}
           </h2>
           <p className="mt-4 text-white/65 text-lg leading-relaxed">
-            Toute votre activité — consultants, missions, intercontrat, CA —
-            visible en 3 secondes. L’IA travaille en arrière-plan, vous décidez.
+            {t.productShowcase.sub}
           </p>
         </div>
 
@@ -308,26 +317,19 @@ export function ProductShowcase() {
                   <Search className="h-4 w-4 text-violet-300" />
                 </div>
                 <div>
-                  <div className="font-semibold text-white text-sm">Matching consultant ↔ mission</div>
-                  <div className="text-[10px] text-white/50">scoring multi-critères</div>
+                  <div className="font-semibold text-white text-sm">{t.productShowcase.matching.title}</div>
+                  <div className="text-[10px] text-white/50">{t.productShowcase.matching.sub}</div>
                 </div>
               </div>
               <p className="text-xs text-white/65 leading-relaxed">
-                Le matching combine compétences déclarées, expériences extraites,
-                disponibilité et TJM cible — avec un niveau de confiance affiché et
-                des justifications cliquables. Jamais d’invention.
+                {t.productShowcase.matching.desc}
               </p>
             </div>
           </div>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-12">
-          {[
-            { icon: Users, label: 'Annuaire consultants', desc: 'Bibliothèque interne + freelances + portage.' },
-            { icon: Briefcase, label: 'Pipeline AO', desc: 'CRM commercial, opportunités, ROI par client.' },
-            { icon: FileText, label: 'Templates CV', desc: '3 variantes brandées, export PDF/DOCX.' },
-            { icon: TrendingUp, label: 'Reporting', desc: 'TJM, marge, intercontrat, CA prévisionnel.' },
-          ].map((item) => {
+          {gridItems.map((item) => {
             const Icon = item.icon;
             return (
               <div

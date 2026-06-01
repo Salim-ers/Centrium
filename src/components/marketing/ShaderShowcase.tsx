@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { ShaderAnimation } from '@/components/ui/shader-animation';
+import { useLandingDict } from '@/components/marketing/MarketingShell';
 
 /**
  * Section "Shader showcase" — fond shader RGB pleine largeur avec un
@@ -17,6 +18,7 @@ import { ShaderAnimation } from '@/components/ui/shader-animation';
 export function ShaderShowcase() {
   const ref = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(false);
+  const { t } = useLandingDict();
 
   useEffect(() => {
     if (!ref.current) return;
@@ -36,15 +38,14 @@ export function ShaderShowcase() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-14">
           <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-3">
-            En mouvement
+            {t.shaderShowcase.kicker}
           </div>
           <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(2rem,4vw,3.2rem)] text-white">
-            Une plateforme{' '}
-            <span className="qc-italic-accent font-editorial italic">vivante.</span>
+            {t.shaderShowcase.titleA}{' '}
+            <span className="qc-italic-accent font-editorial italic">{t.shaderShowcase.titleB}</span>
           </h2>
           <p className="mt-5 sm:mt-6 text-white/55 text-[15px] leading-relaxed">
-            Chaque flux de données, chaque mission, chaque CV — orchestré en
-            temps réel. Centrium ne dort jamais.
+            {t.shaderShowcase.sub}
           </p>
         </div>
 
@@ -65,16 +66,16 @@ export function ShaderShowcase() {
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-4 sm:px-6">
             <div className="text-[clamp(2.4rem,7vw,5.5rem)] leading-[0.95] text-center">
               <span className="qc-italic-accent font-editorial italic drop-shadow-[0_4px_30px_rgba(0,0,0,0.7)]">
-                Centrium,
+                {t.shaderShowcase.centriumLine}
               </span>
               <br />
               <span className="font-display not-italic font-light tracking-[-0.03em] text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.7)]">
-                en flux continu.
+                {t.shaderShowcase.flowLine}
               </span>
             </div>
             <div className="mt-6 sm:mt-8 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/20 bg-black/40 backdrop-blur text-[10px] uppercase tracking-[0.25em] text-white/80">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)] animate-pulse" />
-              live · 60 fps
+              {t.shaderShowcase.live}
             </div>
           </div>
 

@@ -7,6 +7,7 @@ import { Menu, X, LogIn } from 'lucide-react';
 
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import type { Locale, LandingDict } from '@/lib/i18n/landing';
+import { LocaleToggle } from '@/components/i18n/LocaleToggle';
 
 type Props = {
   t: LandingDict;
@@ -14,36 +15,32 @@ type Props = {
   onLocaleChange: (l: Locale) => void;
 };
 
-const NAV = [
-  { label: 'Accueil', href: '/' },
-  { label: 'Plateforme', href: '/plateforme' },
-  { label: 'Engagements', href: '/engagements' },
-  { label: 'Tarifs', href: '/pricing' },
-];
-
 /**
  * Header marketing unifié — responsive solide pour toutes les pages publiques.
  *
- *   - Desktop (≥lg) : wordmark + nav inline + CTA gradient
- *   - Mobile (<lg)  : wordmark + burger 44×44 (tap target sain) → ouvre
- *                     un panneau plein écran avec slide-from-right
+ *   - Desktop (≥lg) : wordmark + nav inline + toggle FR/EN + CTA gradient
+ *   - Mobile (<lg)  : wordmark + burger 44×44 → panneau plein écran avec
+ *                     nav + toggle FR/EN mobile + CTA
  *
- * Robustesse mobile :
- *   - Background panneau OPAQUE (bg-black au lieu de bg-background/95)
- *   - z-index 60 sur le panneau (au-dessus de tout, y compris sweep overlay)
- *   - transform: translateX au lieu d'opacity → meilleure perf mobile
- *   - onClick explicite sur chaque Link pour fermer immédiatement le menu
- *     (en plus du useEffect pathname, qui a un délai d'un tick)
- *   - Scroll body bloqué pendant l'ouverture
- *   - Tap targets ≥ 44×44 (recommandation Apple HIG / Material Design)
+ * Tous les labels (NAV, CTAs) sont tirés de `t` (dictionnaire i18n).
+ * La locale et le setter viennent du LocaleProvider via les props
+ * (passées par MarketingShell qui consomme le contexte global).
  */
 export function Header({ t, locale, onLocaleChange }: Props) {
-  void t;
+  // locale/onLocaleChange consommés via LocaleToggle (contexte global)
   void locale;
   void onLocaleChange;
+
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
+
+  const NAV = [
+    { label: t.nav.home, href: '/' },
+    { label: t.nav.product, href: '/plateforme' },
+    { label: t.nav.features, href: '/engagements' },
+    { label: t.nav.pricing, href: '/pricing' },
+  ];
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -52,12 +49,10 @@ export function Header({ t, locale, onLocaleChange }: Props) {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Ferme le menu à chaque changement de route (filet de sécurité)
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
 
-  // Bloque scroll body quand menu mobile ouvert
   useEffect(() => {
     if (menuOpen) {
       const prev = document.body.style.overflow;
@@ -82,7 +77,7 @@ export function Header({ t, locale, onLocaleChange }: Props) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-3 sm:gap-6">
           <Link
             href="/"
-            aria-label="Centrium — accueil"
+            aria-label="Centrium — home"
             className="relative flex items-center shrink-0"
           >
             <CentriumWordmark size="sm" />
@@ -112,14 +107,15 @@ export function Header({ t, locale, onLocaleChange }: Props) {
             })}
           </nav>
 
-          {/* Desktop CTA */}
+          {/* Desktop CTA + toggle */}
           <div className="hidden lg:flex items-center gap-2 shrink-0">
+            <LocaleToggle variant="default" />
             <Link
               href="/login"
               className="group inline-flex items-center gap-1.5 h-10 px-4 rounded-full border border-white/15 bg-white/[0.04] backdrop-blur text-[13.5px] text-white/85 hover:text-white hover:border-white/30 hover:bg-white/[0.08] hover:shadow-[0_0_18px_-4px_rgba(236,72,153,0.4)] transition-all"
             >
               <LogIn className="h-3.5 w-3.5 text-magenta group-hover:text-white transition-colors" />
-              Se connecter
+              {t.nav.login}
             </Link>
             <Link
               href="/devis"
@@ -135,15 +131,15 @@ export function Header({ t, locale, onLocaleChange }: Props) {
               >
                 <span className="absolute top-0 -left-1/2 h-full w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-[300%]" />
               </span>
-              <span className="relative">Demander une démo</span>
+              <span className="relative">{t.hero.ctaPrimary}</span>
             </Link>
           </div>
 
-          {/* Mobile burger — tap target 44×44 (Apple HIG) */}
+          {/* Mobile burger — tap target 44×44 */}
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={menuOpen}
             aria-controls="mobile-nav-panel"
             className="lg:hidden inline-flex items-center justify-center h-11 w-11 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur text-white hover:bg-white/[0.10] active:bg-white/[0.14] transition"
@@ -153,8 +149,7 @@ export function Header({ t, locale, onLocaleChange }: Props) {
         </div>
       </header>
 
-      {/* Mobile menu panel — SORTI du <header> pour avoir un stacking
-          context propre et un z-index garanti au-dessus de tout */}
+      {/* Mobile menu panel */}
       <div
         id="mobile-nav-panel"
         aria-hidden={!menuOpen}
@@ -162,12 +157,11 @@ export function Header({ t, locale, onLocaleChange }: Props) {
           menuOpen ? 'translate-x-0' : 'translate-x-full pointer-events-none'
         }`}
       >
-        {/* Header local du panneau avec close button */}
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link
             href="/"
             onClick={closeMenu}
-            aria-label="Centrium — accueil"
+            aria-label="Centrium — home"
             className="flex items-center"
           >
             <CentriumWordmark size="sm" />
@@ -175,7 +169,7 @@ export function Header({ t, locale, onLocaleChange }: Props) {
           <button
             type="button"
             onClick={closeMenu}
-            aria-label="Fermer le menu"
+            aria-label="Close menu"
             className="inline-flex items-center justify-center h-11 w-11 rounded-full border border-white/15 bg-white/[0.06] text-white"
           >
             <X className="h-5 w-5" />
@@ -205,19 +199,21 @@ export function Header({ t, locale, onLocaleChange }: Props) {
           </nav>
 
           <div className="mt-6 space-y-3">
+            {/* Toggle FR/EN mobile — pleine largeur, segmented */}
+            <LocaleToggle variant="mobile" />
             <Link
               href="/devis"
               onClick={closeMenu}
               className="block w-full text-center h-12 px-5 rounded-full bg-gradient-to-r from-pink-500 via-magenta to-violet-500 text-white text-[15px] font-semibold leading-[3rem] shadow-[0_0_25px_-4px_rgba(225,29,116,0.6)]"
             >
-              Demander une démo
+              {t.hero.ctaPrimary}
             </Link>
             <Link
               href="/login"
               onClick={closeMenu}
               className="block w-full text-center h-12 px-5 rounded-full border border-white/15 text-white/85 text-[14px] leading-[3rem]"
             >
-              Se connecter
+              {t.nav.login}
             </Link>
           </div>
         </div>

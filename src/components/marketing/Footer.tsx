@@ -50,7 +50,7 @@ export function Footer({ t }: { t: LandingDict }) {
                   href="/engagements"
                   className="text-white/70 hover:text-white transition"
                 >
-                  Engagements &amp; sécurité
+                  {t.footer.engagementsLabel}
                 </Link>
               </li>
             </ul>
@@ -79,25 +79,25 @@ export function Footer({ t }: { t: LandingDict }) {
         <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-[12px] text-white/45">
           <div>{t.footer.rights}</div>
           <nav
-            aria-label="Liens légaux"
+            aria-label={t.footer.legal.ariaLabel}
             className="flex flex-wrap items-center gap-x-5 gap-y-2"
           >
             <Link href="/legal/privacy" className="hover:text-white transition">
-              Confidentialité
+              {t.footer.legal.privacy}
             </Link>
             <Link href="/legal/mentions" className="hover:text-white transition">
-              Mentions légales
+              {t.footer.legal.mentions}
             </Link>
             <Link href="/legal/cgu" className="hover:text-white transition">
-              CGU
+              {t.footer.legal.cgu}
             </Link>
             <Link href="/legal/cookies" className="hover:text-white transition">
-              Cookies
+              {t.footer.legal.cookies}
             </Link>
             <Link href="/legal/dpa" className="hover:text-white transition">
-              DPA
+              {t.footer.legal.dpa}
             </Link>
-            <ManageCookiesLink className="hover:text-white transition" />
+            <ManageCookiesLink className="hover:text-white transition" label={t.footer.legal.cookieManage} />
           </nav>
         </div>
       </div>

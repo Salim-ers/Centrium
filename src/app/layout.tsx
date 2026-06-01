@@ -5,6 +5,7 @@ import './globals.css';
 import { OrganizationProvider } from '@/lib/auth/context';
 import { RouteThemeManager } from '@/components/theme/RouteThemeManager';
 import { CookieBanner } from '@/components/marketing/CookieBanner';
+import { LocaleProvider } from '@/lib/i18n/LocaleProvider';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const spaceGrotesk = Space_Grotesk({
@@ -70,8 +71,10 @@ export default function RootLayout({
       </head>
       <body className="font-sans">
         <RouteThemeManager />
-        <OrganizationProvider>{children}</OrganizationProvider>
-        <CookieBanner />
+        <LocaleProvider>
+          <OrganizationProvider>{children}</OrganizationProvider>
+          <CookieBanner />
+        </LocaleProvider>
         <Toaster
           position="top-right"
           toastOptions={{

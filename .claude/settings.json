@@ -131,7 +131,8 @@
       "Bash(npx --yes skills add https://github.com/greensock/gsap-skills --agent claude-code)",
       "Bash(npx --yes skills add https://github.com/nextlevelbuilder/ui-ux-pro-max-skill --agent claude-code)",
       "Bash(git rm *)",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(Get-ChildItem \"c:\\\\Users\\\\Salim\\\\Desktop\\\\quadcore-platform\\\\\" -Directory | Select-Object Name)"
     ],
     "deny": [
       "Write(.env*)",

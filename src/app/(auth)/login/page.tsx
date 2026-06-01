@@ -15,6 +15,7 @@ import { loginSchema, type LoginInput } from '@/lib/validators';
 import { createClient } from '@/lib/supabase/client';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { toastWelcome } from '@/components/auth/WelcomeToast';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 // Clé localStorage pour mémoriser l'email du dernier login.
 // On NE stocke PAS le mot de passe ici : c'est le rôle du gestionnaire
@@ -25,6 +26,7 @@ const REMEMBER_EMAIL_KEY = 'centrium-remember-email';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useLocale();
   const [loading, setLoading] = useState(false);
   const [remember, setRemember] = useState(true);
 
@@ -62,16 +64,23 @@ export default function LoginPage() {
 
     if (error || !authRes.user) {
       setLoading(false);
-      const msg = error?.message?.toLowerCase() ?? '';
+      const rawMsg = error?.message ?? '';
+      const msg = rawMsg.toLowerCase();
       if (msg.includes('email not confirmed') || msg.includes('not confirmed')) {
-        toast.error(
-          'Email non confirmé. Vérifie ta boîte mail (et les spams) pour valider ton compte avant de te connecter.',
-          { duration: 6000 },
-        );
+        // Cas spécifique non couvert par le dict — on garde le message Supabase
+        // brut s'il est pertinent, sinon fallback générique.
+        toast.error(rawMsg || t.login.errors.generic, { duration: 6000 });
+      } else if (
+        msg.includes('invalid login credentials') ||
+        msg.includes('invalid credentials') ||
+        msg.includes('email ou mot de passe incorrect')
+      ) {
+        toast.error(t.login.errors.invalid, { duration: 6000 });
+      } else if (rawMsg) {
+        // Autres erreurs Supabase : garde le message renvoyé.
+        toast.error(rawMsg, { duration: 6000 });
       } else {
-        toast.error('Identifiants invalides. Si tu viens de t\'inscrire, pense à valider ton email depuis le lien reçu par mail.', {
-          duration: 6000,
-        });
+        toast.error(t.login.errors.generic, { duration: 6000 });
       }
       return;
     }
@@ -110,13 +119,13 @@ export default function LoginPage() {
 
   return (
     <AuthShell
-      title="Bon retour"
-      subtitle="Connecte-toi à ton espace Centrium"
+      title={t.login.title}
+      subtitle={t.login.subtitle}
       footer={
         <>
-          Pas encore de compte ?{' '}
+          {t.login.noAccount}{' '}
           <Link href="/signup" className="text-magenta hover:text-magenta-neon transition font-medium">
-            Créer une organisation
+            {t.login.createAccount}
           </Link>
         </>
       }
@@ -124,7 +133,7 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div className="space-y-2">
           <Label htmlFor="email" className="text-xs font-semibold tracking-wider uppercase text-white/60">
-            Email
+            {t.login.email}
           </Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />
@@ -144,7 +153,7 @@ export default function LoginPage() {
 
         <div className="space-y-2">
           <Label htmlFor="password" className="text-xs font-semibold tracking-wider uppercase text-white/60">
-            Mot de passe
+            {t.login.password}
           </Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />
@@ -169,13 +178,13 @@ export default function LoginPage() {
             className="h-4 w-4 rounded border-white/20 bg-white/[0.04] accent-magenta-neon cursor-pointer"
           />
           <span className="text-sm text-white/70 group-hover:text-white/90 transition">
-            Se souvenir de moi
+            {t.login.remember}
           </span>
           <span
             className="ml-auto text-[10px] text-white/30"
             title="L'email est mémorisé localement. Le mot de passe reste géré par le gestionnaire de mots de passe du navigateur — beaucoup plus sécurisé."
           >
-            Email uniquement
+            {t.login.emailOnly}
           </span>
         </label>
 
@@ -186,7 +195,7 @@ export default function LoginPage() {
           disabled={loading}
         >
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-          Se connecter
+          {loading ? t.login.submitting : t.login.submit}
         </Button>
       </form>
     </AuthShell>

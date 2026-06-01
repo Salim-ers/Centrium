@@ -62,7 +62,7 @@ export function Pillars({ t }: { t: LandingDict }) {
           className="text-center max-w-2xl mx-auto mb-14"
         >
           <div className="text-[11px] font-semibold tracking-[0.25em] text-magenta mb-3">
-            L’ARCHITECTURE
+            {t.pillars.architecture}
           </div>
           <h2 className="font-display text-2xl md:text-3xl font-medium tracking-[-0.02em] text-white">
             {t.pillars.title}

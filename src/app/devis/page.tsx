@@ -32,6 +32,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { MarketingShell } from '@/components/marketing/MarketingShell';
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 /**
  * Page publique "Demande de devis" — remplace l'ancien signup self-service.
@@ -48,16 +49,19 @@ import { cn } from '@/lib/utils';
 const NOTIFICATION_EMAIL = 'contact@centrium-platform.com';
 const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xqenvzve';
 
-const HELP_LABELS: Record<string, string> = {
-  cv_template: 'Template CV à notre image',
-  contract_template: 'Template de contrat à notre image',
-  logo: 'Création / refonte de logo',
-  brand_colors: 'Charte graphique (couleurs)',
-  mentions_legales: 'Aide rédaction mentions légales',
-  signature: 'Signature numérique',
-  fiche_poste: 'Template fiche de poste',
-  autre: 'Autre (voir message)',
-};
+// Technical keys used as backend payload (wanted_help) — DO NOT change,
+// they are persisted in DB and consumed by /admin/clients. The displayed
+// labels come from the i18n dict (t.devis.helpOptions[i].full / .short).
+const HELP_KEYS = [
+  'cv_template',
+  'contract_template',
+  'logo',
+  'brand_colors',
+  'mentions_legales',
+  'signature',
+  'fiche_poste',
+  'autre',
+] as const;
 
 /**
  * Envoi de la notification email côté navigateur — Formspree accepte
@@ -76,9 +80,12 @@ async function notifyFormspree(payload: {
   contact_role: string;
   message: string;
   wanted_help: string[];
+  wanted_help_labels: Record<string, string>;
   logo_url?: string | null;
 }): Promise<boolean> {
-  const help = payload.wanted_help.map((k) => HELP_LABELS[k] ?? k).join(', ');
+  const help = payload.wanted_help
+    .map((k) => payload.wanted_help_labels[k] ?? k)
+    .join(', ');
   const body = new FormData();
   body.append('_subject', `Nouvelle demande de devis — ${payload.company_name}`);
   body.append('_replyto', payload.contact_email);
@@ -113,26 +120,19 @@ async function notifyFormspree(payload: {
   }
 }
 
-type HelpKey =
-  | 'cv_template'
-  | 'contract_template'
-  | 'logo'
-  | 'brand_colors'
-  | 'mentions_legales'
-  | 'signature'
-  | 'fiche_poste'
-  | 'autre';
+type HelpKey = (typeof HELP_KEYS)[number];
 
-const HELP_OPTIONS: { key: HelpKey; label: string; Icon: typeof FileText }[] = [
-  { key: 'cv_template', label: 'Template CV', Icon: FileText },
-  { key: 'contract_template', label: 'Template contrat', Icon: FileSignature },
-  { key: 'logo', label: 'Logo', Icon: ImageIcon },
-  { key: 'brand_colors', label: 'Charte couleurs', Icon: Palette },
-  { key: 'mentions_legales', label: 'Mentions légales', Icon: Scale },
-  { key: 'signature', label: 'Signature', Icon: PenLine },
-  { key: 'fiche_poste', label: 'Fiche de poste', Icon: Briefcase },
-  { key: 'autre', label: 'Autre', Icon: HandHelping },
-];
+// Icons stay tied to technical keys (locale-independent).
+const HELP_ICONS: Record<HelpKey, typeof FileText> = {
+  cv_template: FileText,
+  contract_template: FileSignature,
+  logo: ImageIcon,
+  brand_colors: Palette,
+  mentions_legales: Scale,
+  signature: PenLine,
+  fiche_poste: Briefcase,
+  autre: HandHelping,
+};
 
 type FormState = {
   company_name: string;
@@ -159,6 +159,7 @@ const INITIAL_FORM: FormState = {
 };
 
 export default function DevisPage() {
+  const { t } = useLocale();
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [help, setHelp] = useState<Set<HelpKey>>(new Set());
   const [busy, setBusy] = useState(false);
@@ -171,11 +172,11 @@ export default function DevisPage() {
   async function handleLogoUpload(file: File) {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      setError('Logo trop lourd (max 5 Mo).');
+      setError(t.devis.errors.tooLarge);
       return;
     }
     if (!file.type.startsWith('image/')) {
-      setError('Format non supporté. Utilise PNG, JPG, SVG ou WebP.');
+      setError(t.devis.errors.unsupported);
       return;
     }
     setError(null);
@@ -196,7 +197,7 @@ export default function DevisPage() {
         .from('quote-attachments')
         .upload(path, file, { upsert: false, contentType: file.type });
       if (upErr) {
-        setError("Upload échoué : " + upErr.message);
+        setError(`${t.devis.errors.uploadFailed} ${upErr.message}`);
         return;
       }
       const { data: pub } = supabase.storage
@@ -205,7 +206,7 @@ export default function DevisPage() {
       setLogoUrl(pub.publicUrl);
       setLogoFileName(file.name);
     } catch (e) {
-      setError('Upload impossible : ' + (e as Error).message);
+      setError(`${t.devis.errors.uploadImpossible} ${(e as Error).message}`);
     } finally {
       setLogoUploading(false);
     }
@@ -233,12 +234,18 @@ export default function DevisPage() {
     e.preventDefault();
     setError(null);
     if (!form.company_name.trim() || !form.contact_name.trim() || !form.contact_email.trim()) {
-      setError('Le nom de la société, ton nom et ton email sont requis.');
+      setError(t.devis.errors.required);
       return;
     }
     setBusy(true);
     try {
       const wantedHelp = Array.from(help);
+
+      // Build {key → full label} map from the dict, used by the email notif.
+      const wantedHelpLabels: Record<string, string> = {};
+      HELP_KEYS.forEach((k, i) => {
+        wantedHelpLabels[k] = t.devis.helpOptions[i]?.full ?? k;
+      });
 
       // 1) Save DB (source de vérité) + 2) Email via Formspree depuis
       // le navigateur (Formspree accepte mieux les requêtes browser).
@@ -254,7 +261,12 @@ export default function DevisPage() {
             source: 'landing',
           }),
         }),
-        notifyFormspree({ ...form, wanted_help: wantedHelp, logo_url: logoUrl }),
+        notifyFormspree({
+          ...form,
+          wanted_help: wantedHelp,
+          wanted_help_labels: wantedHelpLabels,
+          logo_url: logoUrl,
+        }),
       ]);
 
       const body = await dbRes.json().catch(() => ({}));
@@ -286,17 +298,16 @@ export default function DevisPage() {
             </div>
             <div>
               <h1 className="font-display text-3xl font-bold tracking-tight">
-                Demande envoyée ✓
+                {t.devis.success.title}
               </h1>
               <p className="text-muted-foreground mt-3 leading-relaxed">
-                On a bien reçu ta demande pour <strong>{form.company_name}</strong>.
-                Tu vas recevoir une réponse à
-                <strong className="text-violet-200"> {form.contact_email}</strong> sous
-                24 à 48h ouvrées avec un devis personnalisé et la prochaine étape pour
-                activer ton espace.
+                {t.devis.success.received1} <strong>{form.company_name}</strong>.{' '}
+                {t.devis.success.received2}
+                <strong className="text-violet-200"> {form.contact_email}</strong>{' '}
+                {t.devis.success.followUp}
               </p>
               <p className="text-xs text-muted-foreground mt-4">
-                Une question entre-temps ?{' '}
+                {t.devis.success.question}{' '}
                 <a
                   href={`mailto:${NOTIFICATION_EMAIL}`}
                   className="text-violet-300 hover:text-violet-200 underline underline-offset-2"
@@ -309,7 +320,7 @@ export default function DevisPage() {
               <Button asChild variant="outline">
                 <Link href="/">
                   <ArrowLeft className="h-4 w-4" />
-                  Retour à l&apos;accueil
+                  {t.devis.success.back}
                 </Link>
               </Button>
             </div>
@@ -324,20 +335,18 @@ export default function DevisPage() {
       <main className="relative max-w-3xl mx-auto px-6 pt-32 pb-16">
         <div className="text-center mb-10">
           <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-4">
-            Devis personnalisé
+            {t.devis.eyebrow}
           </div>
           <h1 className="font-display font-light tracking-[-0.04em] leading-[1] text-[clamp(2.4rem,5.5vw,4.5rem)] text-white">
-            Parlons de{' '}
-            <span className="qc-italic-accent font-editorial italic font-normal">votre ESN.</span>
+            {t.devis.titleA}{' '}
+            <span className="qc-italic-accent font-editorial italic font-normal">{t.devis.titleB}</span>
           </h1>
           <p className="text-muted-foreground mt-4 max-w-2xl mx-auto leading-relaxed">
-            Décris-nous ton ESN en quelques minutes. On revient vers toi sous 24-48h
-            avec un devis personnalisé et on configure ensemble ton espace à ton image
-            (logo, couleurs, mentions légales, signature) avant l&apos;activation.
+            {t.devis.sub}
           </p>
           <p className="text-xs text-muted-foreground mt-4 inline-flex items-center gap-1.5">
             <Mail className="h-3 w-3 text-violet-300" />
-            Réponses envoyées par{' '}
+            {t.devis.repliesSentBy}{' '}
             <a
               href={`mailto:${NOTIFICATION_EMAIL}`}
               className="text-violet-300 hover:text-violet-200 underline underline-offset-2 font-medium"
@@ -361,15 +370,15 @@ export default function DevisPage() {
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-violet-300">
               <Building2 className="h-3.5 w-3.5" />
-              Ton entreprise
+              {t.devis.section.company}
             </div>
 
             <div>
-              <Label>Nom de la société *</Label>
+              <Label>{t.devis.fields.companyName}</Label>
               <Input
                 value={form.company_name}
                 onChange={(e) => update('company_name', e.target.value)}
-                placeholder="ACME Consulting"
+                placeholder={t.devis.fields.companyNamePh}
                 required
                 autoFocus
               />
@@ -377,39 +386,39 @@ export default function DevisPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <Label>Secteur</Label>
+                <Label>{t.devis.fields.sector}</Label>
                 <Input
                   value={form.industry}
                   onChange={(e) => update('industry', e.target.value)}
-                  placeholder="ESN, conseil IT…"
+                  placeholder={t.devis.fields.sectorPh}
                 />
               </div>
               <div>
-                <Label>Taille équipe</Label>
+                <Label>{t.devis.fields.teamSize}</Label>
                 <Select
                   value={form.team_size}
                   onChange={(e) => update('team_size', e.target.value)}
                 >
                   <option value="">—</option>
-                  <option value="1-5">1 à 5 personnes</option>
-                  <option value="6-15">6 à 15</option>
-                  <option value="16-50">16 à 50</option>
-                  <option value="51-200">51 à 200</option>
-                  <option value="200+">200+</option>
+                  {(['1-5', '6-15', '16-50', '51-200', '200+'] as const).map((v, i) => (
+                    <option key={v} value={v}>
+                      {t.devis.teamSizes[i]}
+                    </option>
+                  ))}
                 </Select>
               </div>
               <div>
-                <Label>Nb consultants gérés</Label>
+                <Label>{t.devis.fields.consultants}</Label>
                 <Select
                   value={form.consultants_count}
                   onChange={(e) => update('consultants_count', e.target.value)}
                 >
                   <option value="">—</option>
-                  <option value="0-10">Moins de 10</option>
-                  <option value="10-30">10 à 30</option>
-                  <option value="30-100">30 à 100</option>
-                  <option value="100-500">100 à 500</option>
-                  <option value="500+">500+</option>
+                  {(['0-10', '10-30', '30-100', '100-500', '500+'] as const).map((v, i) => (
+                    <option key={v} value={v}>
+                      {t.devis.consultantsRanges[i]}
+                    </option>
+                  ))}
                 </Select>
               </div>
             </div>
@@ -419,25 +428,25 @@ export default function DevisPage() {
           <section className="space-y-4 pt-2 border-t border-hairline">
             <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-violet-300 pt-4">
               <UserIcon className="h-3.5 w-3.5" />
-              Ton contact
+              {t.devis.section.contact}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <Label>Nom complet *</Label>
+                <Label>{t.devis.fields.contactName}</Label>
                 <Input
                   value={form.contact_name}
                   onChange={(e) => update('contact_name', e.target.value)}
-                  placeholder="John Doe"
+                  placeholder={t.devis.fields.contactNamePh}
                   required
                 />
               </div>
               <div>
-                <Label>Fonction</Label>
+                <Label>{t.devis.fields.role}</Label>
                 <Input
                   value={form.contact_role}
                   onChange={(e) => update('contact_role', e.target.value)}
-                  placeholder="Dirigeant, BM, RH…"
+                  placeholder={t.devis.fields.rolePh}
                 />
               </div>
             </div>
@@ -446,26 +455,26 @@ export default function DevisPage() {
               <div>
                 <Label>
                   <Mail className="h-3 w-3 inline mr-1" />
-                  Email pro *
+                  {t.devis.fields.email}
                 </Label>
                 <Input
                   type="email"
                   value={form.contact_email}
                   onChange={(e) => update('contact_email', e.target.value)}
-                  placeholder="john.doe@acme.com"
+                  placeholder={t.devis.fields.emailPh}
                   required
                 />
               </div>
               <div>
                 <Label>
                   <Phone className="h-3 w-3 inline mr-1" />
-                  Téléphone
+                  {t.devis.fields.phone}
                 </Label>
                 <Input
                   type="tel"
                   value={form.contact_phone}
                   onChange={(e) => update('contact_phone', e.target.value)}
-                  placeholder="+33 1 23 45 67 89"
+                  placeholder={t.devis.fields.phonePh}
                 />
               </div>
             </div>
@@ -475,15 +484,16 @@ export default function DevisPage() {
           <section className="space-y-3 pt-2 border-t border-hairline">
             <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-violet-300 pt-4">
               <HandHelping className="h-3.5 w-3.5" />
-              Avec quoi peut-on t&apos;aider ?
+              {t.devis.section.help}
             </div>
             <p className="text-[11px] text-muted-foreground -mt-2">
-              On peut t&apos;accompagner sur la création de tes templates et de ton
-              identité visuelle. Coche tout ce dont tu veux qu&apos;on s&apos;occupe :
+              {t.devis.helpIntro}
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {HELP_OPTIONS.map(({ key, label, Icon }) => {
+              {HELP_KEYS.map((key, i) => {
+                const Icon = HELP_ICONS[key];
                 const active = help.has(key);
+                const opt = t.devis.helpOptions[i];
                 return (
                   <button
                     key={key}
@@ -502,7 +512,7 @@ export default function DevisPage() {
                         active ? 'text-violet-300' : 'text-muted-foreground',
                       )}
                     />
-                    <span className="leading-tight">{label}</span>
+                    <span className="leading-tight">{opt?.short ?? key}</span>
                   </button>
                 );
               })}
@@ -513,12 +523,10 @@ export default function DevisPage() {
           <section className="space-y-3 pt-2 border-t border-hairline">
             <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-violet-300 pt-4">
               <ImageIcon className="h-3.5 w-3.5" />
-              Logo de la société (optionnel)
+              {t.devis.section.logo}
             </div>
             <p className="text-[11px] text-muted-foreground -mt-2">
-              Joins ton logo si tu en as un — on l&apos;intégrera directement
-              dans ton espace, tes CV, contrats et factures. PNG/SVG fond
-              transparent idéalement, 5 Mo max.
+              {t.devis.logoIntro}
             </p>
             {logoUrl ? (
               <div className="flex items-center gap-3 rounded-md border border-emerald-500/30 bg-emerald-500/[0.06] p-3">
@@ -533,14 +541,14 @@ export default function DevisPage() {
                   </div>
                   <div className="text-[10px] text-emerald-300 inline-flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3" />
-                    Bien reçu
+                    {t.devis.logoReceived}
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={removeLogo}
                   className="h-7 w-7 rounded-md border border-hairline text-muted-foreground hover:text-foreground hover:border-white/20 inline-flex items-center justify-center"
-                  title="Retirer le logo"
+                  title={t.devis.logoRemove}
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -561,10 +569,10 @@ export default function DevisPage() {
                 )}
                 <div className="flex-1">
                   <div className="text-sm font-medium">
-                    {logoUploading ? 'Envoi en cours…' : 'Choisir un fichier'}
+                    {logoUploading ? t.devis.logoUploading : t.devis.logoChoose}
                   </div>
                   <div className="text-[11px] text-muted-foreground">
-                    PNG, JPG, SVG, WebP — 5 Mo max
+                    {t.devis.logoFormats}
                   </div>
                 </div>
                 <input
@@ -585,27 +593,22 @@ export default function DevisPage() {
           {/* Message libre */}
           <section className="pt-2 border-t border-hairline">
             <div className="pt-4 space-y-2">
-              <Label>Quel est ton besoin ?</Label>
+              <Label>{t.devis.section.message}</Label>
               <Textarea
                 rows={5}
                 value={form.message}
                 onChange={(e) => update('message', e.target.value)}
-                placeholder={
-                  'Ex: On gère 25 consultants en freelance + portage, on cherche une solution pour le matching, la facturation et la génération de CV personnalisés à notre charte.'
-                }
+                placeholder={t.devis.messagePh}
               />
               <p className="text-[11px] text-muted-foreground">
-                Plus tu donnes de contexte, plus on peut ajuster le devis et la
-                configuration de ton espace à ton image.
+                {t.devis.messageHint}
               </p>
             </div>
           </section>
 
           <div className="pt-2 flex items-center justify-between gap-3 flex-wrap">
             <p className="text-[11px] text-muted-foreground max-w-md">
-              En soumettant ce formulaire, tu acceptes qu&apos;on te recontacte par
-              email à l&apos;adresse fournie. Aucune création de compte ni
-              prélèvement à ce stade.
+              {t.devis.legalNote}
             </p>
             <Button
               type="submit"
@@ -617,7 +620,7 @@ export default function DevisPage() {
               ) : (
                 <Send className="h-4 w-4" />
               )}
-              Envoyer la demande
+              {t.devis.submit}
             </Button>
           </div>
         </form>

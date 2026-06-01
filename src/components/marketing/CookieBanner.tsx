@@ -10,10 +10,12 @@ import {
   writeConsent,
   type CookieConsent,
 } from '@/lib/consent/cookies';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 type View = 'hidden' | 'banner' | 'preferences';
 
 export function CookieBanner() {
+  const { t } = useLocale();
   const [view, setView] = useState<View>('hidden');
   const [prefs, setPrefs] = useState({ analytics: false, marketing: false });
 
@@ -73,15 +75,15 @@ export function CookieBanner() {
                 className="font-display text-lg font-semibold flex items-center gap-2"
               >
                 <Settings2 className="h-4 w-4 text-magenta" />
-                Préférences cookies
+                {t.cookies.prefsTitle}
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
-                Choisissez les catégories de cookies que vous acceptez sur Centrium.
+                {t.cookies.prefsDesc}
               </p>
             </div>
             <button
               type="button"
-              aria-label="Fermer"
+              aria-label={t.cookies.closeAria}
               onClick={() => setView('hidden')}
               className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-hairline hover:bg-white/5 transition"
             >
@@ -92,15 +94,13 @@ export function CookieBanner() {
           <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
             <div className="rounded-xl border border-hairline bg-muted/30 p-4">
               <div className="flex items-center justify-between gap-3 mb-1">
-                <div className="font-medium text-sm">Cookies essentiels</div>
+                <div className="font-medium text-sm">{t.cookies.essentialTitle}</div>
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-300">
-                  Toujours actifs
+                  {t.cookies.essentialAlways}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Nécessaires au fonctionnement de la plateforme : session de
-                connexion, sécurité, préférences d’affichage. Ils ne peuvent
-                pas être désactivés.
+                {t.cookies.essentialDesc}
               </p>
             </div>
 
@@ -127,17 +127,15 @@ export function CookieBanner() {
             ))}
 
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Vous pouvez revenir sur ce choix à tout moment via le lien{' '}
-              <em>« Gérer les cookies »</em> dans le footer de toutes les pages,
-              ou consulter notre{' '}
+              {t.cookies.note1}{' '}
               <Link
                 href="/legal/cookies"
                 className="text-magenta hover:underline"
                 onClick={() => setView('hidden')}
               >
-                politique de cookies
+                {t.cookies.cookiePolicy}
               </Link>
-              .
+              {t.cookies.note2}
             </p>
           </div>
 
@@ -147,21 +145,21 @@ export function CookieBanner() {
               onClick={rejectAll}
               className="h-10 px-4 rounded-full text-sm font-medium border border-hairline text-foreground/80 hover:bg-white/5 transition"
             >
-              Tout refuser
+              {t.cookies.refuseAll}
             </button>
             <button
               type="button"
               onClick={saveCustom}
               className="h-10 px-4 rounded-full text-sm font-medium border border-hairline text-foreground/80 hover:bg-white/5 transition"
             >
-              Enregistrer mon choix
+              {t.cookies.saveChoice}
             </button>
             <button
               type="button"
               onClick={acceptAll}
               className="h-10 px-5 rounded-full text-sm font-semibold bg-qc-gradient text-white shadow-[0_0_18px_rgba(225,29,116,0.45)] hover:brightness-110 transition"
             >
-              Tout accepter
+              {t.cookies.acceptAllBtn}
             </button>
           </div>
         </div>
@@ -172,7 +170,7 @@ export function CookieBanner() {
   return (
     <div
       role="region"
-      aria-label="Bandeau de consentement aux cookies"
+      aria-label={t.cookies.bannerAria}
       className="fixed bottom-4 left-4 right-4 sm:left-6 sm:right-auto sm:bottom-6 z-[150] sm:max-w-md animate-in fade-in-0 slide-in-from-bottom-4"
     >
       <div className="rounded-2xl border border-hairline bg-card/95 backdrop-blur-xl shadow-2xl p-5 text-foreground">
@@ -181,13 +179,11 @@ export function CookieBanner() {
             <Cookie className="h-4 w-4 text-magenta" />
           </div>
           <div>
-            <div className="font-semibold text-sm">Nous respectons votre vie privée</div>
+            <div className="font-semibold text-sm">{t.cookies.bannerTitle}</div>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-              Centrium utilise uniquement les cookies essentiels au fonctionnement
-              de la plateforme. Vous pouvez accepter la mesure d’audience
-              anonymisée pour nous aider à améliorer le produit.{' '}
+              {t.cookies.bannerDesc}{' '}
               <Link href="/legal/cookies" className="text-magenta hover:underline">
-                En savoir plus
+                {t.cookies.learnMore}
               </Link>
             </p>
           </div>
@@ -198,21 +194,21 @@ export function CookieBanner() {
             onClick={rejectAll}
             className="h-9 px-3 rounded-full text-xs font-medium border border-hairline text-foreground/80 hover:bg-white/5 transition"
           >
-            Refuser
+            {t.cookies.refuse}
           </button>
           <button
             type="button"
             onClick={() => setView('preferences')}
             className="h-9 px-3 rounded-full text-xs font-medium border border-hairline text-foreground/80 hover:bg-white/5 transition"
           >
-            Personnaliser
+            {t.cookies.customize}
           </button>
           <button
             type="button"
             onClick={acceptAll}
             className="h-9 px-4 rounded-full text-xs font-semibold bg-qc-gradient text-white shadow-[0_0_18px_rgba(225,29,116,0.45)] hover:brightness-110 transition sm:ml-auto"
           >
-            Tout accepter
+            {t.cookies.acceptAll}
           </button>
         </div>
       </div>
@@ -224,7 +220,8 @@ export function CookieBanner() {
  * Petit bouton à mettre dans les footers pour réouvrir les préférences.
  * Émet l'event que CookieBanner écoute.
  */
-export function ManageCookiesLink({ className }: { className?: string }) {
+export function ManageCookiesLink({ className, label }: { className?: string; label?: string }) {
+  const { t } = useLocale();
   function open() {
     window.dispatchEvent(new CustomEvent('centrium-open-cookie-preferences'));
   }
@@ -234,7 +231,7 @@ export function ManageCookiesLink({ className }: { className?: string }) {
       onClick={open}
       className={className ?? 'text-xs text-white/55 hover:text-white transition underline-offset-4 hover:underline'}
     >
-      Gérer les cookies
+      {label ?? t.footer.legal.cookieManage}
     </button>
   );
 }

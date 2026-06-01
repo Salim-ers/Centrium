@@ -59,7 +59,7 @@ export function Hero({ t }: { t: LandingDict }) {
 
       {/* Indicateur scroll */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-white/40">
-        <div className="text-[10px] uppercase tracking-[0.3em]">Découvrir</div>
+        <div className="text-[10px] uppercase tracking-[0.3em]">{t.hero.discover}</div>
         <div className="h-10 w-px bg-gradient-to-b from-white/40 to-transparent animate-pulse" />
       </div>
     </section>

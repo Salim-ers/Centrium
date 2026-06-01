@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { useGsapReveal } from '@/hooks/useGsapReveal';
+import { useLandingDict } from '@/components/marketing/MarketingShell';
 
 /**
  * Section "Métriques chiffrées" — 4 chiffres clés avec counters
@@ -63,43 +64,47 @@ function AnimatedNum({
 }
 
 const ITEMS = [
-  { value: 30, suffix: ' min', label: 'Pour qualifier un besoin client' },
-  { value: 48, suffix: ' h', label: 'Pour recevoir votre devis détaillé' },
-  { value: 100, suffix: ' %', label: 'Des données hébergées en Europe' },
-  { value: 0, suffix: '', label: 'Engagement avant signature' },
+  { value: 30, suffix: ' min' },
+  { value: 48, suffix: ' h' },
+  { value: 100, suffix: ' %' },
+  { value: 0, suffix: '' },
 ];
 
 export function Metrics() {
   const ref = useGsapReveal<HTMLDivElement>();
+  const { t } = useLandingDict();
 
   return (
     <section ref={ref} className="qc-section-divider relative py-16">
       <div className="relative max-w-7xl mx-auto px-6">
         <div className="text-center mb-14" data-reveal>
           <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-3">
-            En chiffres
+            {t.metrics.kicker}
           </div>
           <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(1.8rem,3.5vw,2.8rem)] text-white">
-            Centrium en{' '}
-            <span className="qc-italic-accent font-editorial italic">quelques mesures.</span>
+            {t.metrics.titleA}{' '}
+            <span className="qc-italic-accent font-editorial italic">{t.metrics.titleB}</span>
           </h2>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {ITEMS.map((it) => (
-            <div
-              key={it.label}
-              data-reveal
-              className="qc-luminous-static rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-md p-7 text-center"
-            >
-              <div className="qc-italic-accent font-editorial italic text-[clamp(2.4rem,4.5vw,3.6rem)] leading-none">
-                <AnimatedNum target={it.value} suffix={it.suffix} />
+          {ITEMS.map((it, i) => {
+            const label = t.metrics.items[i]?.label ?? '';
+            return (
+              <div
+                key={label || i}
+                data-reveal
+                className="qc-luminous-static rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-md p-7 text-center"
+              >
+                <div className="qc-italic-accent font-editorial italic text-[clamp(2.4rem,4.5vw,3.6rem)] leading-none">
+                  <AnimatedNum target={it.value} suffix={it.suffix} />
+                </div>
+                <div className="mt-4 text-[11px] uppercase tracking-[0.2em] text-white/55">
+                  {label}
+                </div>
               </div>
-              <div className="mt-4 text-[11px] uppercase tracking-[0.2em] text-white/55">
-                {it.label}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
