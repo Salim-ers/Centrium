@@ -316,6 +316,43 @@ section[id] {
     pointer-events: none;
   }
 
+  /* ============ DECORATIVE ELEMENTS — no focus outline, no caret
+     Évite que les wrappers de fond animés (Starfield, FluidField,
+     GalaxyField, etc.) attrapent le focus au tab/clic et affichent
+     un outline blanc disgracieux qui apparaît comme un "trait
+     d'écriture" sur le bord du viewport. */
+  [aria-hidden="true"],
+  [aria-hidden="true"] *,
+  canvas {
+    outline: none !important;
+    -webkit-tap-highlight-color: transparent;
+    caret-color: transparent;
+  }
+  /* Pas de caret de saisie sur les zones non-éditables (le caret n'est
+     valide que sur input/textarea/contenteditable). Évite que le bord
+     d'un élément non-éditable affiche un curseur clignotant après un
+     clic. */
+  body,
+  div,
+  section,
+  main,
+  article,
+  header,
+  footer,
+  nav,
+  aside,
+  span,
+  p,
+  h1, h2, h3, h4, h5, h6 {
+    caret-color: transparent;
+  }
+  input,
+  textarea,
+  [contenteditable="true"],
+  [contenteditable=""] {
+    caret-color: auto;
+  }
+
   /* ============ NON-INTERACTIVE CARDS — curseur default + pas de sélection
      Les cards .qc-luminous-static qui ne sont PAS des <a>/<button> sont
      décoratives : on évite le curseur I-beam au survol et la sélection
