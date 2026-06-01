@@ -33,7 +33,13 @@ export function Hero({ t }: { t: LandingDict }) {
       <div className="relative z-10 max-w-5xl mx-auto px-6 text-center pt-24 pb-16">
         <h1 className="font-display font-light tracking-[-0.04em] leading-[0.95] text-[clamp(3rem,7vw,6.5rem)] text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.8)]">
           {t.hero.title1}
-          <span className="block mt-2 font-editorial italic font-normal text-white tracking-[-0.025em]">
+          <span
+            className="block mt-2 font-editorial italic font-normal tracking-[-0.025em] bg-clip-text text-transparent bg-gradient-to-r from-pink-300 via-magenta to-violet-300 bg-[length:200%_100%] animate-gradient-pan"
+            style={{
+              filter:
+                'drop-shadow(0 4px 30px rgba(225,29,116,0.45)) drop-shadow(0 0 60px rgba(168,85,247,0.25))',
+            }}
+          >
             {t.hero.titleGradient}
           </span>
         </h1>
