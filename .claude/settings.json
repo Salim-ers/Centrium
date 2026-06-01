@@ -127,7 +127,8 @@
       "Bash(cp \"c:/Users/Salim/Desktop/quadcore-platform/.env.local\" \"c:/Users/Salim/Desktop/qc-test-build/.env.local\" && ls \"c:/Users/Salim/Desktop/qc-test-build/\" | head -5)",
       "Bash(echo \"Exit code: $?\")",
       "WebFetch(domain:www.onevms.io)",
-      "Bash(npm ls *)"
+      "Bash(npm ls *)",
+      "Bash(npx --yes skills add https://github.com/greensock/gsap-skills --agent claude-code)"
     ],
     "deny": [
       "Write(.env*)",
