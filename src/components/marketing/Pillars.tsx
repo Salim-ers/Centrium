@@ -1,13 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import {
-  Users,
-  Sparkles,
-  Search,
-  FileSignature,
-  ArrowUpRight,
-} from 'lucide-react';
+import { Users, Sparkles, Search, FileSignature } from 'lucide-react';
 
 import type { LandingDict } from '@/lib/i18n/landing';
 
@@ -90,7 +84,7 @@ export function Pillars({ t }: { t: LandingDict }) {
                   delay: i * 0.07,
                   ease: [0.22, 1, 0.36, 1],
                 }}
-                className="group relative rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md p-7 overflow-hidden transition-all duration-500 hover:-translate-y-1 hover:border-magenta/40 hover:shadow-[0_30px_60px_-30px_rgba(225,29,116,0.5),0_0_0_1px_rgba(236,72,153,0.25)] cursor-pointer"
+                className="group relative rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md p-7 overflow-hidden transition-all duration-500 hover:-translate-y-1 hover:border-magenta/40 hover:shadow-[0_30px_60px_-30px_rgba(225,29,116,0.5),0_0_0_1px_rgba(236,72,153,0.25)] cursor-default select-none"
               >
                 {/* === COUCHE 1 : Gradient REMPLISSAGE au hover === */}
                 <div
@@ -117,16 +111,6 @@ export function Pillars({ t }: { t: LandingDict }) {
                   className="absolute inset-0 overflow-hidden pointer-events-none"
                 >
                   <div className="absolute top-0 -left-1/2 h-full w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-white/15 to-transparent translate-x-0 group-hover:translate-x-[300%] transition-transform duration-1000 ease-out" />
-                </div>
-
-                {/* === Flèche en haut-droite qui apparaît au hover === */}
-                <div
-                  aria-hidden
-                  className="absolute top-5 right-5 z-20 opacity-0 group-hover:opacity-100 -translate-x-2 -translate-y-1 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-400"
-                >
-                  <div className="h-7 w-7 rounded-full border border-white/30 bg-white/10 backdrop-blur-sm flex items-center justify-center text-white">
-                    <ArrowUpRight className="h-3.5 w-3.5" />
-                  </div>
                 </div>
 
                 {/* === CONTENU === */}

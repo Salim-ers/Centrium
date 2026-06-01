@@ -316,6 +316,17 @@ section[id] {
     pointer-events: none;
   }
 
+  /* ============ NON-INTERACTIVE CARDS — curseur default + pas de sélection
+     Les cards .qc-luminous-static qui ne sont PAS des <a>/<button> sont
+     décoratives : on évite le curseur I-beam au survol et la sélection
+     accidentelle au drag. Si une card devient cliquable (a un href ou un
+     onClick), elle passe en <a>/<button> et reprend automatiquement le
+     cursor:pointer natif. */
+  .qc-luminous-static:not(a):not(button) {
+    cursor: default;
+    user-select: none;
+  }
+
   /* ============ LUMINOUS GLOW SYSTEM ============
      Système de glow signature aligné sur l'identité visuelle du logo
      Centrium (rose magenta + violet). À appliquer sur cards, boutons,
