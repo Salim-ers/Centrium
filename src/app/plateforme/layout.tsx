@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 
+import { BreadcrumbJsonLd } from '@/components/seo/BreadcrumbJsonLd';
+
 export const metadata: Metadata = {
   title: 'La plateforme',
   description:
@@ -21,5 +23,10 @@ export const metadata: Metadata = {
 };
 
 export default function PlateformeLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  return (
+    <>
+      <BreadcrumbJsonLd crumbs={[{ name: 'La plateforme', path: '/plateforme' }]} />
+      {children}
+    </>
+  );
 }

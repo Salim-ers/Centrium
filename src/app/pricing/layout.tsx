@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 
+import { BreadcrumbJsonLd } from '@/components/seo/BreadcrumbJsonLd';
+import { PricingFaqJsonLd } from '@/components/seo/PricingFaqJsonLd';
+
 export const metadata: Metadata = {
   title: 'Tarifs sur mesure',
   description:
@@ -21,5 +24,11 @@ export const metadata: Metadata = {
 };
 
 export default function PricingLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  return (
+    <>
+      <BreadcrumbJsonLd crumbs={[{ name: 'Tarifs', path: '/pricing' }]} />
+      <PricingFaqJsonLd />
+      {children}
+    </>
+  );
 }

@@ -23,7 +23,6 @@ export function JsonLd() {
     description: SITE.descriptionEn,
     foundingDate: '2025',
     founders: [{ '@type': 'Person', name: 'Salim El Rahmani' }],
-    sameAs: [],
     contactPoint: [
       {
         '@type': 'ContactPoint',
@@ -61,7 +60,6 @@ export function JsonLd() {
     offers: {
       '@type': 'Offer',
       priceCurrency: 'EUR',
-      price: '0',
       priceSpecification: {
         '@type': 'PriceSpecification',
         priceCurrency: 'EUR',

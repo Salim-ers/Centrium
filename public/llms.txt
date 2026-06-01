@@ -36,11 +36,11 @@ Centrium replaces the typical 4-tool staffing stack (Word + Notion + WhatsApp + 
 
 ## Pages
 
-- [Home](https://centrium-platform.com/): Hero overview, 4 module pillars, live demos, customer testimonials
-- [Platform](https://centrium-platform.com/plateforme): Full module details with mockups and feature lists
-- [Engagements](https://centrium-platform.com/engagements): Manifesto, 6 security pillars, GDPR compliance commitments
-- [Pricing](https://centrium-platform.com/pricing): Custom-quote model, 5 sizing factors, 3 personas (growing agency / consulting firm / mid-cap), FAQ
-- [Request a quote](https://centrium-platform.com/devis): Pre-sales form covering company, contact, branding needs (logo, CV/contract templates), free-form requirements
+- [Home](https://www.centrium-platform.com/): Hero overview, 4 module pillars, live demos, customer testimonials
+- [Platform](https://www.centrium-platform.com/plateforme): Full module details with mockups and feature lists
+- [Engagements](https://www.centrium-platform.com/engagements): Manifesto, 6 security pillars, GDPR compliance commitments
+- [Pricing](https://www.centrium-platform.com/pricing): Custom-quote model, 5 sizing factors, 3 personas (growing agency / consulting firm / mid-cap), FAQ
+- [Request a quote](https://www.centrium-platform.com/devis): Pre-sales form covering company, contact, branding needs (logo, CV/contract templates), free-form requirements
 
 ## Contact
 

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 
+import { BreadcrumbJsonLd } from '@/components/seo/BreadcrumbJsonLd';
+
 export const metadata: Metadata = {
   title: 'Engagements & sécurité',
   description:
@@ -21,5 +23,10 @@ export const metadata: Metadata = {
 };
 
 export default function EngagementsLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  return (
+    <>
+      <BreadcrumbJsonLd crumbs={[{ name: 'Engagements', path: '/engagements' }]} />
+      {children}
+    </>
+  );
 }

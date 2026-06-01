@@ -64,6 +64,7 @@ export const metadata: Metadata = {
     title: 'Centrium — la plateforme métier des ESN',
     description: SITE.descriptionFr,
     images: ['/opengraph-image'],
+    site: SITE.twitterHandle,
     creator: SITE.twitterHandle,
   },
   robots: {
