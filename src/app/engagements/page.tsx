@@ -6,7 +6,6 @@ import {
   ShieldCheck,
   Eye,
   RefreshCw,
-  AlertTriangle,
   FileCheck2,
   Users2,
   KeyRound,
@@ -262,74 +261,6 @@ export default function EngagementsPage() {
                 </div>
               );
             })}
-          </div>
-        </section>
-
-        {/* ===== RÉPONSE À INCIDENT ===== */}
-        <section className="qc-section-divider relative max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
-          <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-start">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
-                  <AlertTriangle className="h-5 w-5 text-amber-300" />
-                </div>
-                <h2 className="font-display font-light tracking-[-0.02em] text-2xl text-white">
-                  Réponse à incident
-                </h2>
-              </div>
-              <p className="text-sm text-white/70 leading-relaxed mb-4">
-                En cas d’incident de sécurité ou de violation de données
-                personnelles, notre engagement est clair :
-              </p>
-              <ul className="space-y-2 text-sm text-white/70">
-                <li className="flex gap-2">
-                  <span className="text-amber-300 mt-1">→</span>
-                  <span>
-                    Notification à la <strong className="text-white">CNIL sous 72 heures</strong> quand l’article 33 RGPD le requiert
-                  </span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-amber-300 mt-1">→</span>
-                  <span>Information directe des clients impactés dans les meilleurs délais (article 34)</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-amber-300 mt-1">→</span>
-                  <span>Analyse de cause racine et mesures correctives documentées</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-amber-300 mt-1">→</span>
-                  <span>Revue post-incident partagée avec les clients concernés</span>
-                </li>
-              </ul>
-            </div>
-            <div className="qc-luminous-static rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-              <h3 className="font-semibold text-white mb-3">Signaler un problème</h3>
-              <p className="text-sm text-white/65 leading-relaxed mb-4">
-                Vous avez identifié une faille ou un comportement anormal ?
-                Contactez-nous immédiatement, nous prenons toutes les
-                signalisations au sérieux.
-              </p>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/10 flex-wrap">
-                  <span className="text-white/60">Sécurité</span>
-                  <a
-                    href="mailto:security@centrium-platform.com"
-                    className="text-magenta hover:underline font-medium break-all"
-                  >
-                    security@centrium-platform.com
-                  </a>
-                </div>
-                <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/10 flex-wrap">
-                  <span className="text-white/60">Données personnelles</span>
-                  <a
-                    href="mailto:contact@centrium-platform.com"
-                    className="text-magenta hover:underline font-medium break-all"
-                  >
-                    contact@centrium-platform.com
-                  </a>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 
