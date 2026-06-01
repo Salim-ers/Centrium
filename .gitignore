@@ -38,3 +38,7 @@ dist/
 # Supabase
 supabase/.branches
 supabase/.temp
+
+# Claude Code — config locale avec secrets/clés API (NE JAMAIS commiter)
+.claude/settings.local.json
+.mcp.json
