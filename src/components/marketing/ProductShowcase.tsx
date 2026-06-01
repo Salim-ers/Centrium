@@ -276,11 +276,6 @@ export function ProductShowcase() {
       ref={ref}
       className="qc-section-divider relative py-24 overflow-hidden"
     >
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.12),transparent_60%)] pointer-events-none"
-      />
-
       <div className="relative max-w-7xl mx-auto px-6">
         <div className="text-center max-w-2xl mx-auto mb-14" data-reveal>
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-magenta/30 bg-magenta/10 text-xs font-medium text-magenta mb-4">
