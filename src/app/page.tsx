@@ -7,7 +7,6 @@ import { Hero } from '@/components/marketing/Hero';
 import { Pillars } from '@/components/marketing/Pillars';
 import { LiveDemos } from '@/components/marketing/LiveDemos';
 import { Metrics } from '@/components/marketing/Metrics';
-import { ShaderShowcase } from '@/components/marketing/ShaderShowcase';
 import { Testimonials } from '@/components/marketing/Testimonials';
 import { MarketingShell, useLandingDict } from '@/components/marketing/MarketingShell';
 import { MagneticButton } from '@/components/marketing/MagneticButton';
@@ -110,7 +109,6 @@ function HomeContent() {
         </div>
       </section>
 
-      <ShaderShowcase />
       <Metrics />
       <Testimonials />
 
