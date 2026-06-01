@@ -14,6 +14,7 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { MarketingShell } from '@/components/marketing/MarketingShell';
+import { FaqItem } from '@/components/marketing/FaqItem';
 
 /**
  * Page /pricing — plan unique "Sur devis".
@@ -273,20 +274,7 @@ export default function PricingPage() {
 
           <div className="space-y-3">
             {FAQ.map((item) => (
-              <details
-                key={item.q}
-                className="group rounded-xl border border-white/10 bg-white/[0.02] open:bg-white/[0.04] transition"
-              >
-                <summary className="cursor-pointer list-none px-5 py-4 flex items-center justify-between gap-4 font-medium text-white">
-                  {item.q}
-                  <span className="text-magenta transition-transform group-open:rotate-45">
-                    +
-                  </span>
-                </summary>
-                <div className="px-5 pb-4 text-sm text-white/70 leading-relaxed">
-                  {item.a}
-                </div>
-              </details>
+              <FaqItem key={item.q} q={item.q} a={item.a} />
             ))}
           </div>
         </section>

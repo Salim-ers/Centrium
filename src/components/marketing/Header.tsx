@@ -114,12 +114,20 @@ export function Header({ t, locale, onLocaleChange }: Props) {
           </Link>
           <Link
             href="/devis"
-            className="group relative inline-flex items-center gap-2 h-10 px-5 rounded-full border border-white/15 bg-white/[0.04] backdrop-blur text-white text-[14px] font-medium tracking-tight overflow-hidden transition-all hover:bg-white/[0.08] hover:border-white/30"
+            className="group relative inline-flex items-center gap-2 h-10 px-5 rounded-full text-white text-[14px] font-semibold tracking-tight overflow-hidden transition-transform hover:-translate-y-0.5 shadow-[0_0_25px_-4px_rgba(225,29,116,0.6),0_0_50px_-12px_rgba(168,85,247,0.5)] hover:shadow-[0_0_32px_-4px_rgba(225,29,116,0.8),0_0_70px_-12px_rgba(168,85,247,0.7)]"
           >
+            {/* Fond gradient pleine couleur permanent */}
             <span
               aria-hidden
-              className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-r from-pink-500/25 via-magenta/15 to-violet-500/20"
+              className="absolute inset-0 rounded-full bg-gradient-to-r from-pink-500 via-magenta to-violet-500"
             />
+            {/* Shine sweep au hover */}
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-full overflow-hidden"
+            >
+              <span className="absolute top-0 -left-1/2 h-full w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-[300%]" />
+            </span>
             <span className="relative">Demander une démo</span>
           </Link>
         </div>
@@ -166,7 +174,7 @@ export function Header({ t, locale, onLocaleChange }: Props) {
           <div className="mt-6 space-y-3 pb-4">
             <Link
               href="/devis"
-              className="block w-full text-center h-12 px-5 rounded-full bg-gradient-to-r from-pink-500/30 via-magenta/25 to-violet-500/25 border border-white/15 text-white text-[15px] font-medium leading-[3rem]"
+              className="block w-full text-center h-12 px-5 rounded-full bg-gradient-to-r from-pink-500 via-magenta to-violet-500 text-white text-[15px] font-semibold leading-[3rem] shadow-[0_0_25px_-4px_rgba(225,29,116,0.6)]"
             >
               Demander une démo
             </Link>
