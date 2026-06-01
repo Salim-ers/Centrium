@@ -43,7 +43,7 @@ function HomeContent() {
       <LiveDemos />
 
       {/* Trio de portes avec halos couleur cyclique */}
-      <section className="qc-section-divider relative py-28">
+      <section className="qc-section-divider relative py-20">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-14">
             <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-3">
@@ -113,7 +113,7 @@ function HomeContent() {
       <Testimonials />
 
       {/* CTA finale */}
-      <section className="qc-section-divider relative py-28">
+      <section className="qc-section-divider relative py-20">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="font-display font-light tracking-[-0.04em] leading-[1] text-[clamp(2.4rem,5.5vw,4.5rem)] text-white">
             Prêt à voir

@@ -2,76 +2,103 @@
 
 import Link from 'next/link';
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
-import { LegalLinks } from './legal/LegalLinks';
 import { ManageCookiesLink } from './CookieBanner';
 import type { LandingDict } from '@/lib/i18n/landing';
 
+/**
+ * Footer marketing — réorganisé en 3 colonnes propres :
+ *   1. Brand : wordmark + tagline
+ *   2. Produit : liens DICT
+ *   3. Société : liens DICT + Engagements
+ *
+ * Rangée légale en bas : copyright à gauche · 5 liens légaux à droite
+ * (privacy, mentions, CGU, cookies, DPA, gérer les cookies).
+ *
+ * Pas de "All systems operational" — confusion possible (vrai status
+ * non monitoré), retiré.
+ */
 export function Footer({ t }: { t: LandingDict }) {
   return (
-    <footer className="relative border-t border-hairline py-14">
-      <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-10">
-        <div className="md:col-span-2">
-          <CentriumWordmark size="md" />
-          <p className="mt-4 text-sm text-white/55 max-w-sm leading-relaxed">{t.footer.tagline}</p>
-        </div>
-
-        <div>
-          <div className="text-xs font-semibold tracking-widest text-white/40 mb-3">
-            {t.footer.cols.product.title}
+    <footer className="relative border-t border-white/10 pt-12 pb-8">
+      <div className="max-w-7xl mx-auto px-6">
+        {/* === Bloc principal : 3 colonnes === */}
+        <div className="grid md:grid-cols-[1.5fr_1fr_1fr] gap-10 md:gap-16">
+          <div>
+            <CentriumWordmark size="md" />
+            <p className="mt-4 text-sm text-white/55 max-w-sm leading-relaxed">
+              {t.footer.tagline}
+            </p>
           </div>
-          <ul className="space-y-2 text-sm">
-            {t.footer.cols.product.links.map((l) => (
-              <li key={l.label}>
-                <Link href={l.href} className="text-white/70 hover:text-white transition">
-                  {l.label}
+
+          <div>
+            <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-white/40 mb-4">
+              {t.footer.cols.product.title}
+            </div>
+            <ul className="space-y-2.5 text-sm">
+              {t.footer.cols.product.links.map((l) => (
+                <li key={l.label}>
+                  <Link
+                    href={l.href}
+                    className="text-white/70 hover:text-white transition"
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <Link
+                  href="/engagements"
+                  className="text-white/70 hover:text-white transition"
+                >
+                  Engagements &amp; sécurité
                 </Link>
               </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <div className="text-xs font-semibold tracking-widest text-white/40 mb-3">
-            {t.footer.cols.company.title}
+            </ul>
           </div>
-          <ul className="space-y-2 text-sm">
-            {t.footer.cols.company.links.map((l) => (
-              <li key={l.label}>
-                <Link href={l.href} className="text-white/70 hover:text-white transition">
-                  {l.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-6 mt-10 pt-6 border-t border-hairline flex flex-col gap-4">
-        <LegalLinks />
-        <nav
-          aria-label="Pages légales et sécurité"
-          className="flex flex-wrap items-center justify-center sm:justify-start gap-x-5 gap-y-2 text-[11px] text-white/40"
-        >
-          <Link href="/legal/privacy" className="hover:text-white/80 transition">
-            Confidentialité (page)
-          </Link>
-          <Link href="/legal/cgu" className="hover:text-white/80 transition">
-            CGU (page)
-          </Link>
-          <Link href="/legal/mentions" className="hover:text-white/80 transition">
-            Mentions légales (page)
-          </Link>
-          <Link href="/engagements" className="hover:text-white/80 transition">
-            Engagements &amp; sécurité
-          </Link>
-          <ManageCookiesLink className="hover:text-white/80 transition" />
-        </nav>
-        <div className="text-xs text-white/40 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div>
+            <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-white/40 mb-4">
+              {t.footer.cols.company.title}
+            </div>
+            <ul className="space-y-2.5 text-sm">
+              {t.footer.cols.company.links.map((l) => (
+                <li key={l.label}>
+                  <Link
+                    href={l.href}
+                    className="text-white/70 hover:text-white transition"
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* === Rangée légale === */}
+        <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-[12px] text-white/45">
           <div>{t.footer.rights}</div>
-          <div className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-            All systems operational
-          </div>
+          <nav
+            aria-label="Liens légaux"
+            className="flex flex-wrap items-center gap-x-5 gap-y-2"
+          >
+            <Link href="/legal/privacy" className="hover:text-white transition">
+              Confidentialité
+            </Link>
+            <Link href="/legal/mentions" className="hover:text-white transition">
+              Mentions légales
+            </Link>
+            <Link href="/legal/cgu" className="hover:text-white transition">
+              CGU
+            </Link>
+            <Link href="/legal/cookies" className="hover:text-white transition">
+              Cookies
+            </Link>
+            <Link href="/legal/dpa" className="hover:text-white transition">
+              DPA
+            </Link>
+            <ManageCookiesLink className="hover:text-white transition" />
+          </nav>
         </div>
       </div>
     </footer>

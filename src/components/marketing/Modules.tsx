@@ -15,7 +15,7 @@ const MOCKUPS = [ConsultantsMockup, CVOptimizerMockup, MatchingMockup, Timesheet
 
 export function Modules({ t }: { t: LandingDict }) {
   return (
-    <section id="product" className="qc-section-divider relative py-24">
+    <section id="product" className="qc-section-divider relative py-16">
       <div className="relative max-w-7xl mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

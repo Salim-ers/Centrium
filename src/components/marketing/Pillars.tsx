@@ -52,7 +52,7 @@ const META = [
 
 export function Pillars({ t }: { t: LandingDict }) {
   return (
-    <section className="qc-section-divider relative py-24">
+    <section className="qc-section-divider relative py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 12 }}

@@ -39,7 +39,7 @@ export function Contact({ t }: { t: LandingDict }) {
   }
 
   return (
-    <section id="contact" className="qc-section-divider relative py-24">
+    <section id="contact" className="qc-section-divider relative py-16">
       <div className="relative max-w-5xl mx-auto px-6">
         <div className="grid lg:grid-cols-5 gap-12">
           <motion.div

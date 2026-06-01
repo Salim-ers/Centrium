@@ -274,7 +274,7 @@ export function ProductShowcase() {
     <section
       id="preview"
       ref={ref}
-      className="qc-section-divider relative py-24 overflow-hidden"
+      className="qc-section-divider relative py-16 overflow-hidden"
     >
       <div className="relative max-w-7xl mx-auto px-6">
         <div className="text-center max-w-2xl mx-auto mb-14" data-reveal>
