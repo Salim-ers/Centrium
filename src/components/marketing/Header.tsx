@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, LogIn } from 'lucide-react';
 
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import type { Locale, LandingDict } from '@/lib/i18n/landing';
@@ -116,8 +116,9 @@ export function Header({ t, locale, onLocaleChange }: Props) {
           <div className="hidden lg:flex items-center gap-2 shrink-0">
             <Link
               href="/login"
-              className="inline-flex items-center h-10 px-4 rounded-full text-[14px] text-white/70 hover:text-white hover:bg-white/[0.04] transition"
+              className="group inline-flex items-center gap-1.5 h-10 px-4 rounded-full border border-white/15 bg-white/[0.04] backdrop-blur text-[13.5px] text-white/85 hover:text-white hover:border-white/30 hover:bg-white/[0.08] hover:shadow-[0_0_18px_-4px_rgba(236,72,153,0.4)] transition-all"
             >
+              <LogIn className="h-3.5 w-3.5 text-magenta group-hover:text-white transition-colors" />
               Se connecter
             </Link>
             <Link

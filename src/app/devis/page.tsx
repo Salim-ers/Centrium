@@ -323,12 +323,12 @@ export default function DevisPage() {
     <MarketingShell>
       <main className="relative max-w-3xl mx-auto px-6 pt-32 pb-16">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 rounded-full border border-violet-glow/40 bg-violet-glow/10 px-3 py-1 text-xs text-violet-200 mb-4">
-            <Sparkles className="h-3 w-3" />
-            Onboarding accompagné — pas de self-service
+          <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-4">
+            Devis personnalisé
           </div>
-          <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
-            Demande de <span className="qc-gradient-text">devis</span>
+          <h1 className="font-display font-light tracking-[-0.04em] leading-[1] text-[clamp(2.4rem,5.5vw,4.5rem)] text-white">
+            Parlons de{' '}
+            <span className="font-editorial italic font-normal">votre ESN.</span>
           </h1>
           <p className="text-muted-foreground mt-4 max-w-2xl mx-auto leading-relaxed">
             Décris-nous ton ESN en quelques minutes. On revient vers toi sous 24-48h
@@ -349,7 +349,7 @@ export default function DevisPage() {
 
         <form
           onSubmit={submit}
-          className="rounded-2xl border border-hairline bg-card/50 backdrop-blur-xl p-6 md:p-8 space-y-6"
+          className="qc-luminous-static relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-xl p-6 md:p-10 space-y-7"
         >
           {error && (
             <div className="rounded-lg border border-red-500/30 bg-red-500/[0.07] px-4 py-3 text-sm text-red-200">
