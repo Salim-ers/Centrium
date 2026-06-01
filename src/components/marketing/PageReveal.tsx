@@ -5,23 +5,21 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 /**
- * Transition d'entrée de page cinématographique.
+ * Transition d'entrée de page.
  *
- * Au mount d'une nouvelle page :
- *   1. Sweep overlay rose magenta qui traverse l'écran de gauche à droite
- *      (durée 700 ms, opacity 0 → 0.85 → 0)
- *   2. Contenu : opacity 0 → 1, scale 0.985 → 1, blur 6px → 0
- *      avec ease-out cubic, durée 900 ms
+ *   1. Sweep overlay rose magenta + violet qui traverse l'écran de
+ *      droite à gauche (effet cinéma, indépendant du contenu)
+ *   2. Contenu : fade rapide opacity 0 → 1 sur 200ms — quasi-instantané
+ *      pour ne pas faire attendre l'utilisateur. Pas de blur ni scale
+ *      qui retardaient la lisibilité.
  *
- * Re-déclenché à chaque changement de pathname → vrai effet de page
- * transition entre /, /plateforme, /manifesto, /security, /pricing, /devis.
- *
- * Respecte prefers-reduced-motion (animations remplacées par fade simple).
+ * Le sweep continue de donner l'effet de transition cinéma pendant
+ * que le contenu est déjà lisible derrière. Respecte
+ * prefers-reduced-motion.
  */
 export function PageReveal({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const reduced = useReducedMotion();
-  // Force re-mount à chaque changement de path en utilisant pathname comme key
   const [sweepKey, setSweepKey] = useState(0);
 
   useEffect(() => {
@@ -30,7 +28,11 @@ export function PageReveal({ children }: { children: React.ReactNode }) {
 
   if (reduced) {
     return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.15 }}
+      >
         {children}
       </motion.div>
     );
@@ -38,20 +40,13 @@ export function PageReveal({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {/* Sweep overlay rose : passe sur l'écran à chaque changement de page */}
       <SweepOverlay key={`sweep-${sweepKey}`} />
 
       <motion.div
         key={pathname}
-        initial={{ opacity: 0, scale: 0.985, filter: 'blur(6px)' }}
-        animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-        transition={{
-          duration: 0.9,
-          ease: [0.16, 1, 0.3, 1],
-          opacity: { duration: 0.6 },
-          filter: { duration: 0.7 },
-        }}
-        style={{ transformOrigin: '50% 30%' }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
       >
         {children}
       </motion.div>
@@ -61,8 +56,8 @@ export function PageReveal({ children }: { children: React.ReactNode }) {
 
 /**
  * Overlay sweep — un grand panneau gradient rose magenta qui traverse
- * l'écran de gauche à droite, type "rideau" de transition cinéma.
- * Monté en position fixed pleine fenêtre, au-dessus de tout.
+ * l'écran de droite à gauche. Indépendant du contenu, donne l'effet
+ * "rideau" sans bloquer la lecture.
  */
 function SweepOverlay() {
   return (
@@ -83,7 +78,7 @@ function SweepOverlay() {
         opacity: [0, 1, 1, 0],
       }}
       transition={{
-        duration: 0.85,
+        duration: 0.7,
         ease: [0.65, 0, 0.35, 1],
         times: [0, 0.15, 0.7, 1],
       }}
