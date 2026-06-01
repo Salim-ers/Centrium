@@ -27,11 +27,8 @@ export function Hero({ t }: { t: LandingDict }) {
         }}
       />
 
-      {/* Voile bas pour fondre vers la section suivante */}
-      <div
-        aria-hidden
-        className="absolute inset-x-0 bottom-0 h-40 z-[1] pointer-events-none bg-gradient-to-b from-transparent to-background"
-      />
+      {/* Pas de voile bas — le Starfield warp (noir pur #000) couvre déjà
+          toute la fenêtre en fond fixed, on laisse la continuité totale */}
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 text-center pt-24 pb-16">
         <h1 className="font-display font-light tracking-[-0.04em] leading-[0.95] text-[clamp(3rem,7vw,6.5rem)] text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.8)]">
