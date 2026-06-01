@@ -67,7 +67,7 @@ export function TrustedBy() {
   return (
     <section
       ref={ref}
-      className="relative py-20 border-t border-hairline overflow-hidden"
+      className="qc-section-divider relative py-20 overflow-hidden"
     >
       <div className="relative max-w-7xl mx-auto px-6">
         <div className="text-center max-w-2xl mx-auto mb-14" data-reveal>

@@ -39,7 +39,7 @@ export function Contact({ t }: { t: LandingDict }) {
   }
 
   return (
-    <section id="contact" className="relative py-24 border-t border-hairline">
+    <section id="contact" className="qc-section-divider relative py-24">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(139,92,246,0.08),transparent_70%)] pointer-events-none" />
       <div className="relative max-w-5xl mx-auto px-6">
         <div className="grid lg:grid-cols-5 gap-12">

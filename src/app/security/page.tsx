@@ -198,7 +198,7 @@ export default function SecurityPage() {
           </div>
         </section>
 
-        <section className="max-w-6xl mx-auto px-6 py-16 border-t border-hairline">
+        <section className="qc-section-divider max-w-6xl mx-auto px-6 py-16">
           <div className="mb-10">
             <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-magenta mb-2">
               Conformité
@@ -235,7 +235,7 @@ export default function SecurityPage() {
           </div>
         </section>
 
-        <section className="max-w-6xl mx-auto px-6 py-16 border-t border-hairline">
+        <section className="qc-section-divider max-w-6xl mx-auto px-6 py-16">
           <div className="mb-10">
             <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-magenta mb-2">
               Sous-traitants techniques
@@ -274,7 +274,7 @@ export default function SecurityPage() {
           </div>
         </section>
 
-        <section className="max-w-6xl mx-auto px-6 py-16 border-t border-hairline">
+        <section className="qc-section-divider max-w-6xl mx-auto px-6 py-16">
           <div className="grid md:grid-cols-2 gap-8 items-start">
             <div>
               <div className="flex items-center gap-3 mb-4">

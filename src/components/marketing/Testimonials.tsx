@@ -31,7 +31,7 @@ export function Testimonials() {
   return (
     <section
       ref={ref}
-      className="relative py-28 border-t border-white/5"
+      className="qc-section-divider relative py-28"
     >
       <div className="relative max-w-6xl mx-auto px-6">
         <div className="text-center mb-16" data-reveal>

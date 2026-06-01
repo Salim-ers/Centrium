@@ -73,7 +73,7 @@ export function Metrics() {
   const ref = useGsapReveal<HTMLDivElement>();
 
   return (
-    <section ref={ref} className="relative py-24 border-t border-white/5">
+    <section ref={ref} className="qc-section-divider relative py-24">
       <div className="relative max-w-7xl mx-auto px-6">
         <div className="text-center mb-14" data-reveal>
           <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-3">

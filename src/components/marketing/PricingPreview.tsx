@@ -29,7 +29,7 @@ export function PricingPreview({ t }: { t: LandingDict }) {
   const plan = t.pricing.plans[0];
 
   return (
-    <section id="pricing" ref={ref} className="relative py-28 border-t border-hairline">
+    <section id="pricing" ref={ref} className="qc-section-divider relative py-28">
       <div
         aria-hidden
         className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(225,29,116,0.12),transparent_70%)] pointer-events-none"

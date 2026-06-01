@@ -178,7 +178,7 @@ export default function PricingPage() {
           </div>
         </section>
 
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16 border-t border-white/5">
+        <section className="qc-section-divider max-w-6xl mx-auto px-4 sm:px-6 py-16">
           <div className="mb-10 sm:mb-14 text-center max-w-2xl mx-auto">
             <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-3">
               Comment on calcule
@@ -212,7 +212,7 @@ export default function PricingPage() {
           </div>
         </section>
 
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16 border-t border-white/5">
+        <section className="qc-section-divider max-w-6xl mx-auto px-4 sm:px-6 py-16">
           <div className="mb-10 sm:mb-14 text-center max-w-2xl mx-auto">
             <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-3">
               Pour qui
@@ -257,7 +257,7 @@ export default function PricingPage() {
           </div>
         </section>
 
-        <section className="max-w-4xl mx-auto px-4 sm:px-6 py-16 border-t border-white/5">
+        <section className="qc-section-divider max-w-4xl mx-auto px-4 sm:px-6 py-16">
           <div className="mb-10 sm:mb-14 text-center">
             <div className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-3">
               <HelpCircle className="h-3.5 w-3.5" />

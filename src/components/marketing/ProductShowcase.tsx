@@ -274,7 +274,7 @@ export function ProductShowcase() {
     <section
       id="preview"
       ref={ref}
-      className="relative py-24 border-t border-hairline overflow-hidden"
+      className="qc-section-divider relative py-24 overflow-hidden"
     >
       <div
         aria-hidden

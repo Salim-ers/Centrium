@@ -37,7 +37,7 @@ export function LiveDemos() {
     <section
       id="demos"
       ref={ref}
-      className="relative py-28 border-t border-white/5"
+      className="qc-section-divider relative py-28"
     >
       <div className="relative max-w-7xl mx-auto px-6">
         <div className="text-center max-w-2xl mx-auto mb-16" data-reveal>

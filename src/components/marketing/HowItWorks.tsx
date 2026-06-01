@@ -5,7 +5,7 @@ import type { LandingDict } from '@/lib/i18n/landing';
 
 export function HowItWorks({ t }: { t: LandingDict }) {
   return (
-    <section className="relative py-24 border-t border-hairline">
+    <section className="qc-section-divider relative py-24">
       <div className="max-w-6xl mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
