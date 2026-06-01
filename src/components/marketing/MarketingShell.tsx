@@ -7,6 +7,7 @@ import { Header } from './Header';
 import { Footer } from './Footer';
 import { Starfield } from '@/components/ui/starfield-1';
 import { PageReveal } from './PageReveal';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 const LOCALE_KEY = 'centrium-landing-locale';
 
@@ -36,6 +37,7 @@ type Props = {
 
 export function MarketingShell({ children, noReveal, noFooter }: Props) {
   const [locale, setLocale] = useState<Locale>('fr');
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const stored = window.localStorage.getItem(LOCALE_KEY);
@@ -64,7 +66,12 @@ export function MarketingShell({ children, noReveal, noFooter }: Props) {
           className="fixed inset-0 z-0 pointer-events-none"
           style={{ background: '#000' }}
         >
-          <Starfield speed={0.6} quantity={420} />
+          {/* Sur mobile (perf GPU plus faible + écran réduit), on baisse
+              la densité d'étoiles et la vitesse → animation plus fluide */}
+          <Starfield
+            speed={isMobile ? 0.45 : 0.6}
+            quantity={isMobile ? 180 : 420}
+          />
         </div>
         <Header t={t} locale={locale} onLocaleChange={handleLocaleChange} />
         <div className="relative z-[1]">{inner}</div>
