@@ -316,6 +316,36 @@ section[id] {
     pointer-events: none;
   }
 
+  /* ============ ITALIC ACCENT GRADIENT (signature Centrium)
+     Tous les mots en italique éditoriale (font-editorial italic) qui
+     servent d'accent éditorial sur les titres / quotes / nav prennent
+     ce gradient rose→magenta→violet animé — signature visuelle du
+     "C'est Centrium qui orchestre".
+
+     Usage : <span class="qc-italic-accent">orchestrée.</span> */
+  .qc-italic-accent {
+    background-image: linear-gradient(
+      90deg,
+      rgb(249, 168, 212) 0%,
+      rgb(236, 72, 153) 50%,
+      rgb(196, 181, 253) 100%
+    );
+    background-size: 200% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: gradient-pan 6s ease-in-out infinite;
+    filter:
+      drop-shadow(0 4px 30px rgba(225, 29, 116, 0.4))
+      drop-shadow(0 0 60px rgba(168, 85, 247, 0.2));
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .qc-italic-accent {
+      animation: none;
+    }
+  }
+
   /* ============ DECORATIVE ELEMENTS — no focus outline, no caret
      Évite que les wrappers de fond animés (Starfield, FluidField,
      GalaxyField, etc.) attrapent le focus au tab/clic et affichent

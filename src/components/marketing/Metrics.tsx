@@ -81,7 +81,7 @@ export function Metrics() {
           </div>
           <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(1.8rem,3.5vw,2.8rem)] text-white">
             Centrium en{' '}
-            <span className="font-editorial italic">quelques mesures.</span>
+            <span className="qc-italic-accent font-editorial italic">quelques mesures.</span>
           </h2>
         </div>
 
@@ -92,7 +92,7 @@ export function Metrics() {
               data-reveal
               className="qc-luminous-static rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-md p-7 text-center"
             >
-              <div className="font-editorial italic text-[clamp(2.4rem,4.5vw,3.6rem)] text-white leading-none">
+              <div className="qc-italic-accent font-editorial italic text-[clamp(2.4rem,4.5vw,3.6rem)] leading-none">
                 <AnimatedNum target={it.value} suffix={it.suffix} />
               </div>
               <div className="mt-4 text-[11px] uppercase tracking-[0.2em] text-white/55">

@@ -40,7 +40,7 @@ export function ShaderShowcase() {
           </div>
           <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(2rem,4vw,3.2rem)] text-white">
             Une plateforme{' '}
-            <span className="font-editorial italic">vivante.</span>
+            <span className="qc-italic-accent font-editorial italic">vivante.</span>
           </h2>
           <p className="mt-5 sm:mt-6 text-white/55 text-[15px] leading-relaxed">
             Chaque flux de données, chaque mission, chaque CV — orchestré en
@@ -63,10 +63,12 @@ export function ShaderShowcase() {
 
           {/* Texte par dessus le shader */}
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-4 sm:px-6">
-            <div className="font-editorial italic text-[clamp(2.4rem,7vw,5.5rem)] leading-[0.95] text-white text-center drop-shadow-[0_4px_30px_rgba(0,0,0,0.7)]">
-              Centrium,
+            <div className="text-[clamp(2.4rem,7vw,5.5rem)] leading-[0.95] text-center">
+              <span className="qc-italic-accent font-editorial italic drop-shadow-[0_4px_30px_rgba(0,0,0,0.7)]">
+                Centrium,
+              </span>
               <br />
-              <span className="font-display not-italic font-light tracking-[-0.03em]">
+              <span className="font-display not-italic font-light tracking-[-0.03em] text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.7)]">
                 en flux continu.
               </span>
             </div>

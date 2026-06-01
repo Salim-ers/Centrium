@@ -40,7 +40,7 @@ export function Testimonials() {
           </div>
           <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(2rem,4vw,3.2rem)] text-white">
             La voix{' '}
-            <span className="font-editorial italic">de nos clients.</span>
+            <span className="qc-italic-accent font-editorial italic">de nos clients.</span>
           </h2>
         </div>
 
@@ -53,11 +53,11 @@ export function Testimonials() {
             >
               <div
                 aria-hidden
-                className="absolute -top-12 -left-8 font-editorial italic text-[10rem] leading-none text-magenta/15 select-none"
+                className="qc-italic-accent absolute -top-12 -left-8 font-editorial italic text-[10rem] leading-none select-none opacity-30"
               >
                 “
               </div>
-              <blockquote className="relative font-editorial italic text-[clamp(1.25rem,1.8vw,1.55rem)] leading-[1.45] text-white/85">
+              <blockquote className="qc-italic-accent relative font-editorial italic text-[clamp(1.25rem,1.8vw,1.55rem)] leading-[1.45]">
                 {q.quote}
               </blockquote>
               <figcaption className="relative mt-8 pt-6 border-t border-white/10">

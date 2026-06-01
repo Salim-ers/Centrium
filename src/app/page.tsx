@@ -51,7 +51,7 @@ function HomeContent() {
             </div>
             <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(2rem,4vw,3.2rem)] text-white">
               Trois portes,{' '}
-              <span className="font-editorial italic">une plateforme.</span>
+              <span className="qc-italic-accent font-editorial italic">une plateforme.</span>
             </h2>
           </div>
 
@@ -92,7 +92,7 @@ function HomeContent() {
                   <div className="text-[10px] font-semibold tracking-[0.25em] uppercase text-white/40 mb-6">
                     {c.eyebrow}
                   </div>
-                  <div className="font-editorial italic text-[clamp(1.8rem,2.4vw,2.4rem)] font-normal text-white leading-[1.1] mb-3">
+                  <div className="qc-italic-accent font-editorial italic text-[clamp(1.8rem,2.4vw,2.4rem)] font-normal leading-[1.1] mb-3">
                     {c.title}
                   </div>
                   <p className="text-[14px] text-white/55 leading-relaxed mb-8 max-w-xs">
@@ -117,7 +117,7 @@ function HomeContent() {
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="font-display font-light tracking-[-0.04em] leading-[1] text-[clamp(2.4rem,5.5vw,4.5rem)] text-white">
             Prêt à voir
-            <span className="block mt-3 font-editorial italic">
+            <span className="qc-italic-accent block mt-3 font-editorial italic">
               ce que ça change ?
             </span>
           </h2>

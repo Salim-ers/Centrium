@@ -328,7 +328,7 @@ export default function DevisPage() {
           </div>
           <h1 className="font-display font-light tracking-[-0.04em] leading-[1] text-[clamp(2.4rem,5.5vw,4.5rem)] text-white">
             Parlons de{' '}
-            <span className="font-editorial italic font-normal">votre ESN.</span>
+            <span className="qc-italic-accent font-editorial italic font-normal">votre ESN.</span>
           </h1>
           <p className="text-muted-foreground mt-4 max-w-2xl mx-auto leading-relaxed">
             Décris-nous ton ESN en quelques minutes. On revient vers toi sous 24-48h

@@ -27,7 +27,7 @@ function Inner() {
         </div>
         <h1 className="font-display font-light tracking-[-0.035em] leading-[1] text-[clamp(2.4rem,5.5vw,4.5rem)] text-white">
           Tout votre cycle ESN,
-          <span className="block mt-2 font-editorial italic font-normal">
+          <span className="qc-italic-accent block mt-2 font-editorial italic font-normal">
             dans un seul flux.
           </span>
         </h1>

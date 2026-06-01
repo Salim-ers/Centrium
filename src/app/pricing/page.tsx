@@ -131,7 +131,7 @@ export default function PricingPage() {
             </div>
             <h1 className="font-display font-light tracking-[-0.035em] leading-[1] text-[clamp(2.2rem,5.5vw,4.5rem)] text-white max-w-4xl mx-auto">
               Un seul prix :
-              <span className="block mt-2 font-editorial italic font-normal">
+              <span className="qc-italic-accent block mt-2 font-editorial italic font-normal">
                 le vôtre.
               </span>
             </h1>
@@ -186,7 +186,7 @@ export default function PricingPage() {
             </div>
             <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(1.8rem,3.8vw,3rem)] text-white">
               5 critères, une{' '}
-              <span className="font-editorial italic">proposition claire.</span>
+              <span className="qc-italic-accent font-editorial italic">proposition claire.</span>
             </h2>
             <p className="mt-5 text-white/60 text-[15px] sm:text-base">
               On vous remet un devis détaillé, ligne par ligne, sans surprise
@@ -220,7 +220,7 @@ export default function PricingPage() {
             </div>
             <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(1.8rem,3.8vw,3rem)] text-white">
               Pensé pour{' '}
-              <span className="font-editorial italic">votre profil.</span>
+              <span className="qc-italic-accent font-editorial italic">votre profil.</span>
             </h2>
           </div>
 
@@ -266,7 +266,7 @@ export default function PricingPage() {
             </div>
             <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(1.8rem,3.8vw,3rem)] text-white">
               Ce que les ESN nous
-              <span className="block mt-1 font-editorial italic">
+              <span className="qc-italic-accent block mt-1 font-editorial italic">
                 demandent souvent.
               </span>
             </h2>

@@ -46,7 +46,7 @@ export function LiveDemos() {
           </div>
           <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(2rem,4vw,3.2rem)] text-white">
             Trois usages,{' '}
-            <span className="font-editorial italic">en direct.</span>
+            <span className="qc-italic-accent font-editorial italic">en direct.</span>
           </h2>
           <p className="mt-5 mx-auto max-w-xl text-white/55 text-[15px] leading-relaxed">
             Pas de slides, pas de promesses. Centrium tourne. Cliquez sur les
@@ -155,7 +155,7 @@ function DemoFrame({
             <div className="text-[10px] font-semibold tracking-[0.25em] uppercase text-white/40 mb-2">
               {subtitle}
             </div>
-            <div className="font-editorial italic text-[22px] text-white leading-tight">
+            <div className="qc-italic-accent font-editorial italic text-[22px] leading-tight">
               {title}
             </div>
           </div>

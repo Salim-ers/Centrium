@@ -131,14 +131,14 @@ export default function EngagementsPage() {
 
           <h1 className="font-display font-light tracking-[-0.04em] leading-[0.95] text-[clamp(2.4rem,6vw,5rem)] text-white text-center">
             Une plateforme
-            <span className="block mt-3 font-editorial italic font-normal">
+            <span className="qc-italic-accent block mt-3 font-editorial italic font-normal">
               pensée pour celles et ceux
             </span>
             <span className="block mt-3">qui font tourner les ESN.</span>
           </h1>
 
           <div className="mt-12 sm:mt-16 space-y-8 sm:space-y-10 text-[16px] sm:text-[17px] md:text-[18px] leading-[1.7] text-white/75 font-light">
-            <p className="font-editorial italic text-[clamp(1.3rem,2.2vw,1.8rem)] text-white/90 leading-[1.5] text-center">
+            <p className="qc-italic-accent font-editorial italic text-[clamp(1.3rem,2.2vw,1.8rem)] leading-[1.5] text-center">
               « Le staffing ne devrait pas être un sport d&apos;endurance Excel. »
             </p>
 
@@ -184,7 +184,7 @@ export default function EngagementsPage() {
             ].map((p) => (
               <div key={p.num} className="bg-background p-7 sm:p-8">
                 <div className="text-[11px] font-mono text-white/30 mb-4">{p.num}</div>
-                <div className="font-editorial italic text-2xl text-white mb-3">
+                <div className="qc-italic-accent font-editorial italic text-2xl mb-3">
                   {p.title}
                 </div>
                 <p className="text-[14px] text-white/60 leading-relaxed">{p.body}</p>
@@ -201,7 +201,7 @@ export default function EngagementsPage() {
             </div>
             <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(1.8rem,3.8vw,3rem)] text-white">
               Les 6 piliers de notre{' '}
-              <span className="font-editorial italic">sécurité.</span>
+              <span className="qc-italic-accent font-editorial italic">sécurité.</span>
             </h2>
           </div>
 
@@ -232,7 +232,7 @@ export default function EngagementsPage() {
             </div>
             <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(1.8rem,3.8vw,3rem)] text-white">
               Cadre réglementaire{' '}
-              <span className="font-editorial italic">et engagements.</span>
+              <span className="qc-italic-accent font-editorial italic">et engagements.</span>
             </h2>
           </div>
 
@@ -266,10 +266,10 @@ export default function EngagementsPage() {
 
         {/* ===== CTA FINALE ===== */}
         <section className="qc-section-divider relative max-w-3xl mx-auto px-6 pt-20 sm:pt-24 text-center">
-          <p className="font-editorial italic text-[clamp(1.5rem,2.6vw,2rem)] text-white/90 leading-[1.4] mb-2">
+          <p className="qc-italic-accent font-editorial italic text-[clamp(1.5rem,2.6vw,2rem)] leading-[1.4] mb-2">
             Vous ne devriez pas avoir à choisir
           </p>
-          <p className="font-editorial italic text-[clamp(1.5rem,2.6vw,2rem)] text-white/90 leading-[1.4]">
+          <p className="qc-italic-accent font-editorial italic text-[clamp(1.5rem,2.6vw,2rem)] leading-[1.4]">
             entre rapidité et rigueur.
           </p>
           <p className="mt-6 text-white/55 text-[15px]">— L&apos;équipe Centrium</p>
