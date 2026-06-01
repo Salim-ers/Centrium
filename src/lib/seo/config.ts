@@ -12,7 +12,7 @@ export const SITE = {
   publisher: 'QuadCore',
   url:
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ||
-    'https://centrium-platform.com',
+    'https://www.centrium-platform.com',
   defaultLocale: 'fr_FR',
   alternateLocales: ['en_US'],
   twitterHandle: '@centrium_platform',

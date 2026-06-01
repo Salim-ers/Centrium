@@ -133,7 +133,11 @@
       "Bash(git rm *)",
       "Bash(git check-ignore *)",
       "Bash(Get-ChildItem \"c:\\\\Users\\\\Salim\\\\Desktop\\\\quadcore-platform\\\\\" -Directory | Select-Object Name)",
-      "Bash(gh api *)"
+      "Bash(gh api *)",
+      "Bash(curl -sI --max-time 10 https://centrium-platform.com)",
+      "Bash(curl -sI --max-time 10 https://centrium-platform.com/robots.txt)",
+      "Bash(curl -sI --max-time 10 https://www.centrium-platform.com)",
+      "Bash(curl -s --max-time 10 https://www.centrium-platform.com/robots.txt)"
     ],
     "deny": [
       "Write(.env*)",
