@@ -2,21 +2,13 @@
 
 import { ArrowRight } from 'lucide-react';
 
-import { ShaderAnimation } from '@/components/ui/shader-animation';
 import { MagneticButton } from './MagneticButton';
 import type { LandingDict } from '@/lib/i18n/landing';
 
 /**
- * Hero "studio premium" — fond shader RGB lumineux + texte éditorial
- * Instrument Serif par-dessus.
- *
- * Le composant ShaderAnimation (Three.js) est positionné en absolute
- * inset-0 derrière tout le contenu. Le wrapper `[&>div]:!h-full` force
- * son enfant root (qui a un h-screen original) à prendre 100 % du
- * conteneur parent au lieu de toute la hauteur du viewport.
- *
- * Voiles dégradés ajoutés pour préserver la lisibilité du titre par
- * dessus le shader très lumineux.
+ * Hero "studio premium" — fond Starfield warp fourni par MarketingShell
+ * en arrière-plan global. Le Hero pose juste un voile sombre central
+ * pour préserver la lisibilité du titre, puis le contenu éditorial.
  */
 export function Hero({ t }: { t: LandingDict }) {
   return (
@@ -24,18 +16,14 @@ export function Hero({ t }: { t: LandingDict }) {
       id="home"
       className="relative min-h-[90vh] flex items-center overflow-hidden"
     >
-      {/* Fond shader RGB — pleine largeur du hero */}
-      <div className="absolute inset-0 z-0 [&>div]:!h-full [&>div]:!w-full">
-        <ShaderAnimation />
-      </div>
-
-      {/* Voile sombre central pour préserver la lisibilité du titre */}
+      {/* Voile sombre central pour préserver la lisibilité du titre
+          au-dessus du starfield warp global */}
       <div
         aria-hidden
         className="absolute inset-0 z-[1] pointer-events-none"
         style={{
           background:
-            'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(5,6,12,0.55) 0%, rgba(5,6,12,0.15) 55%, transparent 80%)',
+            'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 55%, transparent 80%)',
         }}
       />
 

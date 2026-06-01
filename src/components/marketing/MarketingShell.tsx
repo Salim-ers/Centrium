@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { DICT, type Locale, type LandingDict } from '@/lib/i18n/landing';
 import { Header } from './Header';
 import { Footer } from './Footer';
-import { StarField } from './StarField';
+import { Starfield } from '@/components/ui/starfield-1';
 import { PageReveal } from './PageReveal';
 
 const LOCALE_KEY = 'centrium-landing-locale';
@@ -54,11 +54,18 @@ export function MarketingShell({ children, noReveal, noFooter }: Props) {
 
   return (
     <MarketingCtx.Provider value={ctxValue}>
-      {/* Le StarField (position fixed) fournit déjà le fond noir #05060c
-          — on ne met PAS bg-background sur le wrapper, sinon il couvre
-          les étoiles. */}
+      {/* Fond Starfield warp pleine fenêtre, fixed inset-0, derrière
+          tout le contenu. Le wrapper bg-black assure le noir profond
+          comme couleur de base ; le composant Starfield ajoute les
+          traînées d'étoiles qui foncent vers le viewer (effet warp). */}
       <div className="min-h-screen text-white relative overflow-x-hidden">
-        <StarField />
+        <div
+          aria-hidden
+          className="fixed inset-0 z-0 pointer-events-none"
+          style={{ background: '#000' }}
+        >
+          <Starfield speed={0.6} quantity={420} />
+        </div>
         <Header t={t} locale={locale} onLocaleChange={handleLocaleChange} />
         <div className="relative z-[1]">{inner}</div>
         {!noFooter && (
