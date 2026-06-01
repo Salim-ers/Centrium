@@ -54,32 +54,34 @@ export function AuthShell({ children, title, subtitle, footer }: Props) {
       {/* PageReveal : sweep gradient rose + fade + scale + blur,
           identique aux pages marketing pour cohérence des transitions */}
       <PageReveal>
-        <div className="relative z-10 min-h-screen flex items-center justify-center p-6">
+        <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
           <div className="w-full max-w-md">
-            {/* Wordmark Centrium grand format avec aura rose */}
-            <div className="relative flex justify-center mb-8">
-              <span className="absolute inset-[-30%] rounded-full bg-[radial-gradient(circle,rgba(225,29,116,0.45),rgba(139,92,246,0.2),transparent_70%)] blur-2xl pointer-events-none" />
+            {/* Wordmark Centrium — taille md (au lieu de lg) pour que le
+                centre de gravité visuel descende vers la card et que
+                l'ensemble paraisse vraiment centré */}
+            <div className="relative flex justify-center mb-6">
+              <span className="absolute inset-[-25%] rounded-full bg-[radial-gradient(circle,rgba(225,29,116,0.4),rgba(139,92,246,0.18),transparent_70%)] blur-2xl pointer-events-none" />
               <div className="relative">
-                <CentriumWordmark size="lg" href="/" />
+                <CentriumWordmark size="md" href="/" />
               </div>
             </div>
 
-            {/* Titre + sous-titre */}
-            <div className="text-center mb-7 space-y-2">
-              <h1 className="font-display font-light tracking-[-0.03em] text-[clamp(1.8rem,3.5vw,2.4rem)] text-white">
+            {/* Titre + sous-titre — espacements resserrés */}
+            <div className="text-center mb-5 space-y-1.5">
+              <h1 className="font-display font-light tracking-[-0.03em] text-[clamp(1.6rem,3vw,2.1rem)] text-white">
                 {title}
               </h1>
-              {subtitle && <p className="text-sm text-white/55">{subtitle}</p>}
+              {subtitle && <p className="text-[13px] text-white/55">{subtitle}</p>}
             </div>
 
             {/* Carte form en qc-luminous-static */}
-            <div className="qc-luminous-static relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-xl p-7 sm:p-8">
+            <div className="qc-luminous-static relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-xl p-6 sm:p-7">
               {children}
             </div>
 
             {/* Footer sous la carte */}
             {footer && (
-              <div className="mt-6 text-center text-sm text-white/55">
+              <div className="mt-5 text-center text-sm text-white/55">
                 {footer}
               </div>
             )}
