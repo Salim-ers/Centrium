@@ -129,7 +129,9 @@
       "WebFetch(domain:www.onevms.io)",
       "Bash(npm ls *)",
       "Bash(npx --yes skills add https://github.com/greensock/gsap-skills --agent claude-code)",
-      "Bash(npx --yes skills add https://github.com/nextlevelbuilder/ui-ux-pro-max-skill --agent claude-code)"
+      "Bash(npx --yes skills add https://github.com/nextlevelbuilder/ui-ux-pro-max-skill --agent claude-code)",
+      "Bash(git rm *)",
+      "Bash(git check-ignore *)"
     ],
     "deny": [
       "Write(.env*)",
