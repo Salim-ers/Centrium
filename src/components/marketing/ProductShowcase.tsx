@@ -291,7 +291,7 @@ export function ProductShowcase() {
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-5 gap-6 items-start">
+        <div className="grid lg:grid-cols-5 gap-6 items-center">
           <div className="lg:col-span-3" data-reveal>
             <DashboardMockup />
           </div>

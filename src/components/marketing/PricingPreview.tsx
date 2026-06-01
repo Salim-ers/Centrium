@@ -29,7 +29,7 @@ export function PricingPreview({ t }: { t: LandingDict }) {
   const plan = t.pricing.plans[0];
 
   return (
-    <section id="pricing" ref={ref} className="qc-section-divider relative py-20">
+    <section id="pricing" ref={ref} className="qc-section-divider relative py-14">
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16" data-reveal>
           <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-3">
