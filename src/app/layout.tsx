@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, Space_Grotesk, Instrument_Serif } from 'next/font/google';
 import { Toaster } from 'sonner';
 import './globals.css';
@@ -6,6 +6,8 @@ import { OrganizationProvider } from '@/lib/auth/context';
 import { RouteThemeManager } from '@/components/theme/RouteThemeManager';
 import { CookieBanner } from '@/components/marketing/CookieBanner';
 import { LocaleProvider } from '@/lib/i18n/LocaleProvider';
+import { SITE } from '@/lib/seo/config';
+import { JsonLd } from '@/components/seo/JsonLd';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const spaceGrotesk = Space_Grotesk({
@@ -22,9 +24,75 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: 'Centrium — la plateforme métier des ESN',
-  description:
-    'Centrium by QuadCore : CV Optimizer, CRM, matching consultants, contrats, CRA et facturation. Une plateforme tout-en-un pour piloter ton ESN.',
+  metadataBase: new URL(SITE.url),
+  title: {
+    default: 'Centrium',
+    template: '%s · Centrium',
+  },
+  description: SITE.descriptionFr,
+  applicationName: 'Centrium',
+  authors: [{ name: 'QuadCore SAS', url: SITE.url }],
+  generator: 'Next.js',
+  keywords: [...SITE.keywordsFr],
+  referrer: 'origin-when-cross-origin',
+  creator: 'QuadCore SAS',
+  publisher: 'QuadCore SAS',
+  formatDetection: { telephone: false, address: false, email: false },
+  alternates: {
+    canonical: '/',
+    languages: { 'fr-FR': '/', 'en-US': '/', 'x-default': '/' },
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'fr_FR',
+    alternateLocale: ['en_US'],
+    url: SITE.url,
+    siteName: 'Centrium',
+    title: 'Centrium — la plateforme métier des ESN',
+    description: SITE.descriptionFr,
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'Centrium — la plateforme métier des ESN',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Centrium — la plateforme métier des ESN',
+    description: SITE.descriptionFr,
+    images: ['/opengraph-image'],
+    creator: SITE.twitterHandle,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
+  icons: {
+    icon: [{ url: '/icon', type: 'image/png' }],
+    apple: [{ url: '/apple-icon', type: 'image/png' }],
+  },
+  manifest: '/manifest.webmanifest',
+  category: 'business software',
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)', color: '#000000' },
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+  ],
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 // Script inline exécuté avant l'hydratation React pour appliquer la bonne classe
@@ -68,6 +136,7 @@ export default function RootLayout({
     <html lang="fr" className={`${inter.variable} ${spaceGrotesk.variable} ${instrumentSerif.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
+        <JsonLd />
       </head>
       <body className="font-sans">
         <RouteThemeManager />

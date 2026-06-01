@@ -132,7 +132,8 @@
       "Bash(npx --yes skills add https://github.com/nextlevelbuilder/ui-ux-pro-max-skill --agent claude-code)",
       "Bash(git rm *)",
       "Bash(git check-ignore *)",
-      "Bash(Get-ChildItem \"c:\\\\Users\\\\Salim\\\\Desktop\\\\quadcore-platform\\\\\" -Directory | Select-Object Name)"
+      "Bash(Get-ChildItem \"c:\\\\Users\\\\Salim\\\\Desktop\\\\quadcore-platform\\\\\" -Directory | Select-Object Name)",
+      "Bash(gh api *)"
     ],
     "deny": [
       "Write(.env*)",

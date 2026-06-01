@@ -1,0 +1,58 @@
+# Centrium
+
+> Centrium by QuadCore SAS is a SaaS platform for staffing agencies (ESN) and consulting firms. It centralizes consultant management, AI CV optimization, RFP responses, sales pipeline, timesheets and invoicing into one workflow. Built in Europe, GDPR-compliant, EU-hosted.
+
+Centrium replaces the typical 4-tool staffing stack (Word + Notion + WhatsApp + manual PDFs) with one workflow covering the entire cycle from sourcing to paid invoice. Designed for staffing agencies of 10 to 500 consultants and consulting firms.
+
+## Key facts
+
+- Product: B2B SaaS platform for staffing agencies and consulting firms
+- Publisher: QuadCore SAS (France)
+- Hosting: European region (GDPR-compliant)
+- Pricing: Custom quote within 48 hours, no public grid, 12-month minimum commitment
+- Languages: French, English (toggle FR/EN on all public pages)
+- Target audience: Business managers, recruiters, finance teams of ESN (Entreprises de Services du Numérique)
+
+## Core modules
+
+- **Consultants library** — centralized talent pool with AI CV parsing, skill/seniority/city search, real-time availability and bench alerts
+- **CV Optimizer** — proprietary template with 3 variants (Standard, Dense, Executive), inline editing, PDF/DOCX export. Brand consistency across the entire library.
+- **Matching & RFP** — AI extracts job specs from RFPs (screenshot or text), suggests top 3 profiles by fit score, generates branded job spec PDFs
+- **Timesheets & Invoicing** — interactive timesheet calendar, automatic invoice generation with IBAN/VAT/legal mentions, late-payment alerts, Sage/Pennylane export
+
+## Engineering principles
+
+- Operations first: every screen designed with a real staffing agency in mind
+- AI-assisted, not autonomous: AI suggests, you approve, never invents
+- Compliance by default: EU hosting, multi-tenant Row Level Security, audit trail
+
+## Security & compliance
+
+- TLS 1.2+ in transit, AES-256 at rest
+- Multi-tenant isolation via PostgreSQL RLS
+- GDPR/CNIL compliant, DPA signable on request
+- Daily encrypted backups with PITR (Point-in-Time Recovery)
+- Logged access, sensitive action audit trail
+
+## Pages
+
+- [Home](https://centrium-platform.com/): Hero overview, 4 module pillars, live demos, customer testimonials
+- [Platform](https://centrium-platform.com/plateforme): Full module details with mockups and feature lists
+- [Engagements](https://centrium-platform.com/engagements): Manifesto, 6 security pillars, GDPR compliance commitments
+- [Pricing](https://centrium-platform.com/pricing): Custom-quote model, 5 sizing factors, 3 personas (growing agency / consulting firm / mid-cap), FAQ
+- [Request a quote](https://centrium-platform.com/devis): Pre-sales form covering company, contact, branding needs (logo, CV/contract templates), free-form requirements
+
+## Contact
+
+- Email: contact@centrium-platform.com
+- Publisher: QuadCore SAS, France
+
+## What Centrium is not
+
+- Not an ATS (Applicant Tracking System) — it's for managing already-employed consultants, not hiring funnels
+- Not a public job board — RFPs and missions stay private inside each agency
+- Not an autonomous AI agent — AI suggests, humans approve every decision
+
+## Versioning
+
+Current version: v1 (post-MVP). Currently public-facing marketing site live; internal app gated by authentication. Public API not yet exposed.
