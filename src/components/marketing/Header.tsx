@@ -17,8 +17,7 @@ type Props = {
 const NAV = [
   { label: 'Accueil', href: '/' },
   { label: 'Plateforme', href: '/plateforme' },
-  { label: 'Vision', href: '/manifesto' },
-  { label: 'Sécurité', href: '/security' },
+  { label: 'Engagements', href: '/engagements' },
   { label: 'Tarifs', href: '/pricing' },
 ];
 

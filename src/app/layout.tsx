@@ -35,7 +35,7 @@ const themeBootstrapScript = `
 (function() {
   try {
     var path = window.location.pathname;
-    var forcedDarkPaths = ['/', '/login', '/signup', '/register', '/devis', '/pricing', '/security', '/plateforme', '/manifesto'];
+    var forcedDarkPaths = ['/', '/login', '/signup', '/register', '/devis', '/pricing', '/security', '/plateforme', '/manifesto', '/engagements'];
     var forcedDarkPrefixes = ['/auth/', '/invite/', '/legal/'];
     var isForcedDark =
       forcedDarkPaths.indexOf(path) !== -1 ||

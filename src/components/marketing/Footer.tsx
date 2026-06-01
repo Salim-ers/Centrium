@@ -61,8 +61,8 @@ export function Footer({ t }: { t: LandingDict }) {
           <Link href="/legal/mentions" className="hover:text-white/80 transition">
             Mentions légales (page)
           </Link>
-          <Link href="/security" className="hover:text-white/80 transition">
-            Sécurité &amp; conformité
+          <Link href="/engagements" className="hover:text-white/80 transition">
+            Engagements &amp; sécurité
           </Link>
           <ManageCookiesLink className="hover:text-white/80 transition" />
         </nav>

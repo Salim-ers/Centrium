@@ -159,7 +159,7 @@ export default function PrivacySettingsPage() {
                 Accord de sous-traitance (DPA)
               </Link>
               <Link
-                href="/security"
+                href="/engagements"
                 className="inline-flex items-center px-3 py-1.5 rounded-full border border-hairline hover:bg-white/5 transition"
               >
                 Sécurité & conformité

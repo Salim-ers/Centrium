@@ -158,7 +158,7 @@ export default function PricingPage() {
                 variant="outline"
                 className="w-full sm:w-auto h-12 px-6 border-hairline"
               >
-                <Link href="/security">Sécurité &amp; conformité</Link>
+                <Link href="/engagements">Sécurité &amp; conformité</Link>
               </Button>
             </div>
 

@@ -34,10 +34,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 Confidentialité
               </Link>
               <Link
-                href="/security"
+                href="/engagements"
                 className="hover:text-foreground transition"
               >
-                Sécurité
+                Engagements
               </Link>
               <Link
                 href="/legal/cgu"
