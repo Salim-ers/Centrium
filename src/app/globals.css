@@ -1132,14 +1132,29 @@ section[id] {
     );
   }
   /* Override : DANS la sidebar terracotta (fond rouge), le wordmark
-     bascule en crème pour rester lisible sur fond rouge. */
+     bascule en crème pour rester lisible sur fond rouge.
+     !important pour battre Tailwind bg-gradient-to-r utility appliquée
+     sur le même élément. */
   :root:not(.dark) .qc-sidebar .qc-wordmark-gradient {
     background-image: linear-gradient(
       to right,
-      rgb(255 248 235) 0%,
-      rgb(252 230 195) 50%,
-      rgb(255 245 220) 100%
-    );
+      rgb(255 250 240) 0%,
+      rgb(252 240 220) 50%,
+      rgb(255 245 230) 100%
+    ) !important;
+  }
+
+  /* Le logo C SVG est statique (couleurs encodées dans le fichier
+     /brand/centrium-logo.svg = violet→rose). Dans la sidebar light,
+     on applique un filtre qui :
+       1. brightness(0) → tout devient noir
+       2. invert(1)     → tout devient blanc/crème
+       3. brightness(...) → ajuste vers la teinte crème désirée
+     Ce filter chain transforme le SVG violet-rose en silhouette crème
+     uniforme, parfaitement lisible sur fond terracotta sang. */
+  :root:not(.dark) .qc-sidebar img[src*="centrium-logo"] {
+    filter: brightness(0) invert(1) brightness(0.98) sepia(0.05);
+    opacity: 0.97;
   }
   /* "by QUADCORE" en light dans la sidebar : crème transparent */
   :root:not(.dark) .qc-sidebar .text-muted-foreground\/70 {
