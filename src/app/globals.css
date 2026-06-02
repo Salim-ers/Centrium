@@ -812,6 +812,99 @@ section[id] {
   :root:not(.dark) .via-magenta\/15 { --tw-gradient-via: hsl(12 60% 48% / 0.10) var(--tw-gradient-via-position); }
   :root:not(.dark) .via-magenta\/10 { --tw-gradient-via: hsl(12 60% 48% / 0.08) var(--tw-gradient-via-position); }
 
+  /* ============ LIGHT MODE — couleurs custom Tailwind config ============
+     Les couleurs magenta-neon, violet-glow, violet-brand sont définies en
+     dur dans tailwind.config.ts et utilisées partout dans l'app interne
+     (chips actifs, badges skills, boutons gradient). En light, on les
+     remappe vers la palette terracotta pour rester cohérent. */
+
+  /* magenta-neon (#ec4899) → terracotta principal */
+  :root:not(.dark) .bg-magenta-neon { background-color: rgb(178 58 38); }
+  :root:not(.dark) .bg-magenta-neon\/15 { background-color: rgb(178 58 38 / 0.10); }
+  :root:not(.dark) .bg-magenta-neon\/25 { background-color: rgb(178 58 38 / 0.18); }
+  :root:not(.dark) .text-magenta-neon { color: rgb(154 46 30); }
+  :root:not(.dark) .border-magenta-neon\/30 { border-color: rgb(178 58 38 / 0.30); }
+  :root:not(.dark) .border-magenta-neon\/40 { border-color: rgb(178 58 38 / 0.40); }
+
+  /* magenta (DEFAULT #e11d74, muted #9d174d) → terracotta foncé */
+  :root:not(.dark) .bg-magenta\/15 { background-color: rgb(178 58 38 / 0.10); }
+  :root:not(.dark) .bg-magenta\/20 { background-color: rgb(178 58 38 / 0.14); }
+  :root:not(.dark) .bg-magenta\/25 { background-color: rgb(178 58 38 / 0.18); }
+
+  /* violet-glow (#8b5cf6) → terracotta orangé secondaire */
+  :root:not(.dark) .bg-violet-glow { background-color: rgb(196 90 50); }
+  :root:not(.dark) .bg-violet-glow\/10 { background-color: rgb(196 90 50 / 0.08); }
+  :root:not(.dark) .bg-violet-glow\/15 { background-color: rgb(196 90 50 / 0.10); }
+  :root:not(.dark) .bg-violet-glow\/25 { background-color: rgb(196 90 50 / 0.18); }
+  :root:not(.dark) .border-violet-glow\/70 { border-color: rgb(196 90 50 / 0.55); }
+  :root:not(.dark) .text-violet-50 { color: rgb(154 46 30); }
+
+  /* violet-brand (#6d28d9) → terracotta sang foncé (pour badges skills) */
+  :root:not(.dark) .bg-violet-brand { background-color: rgb(154 46 30); }
+  :root:not(.dark) .bg-violet-brand\/10 { background-color: rgb(154 46 30 / 0.08); }
+  :root:not(.dark) .bg-violet-brand\/5 { background-color: rgb(154 46 30 / 0.05); }
+  :root:not(.dark) .border-violet-brand\/40 { border-color: rgb(154 46 30 / 0.32); }
+
+  /* ============ GRADIENTS BUTTONS ============
+     bg-qc-gradient-pink → linear-gradient terracotta (au lieu de rose-magenta) */
+  :root:not(.dark) .bg-qc-gradient-pink {
+    background-image: linear-gradient(
+      135deg,
+      rgb(214 142 105) 0%,    /* argile clair */
+      rgb(178 58 38) 45%,     /* terracotta */
+      rgb(154 46 30) 100%     /* terracotta sang */
+    );
+  }
+  :root:not(.dark) .bg-qc-gradient {
+    background-image: linear-gradient(
+      135deg,
+      rgb(196 90 50) 0%,      /* terracotta orangé */
+      rgb(178 58 38) 100%     /* terracotta principal */
+    );
+  }
+  :root:not(.dark) .bg-qc-gradient-aurora {
+    background-image: linear-gradient(
+      135deg,
+      rgb(225 175 145) 0%,
+      rgb(214 142 105) 25%,
+      rgb(178 58 38) 50%,
+      rgb(154 46 30) 75%,
+      rgb(196 90 50) 100%
+    );
+  }
+
+  /* gradient-to-r from-violet-glow to-magenta-neon → terracotta gradient */
+  :root:not(.dark) .from-violet-glow { --tw-gradient-from: rgb(196 90 50) var(--tw-gradient-from-position); }
+  :root:not(.dark) .to-magenta-neon { --tw-gradient-to: rgb(178 58 38) var(--tw-gradient-to-position); }
+  :root:not(.dark) .to-magenta { --tw-gradient-to: rgb(178 58 38) var(--tw-gradient-to-position); }
+  :root:not(.dark) .from-magenta\/10 { --tw-gradient-from: rgb(178 58 38 / 0.08) var(--tw-gradient-from-position); }
+  :root:not(.dark) .to-violet-brand\/5 { --tw-gradient-to: rgb(154 46 30 / 0.05) var(--tw-gradient-to-position); }
+  :root:not(.dark) .via-violet-300 { --tw-gradient-via: rgb(214 142 105) var(--tw-gradient-via-position); }
+
+  /* ============ SHADOWS TAILWIND-NAMED → terracotta en light ============ */
+  :root:not(.dark) .shadow-glow {
+    --tw-shadow: 0 0 40px -10px rgb(178 58 38 / 0.25);
+    --tw-shadow-colored: 0 0 40px -10px var(--tw-shadow-color);
+    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+  }
+  :root:not(.dark) .shadow-glow-magenta {
+    --tw-shadow: 0 0 40px -10px rgb(178 58 38 / 0.30);
+    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+  }
+  :root:not(.dark) .shadow-glow-pink {
+    --tw-shadow: 0 0 50px -10px rgb(178 58 38 / 0.35);
+    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+  }
+  :root:not(.dark) .shadow-glow-pink-strong,
+  :root:not(.dark) .hover\:shadow-glow-pink-strong:hover {
+    --tw-shadow: 0 0 30px -4px rgb(178 58 38 / 0.4), 0 0 60px -20px rgb(196 90 50 / 0.25);
+    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+  }
+  :root:not(.dark) .hover\:shadow-glow-pink:hover {
+    --tw-shadow: 0 0 50px -10px rgb(178 58 38 / 0.35);
+    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+  }
+
   /* ============ DENSITY COMPACT MODE ============
      Quand l'utilisateur choisit Compact dans /settings/appearance, on
      ajoute data-density="compact" sur <html>. On réduit alors les
