@@ -994,26 +994,27 @@ section[id] {
     color: rgb(252 220 180);
   }
 
-  /* ============ LIGHT — OCRE WARNING vraiment foncé ============
-     Demande utilisateur : "Client à définir je vois rien, fonce les".
-     On passe d'un brun-ocre moyen à un brun TRÈS foncé presque marron,
-     parfaitement lisible sur fond crème ou rose-saumon. */
-  :root:not(.dark) .text-amber-400 { color: rgb(110 60 0); }
-  :root:not(.dark) .text-amber-300 { color: rgb(110 60 0); }
-  :root:not(.dark) .text-amber-200 { color: rgb(85 45 0); }
-  :root:not(.dark) .text-yellow-400 { color: rgb(110 60 0); }
-  :root:not(.dark) .text-yellow-300 { color: rgb(110 60 0); }
-  :root:not(.dark) .bg-amber-500\/10 { background-color: rgb(180 110 15 / 0.14); }
-  :root:not(.dark) .bg-amber-500\/15 { background-color: rgb(180 110 15 / 0.18); }
-  :root:not(.dark) .border-amber-500\/25 { border-color: rgb(180 110 15 / 0.45); }
-  :root:not(.dark) .border-amber-500\/30 { border-color: rgb(180 110 15 / 0.50); }
+  /* ============ LIGHT — AMBER → TERRACOTTA (zéro jaune) ============
+     Demande utilisateur : "je veux plus le jaune de 'client à définir',
+     mets en rouge terracotta aussi". On remappe TOUS les text-amber-* /
+     bg-amber-* / yellow-* vers terracotta. Plus aucun jaune en light. */
+  :root:not(.dark) .text-amber-400 { color: rgb(178 58 38); }       /* terracotta principal */
+  :root:not(.dark) .text-amber-300 { color: rgb(178 58 38); }
+  :root:not(.dark) .text-amber-200 { color: rgb(154 46 30); }       /* terracotta sang plus foncé */
+  :root:not(.dark) .text-yellow-400 { color: rgb(178 58 38); }
+  :root:not(.dark) .text-yellow-300 { color: rgb(178 58 38); }
+  :root:not(.dark) .bg-amber-500\/10 { background-color: rgb(178 58 38 / 0.10); }
+  :root:not(.dark) .bg-amber-500\/15 { background-color: rgb(178 58 38 / 0.14); }
+  :root:not(.dark) .border-amber-500\/25 { border-color: rgb(178 58 38 / 0.30); }
+  :root:not(.dark) .border-amber-500\/30 { border-color: rgb(178 58 38 / 0.35); }
 
-  /* "Client à définir" en light : le wrapper utilise text-amber-300 +
-     un span/icon en amber. Le span "À renseigner sur l'AO" devient
-     aussi lisible. */
-  :root:not(.dark) .text-amber-400\/80 { color: rgb(110 60 0 / 0.85); }
-  :root:not(.dark) .text-amber-300\/80 { color: rgb(110 60 0 / 0.85); }
-  :root:not(.dark) .text-amber-300\/70 { color: rgb(110 60 0 / 0.75); }
+  /* Opacity variants : Client à définir (text-amber-200/80) + l'icône
+     HelpCircle (text-amber-300/80) + "À valider" (text-amber-300/70). */
+  :root:not(.dark) .text-amber-400\/80 { color: rgb(178 58 38 / 0.85); }
+  :root:not(.dark) .text-amber-300\/80 { color: rgb(178 58 38 / 0.85); }
+  :root:not(.dark) .text-amber-300\/70 { color: rgb(178 58 38 / 0.75); }
+  :root:not(.dark) .text-amber-200\/80 { color: rgb(154 46 30 / 0.88); }
+  :root:not(.dark) .text-amber-200\/70 { color: rgb(154 46 30 / 0.78); }
 
   /* ============ LIGHT — text-white/N hard-coded (design dark-first) ============
      De nombreux composants ont des classes text-white/70, text-white/60 etc.
@@ -1057,11 +1058,12 @@ section[id] {
   :root:not(.dark) .bg-fuchsia-500 { background-color: rgb(154 46 30); }
   :root:not(.dark) .bg-pink-400 { background-color: rgb(178 58 38); }
   :root:not(.dark) .bg-pink-500 { background-color: rgb(154 46 30); }
-  /* Amber/Yellow → ocre brun (cohérent avec le mapping text-amber-* foncé) */
-  :root:not(.dark) .bg-amber-400 { background-color: rgb(154 92 12); }
-  :root:not(.dark) .bg-amber-500 { background-color: rgb(140 80 8); }
-  :root:not(.dark) .bg-yellow-400 { background-color: rgb(154 92 12); }
-  :root:not(.dark) .bg-yellow-500 { background-color: rgb(140 80 8); }
+  /* Amber/Yellow → TERRACOTTA orangé (zéro jaune en light, cohérent
+     avec le mapping text-amber-* maintenant en terracotta). */
+  :root:not(.dark) .bg-amber-400 { background-color: rgb(196 90 50); }     /* terracotta orangé */
+  :root:not(.dark) .bg-amber-500 { background-color: rgb(178 58 38); }     /* terracotta principal */
+  :root:not(.dark) .bg-yellow-400 { background-color: rgb(196 90 50); }
+  :root:not(.dark) .bg-yellow-500 { background-color: rgb(178 58 38); }
   /* Sky/Blue → marine sourd (info) */
   :root:not(.dark) .bg-sky-400 { background-color: rgb(72 100 140); }
   :root:not(.dark) .bg-blue-400 { background-color: rgb(60 90 130); }
