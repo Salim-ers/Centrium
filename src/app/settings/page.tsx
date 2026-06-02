@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { LogOut, Palette, Users, User, ShieldCheck, Building2 } from 'lucide-react';
+import { LogOut, Palette, Users, User, ShieldCheck, Building2, Sparkles } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
@@ -63,6 +63,14 @@ const SECTIONS: Array<{
       'Exportez vos données, gérez vos cookies, exercez vos droits RGPD.',
     icon: ShieldCheck,
     tone: 'emerald',
+  },
+  {
+    href: '/settings/appearance',
+    title: 'Apparence & design',
+    description:
+      "Thème sombre/clair, intensité du fond animé, densité de l'interface — personnalisez l'ambiance.",
+    icon: Sparkles,
+    tone: 'amber',
   },
 ];
 

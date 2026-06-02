@@ -661,6 +661,20 @@ section[id] {
       0 0 50px rgba(178, 58, 38, 0.25);
   }
 
+  /* ============ DENSITY COMPACT MODE ============
+     Quand l'utilisateur choisit Compact dans /settings/appearance, on
+     ajoute data-density="compact" sur <html>. On réduit alors les
+     paddings et margins des grandes sections de l'app pour gagner de
+     l'espace vertical sans casser le rythme visuel.
+
+     N'agit QUE sur l'app interne (.app-bg ancêtre) pour ne pas tasser
+     la vitrine publique. */
+  [data-density='compact'] .app-bg main { padding-top: 3rem; }
+  [data-density='compact'] .app-bg main > div { padding-top: 1rem; padding-bottom: 1rem; }
+  [data-density='compact'] .app-bg header { margin-bottom: 1.25rem; }
+  [data-density='compact'] .app-bg .grid { gap: 0.75rem; }
+  [data-density='compact'] .app-bg .space-y-6 > * + * { margin-top: 1rem; }
+
   /* ============ COLOR CYCLE ANIMATION ============
      Animations qui font cycler les accents rose → violet → cyan → rose
      pour donner du dynamisme. À utiliser sur cards / boutons via

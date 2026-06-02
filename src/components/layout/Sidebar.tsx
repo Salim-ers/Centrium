@@ -158,17 +158,8 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
 
   return (
     <>
-      {/* Halo gradient rose/violet derrière le wordmark — DARK uniquement.
-          En light mode (demande utilisateur : pas d'aura rose), opacity 0 →
-          la sidebar reste sur un fond neutre crème, sans glow coloré. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-44 opacity-0 dark:opacity-90 transition-opacity"
-        style={{
-          background:
-            'radial-gradient(ellipse 80% 80% at 50% 50%, rgba(236,72,153,0.35), rgba(225,29,116,0.18) 40%, transparent 75%), radial-gradient(ellipse 90% 50% at 50% 100%, rgba(168,85,247,0.18), transparent 65%)',
-        }}
-      />
+      {/* Halo rose/violet derrière le wordmark RETIRÉ — demande utilisateur :
+          sidebar plus sobre, fond uniformément noir/bleu nuit en dark. */}
 
       {/* Wordmark Centrium grand format */}
       <Link
@@ -286,7 +277,16 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
 
 export function Sidebar() {
   return (
-    <aside className="hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-hairline bg-card/80 backdrop-blur-xl">
+    <aside
+      className={[
+        'hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-hairline backdrop-blur-xl',
+        // Light : crème opaque (--card 38 35% 98%) → propre, pas voile.
+        // Dark : bleu nuit/noir profond, plus opaque que bg-card/80 →
+        // les menus se détachent vraiment du Starfield qui reste visible
+        // uniquement au-delà de la sidebar.
+        'bg-card/95 dark:bg-[rgba(7,8,17,0.94)]',
+      ].join(' ')}
+    >
       <SidebarBody />
     </aside>
   );
