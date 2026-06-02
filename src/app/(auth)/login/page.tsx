@@ -16,6 +16,7 @@ import { createClient } from '@/lib/supabase/client';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { toastWelcome } from '@/components/auth/WelcomeToast';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { markSessionActive } from '@/hooks/useSessionPresence';
 
 // Clé localStorage pour mémoriser l'email du dernier login.
 // On NE stocke PAS le mot de passe ici : c'est le rôle du gestionnaire
@@ -111,6 +112,13 @@ export default function LoginPage() {
 
     setLoading(false);
     toastWelcome({ firstName: profile?.first_name ?? null });
+
+    // Marque cette session navigateur comme active (flag sessionStorage).
+    // Sans ce flag, le hook useSessionPresence forcera un re-logout dès
+    // qu'une page protégée se chargera — c'est ce qui permet de garantir
+    // qu'on ne reste pas connecté quand le navigateur a été fermé puis
+    // restauré par Chrome ("Continue where you left off").
+    markSessionActive();
 
     const redirectTo = profile?.role === 'consultant' ? '/portal/dashboard' : '/dashboard';
     router.push(redirectTo);

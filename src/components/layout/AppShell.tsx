@@ -7,11 +7,15 @@ import { BrandingStyles } from '@/components/brand/BrandingStyles';
 import { OrgCursorsOverlay } from '@/components/realtime/OrgCursorsOverlay';
 import { OrgActivityListener } from '@/components/realtime/OrgActivityListener';
 import { ManageCookiesLink } from '@/components/marketing/CookieBanner';
+import { SessionPresenceGate } from '@/components/auth/SessionPresenceGate';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen app-bg text-foreground flex flex-col relative">
       <BrandingStyles />
+      {/* Auto-logout si l'onglet/navigateur a été fermé entre 2 visites
+          (flag sessionStorage absent → re-login forcé). */}
+      <SessionPresenceGate />
       {/* Starfield warp en fond — dark uniquement (mêmes éléments que la vitrine).
           En light, retourne null → aucune charge GPU, juste le bg crème natif. */}
       <AppBackground />

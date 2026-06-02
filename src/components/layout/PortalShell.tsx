@@ -1,11 +1,14 @@
 import { PortalSidebar } from './PortalSidebar';
 import { AppBackground } from './AppBackground';
 import { BrandingStyles } from '@/components/brand/BrandingStyles';
+import { SessionPresenceGate } from '@/components/auth/SessionPresenceGate';
 
 export function PortalShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen app-bg text-foreground relative">
       <BrandingStyles />
+      {/* Auto-logout si l'onglet/navigateur a été fermé entre 2 visites. */}
+      <SessionPresenceGate />
       {/* Starfield warp dark-only (cohérent avec AppShell BM). */}
       <AppBackground />
       <PortalSidebar />
