@@ -16,6 +16,7 @@ import { createClient } from '@/lib/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useOrganization } from '@/lib/auth/context';
+import { useTheme } from '@/hooks/useTheme';
 
 type RpcRow = {
   month: string;
@@ -60,6 +61,17 @@ function rowsToBuckets(rows: RpcRow[]): MonthlyPoint[] {
 
 export function RevenueChart() {
   const { activeOrgId } = useOrganization();
+  const theme = useTheme();
+  // Palette du graphique adaptée au thème :
+  //  - DARK : magenta + violet + amber (identité historique, lisible sur noir)
+  //  - LIGHT : 3 nuances terracotta (cohérent avec la palette crème + terre,
+  //    zéro jaune, zéro violet — demande utilisateur). Les 3 courbes restent
+  //    distinguables : sang foncé pour CA, terracotta principal pour missions,
+  //    terracotta orangé pour CV poussés.
+  const chartColors =
+    theme === 'dark'
+      ? { ca: '#e11d74', missions: '#8b5cf6', proposed: '#fbbf24' }
+      : { ca: '#9a3e2e', missions: '#c45a32', proposed: '#b23a26' };
 
   const { data, loading } = useCachedQuery<MonthlyPoint[]>(
     `revenue-chart:${activeOrgId ?? 'none'}`,
@@ -88,7 +100,7 @@ export function RevenueChart() {
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" style={{ color: '#e11d74' }} />
+              <TrendingUp className="h-4 w-4" style={{ color: chartColors.ca }} />
               Chiffre d&apos;affaires &amp; missions
             </CardTitle>
             <CardDescription>12 derniers mois</CardDescription>
@@ -112,7 +124,7 @@ export function RevenueChart() {
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 Missions en cours
               </div>
-              <div className="text-lg font-bold" style={{ color: '#e11d74' }}>
+              <div className="text-lg font-bold" style={{ color: chartColors.ca }}>
                 {activeCount}
               </div>
             </div>
@@ -128,16 +140,16 @@ export function RevenueChart() {
               <AreaChart data={points} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="ca-pink" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#e11d74" stopOpacity={0.55} />
-                    <stop offset="100%" stopColor="#e11d74" stopOpacity={0.02} />
+                    <stop offset="0%" stopColor={chartColors.ca} stopOpacity={0.55} />
+                    <stop offset="100%" stopColor={chartColors.ca} stopOpacity={0.02} />
                   </linearGradient>
                   <linearGradient id="missions-violet" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.02} />
+                    <stop offset="0%" stopColor={chartColors.missions} stopOpacity={0.35} />
+                    <stop offset="100%" stopColor={chartColors.missions} stopOpacity={0.02} />
                   </linearGradient>
                   <linearGradient id="proposed-amber" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#fbbf24" stopOpacity={0.02} />
+                    <stop offset="0%" stopColor={chartColors.proposed} stopOpacity={0.3} />
+                    <stop offset="100%" stopColor={chartColors.proposed} stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -186,7 +198,7 @@ export function RevenueChart() {
                   type="monotone"
                   dataKey="proposedCreated"
                   name="CV poussés"
-                  stroke="#fbbf24"
+                  stroke={chartColors.proposed}
                   strokeWidth={1.5}
                   fill="url(#proposed-amber)"
                   strokeDasharray="4 4"
@@ -196,7 +208,7 @@ export function RevenueChart() {
                   type="monotone"
                   dataKey="missionsActive"
                   name="Missions en cours"
-                  stroke="#8b5cf6"
+                  stroke={chartColors.missions}
                   strokeWidth={1.5}
                   fill="url(#missions-violet)"
                 />
@@ -205,7 +217,7 @@ export function RevenueChart() {
                   type="monotone"
                   dataKey="ca"
                   name="CA"
-                  stroke="#e11d74"
+                  stroke={chartColors.ca}
                   strokeWidth={2.5}
                   fill="url(#ca-pink)"
                 />

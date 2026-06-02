@@ -812,6 +812,84 @@ section[id] {
   :root:not(.dark) .via-magenta\/15 { --tw-gradient-via: hsl(12 60% 48% / 0.10) var(--tw-gradient-via-position); }
   :root:not(.dark) .via-magenta\/10 { --tw-gradient-via: hsl(12 60% 48% / 0.08) var(--tw-gradient-via-position); }
 
+  /* ============ LIGHT — VIOLET/PURPLE/FUCHSIA EXHAUSTIF ============
+     Demande utilisateur : "elements en violets change le dans tout le
+     site, les onglets etc.. partout". Override TOUS les shades 50-900
+     de violet, purple, fuchsia, indigo → terracotta. */
+
+  /* text-violet-* (50 → 900) */
+  :root:not(.dark) .text-violet-50 { color: rgb(252 230 215); }
+  :root:not(.dark) .text-violet-400 { color: rgb(196 90 50); }
+  :root:not(.dark) .text-violet-500 { color: rgb(178 58 38); }
+  :root:not(.dark) .text-violet-600 { color: rgb(154 46 30); }
+  :root:not(.dark) .text-violet-700 { color: rgb(138 40 25); }
+  :root:not(.dark) .text-violet-800 { color: rgb(122 36 22); }
+  :root:not(.dark) .text-violet-900 { color: rgb(102 28 16); }
+
+  /* bg-violet-* (50 → 900) */
+  :root:not(.dark) .bg-violet-50 { background-color: rgb(252 230 215); }
+  :root:not(.dark) .bg-violet-100 { background-color: rgb(248 215 198); }
+  :root:not(.dark) .bg-violet-200 { background-color: rgb(238 188 168); }
+  :root:not(.dark) .bg-violet-300 { background-color: rgb(218 145 115); }
+  :root:not(.dark) .bg-violet-500 { background-color: rgb(178 58 38); }
+  :root:not(.dark) .bg-violet-600 { background-color: rgb(154 46 30); }
+  :root:not(.dark) .bg-violet-700 { background-color: rgb(138 40 25); }
+  :root:not(.dark) .bg-violet-800 { background-color: rgb(122 36 22); }
+  :root:not(.dark) .bg-violet-900 { background-color: rgb(102 28 16); }
+  /* bg-violet-X/Y opacity variants courants */
+  :root:not(.dark) .bg-violet-100\/50 { background-color: rgb(248 215 198 / 0.5); }
+  :root:not(.dark) .bg-violet-200\/50 { background-color: rgb(238 188 168 / 0.5); }
+  :root:not(.dark) .bg-violet-500\/10 { background-color: rgb(178 58 38 / 0.10); }
+  :root:not(.dark) .bg-violet-500\/15 { background-color: rgb(178 58 38 / 0.15); }
+  :root:not(.dark) .bg-violet-500\/20 { background-color: rgb(178 58 38 / 0.20); }
+
+  /* border-violet-* */
+  :root:not(.dark) .border-violet-200 { border-color: rgb(238 188 168); }
+  :root:not(.dark) .border-violet-300 { border-color: rgb(218 145 115); }
+  :root:not(.dark) .border-violet-400 { border-color: rgb(196 90 50); }
+  :root:not(.dark) .border-violet-500 { border-color: rgb(178 58 38); }
+  :root:not(.dark) .border-violet-500\/30 { border-color: rgb(178 58 38 / 0.30); }
+  :root:not(.dark) .border-violet-500\/50 { border-color: rgb(178 58 38 / 0.50); }
+
+  /* text/bg/border-purple-* (alias de violet en Tailwind) */
+  :root:not(.dark) .text-purple-200 { color: rgb(138 40 25); }
+  :root:not(.dark) .text-purple-300 { color: rgb(154 46 30); }
+  :root:not(.dark) .text-purple-400 { color: rgb(196 90 50); }
+  :root:not(.dark) .text-purple-500 { color: rgb(178 58 38); }
+  :root:not(.dark) .text-purple-600 { color: rgb(154 46 30); }
+  :root:not(.dark) .text-purple-700 { color: rgb(138 40 25); }
+  :root:not(.dark) .bg-purple-50 { background-color: rgb(252 230 215); }
+  :root:not(.dark) .bg-purple-100 { background-color: rgb(248 215 198); }
+  :root:not(.dark) .bg-purple-200 { background-color: rgb(238 188 168); }
+  :root:not(.dark) .bg-purple-500 { background-color: rgb(178 58 38); }
+  :root:not(.dark) .bg-purple-500\/10 { background-color: rgb(178 58 38 / 0.10); }
+  :root:not(.dark) .bg-purple-500\/15 { background-color: rgb(178 58 38 / 0.15); }
+  :root:not(.dark) .border-purple-200 { border-color: rgb(238 188 168); }
+  :root:not(.dark) .border-purple-300 { border-color: rgb(218 145 115); }
+  :root:not(.dark) .border-purple-500 { border-color: rgb(178 58 38); }
+
+  /* text/bg/border-fuchsia-* */
+  :root:not(.dark) .text-fuchsia-300 { color: rgb(154 46 30); }
+  :root:not(.dark) .text-fuchsia-400 { color: rgb(178 58 38); }
+  :root:not(.dark) .text-fuchsia-500 { color: rgb(154 46 30); }
+  :root:not(.dark) .text-fuchsia-600 { color: rgb(138 40 25); }
+  :root:not(.dark) .bg-fuchsia-50 { background-color: rgb(252 230 215); }
+  :root:not(.dark) .bg-fuchsia-100 { background-color: rgb(248 215 198); }
+  :root:not(.dark) .bg-fuchsia-500 { background-color: rgb(154 46 30); }
+  :root:not(.dark) .border-fuchsia-300 { border-color: rgb(218 145 115); }
+  :root:not(.dark) .border-fuchsia-500 { border-color: rgb(154 46 30); }
+
+  /* text/bg-indigo-* (similar light-violet) */
+  :root:not(.dark) .text-indigo-300 { color: rgb(154 46 30); }
+  :root:not(.dark) .text-indigo-400 { color: rgb(178 58 38); }
+  :root:not(.dark) .text-indigo-500 { color: rgb(154 46 30); }
+  :root:not(.dark) .bg-indigo-50 { background-color: rgb(252 230 215); }
+  :root:not(.dark) .bg-indigo-100 { background-color: rgb(248 215 198); }
+  :root:not(.dark) .bg-indigo-500 { background-color: rgb(154 46 30); }
+  :root:not(.dark) .bg-indigo-500\/10 { background-color: rgb(154 46 30 / 0.10); }
+  :root:not(.dark) .border-indigo-300 { border-color: rgb(218 145 115); }
+  :root:not(.dark) .border-indigo-500 { border-color: rgb(154 46 30); }
+
   /* ============ LIGHT MODE — couleurs custom Tailwind config ============
      Les couleurs magenta-neon, violet-glow, violet-brand sont définies en
      dur dans tailwind.config.ts et utilisées partout dans l'app interne
@@ -926,7 +1004,11 @@ section[id] {
     color: rgb(252 245 235);
   }
   :root:not(.dark) .qc-sidebar .text-violet-glow {
-    color: rgb(252 220 180);  /* accent groupe actif : crème chaude */
+    color: rgb(255 250 240);  /* crème blanc, plus blanc que jaune */
+  }
+  :root:not(.dark) .qc-sidebar .text-amber-400,
+  :root:not(.dark) .qc-sidebar .text-amber-300 {
+    color: rgb(255 250 240);  /* idem pour Sun icon */
   }
   /* Active state d'un item dans la sidebar en light : fond plus clair
      (crème transparent) + texte crème vif + bordure crème. Plus de
@@ -978,12 +1060,24 @@ section[id] {
       rgb(217 70 239) 100%    /* fuchsia-500 */
     );
   }
+  /* Light par DÉFAUT : gradient terracotta lisible sur fond crème
+     (boot intro popup, modals, header etc.) */
   :root:not(.dark) .qc-wordmark-gradient {
     background-image: linear-gradient(
       to right,
-      rgb(255 248 235) 0%,    /* crème ivoire */
-      rgb(252 230 195) 50%,   /* sable doré */
-      rgb(255 245 220) 100%   /* crème claire */
+      rgb(196 90 50) 0%,      /* terracotta orangé */
+      rgb(178 58 38) 50%,     /* terracotta principal */
+      rgb(154 46 30) 100%     /* terracotta sang */
+    );
+  }
+  /* Override : DANS la sidebar terracotta (fond rouge), le wordmark
+     bascule en crème pour rester lisible sur fond rouge. */
+  :root:not(.dark) .qc-sidebar .qc-wordmark-gradient {
+    background-image: linear-gradient(
+      to right,
+      rgb(255 248 235) 0%,
+      rgb(252 230 195) 50%,
+      rgb(255 245 220) 100%
     );
   }
   /* "by QUADCORE" en light dans la sidebar : crème transparent */
