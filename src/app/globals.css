@@ -958,9 +958,13 @@ section[id] {
 
   /* violet-glow (#8b5cf6) → terracotta orangé secondaire */
   :root:not(.dark) .bg-violet-glow { background-color: rgb(196 90 50); }
+  :root:not(.dark) .bg-violet-glow\/5 { background-color: rgb(196 90 50 / 0.05); }
   :root:not(.dark) .bg-violet-glow\/10 { background-color: rgb(196 90 50 / 0.08); }
   :root:not(.dark) .bg-violet-glow\/15 { background-color: rgb(196 90 50 / 0.10); }
+  :root:not(.dark) .bg-violet-glow\/20 { background-color: rgb(196 90 50 / 0.14); }
   :root:not(.dark) .bg-violet-glow\/25 { background-color: rgb(196 90 50 / 0.18); }
+  :root:not(.dark) .border-violet-glow\/20 { border-color: rgb(196 90 50 / 0.25); }
+  :root:not(.dark) .border-violet-glow\/50 { border-color: rgb(196 90 50 / 0.40); }
   :root:not(.dark) .border-violet-glow\/70 { border-color: rgb(196 90 50 / 0.55); }
   :root:not(.dark) .text-violet-50 { color: rgb(154 46 30); }
 
