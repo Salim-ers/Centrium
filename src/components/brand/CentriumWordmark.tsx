@@ -55,10 +55,12 @@ export function CentriumWordmark({
 
   const logoBlock = (
     <div className="relative shrink-0">
-      {/* Halo rose+violet animé derrière le logo */}
+      {/* Halo rose+violet animé derrière le logo — DARK uniquement.
+          En light : invisible (demande utilisateur : retirer le halo rose).
+          Le logo SVG reste, sans glow coloré. */}
       <div
         aria-hidden
-        className="absolute inset-[-30%] rounded-full blur-2xl opacity-70 animate-pulse-slow"
+        className="absolute inset-[-30%] rounded-full blur-2xl opacity-0 dark:opacity-70 animate-pulse-slow"
         style={{
           background:
             'radial-gradient(circle, rgba(236,72,153,0.8), rgba(192,38,211,0.45) 40%, rgba(168,85,247,0.25) 70%, transparent 80%)',
@@ -69,7 +71,11 @@ export function CentriumWordmark({
         src="/brand/centrium-logo.svg"
         alt=""
         aria-hidden
-        className={cn('relative drop-shadow-[0_0_12px_rgba(236,72,153,0.6)]', s.logo)}
+        className={cn(
+          // drop-shadow magenta DARK uniquement (zéro halo rose en light)
+          'relative dark:drop-shadow-[0_0_12px_rgba(236,72,153,0.6)]',
+          s.logo,
+        )}
         draggable={false}
       />
     </div>
@@ -80,9 +86,12 @@ export function CentriumWordmark({
       <span
         className={cn(
           'font-display font-extrabold tracking-tight bg-clip-text text-transparent',
-          'bg-gradient-to-r from-pink-400 via-magenta to-fuchsia-500',
+          // Gradient rose-magenta-fuchsia en DARK, gradient terracotta en LIGHT
+          // (via classes light: implémentées dans globals.css overrides).
+          'bg-gradient-to-r qc-wordmark-gradient',
           'bg-[length:200%_100%] animate-gradient-pan',
-          'drop-shadow-[0_0_18px_rgba(236,72,153,0.45)]',
+          // Drop-shadow rose DARK uniquement
+          'dark:drop-shadow-[0_0_18px_rgba(236,72,153,0.45)]',
           s.name,
         )}
       >

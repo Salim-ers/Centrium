@@ -905,6 +905,131 @@ section[id] {
     box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
   }
 
+  /* ============ LIGHT MODE — SIDEBAR FULL TERRACOTTA ROUGE ============
+     Demande utilisateur : "le menu à gauche mets en full terracota rouge".
+     En light, la sidebar passe d'un fond crème à un panel terracotta sang
+     (#9a3e2e) avec texte crème, donnant une présence visuelle forte sur
+     le fond crème de l'app. */
+  :root:not(.dark) .qc-sidebar {
+    background: linear-gradient(180deg,
+      rgb(154 46 30) 0%,    /* terracotta sang en haut */
+      rgb(138 40 25) 100%   /* un poil plus foncé en bas */
+    );
+    border-color: rgb(122 36 22);
+    color: rgb(252 245 235);  /* crème pour le texte par défaut */
+  }
+  /* Tous les textes/icônes dans la sidebar en light → crème */
+  :root:not(.dark) .qc-sidebar .text-foreground,
+  :root:not(.dark) .qc-sidebar .text-muted-foreground,
+  :root:not(.dark) .qc-sidebar .text-muted-foreground\/70,
+  :root:not(.dark) .qc-sidebar .text-muted-foreground\/80 {
+    color: rgb(252 245 235);
+  }
+  :root:not(.dark) .qc-sidebar .text-violet-glow {
+    color: rgb(252 220 180);  /* accent groupe actif : crème chaude */
+  }
+  /* Active state d'un item dans la sidebar en light : fond plus clair
+     (crème transparent) + texte crème vif + bordure crème. Plus de
+     bg-magenta/[0.12] rose. */
+  :root:not(.dark) .qc-sidebar .text-magenta-neon {
+    color: rgb(252 245 235);
+  }
+  :root:not(.dark) .qc-sidebar .bg-magenta\/\[0\.12\] {
+    background-color: rgb(252 245 235 / 0.14);
+  }
+  :root:not(.dark) .qc-sidebar .border-magenta\/40 {
+    border-color: rgb(252 245 235 / 0.35);
+  }
+  /* Hover surface dans la sidebar en light : voile crème transparent */
+  :root:not(.dark) .qc-sidebar .hover-surface:hover {
+    background-color: rgb(252 245 235 / 0.08);
+  }
+  /* Bordures internes (séparateurs) : crème transparent */
+  :root:not(.dark) .qc-sidebar .border-hairline,
+  :root:not(.dark) .qc-sidebar .border-t {
+    border-color: rgb(252 245 235 / 0.15);
+  }
+  /* Carte "Personnalise ton ESN" en light : crème transparent au lieu
+     de violet-glow */
+  :root:not(.dark) .qc-sidebar .border-violet-glow\/30 {
+    border-color: rgb(252 245 235 / 0.3);
+  }
+  :root:not(.dark) .qc-sidebar .bg-violet-glow\/\[0\.06\] {
+    background-color: rgb(252 245 235 / 0.08);
+  }
+  :root:not(.dark) .qc-sidebar .bg-violet-glow\/15 {
+    background-color: rgb(252 245 235 / 0.12);
+  }
+  /* Shadow magenta dans la sidebar en light : remplacée par crème */
+  :root:not(.dark) .qc-sidebar .shadow-\[0_0_30px_-8px_rgba\(236\2c 72\2c 153\2c 0\.6\)\2c inset_0_0_20px_-10px_rgba\(236\2c 72\2c 153\2c 0\.3\)\] {
+    box-shadow: 0 0 20px -8px rgb(252 245 235 / 0.25), inset 0 0 14px -8px rgb(252 245 235 / 0.15);
+  }
+
+  /* ============ WORDMARK CENTRIUM — gradient terracotta en LIGHT ============
+     Classe .qc-wordmark-gradient appliquée sur le span CENTRIUM dans
+     CentriumWordmark.tsx. En dark : gradient rose-magenta-fuchsia.
+     En light : gradient crème → terracotta clair → blanc (lisible sur
+     fond terracotta de la sidebar). */
+  .dark .qc-wordmark-gradient {
+    background-image: linear-gradient(
+      to right,
+      rgb(244 114 182) 0%,    /* pink-400 */
+      rgb(225 29 116) 50%,    /* magenta */
+      rgb(217 70 239) 100%    /* fuchsia-500 */
+    );
+  }
+  :root:not(.dark) .qc-wordmark-gradient {
+    background-image: linear-gradient(
+      to right,
+      rgb(255 248 235) 0%,    /* crème ivoire */
+      rgb(252 230 195) 50%,   /* sable doré */
+      rgb(255 245 220) 100%   /* crème claire */
+    );
+  }
+  /* "by QUADCORE" en light dans la sidebar : crème transparent */
+  :root:not(.dark) .qc-sidebar .text-muted-foreground\/70 {
+    color: rgb(252 245 235 / 0.7);
+  }
+  :root:not(.dark) .qc-sidebar .text-magenta {
+    color: rgb(252 220 180);
+  }
+
+  /* ============ LIGHT — OCRE WARNING plus contrasté ============
+     Le mapping précédent (32 70% 30%) restait trop pâle sur fond crème.
+     On passe à un brun-ocre vraiment lisible. */
+  :root:not(.dark) .text-amber-400 { color: rgb(154 92 12); }
+  :root:not(.dark) .text-amber-300 { color: rgb(154 92 12); }
+  :root:not(.dark) .text-amber-200 { color: rgb(122 70 8); }
+  :root:not(.dark) .text-yellow-400 { color: rgb(154 92 12); }
+  :root:not(.dark) .text-yellow-300 { color: rgb(154 92 12); }
+  :root:not(.dark) .bg-amber-500\/10 { background-color: rgb(180 110 15 / 0.10); }
+  :root:not(.dark) .bg-amber-500\/15 { background-color: rgb(180 110 15 / 0.14); }
+  :root:not(.dark) .border-amber-500\/25 { border-color: rgb(180 110 15 / 0.35); }
+  :root:not(.dark) .border-amber-500\/30 { border-color: rgb(180 110 15 / 0.40); }
+
+  /* ============ LIGHT — boutons gradient plus foncés ============
+     Demande utilisateur : "fonce les plus". On assombrit le gradient
+     terracotta des boutons "default" Button (bg-qc-gradient-pink) pour
+     qu'ils soient plus présents sur le fond crème. */
+  :root:not(.dark) .bg-qc-gradient-pink {
+    background-image: linear-gradient(
+      135deg,
+      rgb(154 46 30) 0%,      /* terracotta sang */
+      rgb(126 36 22) 50%,     /* plus foncé */
+      rgb(102 28 16) 100%     /* terracotta très foncé */
+    );
+  }
+  :root:not(.dark) .bg-qc-gradient {
+    background-image: linear-gradient(
+      135deg,
+      rgb(154 46 30) 0%,
+      rgb(122 36 22) 100%
+    );
+  }
+  /* Gradient buttons assombris aussi */
+  :root:not(.dark) .from-violet-glow { --tw-gradient-from: rgb(154 46 30) var(--tw-gradient-from-position); }
+  :root:not(.dark) .to-magenta-neon { --tw-gradient-to: rgb(102 28 16) var(--tw-gradient-to-position); }
+
   /* ============ DENSITY COMPACT MODE ============
      Quand l'utilisateur choisit Compact dans /settings/appearance, on
      ajoute data-density="compact" sur <html>. On réduit alors les

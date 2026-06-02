@@ -278,13 +278,15 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
 export function Sidebar() {
   return (
     <aside
+      data-app-sidebar
       className={[
-        'hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-hairline backdrop-blur-xl',
-        // Light : crème opaque (--card 38 35% 98%) → propre, pas voile.
+        'qc-sidebar hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-hairline backdrop-blur-xl',
         // Dark : bleu nuit/noir profond, plus opaque que bg-card/80 →
         // les menus se détachent vraiment du Starfield qui reste visible
         // uniquement au-delà de la sidebar.
-        'bg-card/95 dark:bg-[rgba(7,8,17,0.94)]',
+        // Light : la classe .qc-sidebar (globals.css) pose un fond full
+        // terracotta sang + texte crème (demande utilisateur).
+        'dark:bg-[rgba(7,8,17,0.94)]',
       ].join(' ')}
     >
       <SidebarBody />
