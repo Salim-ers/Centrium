@@ -661,6 +661,157 @@ section[id] {
       0 0 50px rgba(178, 58, 38, 0.25);
   }
 
+  /* ============ PREMIUM CARD STYLE (DARK MODE) ============
+     Pour donner aux KPICard / AppCard un rendu vraiment "haut de gamme"
+     en dark : fond très foncé presque noir avec un léger gradient
+     top-bottom (highlight haut + ombre bas) + bordure subtile blanche
+     + ring inset + shadow profonde noire. Effet : objet sculpté.
+
+     Light : on garde simplement la card crème opaque, sans gradient. */
+  .dark .qc-premium {
+    background:
+      linear-gradient(180deg,
+        hsla(230, 30%, 11%, 0.94) 0%,
+        hsla(230, 30%, 6%, 0.95) 100%
+      );
+    border-color: hsla(0, 0%, 100%, 0.07);
+    box-shadow:
+      inset 0 1px 0 0 hsla(0, 0%, 100%, 0.05),
+      inset 0 0 0 0.5px hsla(0, 0%, 100%, 0.02),
+      0 10px 40px -16px hsla(0, 0%, 0%, 0.7),
+      0 4px 12px -4px hsla(0, 0%, 0%, 0.4);
+  }
+  :root:not(.dark) .qc-premium {
+    background: hsla(38, 35%, 99%, 0.95);
+    border-color: hsla(32, 18%, 75%, 1);
+    box-shadow:
+      inset 0 1px 0 0 hsla(0, 0%, 100%, 0.8),
+      0 4px 16px -8px hsla(24, 25%, 30%, 0.10),
+      0 1px 3px -1px hsla(24, 25%, 25%, 0.08);
+  }
+  /* Hover plus marqué en dark — highlight intérieur s'intensifie */
+  .dark .qc-premium-interactive:hover {
+    border-color: hsla(0, 0%, 100%, 0.12);
+    box-shadow:
+      inset 0 1px 0 0 hsla(0, 0%, 100%, 0.08),
+      inset 0 0 0 0.5px hsla(0, 0%, 100%, 0.04),
+      0 16px 50px -20px hsla(0, 0%, 0%, 0.8),
+      0 6px 16px -4px hsla(0, 0%, 0%, 0.5);
+  }
+  :root:not(.dark) .qc-premium-interactive:hover {
+    border-color: hsla(12, 60%, 48%, 0.35);
+    box-shadow:
+      inset 0 1px 0 0 hsla(0, 0%, 100%, 0.9),
+      0 12px 36px -14px hsla(12, 60%, 35%, 0.18),
+      0 2px 6px -2px hsla(24, 25%, 25%, 0.10);
+  }
+
+  /* ============ LIGHT MODE — palette statuts repensée ============
+     Demande utilisateur : en light mode, plus de jaune/vert/rouge
+     "criards" qui clashent avec la palette crème + terracotta. On
+     remplace par une palette éditoriale terre / sage / ocre / marine
+     qui reste sémantique (success/warning/danger/info distinguables)
+     mais cohérente avec l'identité boutique haut de gamme.
+
+       success → sage green sourd  #7A9B7E (HSL 130 14% 55%)
+       warning → ocre doré sourd   #B68B30 (HSL 40 56% 45%)
+       danger  → terracotta sang   #9A3E2E (HSL 9 54% 39%)
+       info    → bleu marine       #3B5577 (HSL 213 33% 35%)
+       neutral → gris chaud        #8B7E6F (HSL 30 11% 49%)
+
+     On override les classes Tailwind les plus utilisées (bg-{color}-500/10,
+     border-{color}-500/25, text-{color}-400/300/200/100) en light. */
+  :root:not(.dark) {
+    /* SAGE pour success (vert sourd) */
+    --bg-emerald-500-10: 122 25% 55% / 0.10;
+    --border-emerald-500-25: 122 25% 55% / 0.30;
+    --text-emerald-400-soft: 130 18% 32%;
+    /* OCRE pour warning (jaune sourd) */
+    --bg-amber-500-10: 38 60% 48% / 0.10;
+    --border-amber-500-25: 38 60% 48% / 0.30;
+    --text-amber-400-soft: 32 70% 30%;
+    /* TERRACOTTA SANG pour danger (rouge sourd différencié du primary) */
+    --bg-rose-500-10: 9 50% 42% / 0.10;
+    --border-rose-500-25: 9 50% 42% / 0.30;
+    --text-rose-400-soft: 9 55% 32%;
+    --bg-red-500-10: 9 50% 42% / 0.10;
+    --border-red-500-25: 9 50% 42% / 0.30;
+    /* MARINE pour info (bleu sourd) */
+    --bg-cyan-500-10: 213 30% 38% / 0.10;
+    --border-cyan-500-25: 213 30% 38% / 0.30;
+    --text-cyan-400-soft: 213 35% 28%;
+    --bg-blue-500-10: 213 30% 38% / 0.10;
+    --border-blue-500-25: 213 30% 38% / 0.30;
+    /* GRIS CHAUD pour neutral */
+    --bg-slate-500-10: 30 12% 48% / 0.10;
+    --border-slate-500-25: 30 12% 48% / 0.30;
+  }
+  /* Apply : bg + border + text overrides en light. Les classes Tailwind
+     directes qui matchent ces patterns sont remappées. */
+  :root:not(.dark) .bg-emerald-500\/10 { background-color: hsl(var(--bg-emerald-500-10)); }
+  :root:not(.dark) .bg-emerald-500\/15 { background-color: hsl(var(--bg-emerald-500-10)); }
+  :root:not(.dark) .bg-emerald-500\/20 { background-color: hsl(122 25% 55% / 0.18); }
+  :root:not(.dark) .border-emerald-500\/25 { border-color: hsl(var(--border-emerald-500-25)); }
+  :root:not(.dark) .border-emerald-500\/30 { border-color: hsl(var(--border-emerald-500-25)); }
+  :root:not(.dark) .border-emerald-500\/40 { border-color: hsl(122 25% 45% / 0.40); }
+  :root:not(.dark) .text-emerald-400 { color: hsl(var(--text-emerald-400-soft)); }
+  :root:not(.dark) .text-emerald-300 { color: hsl(var(--text-emerald-400-soft)); }
+  :root:not(.dark) .text-green-400 { color: hsl(var(--text-emerald-400-soft)); }
+  :root:not(.dark) .from-emerald-500\/30 { --tw-gradient-from: hsl(122 25% 55% / 0.20) var(--tw-gradient-from-position); }
+  :root:not(.dark) .from-emerald-500\/25 { --tw-gradient-from: hsl(122 25% 55% / 0.18) var(--tw-gradient-from-position); }
+  :root:not(.dark) .via-green-500\/12 { --tw-gradient-via: hsl(122 25% 55% / 0.10) var(--tw-gradient-via-position); }
+  :root:not(.dark) .hover\:border-emerald-500\/40:hover { border-color: hsl(122 25% 45% / 0.40); }
+
+  :root:not(.dark) .bg-amber-500\/10 { background-color: hsl(var(--bg-amber-500-10)); }
+  :root:not(.dark) .bg-amber-500\/15 { background-color: hsl(var(--bg-amber-500-10)); }
+  :root:not(.dark) .border-amber-500\/25 { border-color: hsl(var(--border-amber-500-25)); }
+  :root:not(.dark) .border-amber-500\/30 { border-color: hsl(var(--border-amber-500-25)); }
+  :root:not(.dark) .border-amber-500\/40 { border-color: hsl(38 60% 40% / 0.40); }
+  :root:not(.dark) .text-amber-400 { color: hsl(var(--text-amber-400-soft)); }
+  :root:not(.dark) .text-amber-300 { color: hsl(var(--text-amber-400-soft)); }
+  :root:not(.dark) .from-amber-500\/25 { --tw-gradient-from: hsl(38 60% 48% / 0.18) var(--tw-gradient-from-position); }
+  :root:not(.dark) .via-orange-500\/12 { --tw-gradient-via: hsl(28 60% 48% / 0.10) var(--tw-gradient-via-position); }
+  :root:not(.dark) .hover\:border-amber-500\/40:hover { border-color: hsl(38 60% 40% / 0.40); }
+
+  :root:not(.dark) .bg-rose-500\/10 { background-color: hsl(var(--bg-rose-500-10)); }
+  :root:not(.dark) .bg-rose-500\/15 { background-color: hsl(var(--bg-rose-500-10)); }
+  :root:not(.dark) .border-rose-500\/25 { border-color: hsl(var(--border-rose-500-25)); }
+  :root:not(.dark) .border-rose-500\/30 { border-color: hsl(var(--border-rose-500-25)); }
+  :root:not(.dark) .border-rose-500\/40 { border-color: hsl(9 50% 38% / 0.40); }
+  :root:not(.dark) .text-rose-400 { color: hsl(var(--text-rose-400-soft)); }
+  :root:not(.dark) .text-rose-300 { color: hsl(var(--text-rose-400-soft)); }
+  :root:not(.dark) .from-rose-500\/30 { --tw-gradient-from: hsl(9 50% 42% / 0.18) var(--tw-gradient-from-position); }
+  :root:not(.dark) .via-pink-500\/15 { --tw-gradient-via: hsl(9 50% 50% / 0.10) var(--tw-gradient-via-position); }
+  :root:not(.dark) .hover\:border-rose-500\/40:hover { border-color: hsl(9 50% 38% / 0.40); }
+
+  :root:not(.dark) .bg-cyan-500\/10 { background-color: hsl(var(--bg-cyan-500-10)); }
+  :root:not(.dark) .bg-cyan-500\/15 { background-color: hsl(var(--bg-cyan-500-10)); }
+  :root:not(.dark) .border-cyan-500\/25 { border-color: hsl(var(--border-cyan-500-25)); }
+  :root:not(.dark) .border-cyan-500\/30 { border-color: hsl(var(--border-cyan-500-25)); }
+  :root:not(.dark) .border-cyan-500\/40 { border-color: hsl(213 30% 32% / 0.40); }
+  :root:not(.dark) .text-cyan-400 { color: hsl(var(--text-cyan-400-soft)); }
+  :root:not(.dark) .text-cyan-300 { color: hsl(var(--text-cyan-400-soft)); }
+  :root:not(.dark) .from-cyan-500\/25 { --tw-gradient-from: hsl(213 30% 38% / 0.18) var(--tw-gradient-from-position); }
+  :root:not(.dark) .via-sky-500\/12 { --tw-gradient-via: hsl(213 30% 38% / 0.10) var(--tw-gradient-via-position); }
+  :root:not(.dark) .hover\:border-cyan-500\/40:hover { border-color: hsl(213 30% 32% / 0.40); }
+
+  :root:not(.dark) .bg-slate-500\/10 { background-color: hsl(var(--bg-slate-500-10)); }
+  :root:not(.dark) .border-slate-500\/25 { border-color: hsl(var(--border-slate-500-25)); }
+  /* Violet → terracotta orangé en light (déjà fait pour tones primaires, on
+     traite ici les bg/from utilisés par AppCard et KPICard glow) */
+  :root:not(.dark) .from-violet-500\/30 { --tw-gradient-from: hsl(18 70% 52% / 0.20) var(--tw-gradient-from-position); }
+  :root:not(.dark) .from-violet-500\/22 { --tw-gradient-from: hsl(18 70% 52% / 0.16) var(--tw-gradient-from-position); }
+  :root:not(.dark) .via-indigo-500\/15 { --tw-gradient-via: hsl(15 60% 48% / 0.10) var(--tw-gradient-via-position); }
+  :root:not(.dark) .via-indigo-500\/10 { --tw-gradient-via: hsl(15 60% 48% / 0.08) var(--tw-gradient-via-position); }
+  :root:not(.dark) .border-violet-500\/40 { border-color: hsl(18 70% 45% / 0.40); }
+  :root:not(.dark) .hover\:border-violet-500\/40:hover { border-color: hsl(18 70% 45% / 0.40); }
+
+  /* Pink/Magenta → terracotta principal en light (zéro rose) */
+  :root:not(.dark) .from-pink-500\/30 { --tw-gradient-from: hsl(12 60% 48% / 0.20) var(--tw-gradient-from-position); }
+  :root:not(.dark) .from-pink-500\/22 { --tw-gradient-from: hsl(12 60% 48% / 0.16) var(--tw-gradient-from-position); }
+  :root:not(.dark) .via-magenta\/15 { --tw-gradient-via: hsl(12 60% 48% / 0.10) var(--tw-gradient-via-position); }
+  :root:not(.dark) .via-magenta\/10 { --tw-gradient-via: hsl(12 60% 48% / 0.08) var(--tw-gradient-via-position); }
+
   /* ============ DENSITY COMPACT MODE ============
      Quand l'utilisateur choisit Compact dans /settings/appearance, on
      ajoute data-density="compact" sur <html>. On réduit alors les

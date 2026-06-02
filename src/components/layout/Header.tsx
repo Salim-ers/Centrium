@@ -61,11 +61,14 @@ export function Header() {
   const activeMembership = org?.memberships.find((m) => m.id === org.activeOrgId);
 
   return (
-    <header className="fixed top-0 right-0 left-0 md:left-64 z-20 h-16 bg-background/80 backdrop-blur-xl border-b border-hairline">
-      {/* Hairline rose très subtile en bas — moins voyant, plus chic */}
+    <header className="fixed top-0 right-0 left-0 md:left-64 z-20 h-16 bg-background/95 dark:bg-[rgba(7,8,17,0.94)] backdrop-blur-xl border-b border-hairline">
+      {/* Hairline rose/violet en bas du header — DARK uniquement.
+          En light : invisible (demande utilisateur : zéro halo rose).
+          On bascule via opacity sans changer le background pour garder
+          la teinte rose/violet identitaire en dark. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-px opacity-60"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-px opacity-0 dark:opacity-60 transition-opacity"
         style={{
           background:
             'linear-gradient(90deg, transparent, rgba(236,72,153,0.45) 40%, rgba(168,85,247,0.35) 60%, transparent)',

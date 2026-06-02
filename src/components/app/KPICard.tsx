@@ -156,9 +156,10 @@ export function KPICard({
   );
 
   const baseClasses = cn(
-    'group relative overflow-hidden rounded-2xl border border-hairline bg-card/60 backdrop-blur-md p-5 transition-all duration-300',
-    // Shadow magenta en dark, terracotta en light (override CSS dans globals).
-    'hover:-translate-y-0.5 dark:hover:shadow-[0_20px_60px_-20px_rgba(225,29,116,0.25)] hover:shadow-[0_12px_36px_-14px_rgba(178,58,38,0.25)]',
+    // qc-premium = gradient bg dark/cream + inner highlight + shadow profonde,
+    // qc-premium-interactive = state hover plus marqué (border + shadow plus intense)
+    'group qc-premium qc-premium-interactive relative overflow-hidden rounded-2xl border backdrop-blur-md p-5 transition-all duration-300',
+    'hover:-translate-y-0.5',
     t.ring,
     className,
   );

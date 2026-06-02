@@ -44,14 +44,18 @@ export function AppCard({
   const base = 'relative overflow-hidden rounded-2xl';
 
   const variantClasses: Record<Variant, string> = {
-    default: 'border border-hairline bg-card/60 backdrop-blur-md',
-    luminous: 'qc-luminous-static border border-hairline bg-card/60 backdrop-blur-md',
+    // qc-premium : gradient bg + inner highlight + shadow profonde
+    // → rendu "haut de gamme" en dark (objet sculpté), crème opaque en light
+    default: 'qc-premium border backdrop-blur-md',
+    luminous: 'qc-luminous-static qc-premium border backdrop-blur-md',
     subtle: 'border border-hairline/60 bg-transparent',
   };
 
   const interactiveClasses = interactive
-    ? // Shadow magenta en dark, terracotta en light (cohérent avec KPICard).
-      'group transition-all duration-300 hover:-translate-y-0.5 dark:hover:shadow-[0_20px_60px_-20px_rgba(225,29,116,0.22)] hover:shadow-[0_12px_36px_-14px_rgba(178,58,38,0.22)] hover:border-magenta/30'
+    ? // qc-premium-interactive applique le hover (border + shadow) sur les
+      // variants qc-premium (default + luminous). subtle reste avec son
+      // propre comportement.
+      'group transition-all duration-300 hover:-translate-y-0.5 qc-premium-interactive hover:border-magenta/30'
     : '';
 
   return (
