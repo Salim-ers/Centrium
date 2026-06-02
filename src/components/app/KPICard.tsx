@@ -101,10 +101,14 @@ export function KPICard({
 
   const inner = (
     <>
+      {/* Halo radial coloré — visible UNIQUEMENT en dark.
+          En light mode (demande utilisateur : pas d'aura rose), opacity 0 →
+          la card reste sur fond crème pur, accent terracotta seulement
+          sur les bordures et icônes. */}
       <div
         aria-hidden
         className={cn(
-          'absolute -top-12 -right-12 h-40 w-40 rounded-full bg-gradient-to-br blur-3xl opacity-30 group-hover:opacity-80 transition-opacity duration-500',
+          'absolute -top-12 -right-12 h-40 w-40 rounded-full bg-gradient-to-br blur-3xl opacity-0 dark:opacity-30 dark:group-hover:opacity-80 transition-opacity duration-500',
           t.glow,
         )}
       />
@@ -153,7 +157,8 @@ export function KPICard({
 
   const baseClasses = cn(
     'group relative overflow-hidden rounded-2xl border border-hairline bg-card/60 backdrop-blur-md p-5 transition-all duration-300',
-    'hover:-translate-y-0.5 hover:shadow-[0_20px_60px_-20px_rgba(225,29,116,0.25)]',
+    // Shadow magenta en dark, terracotta en light (override CSS dans globals).
+    'hover:-translate-y-0.5 dark:hover:shadow-[0_20px_60px_-20px_rgba(225,29,116,0.25)] hover:shadow-[0_12px_36px_-14px_rgba(178,58,38,0.25)]',
     t.ring,
     className,
   );

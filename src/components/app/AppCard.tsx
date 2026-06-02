@@ -50,7 +50,8 @@ export function AppCard({
   };
 
   const interactiveClasses = interactive
-    ? 'group transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_60px_-20px_rgba(225,29,116,0.22)] hover:border-magenta/30'
+    ? // Shadow magenta en dark, terracotta en light (cohérent avec KPICard).
+      'group transition-all duration-300 hover:-translate-y-0.5 dark:hover:shadow-[0_20px_60px_-20px_rgba(225,29,116,0.22)] hover:shadow-[0_12px_36px_-14px_rgba(178,58,38,0.22)] hover:border-magenta/30'
     : '';
 
   return (
@@ -59,8 +60,11 @@ export function AppCard({
         <div
           aria-hidden
           className={cn(
-            'pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full bg-gradient-to-br blur-3xl',
-            interactive ? 'opacity-30 group-hover:opacity-80 transition-opacity duration-500' : 'opacity-50',
+            // Halo coloré DARK-ONLY (pas d'aura rose en light).
+            'pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full bg-gradient-to-br blur-3xl opacity-0',
+            interactive
+              ? 'dark:opacity-30 dark:group-hover:opacity-80 transition-opacity duration-500'
+              : 'dark:opacity-50',
             TONE_GLOWS[tone],
           )}
         />

@@ -20,48 +20,55 @@ section[id] {
 }
 
 @layer base {
-  /* ============ LIGHT MODE (default) ============
-     Palette plus vibrante avec accents violet/pink saturés.
-     Le fond reste très clair pour la lisibilité mais avec une teinte
-     subtile pour éviter l'effet "blanc clinique". */
+  /* ============ LIGHT MODE — blanc crème + terracotta ============
+     Demande utilisateur : pas d'aura rose en light, fond blanc crème,
+     boutons et accents en rouge terracotta. Palette chaleureuse type
+     argile / lin / soleil couchant. Lisible, professionnelle, distincte
+     de la palette dark rose/violet.
+
+     Couleurs clés :
+       - Background : 40 30% 96% — blanc crème (warm white, hint d'ocre)
+       - Card       : 38 35% 98% — crème légèrement plus claire
+       - Primary    : 12 60% 48% — terracotta (#C25B40 type)
+       - Accent     : 18 70% 52% — terracotta plus orangé (hover/focus)
+       - Hairline   : 32 18% 80% — trait fin teinté chaud
+   */
   :root {
-    /* Background désaturé (93%) — plus reposant qu'un blanc clinique
-       et avec une vraie teinte qui contraste avec les cartes claires. */
-    --background: 250 25% 93%;
-    --foreground: 240 45% 8%;             /* near-black bleuté, encore plus contrasté */
+    --background: 40 30% 96%;             /* #F8F4ED — blanc crème */
+    --foreground: 24 25% 12%;             /* brun très foncé, lisible sur crème */
 
-    --card: 250 30% 98%;                  /* cartes nettement plus claires que le bg */
-    --card-foreground: 240 45% 8%;
+    --card: 38 35% 98%;                   /* #FCF8F1 — cartes encore plus claires */
+    --card-foreground: 24 25% 12%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 45% 8%;
+    --popover: 38 40% 99%;
+    --popover-foreground: 24 25% 12%;
 
-    --primary: 328 85% 45%;               /* rose-magenta plus profond (lisible sur clair) */
-    --primary-foreground: 0 0% 100%;
+    --primary: 12 60% 48%;                /* TERRACOTTA principal */
+    --primary-foreground: 38 40% 98%;
 
-    --secondary: 250 25% 90%;
-    --secondary-foreground: 240 45% 8%;
+    --secondary: 36 22% 90%;
+    --secondary-foreground: 24 25% 12%;
 
-    --muted: 250 25% 90%;
-    --muted-foreground: 240 14% 32%;      /* textes secondaires bien lisibles */
+    --muted: 36 22% 90%;
+    --muted-foreground: 26 14% 36%;       /* textes secondaires chauds */
 
-    --accent: 270 80% 48%;                /* violet plus profond */
-    --accent-foreground: 0 0% 100%;
+    --accent: 18 70% 52%;                 /* TERRACOTTA orangé */
+    --accent-foreground: 38 40% 98%;
 
-    --destructive: 0 75% 45%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 70% 42%;
+    --destructive-foreground: 38 40% 98%;
 
-    --border: 250 22% 80%;
-    --input: 250 22% 80%;
-    --ring: 328 85% 45%;
+    --border: 32 18% 80%;
+    --input: 32 18% 80%;
+    --ring: 12 60% 48%;
 
     --radius: 0.75rem;
 
-    /* Surfaces neutres réutilisables. */
-    --surface-1: 250 30% 98%;             /* card top */
-    --surface-2: 250 25% 93%;             /* card hover */
-    --surface-3: 250 22% 88%;             /* divider doux */
-    --hairline: 250 20% 78%;              /* trait fin bien visible */
+    /* Surfaces neutres réutilisables — toutes teintées crème. */
+    --surface-1: 38 35% 98%;
+    --surface-2: 38 30% 94%;
+    --surface-3: 36 22% 90%;
+    --hairline: 32 18% 80%;
   }
 
   /* ============ DARK MODE ============ */
@@ -113,45 +120,40 @@ section[id] {
   }
 
   /* ============ LIGHT MODE COLOR OVERRIDES ============
-     L'app a été designée dark-first : énormément de classes
-     `text-violet-300`, `text-emerald-300`, `text-pink-300`… qui sont
-     calibrées pour ressortir sur fond sombre mais sont quasi-illisibles
-     sur fond clair. Plutôt que d'éditer tous les composants un par un,
-     on shift ces classes vers leur variante 700 en light mode.
-     Les `.dark text-X-300` continuent à utiliser la valeur Tailwind native.
+     En LIGHT mode, on suit la directive : pas d'aura rose, palette
+     terracotta + chaud. On rebind toutes les classes magenta/rose/
+     violet vers des variantes terracotta (rouge orangé profond) ou
+     brun chaud, et on garde les couleurs sémantiques (emerald/amber/
+     blue) en versions foncées lisibles.
 
-     Pattern : on cible :root:not(.dark) pour ne toucher QUE le clair. */
+     Pattern : :root:not(.dark) cible UNIQUEMENT le mode clair. */
   :root:not(.dark) {
-    /* Violets — accents secondaires de l'app */
-    --text-violet-300: 76 29 149;         /* violet-800 (équivalent profond) */
-    --text-violet-200: 88 28 135;         /* violet-900 — chiffres clés */
-    --text-violet-100: 67 20 116;
-    /* Roses / magenta — accents primaires */
-    --text-pink-300: 157 23 77;           /* pink-700 */
-    --text-rose-300: 159 18 57;           /* rose-700 */
-    --text-magenta-neon: 157 23 77;
-    /* Vert (statut OK, gain, validation) */
-    --text-emerald-300: 4 120 87;         /* emerald-700 */
-    --text-emerald-200: 6 95 70;          /* emerald-800 */
+    /* Anciennement violet/rose/magenta → désormais TERRACOTTA en light */
+    --text-violet-300: 158 50 30;         /* terracotta foncé */
+    --text-violet-200: 138 42 25;         /* terracotta très foncé */
+    --text-violet-100: 122 38 22;
+    --text-pink-300: 178 58 38;           /* terracotta moyen */
+    --text-rose-300: 178 58 38;
+    --text-magenta-neon: 178 58 38;
+    /* Vert (statut OK, gain, validation) — inchangé, sémantique */
+    --text-emerald-300: 4 120 87;
+    --text-emerald-200: 6 95 70;
     --text-emerald-400: 4 120 87;
     /* Ambre (avertissement, attente) */
-    --text-amber-300: 180 83 9;           /* amber-700 */
-    --text-amber-200: 146 64 14;          /* amber-800 */
+    --text-amber-300: 180 83 9;
+    --text-amber-200: 146 64 14;
     --text-amber-400: 180 83 9;
     /* Rouge (erreur, destructif) */
-    --text-red-300: 185 28 28;            /* red-700 */
+    --text-red-300: 185 28 28;
     --text-red-400: 185 28 28;
     /* Bleu (info, en attente) */
-    --text-blue-300: 29 78 216;           /* blue-700 */
+    --text-blue-300: 29 78 216;
     --text-blue-400: 29 78 216;
     /* Slate (neutre) */
-    --text-slate-300: 51 65 85;           /* slate-700 */
+    --text-slate-300: 51 65 85;
     --text-slate-400: 51 65 85;
   }
 
-  /* Application des overrides : on rebind chaque utilitaire Tailwind
-     vers son token CSS quand on est en clair. Plus contraste, mieux
-     lisible, sans toucher un seul fichier composant. */
   :root:not(.dark) .text-violet-300 { color: rgb(var(--text-violet-300)); }
   :root:not(.dark) .text-violet-200 { color: rgb(var(--text-violet-200)); }
   :root:not(.dark) .text-violet-100 { color: rgb(var(--text-violet-100)); }
@@ -171,13 +173,26 @@ section[id] {
   :root:not(.dark) .text-slate-300 { color: rgb(var(--text-slate-300)); }
   :root:not(.dark) .text-slate-400 { color: rgb(var(--text-slate-400)); }
 
-  /* violet-glow et magenta-neon sont des couleurs custom du tailwind config.
-     En clair, on les rebind vers leurs équivalents profonds. */
-  :root:not(.dark) .text-violet-glow { color: rgb(91 33 182); /* violet-800 */ }
-  :root:not(.dark) .bg-violet-glow\/15 { background-color: rgb(91 33 182 / 0.10); }
-  :root:not(.dark) .border-violet-glow\/30 { border-color: rgb(91 33 182 / 0.30); }
-  :root:not(.dark) .border-violet-glow\/40 { border-color: rgb(91 33 182 / 0.40); }
-  :root:not(.dark) .border-violet-glow\/60 { border-color: rgb(91 33 182 / 0.55); }
+  /* En light : violet-glow et magenta-neon deviennent terracotta. */
+  :root:not(.dark) .text-violet-glow { color: rgb(178 58 38); }
+  :root:not(.dark) .bg-violet-glow\/15 { background-color: rgb(178 58 38 / 0.10); }
+  :root:not(.dark) .border-violet-glow\/30 { border-color: rgb(178 58 38 / 0.30); }
+  :root:not(.dark) .border-violet-glow\/40 { border-color: rgb(178 58 38 / 0.40); }
+  :root:not(.dark) .border-violet-glow\/60 { border-color: rgb(178 58 38 / 0.55); }
+
+  /* Tailwind-direct overrides : les classes hex magenta/pink/violet
+     présentes en dur sur les KPICard/AppCard/StatusBadge en light deviennent
+     terracotta. On cible les bgs et borders couramment utilisés. */
+  :root:not(.dark) .text-magenta { color: rgb(178 58 38); }
+  :root:not(.dark) .bg-magenta { background-color: rgb(178 58 38); }
+  :root:not(.dark) .border-magenta\/30 { border-color: rgb(178 58 38 / 0.30); }
+  :root:not(.dark) .border-magenta\/40 { border-color: rgb(178 58 38 / 0.40); }
+  :root:not(.dark) .bg-magenta\/10 { background-color: rgb(178 58 38 / 0.10); }
+  :root:not(.dark) .bg-magenta\/\\[0\\.12\\] { background-color: rgb(178 58 38 / 0.12); }
+  :root:not(.dark) .bg-magenta\/\\[0\\.04\\] { background-color: rgb(178 58 38 / 0.04); }
+  :root:not(.dark) .bg-magenta\/\\[0\\.06\\] { background-color: rgb(178 58 38 / 0.06); }
+  :root:not(.dark) .hover\:border-magenta\/30:hover { border-color: rgb(178 58 38 / 0.30); }
+  :root:not(.dark) .hover\:border-magenta\/40:hover { border-color: rgb(178 58 38 / 0.40); }
 }
 
 @layer utilities {
@@ -220,28 +235,28 @@ section[id] {
     isolation: isolate;
     background: hsl(var(--background));
   }
+  /* Light mode : PAS D'AURA ROSE (demande utilisateur). Fond crème uniforme,
+     juste un très subtil dégradé chaleureux pour éviter l'effet "papier blanc".
+     Aucun halo, aucune animation aurora. */
   .app-bg::before {
     content: '';
     position: fixed;
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    /* Halos plus profonds et plus petits en mode clair : ils contrastent
-       avec le bg gris-violet sans virer au rose layout-wide. */
     background:
-      radial-gradient(ellipse 35% 30% at 15% 20%, hsl(328 90% 50% / 0.10), transparent 65%),
-      radial-gradient(ellipse 30% 40% at 85% 70%, hsl(285 85% 55% / 0.08), transparent 65%),
-      radial-gradient(ellipse 45% 35% at 50% 100%, hsl(328 90% 50% / 0.07), transparent 65%);
-    background-size: 200% 200%;
-    animation: aurora-drift 22s ease-in-out infinite;
-    filter: blur(60px);
+      radial-gradient(ellipse 60% 50% at 20% 10%, hsl(38 40% 92% / 0.6), transparent 70%),
+      radial-gradient(ellipse 60% 50% at 80% 90%, hsl(28 30% 90% / 0.5), transparent 70%);
   }
+  /* Dark mode : aurora drift conservé pour cohérence vitrine + identité. */
   .dark .app-bg::before {
     background:
       radial-gradient(ellipse 50% 40% at 15% 20%, hsl(328 92% 55% / 0.32), transparent 60%),
       radial-gradient(ellipse 45% 50% at 85% 70%, hsl(285 90% 60% / 0.28), transparent 60%),
       radial-gradient(ellipse 60% 45% at 50% 100%, hsl(328 92% 55% / 0.22), transparent 60%),
       radial-gradient(ellipse 40% 35% at 75% 15%, hsl(265 90% 65% / 0.18), transparent 60%);
+    background-size: 200% 200%;
+    animation: aurora-drift 22s ease-in-out infinite;
     filter: blur(50px);
   }
 
@@ -344,6 +359,21 @@ section[id] {
     .qc-italic-accent {
       animation: none;
     }
+  }
+
+  /* ============ LIGHT MODE OVERRIDE : terracotta gradient ============
+     En light, pas de rose/violet. Gradient terracotta chaud :
+     argile claire → terracotta principal → ocre orangé. */
+  :root:not(.dark) .qc-italic-accent {
+    background-image: linear-gradient(
+      90deg,
+      rgb(214 142 105) 0%,    /* argile clair */
+      rgb(178 58 38) 50%,     /* terracotta */
+      rgb(196 90 50) 100%     /* ocre orangé */
+    );
+    filter:
+      drop-shadow(0 4px 30px rgba(178, 58, 38, 0.3))
+      drop-shadow(0 0 50px rgba(196, 90, 50, 0.15));
   }
 
   /* ============ DECORATIVE ELEMENTS — no focus outline, no caret
@@ -567,6 +597,68 @@ section[id] {
     .qc-luminous-static::before {
       animation: none !important;
     }
+  }
+
+  /* ============ LIGHT MODE OVERRIDES — qc-luminous + qc-card-fx + hero-glow
+     Demande utilisateur : pas d'aura rose en light. Tous les glows rose/violet
+     deviennent terracotta (#B23A26) + ocre (#C45A32). */
+  :root:not(.dark) .qc-luminous-static {
+    box-shadow:
+      0 0 0 1px rgba(178, 58, 38, 0.12),
+      0 0 22px -8px rgba(178, 58, 38, 0.18),
+      0 0 50px -20px rgba(196, 90, 50, 0.14);
+  }
+  :root:not(.dark) .qc-luminous-static::before {
+    background: linear-gradient(
+      120deg,
+      rgba(178, 58, 38, 0.4),
+      rgba(196, 90, 50, 0.35),
+      rgba(214, 142, 105, 0.25),
+      rgba(178, 58, 38, 0.4)
+    );
+    opacity: 0.3;
+  }
+  :root:not(.dark) .qc-luminous-static:hover {
+    box-shadow:
+      0 0 0 1px rgba(178, 58, 38, 0.45),
+      0 0 36px -6px rgba(178, 58, 38, 0.4),
+      0 0 90px -20px rgba(196, 90, 50, 0.3);
+  }
+  :root:not(.dark) .qc-luminous-static:hover::before {
+    background: linear-gradient(
+      120deg,
+      rgba(178, 58, 38, 0.55),
+      rgba(196, 90, 50, 0.5),
+      rgba(214, 142, 105, 0.35),
+      rgba(178, 58, 38, 0.55)
+    );
+  }
+  :root:not(.dark) .qc-luminous-hover:hover {
+    box-shadow:
+      0 0 0 1px rgba(178, 58, 38, 0.3),
+      0 0 28px -6px rgba(178, 58, 38, 0.32),
+      0 0 70px -20px rgba(196, 90, 50, 0.22);
+  }
+  :root:not(.dark) .qc-card-fx:hover {
+    box-shadow:
+      0 8px 30px -10px rgba(178, 58, 38, 0.28),
+      0 0 0 1px rgba(178, 58, 38, 0.2);
+    border-color: rgba(178, 58, 38, 0.35);
+  }
+  :root:not(.dark) .glow-c {
+    box-shadow:
+      0 0 60px -20px rgba(178, 58, 38, 0.35),
+      0 0 80px -40px rgba(196, 90, 50, 0.3);
+  }
+  :root:not(.dark) .glow-c-soft {
+    box-shadow:
+      0 0 40px -16px rgba(178, 58, 38, 0.2),
+      0 0 60px -30px rgba(196, 90, 50, 0.18);
+  }
+  :root:not(.dark) .hero-glow {
+    text-shadow:
+      0 0 28px rgba(178, 58, 38, 0.4),
+      0 0 50px rgba(178, 58, 38, 0.25);
   }
 
   /* ============ COLOR CYCLE ANIMATION ============

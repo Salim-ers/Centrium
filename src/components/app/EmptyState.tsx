@@ -32,10 +32,12 @@ export function EmptyState({ icon: Icon, title, description, action, className }
         className,
       )}
     >
-      {/* halo doux derrière l'icône */}
+      {/* Halo doux derrière l'icône — DARK uniquement (pas d'aura rose en light).
+          En light, l'EmptyState reste sobre sur fond crème, juste l'icône
+          terracotta + le titre éditorial. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 dark:opacity-100"
       >
         <div className="h-48 w-48 rounded-full bg-[radial-gradient(circle,rgba(225,29,116,0.18),rgba(168,85,247,0.1),transparent_70%)] blur-2xl" />
       </div>

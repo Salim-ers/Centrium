@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { AppBackground } from './AppBackground';
 import { BrandingStyles } from '@/components/brand/BrandingStyles';
 import { OrgCursorsOverlay } from '@/components/realtime/OrgCursorsOverlay';
 import { OrgActivityListener } from '@/components/realtime/OrgActivityListener';
@@ -9,11 +10,14 @@ import { ManageCookiesLink } from '@/components/marketing/CookieBanner';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen app-bg text-foreground flex flex-col">
+    <div className="min-h-screen app-bg text-foreground flex flex-col relative">
       <BrandingStyles />
+      {/* Starfield warp en fond — dark uniquement (mêmes éléments que la vitrine).
+          En light, retourne null → aucune charge GPU, juste le bg crème natif. */}
+      <AppBackground />
       <Sidebar />
       <Header />
-      <main className="md:pl-64 pt-16 flex-1 flex flex-col">
+      <main className="relative z-[1] md:pl-64 pt-16 flex-1 flex flex-col">
         <div className="mx-auto max-w-7xl w-full px-4 md:px-8 py-8 flex-1">
           {children}
         </div>
