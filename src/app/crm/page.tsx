@@ -118,7 +118,9 @@ export default function CRMPage() {
       setOpportunities(prev ?? []);
       return;
     }
-    toast.success(`Déplacé vers ${OPPORTUNITY_STATUS_LABEL[newStatus]}`);
+    // Toast "Déplacé vers ..." retiré sur demande utilisateur — le
+    // changement de colonne est visuellement évident, pas besoin de
+    // notification redondante en haut à droite à chaque drop.
     // Notifie les collègues : "Salim a déplacé Mission Acme"
     void broadcastOrgActivity(
       activeOrgId,
