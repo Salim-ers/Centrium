@@ -4,15 +4,25 @@ import Link from 'next/link';
 import {
   ClipboardCheck,
   Receipt,
-  FileSignature,
   Plus,
   CheckCircle2,
-  AlertTriangle,
+  Hourglass,
+  CalendarCheck,
+  Wallet,
 } from 'lucide-react';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import {
+  PageHeader,
+  SectionHeader,
+  KPICard,
+  AppCard,
+  AppCardBody,
+  StatusBadge,
+  EmptyState,
+  DataRow,
+  type StatusTone,
+} from '@/components/app';
 import { createClient } from '@/lib/supabase/client';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { formatCurrency } from '@/lib/utils';
@@ -24,6 +34,18 @@ type PortalDashboardData = {
   consultant: Consultant | null;
   timesheets: Timesheet[];
   invoices: Invoice[];
+};
+
+const MONTHS = [
+  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+];
+
+const TIMESHEET_TONE: Record<Timesheet['status'], { tone: StatusTone; label: string }> = {
+  draft: { tone: 'pending', label: 'Brouillon' },
+  submitted: { tone: 'info', label: 'En attente' },
+  client_validated: { tone: 'success', label: 'Validé' },
+  rejected: { tone: 'danger', label: 'Rejeté' },
 };
 
 export default function PortalDashboardPage() {
@@ -68,173 +90,161 @@ export default function PortalDashboardPage() {
   }, {});
   const totalPaid = invoices.reduce((s, i) => s + Number(i.amount_ht), 0);
 
+  const greeting = consultant?.first_name
+    ? (
+        <>
+          Bonjour, <span className="qc-italic-accent font-editorial italic">{consultant.first_name}.</span>
+        </>
+      )
+    : (
+        <>
+          Votre <span className="qc-italic-accent font-editorial italic">tableau de bord.</span>
+        </>
+      );
+
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-bold tracking-tight">
-          Bonjour {consultant?.first_name ?? ''}
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Voici un aperçu de votre activité {brandName}.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Mon espace"
+        title={greeting}
+        description={`Voici un aperçu de votre activité ${brandName}.`}
+        actions={
+          <Button asChild>
+            <Link href="/portal/cra/new">
+              <Plus className="h-4 w-4" />
+              Nouveau CRA
+            </Link>
+          </Button>
+        }
+      />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <KpiCard
-          label="CRA à rédiger / corriger"
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <KPICard
+          label="CRA à rédiger"
           value={(byStatus.draft ?? 0) + (byStatus.rejected ?? 0)}
-          tone="warn"
+          icon={ClipboardCheck}
+          tone="amber"
+          hint="Brouillons + rejetés"
         />
-        <KpiCard label="CRA en attente de validation" value={byStatus.submitted ?? 0} tone="neutral" />
-        <KpiCard label="CRA validés" value={byStatus.client_validated ?? 0} tone="good" />
-        <KpiCard label="Encaissé (factures payées)" value={formatCurrency(totalPaid)} tone="good" />
+        <KPICard
+          label="CRA en attente"
+          value={byStatus.submitted ?? 0}
+          icon={Hourglass}
+          tone="violet"
+          hint="En validation client"
+        />
+        <KPICard
+          label="CRA validés"
+          value={byStatus.client_validated ?? 0}
+          icon={CalendarCheck}
+          tone="emerald"
+        />
+        <KPICard
+          label="Encaissé"
+          value={totalPaid}
+          prefix="€"
+          icon={Wallet}
+          tone="magenta"
+          hint="Factures payées"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Derniers CRA */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ClipboardCheck className="h-4 w-4 text-violet-glow" />
-              Mes derniers CRA
-            </CardTitle>
-            <Button size="sm" asChild>
-              <Link href="/portal/cra/new">
-                <Plus className="h-3.5 w-3.5" />
-                Nouveau CRA
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
+        <div className="lg:col-span-2">
+          <SectionHeader
+            eyebrow="Activité"
+            title={<>Mes derniers <span className="qc-italic-accent font-editorial italic">CRA.</span></>}
+            actions={
+              <Button size="sm" variant="outline" asChild>
+                <Link href="/portal/cra">Voir tout</Link>
+              </Button>
+            }
+          />
+          <AppCard>
             {loading ? (
-              <SkeletonRows />
+              <AppCardBody>
+                <SkeletonRows />
+              </AppCardBody>
             ) : timesheets.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-6 text-center">
-                Aucun CRA pour le moment. Commence par créer ton premier CRA.
-              </p>
+              <EmptyState
+                icon={ClipboardCheck}
+                title="Aucun CRA pour le moment"
+                description="Commencez par créer votre premier compte-rendu d'activité."
+                action={
+                  <Button asChild>
+                    <Link href="/portal/cra/new">
+                      <Plus className="h-4 w-4" />
+                      Nouveau CRA
+                    </Link>
+                  </Button>
+                }
+              />
             ) : (
-              <ul className="space-y-1.5">
-                {timesheets.map((t) => (
-                  <li
-                    key={t.id}
-                    className="flex items-center gap-3 p-2.5 rounded-lg border border-hairline bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium">
-                        {MONTHS[t.period_month - 1]} {t.period_year}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {t.days_worked} j travaillés
-                      </div>
-                    </div>
-                    <StatusBadge status={t.status} />
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/portal/cra/${t.id}`}>Ouvrir</Link>
-                    </Button>
-                  </li>
-                ))}
-              </ul>
+              <div>
+                {timesheets.map((t) => {
+                  const s = TIMESHEET_TONE[t.status];
+                  return (
+                    <DataRow
+                      key={t.id}
+                      primary={`${MONTHS[t.period_month - 1]} ${t.period_year}`}
+                      secondary={`${t.days_worked} jours travaillés`}
+                      trailing={<StatusBadge tone={s.tone}>{s.label}</StatusBadge>}
+                      href={`/portal/cra/${t.id}`}
+                    />
+                  );
+                })}
+              </div>
             )}
-          </CardContent>
-        </Card>
+          </AppCard>
+        </div>
 
         {/* Dernières factures payées */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Receipt className="h-4 w-4 text-violet-glow" />
-              Factures payées
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div>
+          <SectionHeader
+            eyebrow="Finances"
+            title={<>Factures <span className="qc-italic-accent font-editorial italic">payées.</span></>}
+          />
+          <AppCard>
             {loading ? (
-              <SkeletonRows />
+              <AppCardBody>
+                <SkeletonRows />
+              </AppCardBody>
             ) : invoices.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-6 text-center">
-                Aucune facture payée pour le moment.
-              </p>
+              <EmptyState
+                icon={Receipt}
+                title="Aucune facture payée"
+                description="Les factures apparaîtront ici dès qu'elles seront marquées payées."
+              />
             ) : (
-              <ul className="space-y-1.5">
-                {invoices.map((i) => (
-                  <li
-                    key={i.id}
-                    className="flex items-center gap-2 p-2 rounded-md border border-hairline bg-white/[0.02]"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-mono truncate">{i.invoice_number}</div>
-                      <div className="text-[10px] text-muted-foreground">{i.period_label ?? ''}</div>
-                    </div>
-                    <span className="text-xs font-semibold">
-                      {formatCurrency(Number(i.amount_ht))}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <div>
+                  {invoices.map((i) => (
+                    <DataRow
+                      key={i.id}
+                      leading={<CheckCircle2 className="h-4 w-4 text-emerald-400" />}
+                      primary={<span className="font-mono">{i.invoice_number}</span>}
+                      secondary={i.period_label ?? ''}
+                      trailing={
+                        <span className="font-semibold text-foreground">
+                          {formatCurrency(Number(i.amount_ht))}
+                        </span>
+                      }
+                    />
+                  ))}
+                </div>
+                <AppCardBody size="sm">
+                  <Button variant="outline" className="w-full" asChild>
+                    <Link href="/portal/invoices">Voir toutes</Link>
+                  </Button>
+                </AppCardBody>
+              </>
             )}
-            <Button variant="outline" className="w-full mt-3" asChild>
-              <Link href="/portal/invoices">Voir toutes</Link>
-            </Button>
-          </CardContent>
-        </Card>
+          </AppCard>
+        </div>
       </div>
     </div>
-  );
-}
-
-const MONTHS = [
-  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
-];
-
-function KpiCard({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string | number;
-  tone: 'good' | 'warn' | 'neutral';
-}) {
-  const color =
-    tone === 'good'
-      ? 'text-emerald-400'
-      : tone === 'warn'
-        ? 'text-amber-400'
-        : 'text-muted-foreground';
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          {label}
-        </div>
-        <div className={`text-2xl font-bold font-display mt-1 ${color}`}>{value}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function StatusBadge({ status }: { status: Timesheet['status'] }) {
-  const map: Record<Timesheet['status'], { label: string; className: string; icon?: React.ReactNode }> = {
-    draft: { label: 'Brouillon', className: 'bg-slate-500/10 text-slate-300 border-slate-500/20' },
-    submitted: { label: 'Envoyé', className: 'bg-blue-500/10 text-blue-300 border-blue-500/20' },
-    client_validated: {
-      label: 'Validé',
-      className: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
-    },
-    rejected: {
-      label: 'Rejeté',
-      className: 'bg-red-500/10 text-red-300 border-red-500/20',
-      icon: <AlertTriangle className="h-3 w-3" />,
-    },
-  };
-  const s = map[status];
-  return (
-    <Badge variant="outline" className={`${s.className} text-[10px] flex items-center gap-1`}>
-      {s.icon}
-      {s.label}
-    </Badge>
   );
 }
 

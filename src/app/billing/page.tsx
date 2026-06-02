@@ -4,12 +4,27 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { CreditCard, ExternalLink, Loader2, CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react';
+import {
+  CreditCard,
+  ExternalLink,
+  Loader2,
+  CheckCircle2,
+  AlertTriangle,
+  Sparkles,
+  Users,
+  Layers,
+  CalendarClock,
+} from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import {
+  PageHeader,
+  KPICard,
+  StatusBadge,
+  type StatusTone,
+} from '@/components/app';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 
@@ -99,34 +114,72 @@ function BillingPageInner() {
 
   const statusBadge = (() => {
     if (!sub) return null;
-    const map: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-      trialing: { label: 'Essai', color: 'bg-violet-500/15 text-violet-300 border-violet-500/30', icon: CheckCircle2 },
-      active: { label: 'Actif', color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30', icon: CheckCircle2 },
-      past_due: { label: 'Impayé', color: 'bg-amber-500/15 text-amber-300 border-amber-500/30', icon: AlertTriangle },
-      canceled: { label: 'Annulé', color: 'bg-slate-500/15 text-slate-300 border-slate-500/30', icon: AlertTriangle },
-      incomplete: { label: 'Incomplet', color: 'bg-slate-500/15 text-slate-300 border-slate-500/30', icon: AlertTriangle },
-      unpaid: { label: 'Impayé', color: 'bg-red-500/15 text-red-300 border-red-500/30', icon: AlertTriangle },
+    const map: Record<string, { label: string; tone: StatusTone }> = {
+      trialing: { label: 'Essai', tone: 'violet' },
+      active: { label: 'Actif', tone: 'success' },
+      past_due: { label: 'Impayé', tone: 'warning' },
+      canceled: { label: 'Annulé', tone: 'neutral' },
+      incomplete: { label: 'Incomplet', tone: 'neutral' },
+      unpaid: { label: 'Impayé', tone: 'danger' },
     };
-    const m = map[sub.status] ?? { label: sub.status, color: 'bg-slate-500/15 text-slate-300 border-slate-500/30', icon: CheckCircle2 };
-    const Icon = m.icon;
-    return (
-      <Badge variant="outline" className={`${m.color} gap-1`}>
-        <Icon className="h-3 w-3" /> {m.label}
-      </Badge>
-    );
+    const m = map[sub.status] ?? { label: sub.status, tone: 'neutral' as StatusTone };
+    return <StatusBadge tone={m.tone}>{m.label}</StatusBadge>;
   })();
+
+  // KPIs simples — fournit un repère "usage" sans nouvelle requête.
+  const nextBillingDate = sub?.current_period_end
+    ? new Date(sub.current_period_end).toLocaleDateString('fr-FR')
+    : '—';
+  const planFeatureCount = plan?.features?.length ?? 0;
 
   return (
     <AppShell>
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-          <CreditCard className="h-7 w-7 text-violet-glow" />
-          Abonnement & facturation
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Plan de l&apos;organisation, limites, et gestion du paiement.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Facturation"
+        title={
+          <>
+            Abonnement & <span className="qc-italic-accent font-editorial italic">usage.</span>
+          </>
+        }
+        description="Plan de l'organisation, limites, et gestion du paiement."
+        actions={
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-violet-glow" />
+            {statusBadge}
+          </div>
+        }
+      />
+
+      {!loading && !sub?.is_exempt_from_billing && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+          <KPICard
+            icon={Users}
+            label="Plafond consultants"
+            valueText={plan?.max_consultants != null ? String(plan.max_consultants) : '∞'}
+            tone="magenta"
+            hint={plan?.name ? `Plan ${plan.name}` : undefined}
+          />
+          <KPICard
+            icon={Layers}
+            label="Modules inclus"
+            value={planFeatureCount}
+            tone="violet"
+          />
+          <KPICard
+            icon={CalendarClock}
+            label="Prochaine facture"
+            valueText={nextBillingDate}
+            tone="cyan"
+            hint={
+              sub?.cancel_at_period_end
+                ? 'Abonnement résilié'
+                : sub?.status === 'trialing'
+                  ? 'Fin d\'essai'
+                  : undefined
+            }
+          />
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-12">

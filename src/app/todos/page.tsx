@@ -19,6 +19,7 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageHeader, StatusBadge, type StatusTone } from '@/components/app';
 import {
   Dialog,
   DialogContent,
@@ -81,10 +82,10 @@ const PRIORITY_LABEL: Record<Todo['priority'], string> = {
   low: 'Basse',
 };
 
-const PRIORITY_STYLE: Record<Todo['priority'], string> = {
-  high: 'border-red-500/40 bg-red-500/10 text-red-300',
-  medium: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
-  low: 'border-slate-500/40 bg-slate-500/10 text-slate-300',
+const PRIORITY_TONE: Record<Todo['priority'], StatusTone> = {
+  high: 'danger',
+  medium: 'warning',
+  low: 'neutral',
 };
 
 const PRIORITY_RANK: Record<Todo['priority'], number> = { high: 0, medium: 1, low: 2 };
@@ -393,28 +394,33 @@ export default function TodosPage() {
 
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-            <CheckSquare className="h-7 w-7 text-violet-glow" />
-            To do list
-          </h1>
-          <p className="text-muted-foreground mt-1 inline-flex items-center gap-1.5 text-sm">
+      <PageHeader
+        eyebrow="Productivité"
+        title={
+          <>
+            To do{' '}
+            <span className="qc-italic-accent font-editorial italic">list.</span>
+          </>
+        }
+        description={
+          <span className="inline-flex items-center gap-1.5">
             <Lock className="h-3.5 w-3.5 text-violet-glow" />
             Tes tâches privées + les tâches partagées par l&apos;équipe — clique sur l&apos;icône <Users className="inline h-3.5 w-3.5" /> pour partager.
-          </p>
-        </div>
-        <Button
-          onClick={() => {
-            setEditing(null);
-            setShowForm(true);
-          }}
-          className="bg-gradient-to-r from-violet-glow to-magenta-neon hover:opacity-95"
-        >
-          <Plus className="h-4 w-4" />
-          Nouvelle tâche
-        </Button>
-      </div>
+          </span>
+        }
+        actions={
+          <Button
+            onClick={() => {
+              setEditing(null);
+              setShowForm(true);
+            }}
+            className="bg-gradient-to-r from-violet-glow to-magenta-neon hover:opacity-95"
+          >
+            <Plus className="h-4 w-4" />
+            Nouvelle tâche
+          </Button>
+        }
+      />
 
       {/* Une seule barre maintenant : status (À faire / Terminées / Toutes)
           appliqué aux deux tableaux. Le "scope" est devenu superflu puisque
@@ -557,9 +563,9 @@ export default function TodosPage() {
                   >
                     {t.title}
                   </span>
-                  <Badge variant="outline" className={cn('text-[10px]', PRIORITY_STYLE[t.priority])}>
+                  <StatusBadge tone={PRIORITY_TONE[t.priority]} dot={false}>
                     {PRIORITY_LABEL[t.priority]}
-                  </Badge>
+                  </StatusBadge>
                   {t.shared && (
                     <Badge
                       variant="outline"
@@ -915,9 +921,9 @@ function TodoDetailDialog({
             </span>
           </DialogTitle>
           <DialogDescription className="flex items-center gap-2 flex-wrap pt-1">
-            <Badge variant="outline" className={cn('text-[10px]', PRIORITY_STYLE[todo.priority])}>
+            <StatusBadge tone={PRIORITY_TONE[todo.priority]} dot={false}>
               Priorité {PRIORITY_LABEL[todo.priority].toLowerCase()}
-            </Badge>
+            </StatusBadge>
             {todo.shared && (
               <Badge
                 variant="outline"

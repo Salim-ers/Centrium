@@ -5,12 +5,17 @@ import { toast } from 'sonner';
 import { Palette, Upload, Trash2, Loader2, RotateCcw, LayoutTemplate, PenLine } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { useOrganization } from '@/lib/auth/context';
+import {
+  PageHeader,
+  SectionHeader,
+  AppCard,
+  AppCardBody,
+} from '@/components/app';
 
 const DEFAULT_PRIMARY = '#6d28d9';
 const DEFAULT_ACCENT = '#e11d74';
@@ -248,15 +253,17 @@ export default function BrandingSettingsPage() {
 
   return (
     <AppShell>
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-          <Palette className="h-7 w-7 text-violet-glow" />
-          Identité visuelle
-        </h1>
-        <p className="text-sm text-muted-foreground mt-2">
-          Ces éléments définissent le branding visible par tes consultants et tes clients : sidebar, CV générés, contrats, factures, CRA.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Organisation"
+        title={
+          <>
+            Identité{' '}
+            <span className="qc-italic-accent font-editorial italic">visuelle.</span>
+          </>
+        }
+        description="Branding affiché à vos consultants et à vos clients : sidebar, CV générés, contrats, factures, CRA."
+        actions={<Palette className="h-5 w-5 text-magenta" />}
+      />
 
       {!isAdmin && (
         <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
@@ -270,15 +277,20 @@ export default function BrandingSettingsPage() {
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Logo</CardTitle>
-                <CardDescription>
-                  PNG, JPG, WebP ou SVG — 5 Mo maximum. Affiché en en-tête des CV.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+          <div className="space-y-8">
+            <section>
+              <SectionHeader
+                eyebrow="Assets"
+                title={
+                  <>
+                    Logo{' '}
+                    <span className="qc-italic-accent font-editorial italic">de marque.</span>
+                  </>
+                }
+                description="PNG, JPG, WebP ou SVG — 5 Mo maximum. Affiché en en-tête des CV."
+              />
+              <AppCard variant="default" tone="magenta">
+                <AppCardBody size="md">
                 <div className="flex items-start gap-5">
                   <div className="h-24 w-40 rounded-md border border-border bg-neutral-900/40 flex items-center justify-center overflow-hidden">
                     {logoUrl ? (
@@ -340,21 +352,24 @@ export default function BrandingSettingsPage() {
                     </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+                </AppCardBody>
+              </AppCard>
+            </section>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <PenLine className="h-4 w-4" />
-                  Signature officielle
-                </CardTitle>
-                <CardDescription>
-                  PNG transparent fortement recommandé — 3 Mo maximum. Incrustée dans les
-                  contrats, CRA et factures à la place du rendu texte stylisé.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+            <section>
+              <SectionHeader
+                eyebrow="Document officiel"
+                title={
+                  <>
+                    Signature{' '}
+                    <span className="qc-italic-accent font-editorial italic">officielle.</span>
+                  </>
+                }
+                description="PNG transparent fortement recommandé — 3 Mo maximum. Incrustée dans les contrats, CRA et factures à la place du rendu texte stylisé."
+                actions={<PenLine className="h-4 w-4 text-magenta" />}
+              />
+              <AppCard variant="default" tone="violet">
+                <AppCardBody size="md">
                 <div className="flex items-start gap-5">
                   <div className="h-24 w-40 rounded-md border border-border bg-neutral-50 flex items-center justify-center overflow-hidden">
                     {signatureUrl ? (
@@ -418,46 +433,60 @@ export default function BrandingSettingsPage() {
                     </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+                </AppCardBody>
+              </AppCard>
+            </section>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Texte de marque</CardTitle>
-                <CardDescription>
-                  Affiché dans le footer des CV, contrats et factures (ex: "MaSociété — IT Services & Consulting").
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="brand_name">Nom de marque</Label>
-                  <Input
-                    id="brand_name"
-                    value={brandName}
-                    onChange={(e) => setBrandName(e.target.value)}
-                    placeholder={initial?.name ?? 'Votre ESN'}
-                    disabled={!isAdmin}
-                    maxLength={120}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="footer_tagline">Tagline du footer</Label>
-                  <Input
-                    id="footer_tagline"
-                    value={footerTagline}
-                    onChange={(e) => setFooterTagline(e.target.value)}
-                    placeholder="IT Services & Consulting"
-                    disabled={!isAdmin}
-                    maxLength={160}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <section>
+              <SectionHeader
+                eyebrow="Mentions"
+                title={
+                  <>
+                    Texte{' '}
+                    <span className="qc-italic-accent font-editorial italic">de marque.</span>
+                  </>
+                }
+                description={`Affiché dans le footer des CV, contrats et factures (ex: "MaSociété — IT Services & Consulting").`}
+              />
+              <AppCard variant="default" tone="cyan">
+                <AppCardBody size="md" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="brand_name">Nom de marque</Label>
+                    <Input
+                      id="brand_name"
+                      value={brandName}
+                      onChange={(e) => setBrandName(e.target.value)}
+                      placeholder={initial?.name ?? 'Votre ESN'}
+                      disabled={!isAdmin}
+                      maxLength={120}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="footer_tagline">Tagline du footer</Label>
+                    <Input
+                      id="footer_tagline"
+                      value={footerTagline}
+                      onChange={(e) => setFooterTagline(e.target.value)}
+                      placeholder="IT Services & Consulting"
+                      disabled={!isAdmin}
+                      maxLength={160}
+                    />
+                  </div>
+                </AppCardBody>
+              </AppCard>
+            </section>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center justify-between">
-                  Couleurs
+            <section>
+              <SectionHeader
+                eyebrow="Palette"
+                title={
+                  <>
+                    Couleurs{' '}
+                    <span className="qc-italic-accent font-editorial italic">de marque.</span>
+                  </>
+                }
+                description="Séparateurs, intitulés de poste et accents décoratifs des CV."
+                actions={
                   <Button
                     type="button"
                     variant="ghost"
@@ -468,74 +497,81 @@ export default function BrandingSettingsPage() {
                     <RotateCcw className="h-3.5 w-3.5" />
                     Réinitialiser
                   </Button>
-                </CardTitle>
-                <CardDescription>
-                  Séparateurs, intitulés de poste et accents décoratifs des CV.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2">
-                <ColorField
-                  label="Couleur principale"
-                  hint="Utilisée pour les titres, bandeaux et intitulés."
-                  value={primary}
-                  onChange={setPrimary}
-                  disabled={!isAdmin}
-                />
-                <ColorField
-                  label="Couleur d'accent"
-                  hint="Utilisée pour les puces, séparateurs et highlights."
-                  value={accent}
-                  onChange={setAccent}
-                  disabled={!isAdmin}
-                />
-              </CardContent>
-            </Card>
+                }
+              />
+              <AppCard variant="default" tone="rose">
+                <AppCardBody size="md" className="grid gap-4 sm:grid-cols-2">
+                  <ColorField
+                    label="Couleur principale"
+                    hint="Utilisée pour les titres, bandeaux et intitulés."
+                    value={primary}
+                    onChange={setPrimary}
+                    disabled={!isAdmin}
+                  />
+                  <ColorField
+                    label="Couleur d'accent"
+                    hint="Utilisée pour les puces, séparateurs et highlights."
+                    value={accent}
+                    onChange={setAccent}
+                    disabled={!isAdmin}
+                  />
+                </AppCardBody>
+              </AppCard>
+            </section>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <LayoutTemplate className="h-4 w-4" />
-                  Template CV par défaut
-                </CardTitle>
-                <CardDescription>
-                  Layout présélectionné à l'ouverture du CV Optimizer. Chaque utilisateur peut
-                  toujours changer ponctuellement.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {TEMPLATE_OPTIONS.map((opt) => {
-                  const selected = defaultTemplate === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      disabled={!isAdmin}
-                      onClick={() => setDefaultTemplate(opt.id)}
-                      className={[
-                        'w-full rounded-md border px-4 py-3 text-left transition-colors',
-                        'disabled:cursor-not-allowed disabled:opacity-60',
-                        selected
-                          ? 'border-violet-glow/70 bg-violet-glow/10'
-                          : 'border-border hover:border-border/80 hover:bg-muted/30',
-                      ].join(' ')}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-sm">{opt.name}</span>
-                        {selected && (
-                          <span className="text-[10px] uppercase tracking-wider text-violet-glow font-bold">
-                            Sélectionné
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">{opt.description}</p>
-                    </button>
-                  );
-                })}
-              </CardContent>
-            </Card>
+            <section>
+              <SectionHeader
+                eyebrow="Layout"
+                title={
+                  <>
+                    Template{' '}
+                    <span className="qc-italic-accent font-editorial italic">par défaut.</span>
+                  </>
+                }
+                description="Layout présélectionné à l'ouverture du CV Optimizer. Chaque utilisateur peut toujours changer ponctuellement."
+                actions={<LayoutTemplate className="h-4 w-4 text-magenta" />}
+              />
+              <AppCard variant="default" tone="amber">
+                <AppCardBody size="md" className="space-y-2">
+                  {TEMPLATE_OPTIONS.map((opt) => {
+                    const selected = defaultTemplate === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        disabled={!isAdmin}
+                        onClick={() => setDefaultTemplate(opt.id)}
+                        className={[
+                          'w-full rounded-md border px-4 py-3 text-left transition-colors',
+                          'disabled:cursor-not-allowed disabled:opacity-60',
+                          selected
+                            ? 'border-violet-glow/70 bg-violet-glow/10'
+                            : 'border-border hover:border-border/80 hover:bg-muted/30',
+                        ].join(' ')}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-sm">{opt.name}</span>
+                          {selected && (
+                            <span className="text-[10px] uppercase tracking-wider text-violet-glow font-bold">
+                              Sélectionné
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">{opt.description}</p>
+                      </button>
+                    );
+                  })}
+                </AppCardBody>
+              </AppCard>
+            </section>
 
             <div className="flex justify-end">
-              <Button type="button" disabled={!isAdmin || !dirty || saving} onClick={save}>
+              <Button
+                type="button"
+                disabled={!isAdmin || !dirty || saving}
+                onClick={save}
+                className="bg-gradient-to-r from-violet-glow to-magenta-neon hover:opacity-95"
+              >
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                 Enregistrer
               </Button>
@@ -543,12 +579,18 @@ export default function BrandingSettingsPage() {
           </div>
 
           <aside className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Aperçu</CardTitle>
-                <CardDescription>Rendu appliqué sur les CV.</CardDescription>
-              </CardHeader>
-              <CardContent>
+            <SectionHeader
+              eyebrow="Preview"
+              title={
+                <>
+                  Aperçu{' '}
+                  <span className="qc-italic-accent font-editorial italic">CV.</span>
+                </>
+              }
+              description="Rendu appliqué sur les CV."
+            />
+            <AppCard variant="luminous" tone="magenta">
+              <AppCardBody size="md">
                 <div className="rounded-md border border-border bg-white text-neutral-900 p-5">
                   <div className="h-12 flex items-center">
                     {logoUrl ? (
@@ -584,8 +626,8 @@ export default function BrandingSettingsPage() {
                     <span className="uppercase tracking-wider">Confidentiel</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </AppCardBody>
+            </AppCard>
           </aside>
         </div>
       )}

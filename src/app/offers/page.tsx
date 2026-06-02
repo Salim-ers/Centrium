@@ -18,6 +18,10 @@ import {
   Network,
   Search,
   HelpCircle,
+  DoorOpen,
+  Trophy,
+  TrendingUp,
+  Coins,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -25,6 +29,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import {
+  PageHeader,
+  KPICard,
+  AppCard,
+  AppCardBody,
+  EmptyState,
+} from '@/components/app';
 import {
   Table,
   TableBody,
@@ -274,54 +285,101 @@ export default function OffersPage() {
     setOffers((prev) => (prev ?? []).filter((x) => x.id !== o.id));
   }
 
+  // KPIs : ouvertes (non archivées) / avec CV poussé / archivées / TJM moyen
+  const openCount = !showArchived ? availableCount : 0;
+  const tjmValues = allOffers
+    .map((o) => o.daily_rate_max ?? o.daily_rate_min ?? null)
+    .filter((v): v is number => v != null && v > 0);
+  const avgTjm =
+    tjmValues.length > 0
+      ? Math.round(tjmValues.reduce((s, v) => s + v, 0) / tjmValues.length)
+      : 0;
+
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-            <Briefcase className="h-7 w-7 text-violet-glow" />
-            Offres &amp; missions
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {offers.length} offre{offers.length > 1 ? 's' : ''}
-            {showArchived ? ' archivée' : ''} • besoins clients qui alimentent le
-            matching
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setShowArchived((v) => !v)}
-            title={showArchived ? 'Revenir aux offres actives' : 'Voir les offres archivées'}
-          >
-            {showArchived ? (
+      <PageHeader
+        eyebrow="Commercial"
+        title={
+          showArchived ? (
+            <>
+              Offres <span className="qc-italic-accent font-editorial italic">archivées.</span>
+            </>
+          ) : (
+            <>
+              Offres &amp; <span className="qc-italic-accent font-editorial italic">missions.</span>
+            </>
+          )
+        }
+        description={`${offers.length} offre${offers.length > 1 ? 's' : ''}${showArchived ? ' archivée' : ''} — besoins clients qui alimentent le matching.`}
+        actions={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => setShowArchived((v) => !v)}
+              title={showArchived ? 'Revenir aux offres actives' : 'Voir les offres archivées'}
+            >
+              {showArchived ? (
+                <>
+                  <ArchiveRestore className="h-4 w-4" />
+                  Voir les actives
+                </>
+              ) : (
+                <>
+                  <Archive className="h-4 w-4" />
+                  Voir les archivées
+                </>
+              )}
+            </Button>
+            {!showArchived && (
               <>
-                <ArchiveRestore className="h-4 w-4" />
-                Voir les actives
-              </>
-            ) : (
-              <>
-                <Archive className="h-4 w-4" />
-                Voir les archivées
+                <Button variant="outline" asChild>
+                  <Link href="/matching" className="inline-flex items-center gap-1.5">
+                    <Target className="h-4 w-4" />
+                    Lancer matching
+                  </Link>
+                </Button>
+                <Button onClick={openCreate}>
+                  <Plus className="h-4 w-4" />
+                  Nouvelle offre
+                </Button>
               </>
             )}
-          </Button>
-          {!showArchived && (
-            <>
-              <Button variant="outline" asChild>
-                <Link href="/matching" className="inline-flex items-center gap-1.5">
-                  <Target className="h-4 w-4" />
-                  Lancer matching
-                </Link>
-              </Button>
-              <Button onClick={openCreate}>
-                <Plus className="h-4 w-4" />
-                Nouvelle offre
-              </Button>
-            </>
-          )}
+          </>
+        }
+      />
+
+      {!showArchived && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <KPICard
+            label="Offres ouvertes"
+            value={openCount}
+            icon={DoorOpen}
+            tone="cyan"
+            hint="disponibles pour matching"
+          />
+          <KPICard
+            label="Avec CV poussé"
+            value={pushedCount}
+            icon={Trophy}
+            tone="magenta"
+            hint="en proposition / validation"
+          />
+          <KPICard
+            label="Total offres"
+            value={allOffers.length}
+            icon={TrendingUp}
+            tone="violet"
+          />
+          <KPICard
+            label="TJM moyen"
+            value={avgTjm}
+            prefix="€"
+            icon={Coins}
+            tone="emerald"
+            hint={tjmValues.length > 0 ? `sur ${tjmValues.length} offre${tjmValues.length > 1 ? 's' : ''}` : 'aucune donnée'}
+          />
         </div>
-      </div>
+      )}
 
       <JobOfferFormDialog
         open={dialogOpen}
@@ -430,8 +488,27 @@ export default function OffersPage() {
         )}
       </div>
 
-      <Card>
-        <CardContent className="p-0">
+      {!loading && offers.length === 0 ? (
+        <EmptyState
+          icon={Briefcase}
+          title={showArchived ? 'Aucune offre archivée' : 'Aucune offre pour l’instant'}
+          description={
+            showArchived
+              ? 'Les offres archivées apparaîtront ici.'
+              : 'Crée ta première offre pour alimenter le matching et le CRM.'
+          }
+          action={
+            !showArchived ? (
+              <Button onClick={openCreate}>
+                <Plus className="h-4 w-4" />
+                Nouvelle offre
+              </Button>
+            ) : undefined
+          }
+        />
+      ) : (
+      <AppCard>
+        <div className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -450,12 +527,6 @@ export default function OffersPage() {
                 <TableRow>
                   <TableCell colSpan={8}>
                     <div className="h-10 bg-white/[0.02] animate-pulse rounded" />
-                  </TableCell>
-                </TableRow>
-              ) : offers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
-                    Aucune offre. Clique sur « Nouvelle offre » pour en ajouter une.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -646,8 +717,9 @@ export default function OffersPage() {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </AppCard>
+      )}
 
       <PaginationFooter
         pagination={pagination}

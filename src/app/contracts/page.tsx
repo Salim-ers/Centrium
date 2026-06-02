@@ -13,13 +13,22 @@ import {
   CheckCircle2,
   Pencil,
   Trash2,
+  Hourglass,
+  AlertCircle,
+  Coins,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  PageHeader,
+  KPICard,
+  AppCard,
+  EmptyState,
+  StatusBadge,
+  type StatusTone,
+} from '@/components/app';
 import {
   Table,
   TableBody,
@@ -50,15 +59,15 @@ const STATUS_LABEL: Record<ContractStatus, string> = {
   cancelled: 'Annulé',
 };
 
-const STATUS_STYLE: Record<ContractStatus, string> = {
-  draft: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
-  pending_review: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-  sent: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
-  signed: 'bg-violet-500/15 text-violet-300 border-violet-500/30',
-  active: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-  ended: 'bg-slate-600/15 text-slate-400 border-slate-600/30',
-  terminated: 'bg-red-500/15 text-red-300 border-red-500/30',
-  cancelled: 'bg-slate-700/15 text-slate-500 border-slate-700/30',
+const STATUS_TONE: Record<ContractStatus, StatusTone> = {
+  draft: 'pending',
+  pending_review: 'warning',
+  sent: 'info',
+  signed: 'success',
+  active: 'success',
+  ended: 'neutral',
+  terminated: 'danger',
+  cancelled: 'neutral',
 };
 
 type View = 'active' | 'archived';
@@ -147,26 +156,80 @@ export default function ContractsPage() {
     setDialogOpen(true);
   }
 
+  // KPIs : signés ce mois / en attente signature / expirés / total annuel
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const signedThisMonth = contracts.filter((c) => {
+    if (c.status !== 'signed' && c.status !== 'active') return false;
+    const d = c.start_date ? new Date(c.start_date) : null;
+    return d && d >= startOfMonth;
+  }).length;
+  const pendingSignature = contracts.filter(
+    (c) => c.status === 'sent' || c.status === 'pending_review',
+  ).length;
+  const expiredCount = contracts.filter((c) => {
+    if (!c.end_date) return false;
+    return new Date(c.end_date) < now && (c.status === 'active' || c.status === 'signed' || c.status === 'ended');
+  }).length;
+  const totalAnnual = contracts
+    .filter((c) => {
+      const d = c.start_date ? new Date(c.start_date) : null;
+      return d && d >= startOfYear;
+    })
+    .reduce((sum, c) => sum + (Number(c.daily_rate_eur) || 0), 0);
+
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-            <FileSignature className="h-7 w-7 text-violet-glow" />
-            Contrats
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {contracts.length} contrat{contracts.length > 1 ? 's' : ''}
-            {view === 'archived' ? ' archivé' : ''}
-            {contracts.length > 1 && view === 'archived' ? 's' : ''} — assistance technique,
-            sous-traitance, avenants
-          </p>
+      <PageHeader
+        eyebrow="Commercial"
+        title={
+          <>
+            Suivi <span className="qc-italic-accent font-editorial italic">contrats.</span>
+          </>
+        }
+        description={`${contracts.length} contrat${contracts.length > 1 ? 's' : ''}${
+          view === 'archived' ? ' archivé' : ''
+        }${contracts.length > 1 && view === 'archived' ? 's' : ''} — assistance technique, sous-traitance, avenants.`}
+        actions={
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4" />
+            Nouveau contrat
+          </Button>
+        }
+      />
+
+      {view === 'active' && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <KPICard
+            label="Signés ce mois"
+            value={signedThisMonth}
+            icon={CheckCircle2}
+            tone="emerald"
+          />
+          <KPICard
+            label="En attente signature"
+            value={pendingSignature}
+            icon={Hourglass}
+            tone="amber"
+          />
+          <KPICard
+            label="Expirés"
+            value={expiredCount}
+            icon={AlertCircle}
+            tone="rose"
+            hint="à clôturer ou renouveler"
+          />
+          <KPICard
+            label="TJM annuel cumulé"
+            value={totalAnnual}
+            prefix="€"
+            icon={Coins}
+            tone="violet"
+            hint={`depuis le 1er janvier`}
+          />
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" />
-          Nouveau contrat
-        </Button>
-      </div>
+      )}
 
       <Tabs value={view} onValueChange={(v) => setView(v as View)} className="space-y-4">
         <TabsList>
@@ -178,8 +241,27 @@ export default function ContractsPage() {
         </TabsList>
 
         <TabsContent value={view}>
-          <Card>
-            <CardContent className="p-0">
+          {!loading && contracts.length === 0 ? (
+            <EmptyState
+              icon={FileSignature}
+              title={view === 'archived' ? 'Aucun contrat archivé' : 'Aucun contrat pour l’instant'}
+              description={
+                view === 'archived'
+                  ? 'Les contrats archivés apparaîtront ici.'
+                  : 'Crée ton premier contrat d’assistance technique pour démarrer le suivi.'
+              }
+              action={
+                view === 'active' ? (
+                  <Button onClick={openCreate}>
+                    <Plus className="h-4 w-4" />
+                    Nouveau contrat
+                  </Button>
+                ) : undefined
+              }
+            />
+          ) : (
+          <AppCard>
+            <div className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -197,17 +279,6 @@ export default function ContractsPage() {
                     <TableRow>
                       <TableCell colSpan={7}>
                         <div className="h-10 bg-white/[0.02] animate-pulse rounded" />
-                      </TableCell>
-                    </TableRow>
-                  ) : contracts.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="py-16 text-center text-muted-foreground">
-                        <FileSignature className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                        {view === 'archived' ? (
-                          <p>Aucun contrat archivé.</p>
-                        ) : (
-                          <p>Aucun contrat. Crée ton premier contrat d'assistance technique.</p>
-                        )}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -233,9 +304,9 @@ export default function ContractsPage() {
                           {formatCurrency(c.daily_rate_eur)}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={STATUS_STYLE[c.status]}>
+                          <StatusBadge tone={STATUS_TONE[c.status]}>
                             {STATUS_LABEL[c.status]}
-                          </Badge>
+                          </StatusBadge>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-end">
@@ -315,8 +386,9 @@ export default function ContractsPage() {
                   )}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
+            </div>
+          </AppCard>
+          )}
         </TabsContent>
       </Tabs>
 

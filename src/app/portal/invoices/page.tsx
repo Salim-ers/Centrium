@@ -2,23 +2,30 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Receipt, CheckCircle2, Eye } from 'lucide-react';
+import { Receipt, CheckCircle2, Eye, Wallet, TrendingUp, AlertCircle, Hourglass } from 'lucide-react';
 
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+  PageHeader,
+  KPICard,
+  AppCard,
+  StatusBadge,
+  EmptyState,
+  DataRow,
+  type StatusTone,
+} from '@/components/app';
 import { createClient } from '@/lib/supabase/client';
 import { useBrandName } from '@/components/brand/BrandingStyles';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import type { Invoice } from '@/types';
+
+const INVOICE_TONE: Record<Invoice['status'], { tone: StatusTone; label: string }> = {
+  draft: { tone: 'pending', label: 'Brouillon' },
+  sent: { tone: 'info', label: 'Envoyée' },
+  paid: { tone: 'success', label: 'Payée' },
+  overdue: { tone: 'danger', label: 'En retard' },
+  cancelled: { tone: 'neutral', label: 'Annulée' },
+};
 
 export default function PortalInvoicesPage() {
   const brandName = useBrandName();
@@ -39,91 +46,126 @@ export default function PortalInvoicesPage() {
     })();
   }, []);
 
-  const totalPaid = invoices.reduce((s, i) => s + Number(i.amount_ht), 0);
+  const currentYear = new Date().getFullYear();
+  const ytdPaid = invoices.filter(
+    (i) => i.status === 'paid' && i.payment_date && new Date(i.payment_date).getFullYear() === currentYear,
+  );
+  const totalPaidYtd = ytdPaid.reduce((s, i) => s + Number(i.amount_ht), 0);
+  const overdue = invoices.filter((i) => i.status === 'overdue');
+  const upcoming = invoices.filter((i) => i.status === 'sent');
+  const totalYtd = invoices
+    .filter((i) => new Date(i.issue_date).getFullYear() === currentYear)
+    .reduce((s, i) => s + Number(i.amount_ht), 0);
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-          <Receipt className="h-7 w-7 text-violet-glow" />
-          Mes factures
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Factures payées · Total encaissé :{' '}
-          <span className="text-emerald-400 font-semibold">{formatCurrency(totalPaid)}</span>
-        </p>
+      <PageHeader
+        eyebrow="Mon espace"
+        title={<>Mes <span className="qc-italic-accent font-editorial italic">factures.</span></>}
+        description={`Suivez vos factures émises par ${brandName} et les paiements reçus.`}
+      />
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <KPICard
+          label="À venir"
+          value={upcoming.length}
+          icon={Hourglass}
+          tone="cyan"
+          hint="Émises non payées"
+        />
+        <KPICard
+          label="Payées YTD"
+          value={ytdPaid.length}
+          icon={CheckCircle2}
+          tone="emerald"
+          hint={`${currentYear}`}
+        />
+        <KPICard
+          label="En retard"
+          value={overdue.length}
+          icon={AlertCircle}
+          tone="rose"
+        />
+        <KPICard
+          label="Total YTD"
+          value={totalYtd}
+          prefix="€"
+          icon={TrendingUp}
+          tone="magenta"
+          hint="HT cumulé"
+        />
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>N° Facture</TableHead>
-                <TableHead>Période</TableHead>
-                <TableHead>Émission</TableHead>
-                <TableHead>Payée le</TableHead>
-                <TableHead>Montant HT</TableHead>
-                <TableHead>TTC</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={7}>
-                    <div className="h-10 bg-white/[0.02] animate-pulse rounded" />
-                  </TableCell>
-                </TableRow>
-              ) : invoices.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                    Aucune facture payée pour le moment. Les factures apparaissent ici dès
-                    qu&apos;elles sont marquées payées côté {brandName}.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                invoices.map((inv) => (
-                  <TableRow key={inv.id}>
-                    <TableCell className="font-mono font-medium">{inv.invoice_number}</TableCell>
-                    <TableCell>{inv.period_label ?? '—'}</TableCell>
-                    <TableCell className="text-xs">{formatDate(inv.issue_date)}</TableCell>
-                    <TableCell className="text-xs">
-                      <span className="inline-flex items-center gap-1 text-emerald-400">
-                        <CheckCircle2 className="h-3 w-3" />
-                        {formatDate(inv.payment_date)}
-                      </span>
-                    </TableCell>
-                    <TableCell>{formatCurrency(Number(inv.amount_ht))}</TableCell>
-                    <TableCell className="font-semibold">
-                      {formatCurrency(Number(inv.amount_ttc))}
-                    </TableCell>
-                    <TableCell className="text-right">
+      {loading ? (
+        <div className="h-40 rounded-2xl bg-white/[0.02] animate-pulse" />
+      ) : invoices.length === 0 ? (
+        <EmptyState
+          icon={Receipt}
+          title="Aucune facture pour le moment"
+          description={`Les factures apparaissent ici dès qu'elles sont émises côté ${brandName}.`}
+        />
+      ) : (
+        <AppCard>
+          <div>
+            {invoices.map((inv) => {
+              const s = INVOICE_TONE[inv.status];
+              return (
+                <DataRow
+                  key={inv.id}
+                  leading={
+                    inv.status === 'paid' ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    ) : (
+                      <Wallet className="h-4 w-4 text-muted-foreground/70" />
+                    )
+                  }
+                  primary={
+                    <span className="flex items-center gap-2">
+                      <span className="font-mono">{inv.invoice_number}</span>
+                      <StatusBadge tone={s.tone}>{s.label}</StatusBadge>
+                    </span>
+                  }
+                  secondary={
+                    <>
+                      {inv.period_label ?? '—'} · Émise le {formatDate(inv.issue_date)}
+                      {inv.status === 'paid' && inv.payment_date && (
+                        <> · Payée le {formatDate(inv.payment_date)}</>
+                      )}
+                    </>
+                  }
+                  trailing={
+                    <>
+                      <div className="text-right">
+                        <div className="font-semibold text-foreground">
+                          {formatCurrency(Number(inv.amount_ttc))}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {formatCurrency(Number(inv.amount_ht))} HT
+                        </div>
+                      </div>
                       <Button size="sm" variant="ghost" asChild>
                         <Link href={`/portal/invoices/${inv.id}`}>
                           <Eye className="h-3 w-3" />
                           Voir
                         </Link>
                       </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                    </>
+                  }
+                />
+              );
+            })}
+          </div>
+        </AppCard>
+      )}
 
       {invoices.length > 0 && (
-        <div className="mt-4 flex items-center gap-2 p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5">
-          <Badge
-            variant="outline"
-            className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
-          >
-            {invoices.length} facture{invoices.length > 1 ? 's' : ''} payée{invoices.length > 1 ? 's' : ''}
-          </Badge>
+        <div className="mt-4 flex items-center gap-3 px-4 py-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5">
+          <StatusBadge tone="success">
+            {ytdPaid.length} payée{ytdPaid.length > 1 ? 's' : ''} en {currentYear}
+          </StatusBadge>
           <span className="text-xs text-muted-foreground">
-            Les factures non encore payées ne sont pas visibles ici.
+            Total encaissé YTD :{' '}
+            <span className="text-emerald-400 font-semibold">{formatCurrency(totalPaidYtd)}</span>
           </span>
         </div>
       )}

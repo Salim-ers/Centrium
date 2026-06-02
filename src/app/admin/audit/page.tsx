@@ -1,13 +1,22 @@
 import Link from 'next/link';
-import { ArrowLeft, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Activity, AlertTriangle, ShieldAlert, Users as UsersIcon } from 'lucide-react';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth/guards';
 import { redirect } from 'next/navigation';
 
 import { AuditTable } from './AuditTable';
+import {
+  PageHeader,
+  SectionHeader,
+  KPICard,
+  AppCard,
+  AppCardBody,
+} from '@/components/app';
 
 export const dynamic = 'force-dynamic';
+
+const CRITICAL_ACTIONS = new Set(['deleted', 'archived', 'requested']);
 
 /**
  * Page /admin/audit — accessible UNIQUEMENT au super_admin (gate
@@ -30,12 +39,20 @@ export default async function AdminAuditPage() {
     .order('created_at', { ascending: false })
     .limit(200);
 
+  const list = rows ?? [];
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+  const last24 = list.filter((r) => now - new Date(r.created_at).getTime() < day).length;
+  const last7d = list.filter((r) => now - new Date(r.created_at).getTime() < 7 * day).length;
+  const critical = list.filter((r) => CRITICAL_ACTIONS.has(r.action)).length;
+  const uniqueUsers = new Set(list.map((r) => r.user_id).filter(Boolean)).size;
+
   return (
     <div className="min-h-screen bg-background text-white">
       <header className="border-b border-hairline bg-card/40 backdrop-blur-xl sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <ShieldAlert className="h-6 w-6 text-violet-glow" />
+            <ShieldAlert className="h-6 w-6 text-magenta" />
             <div>
               <h1 className="font-display text-lg font-bold tracking-tight">
                 Audit &amp; conformité
@@ -56,21 +73,70 @@ export default async function AdminAuditPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="rounded-2xl border border-hairline bg-card/40 backdrop-blur-xl p-6">
-          <div className="mb-4 flex items-center justify-between flex-wrap gap-3">
-            <div>
-              <h2 className="font-display text-base font-semibold">
-                {rows?.length ?? 0} dernières activités
-              </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Source : table <code className="text-violet-300">activities</code>.
-                À étendre via <code className="text-violet-300">logAudit()</code>{' '}
-                dans les services métier.
-              </p>
-            </div>
-          </div>
-          <AuditTable rows={rows ?? []} />
+        <PageHeader
+          eyebrow="Admin"
+          title={
+            <>
+              Journal{' '}
+              <span className="qc-italic-accent font-editorial italic">d&apos;audit.</span>
+            </>
+          }
+          description={
+            <>
+              Source : table <code className="text-magenta">activities</code>. À étendre
+              via <code className="text-magenta">logAudit()</code> dans les services
+              métier.
+            </>
+          }
+        />
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+          <KPICard
+            label="Événements 24h"
+            value={last24}
+            icon={Activity}
+            tone="magenta"
+            hint="Sur la dernière journée"
+          />
+          <KPICard
+            label="Événements 7j"
+            value={last7d}
+            icon={Activity}
+            tone="violet"
+            hint="Sur la dernière semaine"
+          />
+          <KPICard
+            label="Critiques"
+            value={critical}
+            icon={AlertTriangle}
+            tone="rose"
+            hint="Suppressions, archives, demandes"
+          />
+          <KPICard
+            label="Utilisateurs actifs"
+            value={uniqueUsers}
+            icon={UsersIcon}
+            tone="emerald"
+            hint="Distinct sur 200 derniers"
+          />
         </div>
+
+        <SectionHeader
+          eyebrow="Journal"
+          title={
+            <>
+              {list.length} dernières{' '}
+              <span className="qc-italic-accent font-editorial italic">activités.</span>
+            </>
+          }
+          description="Filtrez par entité et action."
+        />
+
+        <AppCard variant="default">
+          <AppCardBody size="md">
+            <AuditTable rows={list} />
+          </AppCardBody>
+        </AppCard>
       </main>
     </div>
   );

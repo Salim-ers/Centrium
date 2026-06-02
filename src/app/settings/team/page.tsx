@@ -1,16 +1,24 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Users, UserPlus, Copy, Trash2, Mail, Loader2 } from 'lucide-react';
+import {
+  Users,
+  UserPlus,
+  Copy,
+  Trash2,
+  Mail,
+  Loader2,
+  Shield,
+  Hourglass,
+  Armchair,
+} from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -23,6 +31,16 @@ import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import { PlanLimitDialog, type PlanLimitPayload } from '@/components/billing/PlanLimitDialog';
 import { UsageBanner } from '@/components/billing/UsageBanner';
+import {
+  PageHeader,
+  SectionHeader,
+  KPICard,
+  AppCard,
+  AppCardBody,
+  StatusBadge,
+  type StatusTone,
+  EmptyState,
+} from '@/components/app';
 
 type Member = {
   user_id: string;
@@ -51,6 +69,15 @@ const ROLE_LABEL: Record<string, string> = {
   finance: 'Finance',
   viewer: 'Viewer',
   consultant: 'Consultant',
+};
+
+const ROLE_TONE: Record<string, StatusTone> = {
+  admin: 'magenta',
+  business_manager: 'violet',
+  recruiter: 'info',
+  finance: 'info',
+  viewer: 'neutral',
+  consultant: 'neutral',
 };
 
 export default function TeamSettingsPage() {
@@ -174,7 +201,7 @@ export default function TeamSettingsPage() {
 
   async function removeMember(userId: string) {
     if (!activeOrgId) return;
-    if (!confirm('Retirer ce membre de l\'organisation ?')) return;
+    if (!confirm("Retirer ce membre de l'organisation ?")) return;
     const supabase = createClient();
     const { error } = await supabase
       .from('organization_members')
@@ -189,6 +216,16 @@ export default function TeamSettingsPage() {
     setMembers((prev) => prev.filter((m) => m.user_id !== userId));
   }
 
+  // KPI : nb membres, nb admins, invitations en attente
+  const kpis = useMemo(() => {
+    const total = members.length;
+    const admins = members.filter((m) => m.role === 'admin').length;
+    const pending = invitations.length;
+    // Heuristique : on n'a pas l'info de quota ici, on affiche un "—"
+    // pour rester honnête (la UsageBanner reste source de vérité).
+    return { total, admins, pending };
+  }, [members, invitations]);
+
   return (
     <AppShell>
       <PlanLimitDialog
@@ -197,183 +234,274 @@ export default function TeamSettingsPage() {
           if (!o) setPlanLimit(null);
         }}
       />
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-          <Users className="h-7 w-7 text-violet-glow" />
-          Équipe
-        </h1>
-        <p className="text-muted-foreground mt-1">Membres & invitations de l&apos;organisation</p>
-      </div>
+
+      <PageHeader
+        eyebrow="Organisation"
+        title={
+          <>
+            Équipe{' '}
+            <span className="qc-italic-accent font-editorial italic">Centrium.</span>
+          </>
+        }
+        description="Membres, invitations et rôles de l'organisation."
+      />
 
       <UsageBanner resource="members" />
 
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+        <KPICard
+          label="Membres"
+          value={kpis.total}
+          icon={Users}
+          tone="magenta"
+          hint="Compte actif"
+        />
+        <KPICard
+          label="Administrateurs"
+          value={kpis.admins}
+          icon={Shield}
+          tone="violet"
+          hint="Accès total"
+        />
+        <KPICard
+          label="Invitations"
+          value={kpis.pending}
+          icon={Hourglass}
+          tone="amber"
+          hint="En attente"
+        />
+        <KPICard
+          label="Sièges restants"
+          valueText="—"
+          icon={Armchair}
+          tone="emerald"
+          hint="Voir bannière plan"
+        />
+      </div>
+
       {isAdmin && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <UserPlus className="h-4 w-4" />
-              Inviter un membre
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Un email Centrium sera envoyé automatiquement à l&apos;invité avec un lien de
-              connexion. Le lien expire après 7 jours.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={sendInvite} className="flex items-end gap-2">
-              <div className="flex-1 space-y-1.5">
-                <Label htmlFor="email" className="text-xs">
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="collegue@entreprise.fr"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="w-44 space-y-1.5">
-                <Label htmlFor="role" className="text-xs">
-                  Rôle
-                </Label>
-                <Select id="role" value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
-                  <option value="viewer">Viewer</option>
-                  <option value="recruiter">Recruteur</option>
-                  <option value="business_manager">Business Manager</option>
-                  <option value="finance">Finance</option>
-                  <option value="admin">Admin</option>
-                </Select>
-              </div>
-              <Button type="submit" disabled={inviting}>
-                {inviting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Mail className="h-4 w-4" />
-                )}
-                Inviter
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <section className="mb-8">
+          <SectionHeader
+            eyebrow="Invitation"
+            title={
+              <>
+                Inviter un{' '}
+                <span className="qc-italic-accent font-editorial italic">membre.</span>
+              </>
+            }
+            description="Un email Centrium sera envoyé automatiquement à l'invité avec un lien de connexion. Le lien expire après 7 jours."
+            actions={<UserPlus className="h-4 w-4 text-magenta" />}
+          />
+          <AppCard variant="default" tone="magenta">
+            <AppCardBody size="md">
+              <form onSubmit={sendInvite} className="flex items-end gap-2 flex-wrap sm:flex-nowrap">
+                <div className="flex-1 min-w-[180px] space-y-1.5">
+                  <Label htmlFor="email" className="text-xs">
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="collegue@entreprise.fr"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="w-44 space-y-1.5">
+                  <Label htmlFor="role" className="text-xs">
+                    Rôle
+                  </Label>
+                  <Select
+                    id="role"
+                    value={inviteRole}
+                    onChange={(e) => setInviteRole(e.target.value)}
+                  >
+                    <option value="viewer">Viewer</option>
+                    <option value="recruiter">Recruteur</option>
+                    <option value="business_manager">Business Manager</option>
+                    <option value="finance">Finance</option>
+                    <option value="admin">Admin</option>
+                  </Select>
+                </div>
+                <Button
+                  type="submit"
+                  disabled={inviting}
+                  className="bg-gradient-to-r from-violet-glow to-magenta-neon hover:opacity-95"
+                >
+                  {inviting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Mail className="h-4 w-4" />
+                  )}
+                  Inviter
+                </Button>
+              </form>
+            </AppCardBody>
+          </AppCard>
+        </section>
       )}
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-base">Membres ({members.length})</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nom</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Rôle</TableHead>
-                <TableHead>Rejoint le</TableHead>
-                {isAdmin && <TableHead />}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+      <section className="mb-8">
+        <SectionHeader
+          eyebrow="Membres"
+          title={
+            <>
+              Équipe{' '}
+              <span className="qc-italic-accent font-editorial italic">
+                active ({members.length}).
+              </span>
+            </>
+          }
+          description="Tous les utilisateurs de votre organisation."
+        />
+        <AppCard variant="default">
+          <AppCardBody size="sm" className="p-0">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={isAdmin ? 5 : 4}>
-                    <div className="h-8 bg-white/[0.02] animate-pulse rounded" />
-                  </TableCell>
+                  <TableHead>Nom</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Rôle</TableHead>
+                  <TableHead>Rejoint le</TableHead>
+                  {isAdmin && <TableHead />}
                 </TableRow>
-              ) : (
-                members.map((m) => (
-                  <TableRow key={m.user_id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span>
-                          {[m.first_name, m.last_name].filter(Boolean).join(' ') || '—'}
-                        </span>
-                        {m.is_founder && (
-                          <Badge
-                            variant="outline"
-                            className="border-amber-400/50 bg-gradient-to-r from-amber-500/15 to-rose-500/15 text-amber-200 text-[10px] tracking-wider uppercase font-semibold"
-                            title="Compte fondateur — équipe Centrium"
-                          >
-                            ★ Fondateur
-                          </Badge>
-                        )}
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={isAdmin ? 5 : 4}>
+                      <div className="h-8 bg-white/[0.02] animate-pulse rounded" />
+                    </TableCell>
+                  </TableRow>
+                ) : members.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={isAdmin ? 5 : 4} className="py-12">
+                      <div className="flex flex-col items-center gap-2 text-center text-muted-foreground">
+                        <Users className="h-6 w-6 text-magenta/70" />
+                        <span className="text-sm">Aucun membre pour l&apos;instant.</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {m.email ?? '—'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{ROLE_LABEL[m.role] ?? m.role}</Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {new Date(m.joined_at).toLocaleDateString('fr-FR')}
-                    </TableCell>
-                    {isAdmin && (
+                  </TableRow>
+                ) : (
+                  members.map((m) => (
+                    <TableRow key={m.user_id}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span>
+                            {[m.first_name, m.last_name].filter(Boolean).join(' ') || '—'}
+                          </span>
+                          {m.is_founder && (
+                            <StatusBadge tone="magenta" dot={false}>
+                              ★ Fondateur
+                            </StatusBadge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {m.email ?? '—'}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge tone={ROLE_TONE[m.role] ?? 'neutral'} dot={false}>
+                          {ROLE_LABEL[m.role] ?? m.role}
+                        </StatusBadge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {new Date(m.joined_at).toLocaleDateString('fr-FR')}
+                      </TableCell>
+                      {isAdmin && (
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeMember(m.user_id)}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </AppCardBody>
+        </AppCard>
+      </section>
+
+      {isAdmin && invitations.length > 0 && (
+        <section>
+          <SectionHeader
+            eyebrow="Pipeline"
+            title={
+              <>
+                Invitations{' '}
+                <span className="qc-italic-accent font-editorial italic">
+                  en cours ({invitations.length}).
+                </span>
+              </>
+            }
+            description="Liens d'accès non encore acceptés."
+          />
+          <AppCard variant="default" tone="amber">
+            <AppCardBody size="sm" className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Rôle</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Expire</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invitations.map((i) => (
+                    <TableRow key={i.id}>
+                      <TableCell className="font-medium">{i.email}</TableCell>
+                      <TableCell>
+                        <StatusBadge tone={ROLE_TONE[i.role] ?? 'neutral'} dot={false}>
+                          {ROLE_LABEL[i.role] ?? i.role}
+                        </StatusBadge>
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge tone="pending">En attente</StatusBadge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {new Date(i.expires_at).toLocaleDateString('fr-FR')}
+                      </TableCell>
                       <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" onClick={() => copyLink(i.token)}>
+                          <Copy className="h-3 w-3" />
+                          Copier le lien
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => removeMember(m.user_id)}
+                          onClick={() => revokeInvitation(i.id)}
                           className="text-red-400 hover:text-red-300"
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </TableCell>
-                    )}
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </AppCardBody>
+          </AppCard>
+        </section>
+      )}
 
-      {isAdmin && invitations.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Invitations en cours ({invitations.length})</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Rôle</TableHead>
-                  <TableHead>Expire</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {invitations.map((i) => (
-                  <TableRow key={i.id}>
-                    <TableCell className="font-medium">{i.email}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{ROLE_LABEL[i.role] ?? i.role}</Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {new Date(i.expires_at).toLocaleDateString('fr-FR')}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => copyLink(i.token)}>
-                        <Copy className="h-3 w-3" />
-                        Copier le lien
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => revokeInvitation(i.id)}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+      {isAdmin && invitations.length === 0 && !loading && (
+        <section>
+          <EmptyState
+            icon={Hourglass}
+            title="Aucune invitation en cours"
+            description="Toutes les invitations envoyées ont été acceptées (ou révoquées)."
+          />
+        </section>
       )}
     </AppShell>
   );

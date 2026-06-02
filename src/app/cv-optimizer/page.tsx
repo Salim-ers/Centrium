@@ -27,6 +27,7 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageHeader, AppCard } from '@/components/app';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
@@ -519,67 +520,67 @@ function CVOptimizerPageInner() {
 
   return (
     <AppShell>
-      <div className="no-print mb-6 flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <div className="flex items-center gap-3">
-            <Sparkles className="h-6 w-6 text-violet-glow" />
-            <h1 className="font-display text-3xl font-bold tracking-tight">CV Optimizer</h1>
-          </div>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Sélectionne un consultant — le CV se génère automatiquement. Colle une offre
-            pour aligner le wording.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button
-            onClick={() => setEditMode((v) => !v)}
-            disabled={!generated}
-            title={
-              editMode
-                ? 'Sortir du mode édition'
-                : 'Modifie le CV directement sur l\'aperçu, comme dans Canva'
-            }
-            className={
-              editMode
-                ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-[0_0_20px_-6px_rgba(16,185,129,0.7)]'
-                : 'bg-gradient-to-r from-violet-glow to-magenta text-white shadow-[0_0_20px_-6px_rgba(225,29,116,0.55)] hover:brightness-110'
-            }
-          >
-            <Pencil className="h-4 w-4" />
-            {editMode ? '✓ Édition active' : 'Modifier le CV'}
-          </Button>
-          {hasOverrides && (
-            <Button
-              variant="outline"
-              onClick={resetOverrides}
-              title="Annuler toutes les modifications manuelles"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Réinitialiser
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            onClick={handleDownloadDOCX}
-            disabled={!generated || exporting !== null}
-          >
-            {exporting === 'docx' ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <FileDown className="h-4 w-4" />
-            )}
-            Word (.docx)
-          </Button>
-          <Button onClick={handleDownloadPDF} disabled={!generated || exporting !== null}>
-            {exporting === 'pdf' ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
-            PDF
-          </Button>
-        </div>
+      <div className="no-print">
+        <PageHeader
+          eyebrow="Talents"
+          title={
+            <>
+              CV Optimizer <span className="qc-italic-accent font-editorial italic">IA.</span>
+            </>
+          }
+          description="Sélectionne un consultant — le CV se génère automatiquement. Colle une offre pour aligner le wording."
+          actions={
+            <>
+              <Button
+                onClick={() => setEditMode((v) => !v)}
+                disabled={!generated}
+                title={
+                  editMode
+                    ? 'Sortir du mode édition'
+                    : 'Modifie le CV directement sur l\'aperçu, comme dans Canva'
+                }
+                className={
+                  editMode
+                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-[0_0_20px_-6px_rgba(16,185,129,0.7)]'
+                    : 'bg-gradient-to-r from-violet-glow to-magenta text-white shadow-[0_0_20px_-6px_rgba(225,29,116,0.55)] hover:brightness-110'
+                }
+              >
+                <Pencil className="h-4 w-4" />
+                {editMode ? '✓ Édition active' : 'Modifier le CV'}
+              </Button>
+              {hasOverrides && (
+                <Button
+                  variant="outline"
+                  onClick={resetOverrides}
+                  title="Annuler toutes les modifications manuelles"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Réinitialiser
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={handleDownloadDOCX}
+                disabled={!generated || exporting !== null}
+              >
+                {exporting === 'docx' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FileDown className="h-4 w-4" />
+                )}
+                Word (.docx)
+              </Button>
+              <Button onClick={handleDownloadPDF} disabled={!generated || exporting !== null}>
+                {exporting === 'pdf' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                PDF
+              </Button>
+            </>
+          }
+        />
       </div>
 
       {editMode && hasOverrides && (
@@ -594,16 +595,14 @@ function CVOptimizerPageInner() {
       <div className="no-print grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-6">
         {/* Sidebar config */}
         <aside className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-violet-glow/20 text-violet-glow text-xs font-bold">
+          <AppCard variant="luminous" tone="magenta">
+            <div className="p-5 space-y-3">
+              <div className="text-base font-display tracking-tight flex items-center gap-2">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-magenta/20 text-magenta-neon text-xs font-bold">
                   1
                 </span>
                 Consultant
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
+              </div>
               <Select
                 value={selectedId}
                 onChange={(e) => setSelectedId(e.target.value)}
@@ -631,8 +630,8 @@ function CVOptimizerPageInner() {
                   <Stat label="Formations" value={loaded.educations.length} />
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </AppCard>
 
           <Card>
             <CardHeader className="pb-3">

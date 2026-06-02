@@ -4,9 +4,17 @@ import { useRef, useState } from 'react';
 import { FileText, Download, Upload, Loader2, Trash2, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
+import {
+  PageHeader,
+  SectionHeader,
+  AppCard,
+  AppCardBody,
+  EmptyState,
+  DataRow,
+  StatusBadge,
+} from '@/components/app';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import { useBrandName } from '@/components/brand/BrandingStyles';
@@ -55,7 +63,6 @@ export default function PortalDocumentsPage() {
     data: docsData,
     loading,
     reload,
-    setData: setDocs,
   } = useCachedQuery<DocRow[]>(
     `portal-documents:${consultantId}`,
     async () => {
@@ -145,116 +152,117 @@ export default function PortalDocumentsPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-          <FileText className="h-7 w-7 text-violet-glow" />
-          Mes documents
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Partage tes documents avec {brandName} et retrouve ceux qu&apos;on t&apos;a transmis.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Mon espace"
+        title={<>Mes <span className="qc-italic-accent font-editorial italic">documents.</span></>}
+        description={`Partagez vos documents avec ${brandName} et retrouvez ceux qui vous ont été transmis.`}
+      />
 
-      <Card className="mb-6">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Upload className="h-4 w-4 text-violet-glow" />
-            Ajouter un document
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-end gap-2 flex-wrap">
-          <div className="flex-1 min-w-[180px]">
-            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              Type
-            </label>
-            <Select value={kind} onChange={(e) => setKind(e.target.value)}>
-              {UPLOADABLE_KINDS.map((k) => (
-                <option key={k} value={k}>
-                  {DOC_KIND_LABEL[k]}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <Button
-            onClick={() => inputRef.current?.click()}
-            disabled={uploading || !consultantId}
-            className="shrink-0"
-          >
-            {uploading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4" />
-            )}
-            {uploading ? 'Upload…' : 'Choisir un fichier'}
-          </Button>
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".pdf,.doc,.docx,.txt,image/png,image/jpeg"
-            className="hidden"
-            onChange={onFile}
+      <AppCard className="mb-8">
+        <AppCardBody>
+          <SectionHeader
+            eyebrow="Ajouter"
+            title={<>Téléverser un <span className="qc-italic-accent font-editorial italic">document.</span></>}
+            description="CV, certification, pièce d'identité ou autre justificatif."
+            className="mb-4"
           />
-        </CardContent>
-      </Card>
+          <div className="flex items-end gap-3 flex-wrap">
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/80 mb-1.5 block">
+                Type
+              </label>
+              <Select value={kind} onChange={(e) => setKind(e.target.value)}>
+                {UPLOADABLE_KINDS.map((k) => (
+                  <option key={k} value={k}>
+                    {DOC_KIND_LABEL[k]}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <Button
+              onClick={() => inputRef.current?.click()}
+              disabled={uploading || !consultantId}
+              className="shrink-0"
+            >
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+              {uploading ? 'Upload…' : 'Choisir un fichier'}
+            </Button>
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.txt,image/png,image/jpeg"
+              className="hidden"
+              onChange={onFile}
+            />
+          </div>
+        </AppCardBody>
+      </AppCard>
 
       {loading ? (
-        <div className="h-40 rounded-xl bg-white/[0.02] animate-pulse" />
+        <div className="h-40 rounded-2xl bg-white/[0.02] animate-pulse" />
       ) : docs.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center text-muted-foreground">
-            <FileText className="h-10 w-10 mx-auto mb-3 opacity-40" />
-            <p className="text-sm">Aucun document pour le moment.</p>
-            <p className="text-xs mt-1">
-              Uploade ton CV, une certification ou contacte {brandName}.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={FileText}
+          title="Aucun document pour le moment"
+          description={`Téléversez votre CV, une certification ou contactez ${brandName}.`}
+        />
       ) : (
-        <Card>
-          <CardContent className="p-2">
-            <ul className="space-y-1">
-              {docs.map((d) => {
-                const ownedByMe = userId !== null && d.uploaded_by === userId;
-                return (
-                  <li
-                    key={d.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-hairline bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
-                  >
-                    <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate flex items-center gap-2">
-                        {d.file_name}
-                        {!ownedByMe && (
-                          <span
-                            className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"
-                            title={`Transmis par ${brandName}`}
-                          >
-                            <Lock className="h-3 w-3" />
-                            {brandName}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {DOC_KIND_LABEL[d.kind] ?? d.kind} · Ajouté le{' '}
-                        {formatDate(d.uploaded_at)}
-                        {d.size_bytes && ` · ${(d.size_bytes / 1024).toFixed(0)} Ko`}
-                      </div>
+        <AppCard>
+          <div>
+            {docs.map((d) => {
+              const ownedByMe = userId !== null && d.uploaded_by === userId;
+              return (
+                <DataRow
+                  key={d.id}
+                  leading={
+                    <div className="rounded-xl border border-hairline bg-white/[0.04] p-2.5">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => download(d)}>
-                      <Download className="h-3.5 w-3.5" />
-                      Télécharger
-                    </Button>
-                    {ownedByMe && (
-                      <Button size="sm" variant="ghost" onClick={() => deleteDoc(d)}>
-                        <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                  }
+                  primary={
+                    <span className="flex items-center gap-2 truncate">
+                      <span className="truncate">{d.file_name}</span>
+                      {!ownedByMe && (
+                        <StatusBadge tone="violet" dot={false}>
+                          <Lock className="h-2.5 w-2.5" />
+                          {brandName}
+                        </StatusBadge>
+                      )}
+                    </span>
+                  }
+                  secondary={
+                    <>
+                      {DOC_KIND_LABEL[d.kind] ?? d.kind} · Ajouté le {formatDate(d.uploaded_at)}
+                      {d.size_bytes != null && ` · ${(d.size_bytes / 1024).toFixed(0)} Ko`}
+                    </>
+                  }
+                  trailing={
+                    <>
+                      <Button size="sm" variant="outline" onClick={() => download(d)}>
+                        <Download className="h-3.5 w-3.5" />
+                        Télécharger
                       </Button>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </CardContent>
-        </Card>
+                      {ownedByMe && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => deleteDoc(d)}
+                          aria-label="Supprimer"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-rose-400" />
+                        </Button>
+                      )}
+                    </>
+                  }
+                />
+              );
+            })}
+          </div>
+        </AppCard>
       )}
     </div>
   );

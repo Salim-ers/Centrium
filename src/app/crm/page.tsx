@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, TrendingUp, Trash2, Pencil, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Pencil, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/app';
 
 import { opportunityService } from '@/lib/services';
 import { OpportunityFormDialog } from '@/components/crm/OpportunityFormDialog';
@@ -196,24 +197,26 @@ export default function CRMPage() {
 
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-            <TrendingUp className="h-7 w-7 text-violet-glow" />
-            Suivi prospect
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Pipeline prévisionnel : {formatCurrency(totalPipeline)} ·{' '}
-            <span className="text-[11px] text-muted-foreground/80">
-              Glisse une carte d&apos;une colonne à l&apos;autre pour changer son statut.
-            </span>
-          </p>
-        </div>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" />
-          Nouvelle opportunité
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Commercial"
+        title={
+          <>
+            Pipeline <span className="qc-italic-accent font-editorial italic">commercial.</span>
+          </>
+        }
+        description={
+          <>
+            Pipeline prévisionnel : <span className="text-foreground font-medium">{formatCurrency(totalPipeline)}</span>{' '}
+            · Glisse une carte d&apos;une colonne à l&apos;autre pour changer son statut.
+          </>
+        }
+        actions={
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4" />
+            Nouvelle opportunité
+          </Button>
+        }
+      />
 
       <OpportunityFormDialog
         open={dialogOpen}

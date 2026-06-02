@@ -2,36 +2,32 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FileSignature, CheckCircle2, Clock, FileText, Eye } from 'lucide-react';
+import { FileSignature, FileText, Eye, CheckCircle2, Clock, XCircle } from 'lucide-react';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import {
+  PageHeader,
+  KPICard,
+  AppCard,
+  AppCardBody,
+  StatusBadge,
+  EmptyState,
+  type StatusTone,
+} from '@/components/app';
 import { createClient } from '@/lib/supabase/client';
 import { useBrandName } from '@/components/brand/BrandingStyles';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import type { Contract } from '@/types';
 
-const STATUS_STYLE: Partial<Record<Contract['status'], string>> = {
-  draft: 'bg-slate-500/10 text-slate-300 border-slate-500/20',
-  pending_review: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
-  sent: 'bg-blue-500/10 text-blue-300 border-blue-500/20',
-  signed: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
-  active: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
-  ended: 'bg-slate-600/10 text-slate-400 border-slate-600/20',
-  terminated: 'bg-red-500/10 text-red-300 border-red-500/20',
-  cancelled: 'bg-slate-600/10 text-slate-400 border-slate-600/20',
-};
-
-const STATUS_LABEL: Record<Contract['status'], string> = {
-  draft: 'Brouillon',
-  pending_review: 'En revue',
-  sent: 'À signer',
-  signed: 'Signé',
-  active: 'Actif',
-  ended: 'Terminé',
-  terminated: 'Résilié',
-  cancelled: 'Annulé',
+const STATUS_TONE: Record<Contract['status'], { tone: StatusTone; label: string }> = {
+  draft: { tone: 'pending', label: 'Brouillon' },
+  pending_review: { tone: 'warning', label: 'En revue' },
+  sent: { tone: 'warning', label: 'À signer' },
+  signed: { tone: 'success', label: 'Signé' },
+  active: { tone: 'success', label: 'Actif' },
+  ended: { tone: 'neutral', label: 'Terminé' },
+  terminated: { tone: 'danger', label: 'Résilié' },
+  cancelled: { tone: 'neutral', label: 'Annulé' },
 };
 
 export default function PortalContractsPage() {
@@ -51,84 +47,94 @@ export default function PortalContractsPage() {
     })();
   }, []);
 
+  const active = contracts.filter((c) => c.status === 'active' || c.status === 'signed').length;
+  const toSign = contracts.filter((c) => c.status === 'sent' || c.status === 'pending_review').length;
+  const ended = contracts.filter(
+    (c) => c.status === 'ended' || c.status === 'terminated' || c.status === 'cancelled',
+  ).length;
+
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-          <FileSignature className="h-7 w-7 text-violet-glow" />
-          Mes contrats
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Retrouve tes contrats avec {brandName} et télécharge les PDF.
-        </p>
+      <PageHeader
+        eyebrow="Mon espace"
+        title={<>Mes <span className="qc-italic-accent font-editorial italic">contrats.</span></>}
+        description={`Retrouvez vos contrats avec ${brandName} et téléchargez les PDF.`}
+      />
+
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+        <KPICard label="Contrats actifs" value={active} icon={CheckCircle2} tone="emerald" />
+        <KPICard label="À signer" value={toSign} icon={Clock} tone="amber" />
+        <KPICard label="Terminés" value={ended} icon={XCircle} tone="violet" />
       </div>
 
       {loading ? (
-        <div className="h-40 rounded-xl bg-white/[0.02] animate-pulse" />
+        <div className="h-40 rounded-2xl bg-white/[0.02] animate-pulse" />
       ) : contracts.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center text-muted-foreground">
-            <FileSignature className="h-10 w-10 mx-auto mb-3 opacity-40" />
-            <p className="text-sm">Aucun contrat pour le moment.</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={FileSignature}
+          title="Aucun contrat pour le moment"
+          description={`Vos contrats avec ${brandName} apparaîtront ici dès qu'ils seront créés.`}
+        />
       ) : (
         <div className="space-y-3">
-          {contracts.map((c) => (
-            <Card key={c.id}>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
-                    <CardTitle className="text-base">{c.title}</CardTitle>
-                    <p className="text-xs text-muted-foreground mt-0.5 font-mono">
-                      {c.contract_number}
-                    </p>
+          {contracts.map((c) => {
+            const s = STATUS_TONE[c.status];
+            const pulse = c.status === 'sent' || c.status === 'pending_review';
+            return (
+              <AppCard key={c.id} interactive>
+                <AppCardBody>
+                  <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+                    <div className="min-w-0">
+                      <div className="font-display text-lg tracking-[-0.01em] text-foreground">
+                        {c.title}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5 font-mono">
+                        {c.contract_number}
+                      </p>
+                    </div>
+                    <StatusBadge tone={s.tone} pulse={pulse}>
+                      {s.label}
+                    </StatusBadge>
                   </div>
-                  <Badge variant="outline" className={STATUS_STYLE[c.status] ?? ''}>
-                    {c.status === 'signed' && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                    {c.status === 'sent' && <Clock className="h-3 w-3 mr-1" />}
-                    {STATUS_LABEL[c.status]}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                  <Field label="Client" value={c.client_name ?? '—'} />
-                  <Field label="Mission" value={c.mission_title ?? '—'} />
-                  <Field label="TJM" value={formatCurrency(Number(c.daily_rate_eur))} />
-                  <Field
-                    label="Période"
-                    value={`${formatDate(c.start_date)} — ${c.end_date ? formatDate(c.end_date) : 'En cours'}`}
-                  />
-                </div>
 
-                <div className="flex gap-2 pt-2 border-t border-hairline flex-wrap">
-                  <Button size="sm" asChild>
-                    <Link href={`/portal/contracts/${c.id}`}>
-                      <Eye className="h-3.5 w-3.5" />
-                      Voir &amp; télécharger (PDF)
-                    </Link>
-                  </Button>
-                  {c.signed_pdf_url && (
-                    <Button size="sm" variant="outline" asChild>
-                      <a href={c.signed_pdf_url} target="_blank" rel="noopener noreferrer">
-                        <FileText className="h-3.5 w-3.5" />
-                        Contrat signé (PDF original)
-                      </a>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <Field label="Client" value={c.client_name ?? '—'} />
+                    <Field label="Mission" value={c.mission_title ?? '—'} />
+                    <Field label="TJM" value={formatCurrency(Number(c.daily_rate_eur))} />
+                    <Field
+                      label="Période"
+                      value={`${formatDate(c.start_date)} — ${c.end_date ? formatDate(c.end_date) : 'En cours'}`}
+                    />
+                  </div>
+
+                  <div className="flex gap-2 mt-4 pt-4 border-t border-hairline/60 flex-wrap">
+                    <Button size="sm" asChild>
+                      <Link href={`/portal/contracts/${c.id}`}>
+                        <Eye className="h-3.5 w-3.5" />
+                        Voir &amp; télécharger
+                      </Link>
                     </Button>
-                  )}
-                  {!c.signed_pdf_url && c.pdf_url && (
-                    <Button size="sm" variant="outline" asChild>
-                      <a href={c.pdf_url} target="_blank" rel="noopener noreferrer">
-                        <FileText className="h-3.5 w-3.5" />
-                        PDF original
-                      </a>
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                    {c.signed_pdf_url && (
+                      <Button size="sm" variant="outline" asChild>
+                        <a href={c.signed_pdf_url} target="_blank" rel="noopener noreferrer">
+                          <FileText className="h-3.5 w-3.5" />
+                          Contrat signé (PDF)
+                        </a>
+                      </Button>
+                    )}
+                    {!c.signed_pdf_url && c.pdf_url && (
+                      <Button size="sm" variant="outline" asChild>
+                        <a href={c.pdf_url} target="_blank" rel="noopener noreferrer">
+                          <FileText className="h-3.5 w-3.5" />
+                          PDF original
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                </AppCardBody>
+              </AppCard>
+            );
+          })}
         </div>
       )}
     </div>
@@ -138,8 +144,10 @@ export default function PortalContractsPage() {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="font-medium mt-0.5">{value}</div>
+      <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/80">
+        {label}
+      </div>
+      <div className="font-medium mt-0.5 text-foreground truncate">{value}</div>
     </div>
   );
 }

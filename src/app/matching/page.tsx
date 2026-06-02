@@ -12,6 +12,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import {
+  PageHeader,
+  AppCard,
+  AppCardBody,
+  SectionHeader,
+  EmptyState,
+  StatusBadge,
+} from '@/components/app';
 
 import { createClient } from '@/lib/supabase/client';
 import { matchingService, type MatchResult } from '@/lib/services/matching.service';
@@ -105,84 +113,105 @@ function MatchingInner() {
         }}
       />
 
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-            <Target className="h-7 w-7 text-violet-glow" />
-            Matching consultant ↔ mission
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Trouve les meilleurs profils pour chaque offre client
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" asChild>
-            <Link href="/offers" className="inline-flex items-center gap-1.5">
-              <Briefcase className="h-4 w-4" />
-              Gérer les offres
-            </Link>
-          </Button>
-          <Button
-            onClick={() => {
-              setEditing(null);
-              setDialogOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4" />
-            Nouvelle offre
-          </Button>
-        </div>
-      </div>
-
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-base">Sélection de l'offre</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-[1fr_auto_auto] items-end">
-          <div>
-            <Label>Offre</Label>
-            <Select value={offerId} onChange={(e) => setOfferId(e.target.value)}>
-              <option value="">— Choisir une offre —</option>
-              {offers.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.title}
-                </option>
-              ))}
-            </Select>
-            {selectedOffer && (
-              <div className="mt-2 flex gap-2 flex-wrap">
-                {selectedOffer.required_skills.map((s) => (
-                  <Badge key={s} variant="outline">
-                    {s}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
-          {selectedOffer && (
+      <PageHeader
+        eyebrow="Commercial"
+        title={
+          <>
+            Matching <span className="qc-italic-accent font-editorial italic">IA.</span>
+          </>
+        }
+        description="Trouve les meilleurs profils pour chaque offre client — scoring multi-critères sur skills, séniorité, TJM et disponibilité."
+        actions={
+          <>
+            <Button variant="outline" asChild>
+              <Link href="/offers" className="inline-flex items-center gap-1.5">
+                <Briefcase className="h-4 w-4" />
+                Gérer les offres
+              </Link>
+            </Button>
             <Button
-              variant="outline"
               onClick={() => {
-                setEditing(selectedOffer);
+                setEditing(null);
                 setDialogOpen(true);
               }}
             >
-              <Pencil className="h-4 w-4" />
-              Éditer
+              <Plus className="h-4 w-4" />
+              Nouvelle offre
             </Button>
-          )}
-          <Button onClick={runMatching} disabled={loading || !offerId}>
-            <TrendingUp className="h-4 w-4" />
-            Lancer le matching
-          </Button>
-        </CardContent>
-      </Card>
+          </>
+        }
+      />
+
+      <AppCard variant="luminous" tone="violet" className="mb-6">
+        <AppCardBody size="md">
+          <SectionHeader
+            eyebrow="Scoring"
+            title={
+              <>
+                Sélection de l’<span className="qc-italic-accent font-editorial italic">offre.</span>
+              </>
+            }
+            description="Le moteur compare les compétences requises avec celles de vos consultants et pondère par séniorité et disponibilité."
+          />
+          <div className="grid gap-4 md:grid-cols-[1fr_auto_auto] items-end">
+            <div>
+              <Label>Offre</Label>
+              <Select value={offerId} onChange={(e) => setOfferId(e.target.value)}>
+                <option value="">— Choisir une offre —</option>
+                {offers.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.title}
+                  </option>
+                ))}
+              </Select>
+              {selectedOffer && (
+                <div className="mt-2 flex gap-2 flex-wrap">
+                  {selectedOffer.required_skills.map((s) => (
+                    <Badge key={s} variant="outline">
+                      {s}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+            {selectedOffer && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditing(selectedOffer);
+                  setDialogOpen(true);
+                }}
+              >
+                <Pencil className="h-4 w-4" />
+                Éditer
+              </Button>
+            )}
+            <Button onClick={runMatching} disabled={loading || !offerId}>
+              <TrendingUp className="h-4 w-4" />
+              Lancer le matching
+            </Button>
+          </div>
+        </AppCardBody>
+      </AppCard>
+
+      {results.length === 0 && !loading && offerId && (
+        <EmptyState
+          icon={Target}
+          title="Lance le matching pour voir les profils classés"
+          description="Choisis une offre puis clique sur « Lancer le matching » pour obtenir les meilleurs candidats."
+        />
+      )}
 
       {results.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-sm uppercase tracking-wider text-muted-foreground mb-2">
-            {results.length} profils classés
-          </h2>
+          <SectionHeader
+            eyebrow="Résultats"
+            title={
+              <>
+                {results.length} profils <span className="qc-italic-accent font-editorial italic">classés.</span>
+              </>
+            }
+          />
           {results.map((r) => {
             // Garde-fous : profils anciens peuvent avoir des champs nulls.
             // On préfère afficher "—" qu'un crash render.
@@ -221,9 +250,11 @@ function MatchingInner() {
                 </div>
 
                 <div className="shrink-0 text-right">
-                  <div className="text-3xl font-bold qc-gradient-text">{r.score ?? 0}</div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    /100
+                  <div className="font-display font-light tracking-[-0.04em] text-[clamp(2rem,3vw,2.75rem)] qc-gradient-text leading-none">
+                    {r.score ?? 0}
+                  </div>
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mt-1">
+                    score / 100
                   </div>
                 </div>
 

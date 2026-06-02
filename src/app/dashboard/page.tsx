@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   dashboardService,
@@ -38,6 +37,13 @@ import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { ResetDashboardDialog } from '@/components/dashboard/ResetDashboardDialog';
 import { LiveSyncBadge } from '@/components/dashboard/LiveSyncBadge';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
+import {
+  PageHeader,
+  KPICard,
+  AppCard,
+  AppCardBody,
+  EmptyState as AppEmptyState,
+} from '@/components/app';
 
 type DashboardData = { kpis: DashboardKPIs | null; alerts: ComputedAlert[] };
 
@@ -138,29 +144,36 @@ export default function DashboardPage() {
         onOpenChange={setResetOpen}
         onReset={() => reload()}
       />
-      <div className="mb-8 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">
-            <span className="qc-gradient-text">Dashboard</span>
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Vue d&apos;ensemble de votre activité {brandName}
-          </p>
-          <div className="mt-3">
-            <LiveSyncBadge />
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setResetOpen(true)}
-          title="Réinitialiser les données transactionnelles (missions, CRAs, factures, alertes)"
-          className="text-amber-300 hover:bg-amber-500/10 border-amber-500/30"
-        >
-          <RotateCcw className="h-4 w-4" />
-          Réinitialiser
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Pilotage"
+        title={
+          <>
+            Votre{' '}
+            <span className="qc-italic-accent font-editorial italic">tableau de bord.</span>
+          </>
+        }
+        description={
+          <>
+            Vue d&apos;ensemble de votre activité {brandName}.
+            <span className="ml-2 inline-block align-middle">
+              <LiveSyncBadge />
+            </span>
+          </>
+        }
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setResetOpen(true)}
+            title="Réinitialiser les données transactionnelles (missions, CRAs, factures, alertes)"
+            className="text-amber-300 hover:bg-amber-500/10 border-amber-500/30"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Réinitialiser
+          </Button>
+        }
+      />
+
 
       {/* Auto-ouvre le tuto au 1er montage si pas vu */}
       <NewUserTutorial />
@@ -191,34 +204,33 @@ export default function DashboardPage() {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <KPICard
-          icon={<Users className="h-4 w-4" />}
-          label="En mission"
-          value={<AnimatedNumber value={kpis?.consultantsOnMission} />}
-          accent="violet"
+          icon={Users}
+          label="Consultants en mission"
+          value={kpis?.consultantsOnMission ?? 0}
+          tone="magenta"
         />
         <KPICard
-          icon={<CheckCircle2 className="h-4 w-4" />}
+          icon={CheckCircle2}
           label="Disponibles"
-          value={<AnimatedNumber value={kpis?.consultantsAvailable} />}
-          accent="emerald"
+          value={kpis?.consultantsAvailable ?? 0}
+          tone="emerald"
         />
         <KPICard
-          icon={<TrendingUp className="h-4 w-4" />}
+          icon={TrendingUp}
           label="Opportunités ouvertes"
-          value={<AnimatedNumber value={kpis?.openOpportunities} />}
-          accent="magenta"
+          value={kpis?.openOpportunities ?? 0}
+          tone="cyan"
         />
         <KPICard
-          icon={<Banknote className="h-4 w-4" />}
+          icon={Banknote}
           label="CA du mois"
-          value={<AnimatedNumber value={kpis?.revenueThisMonth} format={(n) => formatCurrency(n)} />}
-          accent="violet"
+          valueText={kpis ? formatCurrency(kpis.revenueThisMonth ?? 0) : '—'}
+          tone="violet"
           hint={
             kpis
               ? `Encaissé : ${formatCurrency(kpis.revenueThisMonthPaid)}`
               : undefined
           }
-          title="CA produit ce mois-ci = somme(TJM × jours ouvrés écoulés) sur les missions actives. Évolue automatiquement chaque jour ouvré."
         />
       </div>
 
@@ -229,118 +241,86 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Alertes prioritaires */}
-        <Card className="qc-premium lg:col-span-2">
-          <CardHeader>
-            <div className="flex items-center justify-between">
+        <AppCard variant="default" tone="amber" className="lg:col-span-2">
+          <AppCardBody size="md">
+            <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <CardTitle className="flex items-center gap-2">
+                <div className="flex items-center gap-2 text-foreground font-medium">
                   <AlertTriangle className="h-4 w-4 text-amber-400" />
                   Alertes prioritaires
-                </CardTitle>
-                <CardDescription>
+                </div>
+                <p className="text-[12.5px] text-muted-foreground mt-1">
                   {alerts.length} alerte{alerts.length > 1 ? 's' : ''} à traiter
-                </CardDescription>
+                </p>
               </div>
               <Button variant="outline" size="sm" asChild>
                 <Link href="/alerts">Tout voir</Link>
               </Button>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {loading ? (
-              <Skeleton />
-            ) : alerts.length === 0 ? (
-              <EmptyState text="Aucune alerte. Tout est sous contrôle 🎯" />
-            ) : (
-              alerts.map((alert) => <DashboardAlertItem key={alert.id} alert={alert} />)
-            )}
-          </CardContent>
-        </Card>
+            <div className="space-y-2">
+              {loading ? (
+                <Skeleton />
+              ) : alerts.length === 0 ? (
+                <AppEmptyState
+                  icon={CheckCircle2}
+                  title="Tout est sous contrôle"
+                  description="Aucune alerte. Tout est sous contrôle."
+                />
+              ) : (
+                alerts.map((alert) => <DashboardAlertItem key={alert.id} alert={alert} />)
+              )}
+            </div>
+          </AppCardBody>
+        </AppCard>
 
         {/* État facturation */}
-        <Card className="qc-premium">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Facturation
-            </CardTitle>
-            <CardDescription>État des factures</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <StatRow
-              icon={<Send className="h-4 w-4 text-blue-400" />}
-              label="En attente"
-              value={<AnimatedNumber value={kpis?.pendingInvoices} />}
-            />
-            <StatRow
-              icon={<AlertTriangle className="h-4 w-4 text-red-400" />}
-              label="En retard"
-              value={<AnimatedNumber value={kpis?.overdueInvoices} />}
-              highlight={kpis?.overdueInvoices ? kpis.overdueInvoices > 0 : false}
-            />
-            <StatRow
-              icon={<Clock className="h-4 w-4 text-amber-400" />}
-              label="CRA à valider"
-              value={<AnimatedNumber value={kpis?.pendingTimesheets} />}
-            />
-            <Button variant="outline" className="w-full mt-2" asChild>
-              <Link href="/invoices">Gérer la facturation</Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <AppCard variant="default" tone="violet">
+          <AppCardBody size="md">
+            <div className="mb-4">
+              <div className="flex items-center gap-2 text-foreground font-medium">
+                <FileText className="h-4 w-4 text-violet-400" />
+                Facturation
+              </div>
+              <p className="text-[12.5px] text-muted-foreground mt-1">État des factures</p>
+            </div>
+            <div className="space-y-3">
+              <StatRow
+                icon={<Send className="h-4 w-4 text-blue-400" />}
+                label="En attente"
+                value={<AnimatedNumber value={kpis?.pendingInvoices} />}
+              />
+              <StatRow
+                icon={<AlertTriangle className="h-4 w-4 text-red-400" />}
+                label="En retard"
+                value={<AnimatedNumber value={kpis?.overdueInvoices} />}
+                highlight={kpis?.overdueInvoices ? kpis.overdueInvoices > 0 : false}
+              />
+              <StatRow
+                icon={<Clock className="h-4 w-4 text-amber-400" />}
+                label="CRA à valider"
+                value={<AnimatedNumber value={kpis?.pendingTimesheets} />}
+              />
+              <Button variant="outline" className="w-full mt-2" asChild>
+                <Link href="/invoices">Gérer la facturation</Link>
+              </Button>
+            </div>
+          </AppCardBody>
+        </AppCard>
       </div>
 
       {/* Raccourcis */}
-      <Card className="qc-premium mt-6">
-        <CardHeader>
-          <CardTitle>Actions rapides</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <QuickAction href="/consultants" label="Ajouter consultant" />
-          <QuickAction href="/cv-optimizer" label="Générer un CV" />
-          <QuickAction href="/crm" label="Nouvelle opportunité" />
-          <QuickAction href="/invoices" label="Créer une facture" />
-        </CardContent>
-      </Card>
-    </AppShell>
-  );
-}
-
-function KPICard({
-  icon,
-  label,
-  value,
-  accent,
-  hint,
-  title,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-  accent: 'violet' | 'magenta' | 'emerald';
-  hint?: string;
-  title?: string;
-}) {
-  const accentClass = {
-    violet: 'text-violet-glow bg-violet-glow/10',
-    magenta: 'text-magenta-neon bg-magenta/10',
-    emerald: 'text-emerald-400 bg-emerald-500/10',
-  }[accent];
-  return (
-    <Card className="qc-card-hover" title={title}>
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
-            <p className="text-2xl font-bold font-display mt-2">{value}</p>
-            {hint && (
-              <p className="text-[11px] text-muted-foreground mt-1">{hint}</p>
-            )}
+      <AppCard variant="default" className="mt-6">
+        <AppCardBody size="md">
+          <div className="mb-4 text-foreground font-medium">Actions rapides</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <QuickAction href="/consultants" label="Ajouter consultant" />
+            <QuickAction href="/cv-optimizer" label="Générer un CV" />
+            <QuickAction href="/crm" label="Nouvelle opportunité" />
+            <QuickAction href="/invoices" label="Créer une facture" />
           </div>
-          <div className={`rounded-lg p-2 ${accentClass}`}>{icon}</div>
-        </div>
-      </CardContent>
-    </Card>
+        </AppCardBody>
+      </AppCard>
+    </AppShell>
   );
 }
 
@@ -419,14 +399,6 @@ function Skeleton() {
       {[0, 1, 2].map((i) => (
         <div key={i} className="h-14 rounded-lg bg-white/[0.02] animate-pulse" />
       ))}
-    </div>
-  );
-}
-
-function EmptyState({ text }: { text: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-8 text-center">
-      <p className="text-sm text-muted-foreground">{text}</p>
     </div>
   );
 }

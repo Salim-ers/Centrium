@@ -137,7 +137,9 @@
       "Bash(curl -sI --max-time 10 https://centrium-platform.com)",
       "Bash(curl -sI --max-time 10 https://centrium-platform.com/robots.txt)",
       "Bash(curl -sI --max-time 10 https://www.centrium-platform.com)",
-      "Bash(curl -s --max-time 10 https://www.centrium-platform.com/robots.txt)"
+      "Bash(curl -s --max-time 10 https://www.centrium-platform.com/robots.txt)",
+      "mcp__github__search_repositories",
+      "WebFetch(domain:api.github.com)"
     ],
     "deny": [
       "Write(.env*)",

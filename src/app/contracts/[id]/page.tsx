@@ -8,9 +8,8 @@ import { Download, Edit, ArrowLeft, Send, CheckCircle2 } from 'lucide-react';
 import { downloadElementAsPdf } from '@/lib/pdf/download-document';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { PageHeader, StatusBadge, EmptyState, type StatusTone } from '@/components/app';
 import {
   QuadCoreContractAT,
   type ContractIssuer,
@@ -19,6 +18,28 @@ import { ContractFormDialog } from '@/components/contracts/ContractFormDialog';
 import { contractService } from '@/lib/services/contract.service';
 import { useOrganization } from '@/lib/auth/context';
 import type { Contract, ContractStatus } from '@/types';
+
+const STATUS_TONE: Record<ContractStatus, StatusTone> = {
+  draft: 'pending',
+  pending_review: 'warning',
+  sent: 'info',
+  signed: 'success',
+  active: 'success',
+  ended: 'neutral',
+  terminated: 'danger',
+  cancelled: 'neutral',
+};
+
+const STATUS_LABEL: Record<ContractStatus, string> = {
+  draft: 'Brouillon',
+  pending_review: 'À relire',
+  sent: 'Envoyé',
+  signed: 'Signé',
+  active: 'Actif',
+  ended: 'Terminé',
+  terminated: 'Résilié',
+  cancelled: 'Annulé',
+};
 
 type IdentityRow = {
   id: string;
@@ -121,11 +142,17 @@ export default function ContractDetailPage() {
   if (!contract) {
     return (
       <AppShell>
-        <Card>
-          <CardContent className="py-16 text-center text-muted-foreground">
-            Contrat introuvable
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={ArrowLeft}
+          title="Contrat introuvable"
+          description="Ce contrat n’existe plus ou a été supprimé."
+          action={
+            <Button variant="outline" onClick={() => router.push('/contracts')}>
+              <ArrowLeft className="h-4 w-4" />
+              Retour à la liste
+            </Button>
+          }
+        />
       </AppShell>
     );
   }
@@ -134,45 +161,51 @@ export default function ContractDetailPage() {
     <AppShell>
       {/* Toolbar — masquée à l'impression */}
       <div className="no-print">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => router.push('/contracts')}>
-              <ArrowLeft className="h-4 w-4" />
-              Retour
-            </Button>
-            <div>
-              <h1 className="font-display text-2xl font-bold">
-                {contract.contract_number}
-              </h1>
-              <p className="text-sm text-muted-foreground">{contract.title}</p>
-            </div>
-            <Badge variant="outline" className="ml-2">
-              {contract.status}
-            </Badge>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setEditOpen(true)}>
-              <Edit className="h-4 w-4" />
-              Modifier
-            </Button>
-            {contract.status === 'draft' && (
-              <Button variant="outline" onClick={() => updateStatus('sent')}>
-                <Send className="h-4 w-4" />
-                Marquer envoyé
+        <PageHeader
+          eyebrow={`Contrat · ${contract.contract_number}`}
+          title={
+            <>
+              {contract.title}{' '}
+              <span className="qc-italic-accent font-editorial italic">.</span>
+            </>
+          }
+          description={
+            <span className="inline-flex items-center gap-2">
+              <StatusBadge tone={STATUS_TONE[contract.status]}>
+                {STATUS_LABEL[contract.status]}
+              </StatusBadge>
+              {contract.client_name && <span>· Client : {contract.client_name}</span>}
+            </span>
+          }
+          actions={
+            <>
+              <Button variant="ghost" size="sm" onClick={() => router.push('/contracts')}>
+                <ArrowLeft className="h-4 w-4" />
+                Retour
               </Button>
-            )}
-            {contract.status === 'sent' && (
-              <Button variant="outline" onClick={() => updateStatus('signed')}>
-                <CheckCircle2 className="h-4 w-4" />
-                Marquer signé
+              <Button variant="outline" onClick={() => setEditOpen(true)}>
+                <Edit className="h-4 w-4" />
+                Modifier
               </Button>
-            )}
-            <Button onClick={downloadPdf}>
-              <Download className="h-4 w-4" />
-              Télécharger PDF
-            </Button>
-          </div>
-        </div>
+              {contract.status === 'draft' && (
+                <Button variant="outline" onClick={() => updateStatus('sent')}>
+                  <Send className="h-4 w-4" />
+                  Marquer envoyé
+                </Button>
+              )}
+              {contract.status === 'sent' && (
+                <Button variant="outline" onClick={() => updateStatus('signed')}>
+                  <CheckCircle2 className="h-4 w-4" />
+                  Marquer signé
+                </Button>
+              )}
+              <Button onClick={downloadPdf}>
+                <Download className="h-4 w-4" />
+                Télécharger PDF
+              </Button>
+            </>
+          }
+        />
       </div>
 
       {/* Preview du contrat (sert aussi de source pour le PDF) */}

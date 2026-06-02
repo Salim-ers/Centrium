@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import {
-  BellRing,
   ShieldAlert,
   AlertTriangle,
   Clock,
@@ -13,13 +12,13 @@ import {
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { Card, CardContent } from '@/components/ui/card';
 import { alertService, type ComputedAlert } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { relativeDate } from '@/lib/utils';
 import { notifyDestructive, notifyError } from '@/lib/notify';
+import { PageHeader, EmptyState, StatusBadge, type StatusTone } from '@/components/app';
 
 type Priority = ComputedAlert['priority'];
 
@@ -100,6 +99,13 @@ const PRIORITY_META: Record<
   },
 };
 
+const PRIORITY_TONE: Record<Priority, StatusTone> = {
+  critical: 'danger',
+  high: 'warning',
+  medium: 'info',
+  low: 'neutral',
+};
+
 const KIND_LABEL_FR: Record<string, string> = {
   invoice_overdue: 'Facturation',
   timesheet_pending: 'CRA',
@@ -170,15 +176,16 @@ export default function AlertsPage() {
 
   return (
     <AppShell>
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-          <BellRing className="h-7 w-7 text-violet-glow" />
-          Centre d&apos;alertes
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Signaux à traiter, classés par importance et calculés en temps réel sur ton activité.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Pilotage"
+        title={
+          <>
+            Alertes{' '}
+            <span className="qc-italic-accent font-editorial italic">prioritaires.</span>
+          </>
+        }
+        description="Signaux à traiter, classés par importance et calculés en temps réel sur ton activité."
+      />
 
       {/* Sommaire en chips */}
       <div className="mb-6 flex flex-wrap gap-2">
@@ -209,15 +216,11 @@ export default function AlertsPage() {
           ))}
         </div>
       ) : totalCount === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <CheckCircle2 className="h-10 w-10 mx-auto mb-3 text-emerald-300" />
-            <p className="text-base font-semibold">Tout est sous contrôle</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Aucune action urgente, aucune échéance dépassée. Bonne nouvelle.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={CheckCircle2}
+          title="Tout est sous contrôle"
+          description="Aucune action urgente, aucune échéance dépassée. Bonne nouvelle."
+        />
       ) : (
         <div className="space-y-8">
           {grouped.map(({ priority, items }) => {
@@ -272,11 +275,7 @@ function AlertItem({
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${meta.badgeBg} ${meta.badgeText}`}
-          >
-            {kindLabel}
-          </span>
+          <StatusBadge tone={PRIORITY_TONE[alert.priority]}>{kindLabel}</StatusBadge>
           {alert.due_date && (
             <span className="text-[11px] text-muted-foreground">
               {relativeDate(alert.due_date)}

@@ -2,14 +2,29 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ClipboardCheck, CheckCircle2, Eye, Plus, Trash2 } from 'lucide-react';
+import {
+  ClipboardCheck,
+  CheckCircle2,
+  Eye,
+  Plus,
+  Trash2,
+  Clock3,
+  CalendarDays,
+  Percent,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  PageHeader,
+  KPICard,
+  AppCard,
+  EmptyState,
+  StatusBadge,
+  type StatusTone,
+} from '@/components/app';
 import { TimesheetFormDialog } from '@/components/timesheets/TimesheetFormDialog';
 import { timesheetService } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
@@ -39,13 +54,6 @@ const STATUS_LABEL: Record<Timesheet['status'], string> = {
   submitted: 'Soumis',
   client_validated: 'Validé',
   rejected: 'Rejeté',
-};
-
-const STATUS_STYLE: Record<Timesheet['status'], string> = {
-  draft: 'border-slate-500/40 bg-slate-500/10 text-slate-300',
-  submitted: 'border-blue-500/40 bg-blue-500/10 text-blue-300',
-  client_validated: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300',
-  rejected: 'border-red-500/40 bg-red-500/10 text-red-300',
 };
 
 export default function TimesheetsPage() {
@@ -116,20 +124,75 @@ export default function TimesheetsPage() {
     }
   }
 
+  // KPIs CRA — basés sur le mois en cours
+  const now = new Date();
+  const currMonth = now.getMonth() + 1;
+  const currYear = now.getFullYear();
+  const thisMonth = timesheets.filter(
+    (t) => t.period_month === currMonth && t.period_year === currYear,
+  );
+  const validatedThisMonth = thisMonth.filter((t) => t.status === 'client_validated').length;
+  const pendingCount = timesheets.filter(
+    (t) => t.status === 'submitted' || t.status === 'draft',
+  ).length;
+  const totalDaysWorked = timesheets.reduce((s, t) => s + (t.days_worked ?? 0), 0);
+  const totalDaysValidated = timesheets.reduce((s, t) => s + (t.days_validated ?? 0), 0);
+  const billableRatio =
+    totalDaysWorked > 0 ? Math.round((totalDaysValidated / totalDaysWorked) * 100) : 0;
+
+  // Mapping statut métier → tone unifié
+  const statusToTone = (s: Timesheet['status']): StatusTone => {
+    if (s === 'client_validated') return 'success';
+    if (s === 'submitted') return 'warning';
+    if (s === 'rejected') return 'danger';
+    return 'pending';
+  };
+
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-            <ClipboardCheck className="h-7 w-7 text-violet-glow" />
-            Comptes rendus d'activité (CRA)
-          </h1>
-          <p className="text-muted-foreground mt-1">Validation et suivi mensuel</p>
-        </div>
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Nouveau CRA
-        </Button>
+      <PageHeader
+        eyebrow="Facturation"
+        title={
+          <>
+            Comptes-rendus <span className="qc-italic-accent font-editorial italic">d'activité.</span>
+          </>
+        }
+        description="Validation et suivi mensuel des CRA — générez les factures en un clic."
+        actions={
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Nouveau CRA
+          </Button>
+        }
+      />
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <KPICard
+          icon={CheckCircle2}
+          label="Validés ce mois"
+          value={validatedThisMonth}
+          tone="emerald"
+        />
+        <KPICard
+          icon={Clock3}
+          label="En attente"
+          value={pendingCount}
+          tone="amber"
+        />
+        <KPICard
+          icon={CalendarDays}
+          label="Jours saisis"
+          value={totalDaysWorked}
+          tone="magenta"
+          hint={`${totalDaysValidated} validé${totalDaysValidated > 1 ? 's' : ''}`}
+        />
+        <KPICard
+          icon={Percent}
+          label="Ratio facturable"
+          value={billableRatio}
+          suffix="%"
+          tone="violet"
+        />
       </div>
 
       <TimesheetFormDialog
@@ -139,8 +202,21 @@ export default function TimesheetsPage() {
         onSaved={() => reload()}
       />
 
-      <Card>
-        <CardContent className="p-0">
+      {!loading && timesheets.length === 0 ? (
+        <EmptyState
+          icon={ClipboardCheck}
+          title="Aucun CRA"
+          description="Crée ton premier compte-rendu d'activité pour démarrer la facturation."
+          action={
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Nouveau CRA
+            </Button>
+          }
+        />
+      ) : (
+      <AppCard>
+        <div className="overflow-hidden rounded-2xl">
           <Table>
             <TableHeader>
               <TableRow>
@@ -158,12 +234,6 @@ export default function TimesheetsPage() {
                     <div className="h-10 bg-white/[0.02] animate-pulse rounded" />
                   </TableCell>
                 </TableRow>
-              ) : timesheets.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
-                    Aucun CRA
-                  </TableCell>
-                </TableRow>
               ) : (
                 paginatedTimesheets.map((t) => (
                   <TableRow key={t.id}>
@@ -173,9 +243,9 @@ export default function TimesheetsPage() {
                     <TableCell>{t.days_worked}</TableCell>
                     <TableCell>{t.days_validated}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={STATUS_STYLE[t.status]}>
+                      <StatusBadge tone={statusToTone(t.status)}>
                         {STATUS_LABEL[t.status]}
-                      </Badge>
+                      </StatusBadge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -207,8 +277,9 @@ export default function TimesheetsPage() {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </AppCard>
+      )}
 
       <PaginationFooter
         pagination={pagination}

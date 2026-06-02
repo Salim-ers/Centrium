@@ -18,6 +18,10 @@ import {
   FileUp,
   KeyRound,
   Send,
+  Users,
+  UserCheck,
+  Briefcase,
+  Timer,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -26,6 +30,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import {
+  PageHeader,
+  KPICard,
+  AppCard,
+  EmptyState,
+  StatusBadge,
+} from '@/components/app';
 import {
   Table,
   TableBody,
@@ -252,51 +263,104 @@ export default function ConsultantsPage() {
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
   }
 
-  const headerTitle = showArchived ? 'Profils archivés' : 'Consultants';
   const headerSub = showArchived
     ? `${consultants.length} archivé${consultants.length > 1 ? 's' : ''}`
     : `${consultants.length} profil${consultants.length > 1 ? 's' : ''} disponible${consultants.length > 1 ? 's' : ''} — pas encore positionné${consultants.length > 1 ? 's' : ''}`;
 
+  // KPIs : total / en mission (présent dans consultantsData) / disponibles / intercontrat
+  const allData = consultantsData ?? [];
+  const totalLibrary = allData.length;
+  const onMissionCount = allData.filter((c) => (c.active_missions?.length ?? 0) > 0).length;
+  const availableCount = allData.filter((c) => c.status === 'available').length;
+  const interContractCount = allData.filter(
+    (c) => (c.active_missions?.length ?? 0) === 0 && c.status !== 'archived',
+  ).length;
+  const interContractRatio =
+    totalLibrary > 0 ? Math.round((interContractCount / totalLibrary) * 100) : 0;
+
   return (
     <AppShell>
       <TalentTabs active="consultants" counts={{ consultants: allInPool.length }} />
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">{headerTitle}</h1>
-          <p className="text-muted-foreground mt-1">{headerSub}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setShowArchived((v) => !v)}
-            title={showArchived ? 'Revenir à la liste active' : 'Afficher les archivés'}
-          >
-            {showArchived ? (
+      <PageHeader
+        eyebrow="Talents"
+        title={
+          showArchived ? (
+            <>
+              Profils <span className="qc-italic-accent font-editorial italic">archivés.</span>
+            </>
+          ) : (
+            <>
+              Bibliothèque <span className="qc-italic-accent font-editorial italic">consultants.</span>
+            </>
+          )
+        }
+        description={headerSub}
+        actions={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => setShowArchived((v) => !v)}
+              title={showArchived ? 'Revenir à la liste active' : 'Afficher les archivés'}
+            >
+              {showArchived ? (
+                <>
+                  <ArchiveRestore className="h-4 w-4" />
+                  Voir les actifs
+                </>
+              ) : (
+                <>
+                  <Archive className="h-4 w-4" />
+                  Voir les archivés
+                </>
+              )}
+            </Button>
+            {!showArchived && (
               <>
-                <ArchiveRestore className="h-4 w-4" />
-                Voir les actifs
-              </>
-            ) : (
-              <>
-                <Archive className="h-4 w-4" />
-                Voir les archivés
+                <Button variant="outline" onClick={() => setCsvOpen(true)}>
+                  <FileUp className="h-4 w-4" />
+                  Importer CSV
+                </Button>
+                <Button onClick={openCreate}>
+                  <Plus className="h-4 w-4" />
+                  Nouveau consultant
+                </Button>
               </>
             )}
-          </Button>
-          {!showArchived && (
-            <>
-              <Button variant="outline" onClick={() => setCsvOpen(true)}>
-                <FileUp className="h-4 w-4" />
-                Importer CSV
-              </Button>
-              <Button onClick={openCreate}>
-                <Plus className="h-4 w-4" />
-                Nouveau consultant
-              </Button>
-            </>
-          )}
+          </>
+        }
+      />
+
+      {!showArchived && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <KPICard
+            icon={Users}
+            label="Bibliothèque"
+            value={totalLibrary}
+            tone="magenta"
+            hint="Tous profils confondus"
+          />
+          <KPICard
+            icon={Briefcase}
+            label="En mission"
+            value={onMissionCount}
+            tone="violet"
+          />
+          <KPICard
+            icon={UserCheck}
+            label="Disponibles"
+            value={availableCount}
+            tone="emerald"
+          />
+          <KPICard
+            icon={Timer}
+            label="Intercontrat"
+            value={interContractRatio}
+            suffix="%"
+            tone="amber"
+            hint={`${interContractCount} profil${interContractCount > 1 ? 's' : ''}`}
+          />
         </div>
-      </div>
+      )}
 
       <ConsultantFormDialog
         open={dialogOpen}
@@ -378,8 +442,33 @@ export default function ConsultantsPage() {
         />
       </div>
 
-      <Card>
-        <CardContent className="p-0">
+      {!loading && consultantsData !== null && totalCount === 0 ? (
+        <EmptyState
+          icon={Users}
+          title={showArchived ? 'Aucun profil archivé' : 'Aucun profil disponible'}
+          description={
+            showArchived
+              ? 'Les profils archivés apparaîtront ici.'
+              : 'Importez votre première bibliothèque CSV ou créez un consultant manuellement.'
+          }
+          action={
+            !showArchived ? (
+              <div className="flex gap-2 justify-center">
+                <Button variant="outline" onClick={() => setCsvOpen(true)}>
+                  <FileUp className="h-4 w-4" />
+                  Importer CSV
+                </Button>
+                <Button onClick={openCreate}>
+                  <Plus className="h-4 w-4" />
+                  Nouveau consultant
+                </Button>
+              </div>
+            ) : undefined
+          }
+        />
+      ) : (
+      <AppCard>
+        <div className="overflow-hidden rounded-2xl">
           <Table>
             <TableHeader>
               <TableRow>
@@ -403,12 +492,6 @@ export default function ConsultantsPage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : totalCount === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
-                    {showArchived ? 'Aucun profil archivé' : 'Aucun profil disponible.'}
-                  </TableCell>
-                </TableRow>
               ) : (
                 paginated.map((c) => (
                   <TableRow key={c.id}>
@@ -440,9 +523,21 @@ export default function ConsultantsPage() {
                       {showArchived || c.status === 'on_mission' || c.status === 'archived' ? (
                         // En lecture seule : 'on_mission' est piloté par le trigger
                         // missions, 'archived' par l'archivage du profil.
-                        <Badge variant="outline" className={CONSULTANT_STATUS_STYLE[c.status]}>
+                        <StatusBadge
+                          tone={
+                            c.status === 'on_mission'
+                              ? 'magenta'
+                              : c.status === 'archived'
+                                ? 'neutral'
+                                : c.status === 'available'
+                                  ? 'success'
+                                  : c.status === 'soon_available'
+                                    ? 'warning'
+                                    : 'neutral'
+                          }
+                        >
                           {CONSULTANT_STATUS_LABEL[c.status]}
-                        </Badge>
+                        </StatusBadge>
                       ) : (
                         <Select
                           value={c.status}
@@ -544,8 +639,9 @@ export default function ConsultantsPage() {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </AppCard>
+      )}
 
       <PaginationFooter
         pagination={pagination}

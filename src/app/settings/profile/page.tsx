@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  ArrowLeft,
   User,
   Briefcase,
   Phone,
@@ -18,7 +17,6 @@ import {
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,6 +24,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import { notifyError, notifyUpdated } from '@/lib/notify';
+import {
+  PageHeader,
+  AppCard,
+  AppCardBody,
+  SectionHeader,
+} from '@/components/app';
 
 /**
  * Page "Mon profil" — édite mes infos personnelles, visibles uniquement
@@ -212,268 +216,298 @@ export default function MyProfilePage() {
 
   return (
     <AppShell>
-      <div className="mb-6 flex items-center gap-3">
-        <Link
-          href="/settings"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Paramètres
-        </Link>
-        <span className="text-muted-foreground/40">/</span>
-        <span className="text-sm">Mon profil</span>
-      </div>
-
-      <div className="mb-6">
-        <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-          <User className="h-7 w-7 text-violet-glow" />
-          Mon profil
-        </h1>
-        <p className="text-muted-foreground mt-1 inline-flex items-center gap-1.5 text-sm">
-          <Lock className="h-3.5 w-3.5 text-violet-glow" />
-          Sauf <strong className="text-foreground/80 mx-1">prénom / nom</strong>, ces infos sont strictement privées — invisible des autres membres, même des admins.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Organisation"
+        title={
+          <>
+            Mon{' '}
+            <span className="qc-italic-accent font-editorial italic">profil.</span>
+          </>
+        }
+        description={
+          <span className="inline-flex items-center gap-1.5">
+            <Lock className="h-3.5 w-3.5 text-magenta" />
+            Sauf <strong className="text-foreground/80 mx-1">prénom / nom</strong>,
+            ces infos sont strictement privées — invisible des autres membres, même
+            des admins.
+          </span>
+        }
+      />
 
       {loading ? (
-        <Card>
-          <CardContent className="p-6">
+        <AppCard variant="default">
+          <AppCardBody size="md">
             <div className="space-y-3">
               {[0, 1, 2, 3].map((i) => (
                 <div key={i} className="h-10 rounded bg-white/[0.02] animate-pulse" />
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </AppCardBody>
+        </AppCard>
       ) : (
-        <form onSubmit={onSubmit} className="space-y-6">
+        <form onSubmit={onSubmit} className="space-y-8">
           {/* Identité publique */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <User className="h-4 w-4 text-violet-glow" />
-                Identité
-              </CardTitle>
-              <CardDescription>
-                Affichée aux autres membres de ton organisation (présence, partages d&apos;activité, todos partagées).
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label>Prénom</Label>
-                <Input
-                  value={identity.first_name ?? ''}
-                  onChange={(e) => setIdentity((s) => ({ ...s, first_name: e.target.value }))}
-                  placeholder="Jean"
-                />
-              </div>
-              <div>
-                <Label>Nom</Label>
-                <Input
-                  value={identity.last_name ?? ''}
-                  onChange={(e) => setIdentity((s) => ({ ...s, last_name: e.target.value }))}
-                  placeholder="Dupont"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <Label>Email</Label>
-                <Input value={user?.email ?? ''} disabled className="opacity-60" />
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  L&apos;email se modifie côté Supabase Auth (contacte un admin).
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <section>
+            <SectionHeader
+              eyebrow="Identité"
+              title={
+                <>
+                  Visible{' '}
+                  <span className="qc-italic-accent font-editorial italic">
+                    de l&apos;équipe.
+                  </span>
+                </>
+              }
+              description="Présence, partages d'activité, todos partagées."
+            />
+            <AppCard variant="default" tone="magenta">
+              <AppCardBody size="md" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Prénom</Label>
+                  <Input
+                    value={identity.first_name ?? ''}
+                    onChange={(e) =>
+                      setIdentity((s) => ({ ...s, first_name: e.target.value }))
+                    }
+                    placeholder="Jean"
+                  />
+                </div>
+                <div>
+                  <Label>Nom</Label>
+                  <Input
+                    value={identity.last_name ?? ''}
+                    onChange={(e) =>
+                      setIdentity((s) => ({ ...s, last_name: e.target.value }))
+                    }
+                    placeholder="Dupont"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Email</Label>
+                  <Input value={user?.email ?? ''} disabled className="opacity-60" />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    L&apos;email se modifie côté Supabase Auth (contactez un admin).
+                  </p>
+                </div>
+              </AppCardBody>
+            </AppCard>
+          </section>
 
           {/* Rôle dans l'entreprise */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Briefcase className="h-4 w-4 text-violet-glow" />
-                Rôle dans l&apos;entreprise
-              </CardTitle>
-              <CardDescription>
-                Privé — utile pour ton CV interne, ta signature email, l&apos;onboarding RH.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label>Poste</Label>
-                <Input
-                  value={personal.job_title ?? ''}
-                  onChange={(e) => setField('job_title', e.target.value)}
-                  placeholder="Co-fondateur, Business Manager, Recruteur…"
-                />
-              </div>
-              <div>
-                <Label>Date d&apos;entrée dans l&apos;entreprise</Label>
-                <Input
-                  type="date"
-                  value={personal.hire_date ?? ''}
-                  onChange={(e) => setField('hire_date', e.target.value)}
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <Label>Bio courte</Label>
-                <Textarea
-                  rows={3}
-                  value={personal.bio ?? ''}
-                  onChange={(e) => setField('bio', e.target.value)}
-                  placeholder="Quelques mots sur ton parcours, tes spécialités…"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <Label className="inline-flex items-center gap-1.5">
-                  <Languages className="h-3.5 w-3.5" />
-                  Langues (séparées par des virgules)
-                </Label>
-                <Input
-                  value={languagesInput}
-                  onChange={(e) => setLanguagesInput(e.target.value)}
-                  placeholder="Français, Anglais, Espagnol"
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <section>
+            <SectionHeader
+              eyebrow="Rôle"
+              title={
+                <>
+                  Dans{' '}
+                  <span className="qc-italic-accent font-editorial italic">
+                    l&apos;entreprise.
+                  </span>
+                </>
+              }
+              description="Privé — utile pour votre CV interne, signature email, onboarding RH."
+              actions={<Briefcase className="h-4 w-4 text-magenta" />}
+            />
+            <AppCard variant="default" tone="violet">
+              <AppCardBody size="md" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Poste</Label>
+                  <Input
+                    value={personal.job_title ?? ''}
+                    onChange={(e) => setField('job_title', e.target.value)}
+                    placeholder="Co-fondateur, Business Manager, Recruteur…"
+                  />
+                </div>
+                <div>
+                  <Label>Date d&apos;entrée dans l&apos;entreprise</Label>
+                  <Input
+                    type="date"
+                    value={personal.hire_date ?? ''}
+                    onChange={(e) => setField('hire_date', e.target.value)}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Bio courte</Label>
+                  <Textarea
+                    rows={3}
+                    value={personal.bio ?? ''}
+                    onChange={(e) => setField('bio', e.target.value)}
+                    placeholder="Quelques mots sur votre parcours, vos spécialités…"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label className="inline-flex items-center gap-1.5">
+                    <Languages className="h-3.5 w-3.5" />
+                    Langues (séparées par des virgules)
+                  </Label>
+                  <Input
+                    value={languagesInput}
+                    onChange={(e) => setLanguagesInput(e.target.value)}
+                    placeholder="Français, Anglais, Espagnol"
+                  />
+                </div>
+              </AppCardBody>
+            </AppCard>
+          </section>
 
           {/* Contact perso */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Phone className="h-4 w-4 text-violet-glow" />
-                Contact personnel
-              </CardTitle>
-              <CardDescription>Privé — pour toi uniquement.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label>Mobile</Label>
-                <Input
-                  type="tel"
-                  value={personal.mobile_phone ?? ''}
-                  onChange={(e) => setField('mobile_phone', e.target.value)}
-                  placeholder="06 12 34 56 78"
-                />
-              </div>
-              <div>
-                <Label className="inline-flex items-center gap-1.5">
-                  <Linkedin className="h-3.5 w-3.5" />
-                  LinkedIn
-                </Label>
-                <Input
-                  type="url"
-                  value={personal.linkedin_url ?? ''}
-                  onChange={(e) => setField('linkedin_url', e.target.value)}
-                  placeholder="https://www.linkedin.com/in/…"
-                />
-              </div>
-              <div>
-                <Label className="inline-flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5" />
-                  Date de naissance
-                </Label>
-                <Input
-                  type="date"
-                  value={personal.birth_date ?? ''}
-                  onChange={(e) => setField('birth_date', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Nationalité</Label>
-                <Input
-                  value={personal.nationality ?? ''}
-                  onChange={(e) => setField('nationality', e.target.value)}
-                  placeholder="Française"
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <section>
+            <SectionHeader
+              eyebrow="Contact"
+              title={
+                <>
+                  Coordonnées{' '}
+                  <span className="qc-italic-accent font-editorial italic">
+                    personnelles.
+                  </span>
+                </>
+              }
+              description="Privé — pour vous uniquement."
+              actions={<Phone className="h-4 w-4 text-magenta" />}
+            />
+            <AppCard variant="default" tone="cyan">
+              <AppCardBody size="md" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Mobile</Label>
+                  <Input
+                    type="tel"
+                    value={personal.mobile_phone ?? ''}
+                    onChange={(e) => setField('mobile_phone', e.target.value)}
+                    placeholder="06 12 34 56 78"
+                  />
+                </div>
+                <div>
+                  <Label className="inline-flex items-center gap-1.5">
+                    <Linkedin className="h-3.5 w-3.5" />
+                    LinkedIn
+                  </Label>
+                  <Input
+                    type="url"
+                    value={personal.linkedin_url ?? ''}
+                    onChange={(e) => setField('linkedin_url', e.target.value)}
+                    placeholder="https://www.linkedin.com/in/…"
+                  />
+                </div>
+                <div>
+                  <Label className="inline-flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5" />
+                    Date de naissance
+                  </Label>
+                  <Input
+                    type="date"
+                    value={personal.birth_date ?? ''}
+                    onChange={(e) => setField('birth_date', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Nationalité</Label>
+                  <Input
+                    value={personal.nationality ?? ''}
+                    onChange={(e) => setField('nationality', e.target.value)}
+                    placeholder="Française"
+                  />
+                </div>
+              </AppCardBody>
+            </AppCard>
+          </section>
 
           {/* Adresse */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-violet-glow" />
-                Adresse personnelle
-              </CardTitle>
-              <CardDescription>
-                Privé — utile si l&apos;entreprise t&apos;envoie un document, du matériel, etc.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
-                <Label>Rue</Label>
-                <Input
-                  value={personal.address ?? ''}
-                  onChange={(e) => setField('address', e.target.value)}
-                  placeholder="12 rue de la République"
-                />
-              </div>
-              <div>
-                <Label>Code postal</Label>
-                <Input
-                  value={personal.postal_code ?? ''}
-                  onChange={(e) => setField('postal_code', e.target.value)}
-                  placeholder="75011"
-                />
-              </div>
-              <div>
-                <Label>Ville</Label>
-                <Input
-                  value={personal.city ?? ''}
-                  onChange={(e) => setField('city', e.target.value)}
-                  placeholder="Paris"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <Label>Pays</Label>
-                <Input
-                  value={personal.country ?? ''}
-                  onChange={(e) => setField('country', e.target.value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <section>
+            <SectionHeader
+              eyebrow="Adresse"
+              title={
+                <>
+                  Domicile{' '}
+                  <span className="qc-italic-accent font-editorial italic">
+                    personnel.
+                  </span>
+                </>
+              }
+              description="Privé — utile si l'entreprise vous envoie un document, du matériel, etc."
+              actions={<MapPin className="h-4 w-4 text-magenta" />}
+            />
+            <AppCard variant="default" tone="emerald">
+              <AppCardBody size="md" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <Label>Rue</Label>
+                  <Input
+                    value={personal.address ?? ''}
+                    onChange={(e) => setField('address', e.target.value)}
+                    placeholder="12 rue de la République"
+                  />
+                </div>
+                <div>
+                  <Label>Code postal</Label>
+                  <Input
+                    value={personal.postal_code ?? ''}
+                    onChange={(e) => setField('postal_code', e.target.value)}
+                    placeholder="75011"
+                  />
+                </div>
+                <div>
+                  <Label>Ville</Label>
+                  <Input
+                    value={personal.city ?? ''}
+                    onChange={(e) => setField('city', e.target.value)}
+                    placeholder="Paris"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Pays</Label>
+                  <Input
+                    value={personal.country ?? ''}
+                    onChange={(e) => setField('country', e.target.value)}
+                  />
+                </div>
+              </AppCardBody>
+            </AppCard>
+          </section>
 
           {/* Contact d'urgence */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4 text-amber-300" />
-                Contact d&apos;urgence
-              </CardTitle>
-              <CardDescription>
-                Privé — utile pour les RH en cas de pépin.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <Label>Nom</Label>
-                <Input
-                  value={personal.emergency_contact_name ?? ''}
-                  onChange={(e) => setField('emergency_contact_name', e.target.value)}
-                  placeholder="Marie Dupont"
-                />
-              </div>
-              <div>
-                <Label>Téléphone</Label>
-                <Input
-                  type="tel"
-                  value={personal.emergency_contact_phone ?? ''}
-                  onChange={(e) => setField('emergency_contact_phone', e.target.value)}
-                  placeholder="06 12 34 56 78"
-                />
-              </div>
-              <div>
-                <Label>Lien</Label>
-                <Input
-                  value={personal.emergency_contact_rel ?? ''}
-                  onChange={(e) => setField('emergency_contact_rel', e.target.value)}
-                  placeholder="Conjoint, parent…"
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <section>
+            <SectionHeader
+              eyebrow="Sécurité"
+              title={
+                <>
+                  Contact{' '}
+                  <span className="qc-italic-accent font-editorial italic">
+                    d&apos;urgence.
+                  </span>
+                </>
+              }
+              description="Privé — utile pour les RH en cas de pépin."
+              actions={<ShieldAlert className="h-4 w-4 text-amber-300" />}
+            />
+            <AppCard variant="default" tone="amber">
+              <AppCardBody size="md" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <Label>Nom</Label>
+                  <Input
+                    value={personal.emergency_contact_name ?? ''}
+                    onChange={(e) => setField('emergency_contact_name', e.target.value)}
+                    placeholder="Marie Dupont"
+                  />
+                </div>
+                <div>
+                  <Label>Téléphone</Label>
+                  <Input
+                    type="tel"
+                    value={personal.emergency_contact_phone ?? ''}
+                    onChange={(e) => setField('emergency_contact_phone', e.target.value)}
+                    placeholder="06 12 34 56 78"
+                  />
+                </div>
+                <div>
+                  <Label>Lien</Label>
+                  <Input
+                    value={personal.emergency_contact_rel ?? ''}
+                    onChange={(e) => setField('emergency_contact_rel', e.target.value)}
+                    placeholder="Conjoint, parent…"
+                  />
+                </div>
+              </AppCardBody>
+            </AppCard>
+          </section>
 
           <div className="sticky bottom-0 -mx-4 md:-mx-8 px-4 md:px-8 py-3 bg-background/80 backdrop-blur-xl border-t border-hairline flex items-center justify-end gap-2">
             <Button type="button" variant="outline" asChild>

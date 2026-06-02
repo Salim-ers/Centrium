@@ -13,12 +13,22 @@ import {
   Archive,
   ArchiveRestore,
   Trash2,
+  Banknote,
+  Clock3,
+  AlertTriangle,
+  FileText,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import {
+  PageHeader,
+  KPICard,
+  AppCard,
+  EmptyState,
+  StatusBadge,
+  type StatusTone,
+} from '@/components/app';
 import {
   Table,
   TableBody,
@@ -35,7 +45,7 @@ import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { usePagination } from '@/hooks/usePagination';
 import { PaginationFooter } from '@/components/ui/PaginationFooter';
-import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE } from '@/constants';
+import { INVOICE_STATUS_LABEL } from '@/constants';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 export default function InvoicesPage() {
@@ -130,45 +140,92 @@ export default function InvoicesPage() {
     .filter((i) => ['sent', 'overdue'].includes(i.status))
     .reduce((s, i) => s + Number(i.amount_ht), 0);
 
+  // KPIs : émis ce mois / encaissé / en attente / en retard
+  const now = new Date();
+  const currMonth = now.getMonth();
+  const currYear = now.getFullYear();
+  const issuedThisMonth = invoices
+    .filter((i) => {
+      if (!i.issue_date) return false;
+      const d = new Date(i.issue_date);
+      return d.getMonth() === currMonth && d.getFullYear() === currYear;
+    })
+    .reduce((s, i) => s + Number(i.amount_ht), 0);
+  const overdueAmount = invoices
+    .filter((i) => i.status === 'overdue')
+    .reduce((s, i) => s + Number(i.amount_ht), 0);
+
+  // Mapping statut métier → tone unifié
+  const statusToTone = (s: InvoiceListItem['status']): StatusTone => {
+    if (s === 'paid') return 'success';
+    if (s === 'sent') return 'info';
+    if (s === 'overdue') return 'danger';
+    if (s === 'cancelled') return 'neutral';
+    return 'pending';
+  };
+
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-            <Receipt className="h-7 w-7 text-violet-glow" />
-            Factures
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Encaissé :{' '}
-            <span className="text-emerald-400 font-semibold">{formatCurrency(totalPaid)}</span>
-            {' · '}
-            En attente :{' '}
-            <span className="text-amber-400 font-semibold">{formatCurrency(totalPending)}</span>
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setShowArchived((v) => !v)}
-            title={showArchived ? 'Revenir à la liste active' : 'Afficher les factures archivées'}
-          >
-            {showArchived ? (
-              <>
-                <ArchiveRestore className="h-4 w-4" />
-                Voir actives
-              </>
-            ) : (
-              <>
-                <Archive className="h-4 w-4" />
-                Voir archivées
-              </>
-            )}
-          </Button>
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Nouvelle facture
-          </Button>
-        </div>
+      <PageHeader
+        eyebrow="Facturation"
+        title={
+          <>
+            Factures <span className="qc-italic-accent font-editorial italic">clients.</span>
+          </>
+        }
+        description="Suivi du chiffre d'affaires, des encaissements et des relances."
+        actions={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => setShowArchived((v) => !v)}
+              title={showArchived ? 'Revenir à la liste active' : 'Afficher les factures archivées'}
+            >
+              {showArchived ? (
+                <>
+                  <ArchiveRestore className="h-4 w-4" />
+                  Voir actives
+                </>
+              ) : (
+                <>
+                  <Archive className="h-4 w-4" />
+                  Voir archivées
+                </>
+              )}
+            </Button>
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Nouvelle facture
+            </Button>
+          </>
+        }
+      />
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <KPICard
+          icon={FileText}
+          label="Émis ce mois"
+          valueText={formatCurrency(issuedThisMonth)}
+          tone="magenta"
+        />
+        <KPICard
+          icon={Banknote}
+          label="Encaissé"
+          valueText={formatCurrency(totalPaid)}
+          tone="emerald"
+        />
+        <KPICard
+          icon={Clock3}
+          label="En attente"
+          valueText={formatCurrency(totalPending)}
+          tone="amber"
+        />
+        <KPICard
+          icon={AlertTriangle}
+          label="En retard"
+          valueText={formatCurrency(overdueAmount)}
+          tone="rose"
+        />
       </div>
 
       <InvoiceFormDialog
@@ -178,8 +235,27 @@ export default function InvoicesPage() {
         onSaved={() => reload()}
       />
 
-      <Card>
-        <CardContent className="p-0">
+      {!loading && invoices.length === 0 ? (
+        <EmptyState
+          icon={Receipt}
+          title={showArchived ? 'Aucune facture archivée' : 'Aucune facture'}
+          description={
+            showArchived
+              ? 'Les factures archivées apparaîtront ici.'
+              : 'Crée ta première facture pour démarrer la facturation client.'
+          }
+          action={
+            !showArchived ? (
+              <Button onClick={() => setDialogOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Nouvelle facture
+              </Button>
+            ) : undefined
+          }
+        />
+      ) : (
+      <AppCard>
+        <div className="overflow-hidden rounded-2xl">
           <Table>
             <TableHeader>
               <TableRow>
@@ -199,12 +275,6 @@ export default function InvoicesPage() {
                 <TableRow>
                   <TableCell colSpan={9}>
                     <div className="h-10 bg-white/[0.02] animate-pulse rounded" />
-                  </TableCell>
-                </TableRow>
-              ) : invoices.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
-                    Aucune facture
                   </TableCell>
                 </TableRow>
               ) : (
@@ -237,9 +307,9 @@ export default function InvoicesPage() {
                         {formatCurrency(Number(inv.amount_ttc))}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={INVOICE_STATUS_STYLE[inv.status]}>
+                        <StatusBadge tone={statusToTone(inv.status)}>
                           {INVOICE_STATUS_LABEL[inv.status]}
-                        </Badge>
+                        </StatusBadge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -314,8 +384,9 @@ export default function InvoicesPage() {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </AppCard>
+      )}
 
       <PaginationFooter
         pagination={pagination}

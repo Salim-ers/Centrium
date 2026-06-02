@@ -12,6 +12,10 @@ import {
   FileUp,
   Bell,
   Search,
+  Users,
+  Briefcase,
+  Building2,
+  Network,
 } from 'lucide-react';
 
 import {
@@ -37,6 +41,12 @@ import {
 } from '@/components/ui/table';
 import { ContactFormDialog } from '@/components/crm/ContactFormDialog';
 import { Input } from '@/components/ui/input';
+import {
+  PageHeader,
+  KPICard,
+  AppCard,
+  EmptyState,
+} from '@/components/app';
 import { contactService } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
@@ -167,37 +177,71 @@ export default function ContactsPage() {
     );
   }
 
+  // KPIs : total / recruteurs / clients finaux / ESN partenaires
+  const recruiterCount = allContacts.filter((c) => c.contact_type === 'recruiter').length;
+  const clientCount = allContacts.filter((c) => c.contact_type === 'client_final').length;
+  const partnerCount = allContacts.filter((c) => c.contact_type === 'esn_partner').length;
+
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-            <UserCircle className="h-7 w-7 text-violet-glow" />
-            Carnet de contacts
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {q ? (
-              <>
-                {contacts.length} / {allContacts.length} contact
-                {allContacts.length > 1 ? 's' : ''}
-              </>
-            ) : (
-              <>
-                {allContacts.length} contact{allContacts.length > 1 ? 's' : ''}
-              </>
-            )}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setCsvOpen(true)}>
-            <FileUp className="h-4 w-4" />
-            Importer CSV
-          </Button>
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            Nouveau contact
-          </Button>
-        </div>
+      <PageHeader
+        eyebrow="Commercial"
+        title={
+          <>
+            Carnet de <span className="qc-italic-accent font-editorial italic">contacts.</span>
+          </>
+        }
+        description={
+          q ? (
+            <>
+              {contacts.length} / {allContacts.length} contact
+              {allContacts.length > 1 ? 's' : ''} — recruteurs, clients, ESN partenaires.
+            </>
+          ) : (
+            <>
+              {allContacts.length} contact{allContacts.length > 1 ? 's' : ''} — recruteurs, clients, ESN partenaires.
+            </>
+          )
+        }
+        actions={
+          <>
+            <Button variant="outline" onClick={() => setCsvOpen(true)}>
+              <FileUp className="h-4 w-4" />
+              Importer CSV
+            </Button>
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              Nouveau contact
+            </Button>
+          </>
+        }
+      />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <KPICard
+          label="Total contacts"
+          value={allContacts.length}
+          icon={Users}
+          tone="magenta"
+        />
+        <KPICard
+          label="Recruteurs"
+          value={recruiterCount}
+          icon={Briefcase}
+          tone="cyan"
+        />
+        <KPICard
+          label="Clients finaux"
+          value={clientCount}
+          icon={Building2}
+          tone="violet"
+        />
+        <KPICard
+          label="ESN partenaires"
+          value={partnerCount}
+          icon={Network}
+          tone="amber"
+        />
       </div>
 
       <ContactCsvImportDialog
@@ -245,8 +289,37 @@ export default function ContactsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-0">
+      {!loading && contacts.length === 0 ? (
+        <EmptyState
+          icon={UserCircle}
+          title={
+            q
+              ? `Aucun contact ne correspond à « ${search.trim()} »`
+              : 'Aucun contact pour l’instant'
+          }
+          description={
+            q
+              ? 'Essaie un autre terme ou efface la recherche.'
+              : 'Importe un CSV ou crée ton premier contact pour démarrer ton réseau.'
+          }
+          action={
+            !q ? (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setCsvOpen(true)}>
+                  <FileUp className="h-4 w-4" />
+                  Importer CSV
+                </Button>
+                <Button onClick={openCreate}>
+                  <Plus className="h-4 w-4" />
+                  Nouveau contact
+                </Button>
+              </div>
+            ) : undefined
+          }
+        />
+      ) : (
+      <AppCard>
+        <div className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -264,14 +337,6 @@ export default function ContactsPage() {
                 <TableRow>
                   <TableCell colSpan={7}>
                     <div className="h-10 bg-white/[0.02] animate-pulse rounded" />
-                  </TableCell>
-                </TableRow>
-              ) : contacts.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                    {q
-                      ? `Aucun contact ne correspond à « ${search.trim()} »`
-                      : 'Aucun contact'}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -395,8 +460,9 @@ export default function ContactsPage() {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </AppCard>
+      )}
 
       <PaginationFooter
         pagination={pagination}
