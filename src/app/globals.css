@@ -889,6 +889,53 @@ section[id] {
   :root:not(.dark) .bg-indigo-500\/10 { background-color: rgb(154 46 30 / 0.10); }
   :root:not(.dark) .border-indigo-300 { border-color: rgb(218 145 115); }
   :root:not(.dark) .border-indigo-500 { border-color: rgb(154 46 30); }
+  :root:not(.dark) .border-indigo-500\/25 { border-color: rgb(154 46 30 / 0.30); }
+
+  /* ============ LIGHT — OPACITY VARIANTS (grep-driven) ============
+     Toutes les classes opacity exact utilisées dans le code source
+     (CRA dialog, Facture dialog, Assistant comptable, etc.) qui n'étaient
+     pas couvertes ci-dessus. Liste extraite via grep. */
+
+  /* text-violet-{shade}/{opacity} */
+  :root:not(.dark) .text-violet-300\/80 { color: rgb(178 58 38 / 0.85); }
+  :root:not(.dark) .text-violet-300\/70 { color: rgb(178 58 38 / 0.78); }
+  :root:not(.dark) .text-violet-300\/60 { color: rgb(178 58 38 / 0.70); }
+  :root:not(.dark) .text-violet-200\/80 { color: rgb(154 46 30 / 0.85); }
+  :root:not(.dark) .text-violet-200\/70 { color: rgb(154 46 30 / 0.78); }
+  :root:not(.dark) .text-violet-400\/80 { color: rgb(196 90 50 / 0.85); }
+  :root:not(.dark) .text-violet-glow\/80 { color: rgb(178 58 38 / 0.85); }
+  :root:not(.dark) .text-violet-glow\/70 { color: rgb(178 58 38 / 0.78); }
+  :root:not(.dark) .text-violet-glow\/60 { color: rgb(178 58 38 / 0.70); }
+
+  /* bg-violet-{shade}/{opacity} */
+  :root:not(.dark) .bg-violet-400\/70 { background-color: rgb(196 90 50 / 0.70); }
+  :root:not(.dark) .bg-violet-500\/5 { background-color: rgb(178 58 38 / 0.05); }
+  :root:not(.dark) .bg-violet-500\/25 { background-color: rgb(178 58 38 / 0.25); }
+  :root:not(.dark) .bg-violet-500\/30 { background-color: rgb(178 58 38 / 0.30); }
+
+  /* border-violet-{shade}/{opacity} */
+  :root:not(.dark) .border-violet-400\/50 { border-color: rgb(196 90 50 / 0.50); }
+  :root:not(.dark) .border-violet-500\/20 { border-color: rgb(178 58 38 / 0.25); }
+  :root:not(.dark) .border-violet-500\/25 { border-color: rgb(178 58 38 / 0.30); }
+  :root:not(.dark) .border-violet-500\/40 { border-color: rgb(178 58 38 / 0.40); }
+  :root:not(.dark) .border-violet-500\/70 { border-color: rgb(178 58 38 / 0.60); }
+
+  /* bg-fuchsia-{shade}/{opacity} + border */
+  :root:not(.dark) .bg-fuchsia-500\/10 { background-color: rgb(154 46 30 / 0.10); }
+  :root:not(.dark) .bg-fuchsia-500\/15 { background-color: rgb(154 46 30 / 0.15); }
+  :root:not(.dark) .bg-fuchsia-500\/20 { background-color: rgb(154 46 30 / 0.20); }
+  :root:not(.dark) .border-fuchsia-500\/30 { border-color: rgb(154 46 30 / 0.32); }
+  :root:not(.dark) .border-fuchsia-500\/50 { border-color: rgb(154 46 30 / 0.50); }
+  :root:not(.dark) .border-fuchsia-500\/70 { border-color: rgb(154 46 30 / 0.60); }
+  :root:not(.dark) .text-fuchsia-300\/80 { color: rgb(154 46 30 / 0.85); }
+  :root:not(.dark) .text-fuchsia-400\/80 { color: rgb(178 58 38 / 0.85); }
+
+  /* text/bg/border purple opacity variants (alias violet) */
+  :root:not(.dark) .text-purple-300\/80 { color: rgb(178 58 38 / 0.85); }
+  :root:not(.dark) .bg-purple-500\/10 { background-color: rgb(178 58 38 / 0.10); }
+  :root:not(.dark) .bg-purple-500\/15 { background-color: rgb(178 58 38 / 0.15); }
+  :root:not(.dark) .border-purple-500\/25 { border-color: rgb(178 58 38 / 0.30); }
+  :root:not(.dark) .border-purple-500\/30 { border-color: rgb(178 58 38 / 0.32); }
 
   /* ============ LIGHT MODE — couleurs custom Tailwind config ============
      Les couleurs magenta-neon, violet-glow, violet-brand sont définies en
