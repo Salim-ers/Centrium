@@ -128,6 +128,46 @@ const themeBootstrapScript = `
 })();
 `;
 
+// Script inline qui force la déconnexion IMMÉDIATE (avant tout rendu
+// React) si l'utilisateur arrive sur une page protégée sans flag
+// sessionStorage "centrium-session-active". Cas typique : Chrome a
+// restauré les cookies via "Continue where you left off" mais
+// sessionStorage est mort à la fermeture → on n'a pas été "présent"
+// entre deux ouvertures.
+//
+// Synchrone et bloquant : envoie un beacon de logout serveur puis
+// window.location.replace('/') → la page protégée n'est JAMAIS rendue.
+const sessionGateScript = `
+(function() {
+  try {
+    var path = window.location.pathname;
+    // Pages publiques (vitrine + auth + invite + legal) : pas de check.
+    var publicPaths = ['/', '/login', '/signup', '/register', '/devis', '/pricing', '/security', '/plateforme', '/manifesto', '/engagements'];
+    var publicPrefixes = ['/auth/', '/invite/', '/legal/'];
+    var isPublic =
+      publicPaths.indexOf(path) !== -1 ||
+      publicPrefixes.some(function(p) { return path.indexOf(p) === 0; });
+    if (isPublic) return;
+
+    // Sur toute route non-publique : check du flag.
+    var flag = sessionStorage.getItem('centrium-session-active');
+    if (flag === '1') return;
+
+    // Pas de flag → on déco. Le serveur reçoit le beacon (purge cookies
+    // httpOnly Supabase), et on redirige immédiatement vers / (page
+    // d'accueil vitrine). La page protégée n'aura jamais le temps de
+    // se rendre.
+    if ('sendBeacon' in navigator) {
+      try { navigator.sendBeacon('/api/auth/logout'); } catch (e) {}
+    }
+    window.location.replace('/');
+  } catch (e) {
+    // sessionStorage indisponible (mode incognito strict) → on laisse
+    // passer pour ne pas bloquer l'utilisateur en boucle.
+  }
+})();
+`;
+
 export default function RootLayout({
   children,
 }: {
@@ -137,6 +177,7 @@ export default function RootLayout({
     <html lang="fr" className={`${inter.variable} ${spaceGrotesk.variable} ${instrumentSerif.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
+        <script dangerouslySetInnerHTML={{ __html: sessionGateScript }} />
         <JsonLd />
       </head>
       <body className="font-sans">

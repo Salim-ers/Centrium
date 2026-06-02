@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 
 const SESSION_FLAG_KEY = 'centrium-session-active';
 const BROADCAST_CHANNEL = 'centrium-session';
@@ -31,8 +30,6 @@ const BROADCAST_CHANNEL = 'centrium-session';
  * reste connecté grâce au handshake BroadcastChannel.
  */
 export function useSessionPresence() {
-  const router = useRouter();
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -87,25 +84,32 @@ export function useSessionPresence() {
       bc.postMessage({ type: 'ping' });
     }
 
-    // Si personne ne répond après 250ms, on force le logout.
-    const timer = window.setTimeout(async () => {
+    // Si personne ne répond après 80ms (court car le script inline du
+    // <head> a déjà bloqué les chargements directs — ce hook ne sert
+    // qu'aux navigations client-side intra-app), on force le logout.
+    // Redirect vers / (page d'accueil vitrine de Centrium) comme demandé,
+    // pas vers /login.
+    const timer = window.setTimeout(() => {
       if (cancelled || answered) return;
-      try {
-        await fetch('/api/auth/logout', {
-          method: 'POST',
-          credentials: 'include',
-        });
-      } catch {
-        /* best-effort, on redirect quand même */
+      // Beacon synchrone pour purger les cookies serveur sans bloquer.
+      if (typeof navigator !== 'undefined' && 'sendBeacon' in navigator) {
+        try {
+          navigator.sendBeacon('/api/auth/logout');
+        } catch {
+          /* best-effort */
+        }
       }
-      if (!cancelled) router.replace('/login');
-    }, 250);
+      if (!cancelled) window.location.replace('/');
+    }, 80);
 
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
       bc?.close();
     };
+    // router pas utilisé : on bypass Next.js router pour un redirect
+    // hard via window.location.replace, plus rapide et garantit que
+    // les caches Next ne re-affichent pas la page protégée.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 }
