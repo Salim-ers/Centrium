@@ -1055,11 +1055,21 @@ section[id] {
     color: rgb(252 245 235);
   }
   :root:not(.dark) .qc-sidebar .text-violet-glow {
-    color: rgb(255 250 240);  /* crème blanc, plus blanc que jaune */
+    color: rgb(255 250 240);  /* texte généraux de la sidebar : crème */
   }
   :root:not(.dark) .qc-sidebar .text-amber-400,
   :root:not(.dark) .qc-sidebar .text-amber-300 {
-    color: rgb(255 250 240);  /* idem pour Sun icon */
+    color: rgb(255 250 240);
+  }
+  /* EXCEPTION : le bouton ThemeToggle a un fond surface-1 (crème) →
+     la Moon icon en cream serait invisible (crème sur crème). On la
+     remet en TERRACOTTA visible sur le bouton crème. Pareil pour Sun. */
+  :root:not(.dark) .qc-sidebar button .text-violet-glow {
+    color: rgb(154 46 30);   /* terracotta sang foncé, visible sur cream */
+  }
+  :root:not(.dark) .qc-sidebar button .text-amber-400,
+  :root:not(.dark) .qc-sidebar button .text-amber-300 {
+    color: rgb(178 58 38);   /* terracotta, visible sur cream */
   }
   /* Active state d'un item dans la sidebar en light : fond plus clair
      (crème transparent) + texte crème vif + bordure crème. Plus de
