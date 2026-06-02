@@ -71,13 +71,13 @@ section[id] {
     --hairline: 32 18% 80%;
   }
 
-  /* ============ DARK MODE ============ */
+  /* ============ DARK MODE — ultra-deep midnight + couleurs vibrantes ============ */
   .dark {
-    --background: 228 38% 6%;             /* #0a0b14 — midnight */
-    --foreground: 210 40% 98%;
+    --background: 228 50% 3%;             /* #050610 — noir profond presque absolu */
+    --foreground: 210 45% 99%;             /* blanc plus pur pour contraste max */
 
-    --card: 230 30% 9%;                   /* #0f1119 */
-    --card-foreground: 210 40% 98%;
+    --card: 230 38% 6%;                   /* #0a0b13 — card plus foncée qu'avant */
+    --card-foreground: 210 45% 99%;
 
     --popover: 230 30% 9%;
     --popover-foreground: 210 40% 98%;
@@ -248,16 +248,20 @@ section[id] {
       radial-gradient(ellipse 60% 50% at 20% 10%, hsl(38 40% 92% / 0.6), transparent 70%),
       radial-gradient(ellipse 60% 50% at 80% 90%, hsl(28 30% 90% / 0.5), transparent 70%);
   }
-  /* Dark mode : aurora drift conservé pour cohérence vitrine + identité. */
+  /* Dark mode : aurora drift INTENSIFIÉE — 6 sources de lumière colorées
+     (rose, magenta, violet, indigo, cyan, lavande) qui dérivent en
+     continu. Plus de couleurs, plus de vie, plus de "truc de fou". */
   .dark .app-bg::before {
     background:
-      radial-gradient(ellipse 50% 40% at 15% 20%, hsl(328 92% 55% / 0.32), transparent 60%),
-      radial-gradient(ellipse 45% 50% at 85% 70%, hsl(285 90% 60% / 0.28), transparent 60%),
-      radial-gradient(ellipse 60% 45% at 50% 100%, hsl(328 92% 55% / 0.22), transparent 60%),
-      radial-gradient(ellipse 40% 35% at 75% 15%, hsl(265 90% 65% / 0.18), transparent 60%);
-    background-size: 200% 200%;
+      radial-gradient(ellipse 55% 45% at 15% 20%, hsl(328 92% 55% / 0.42), transparent 62%),
+      radial-gradient(ellipse 50% 55% at 85% 70%, hsl(285 90% 60% / 0.38), transparent 62%),
+      radial-gradient(ellipse 65% 50% at 50% 100%, hsl(328 92% 55% / 0.30), transparent 62%),
+      radial-gradient(ellipse 45% 40% at 75% 15%, hsl(265 90% 65% / 0.28), transparent 62%),
+      radial-gradient(ellipse 40% 35% at 10% 90%, hsl(195 90% 65% / 0.22), transparent 62%),
+      radial-gradient(ellipse 35% 30% at 92% 30%, hsl(225 85% 65% / 0.20), transparent 62%);
+    background-size: 220% 220%;
     animation: aurora-drift 22s ease-in-out infinite;
-    filter: blur(50px);
+    filter: blur(48px);
   }
 
   @keyframes aurora-drift {
@@ -671,15 +675,55 @@ section[id] {
   .dark .qc-premium {
     background:
       linear-gradient(180deg,
-        hsla(230, 30%, 11%, 0.94) 0%,
-        hsla(230, 30%, 6%, 0.95) 100%
+        hsla(230, 38%, 8%, 0.96) 0%,
+        hsla(230, 45%, 3%, 0.97) 100%
       );
-    border-color: hsla(0, 0%, 100%, 0.07);
+    border-color: hsla(0, 0%, 100%, 0.06);
     box-shadow:
-      inset 0 1px 0 0 hsla(0, 0%, 100%, 0.05),
-      inset 0 0 0 0.5px hsla(0, 0%, 100%, 0.02),
-      0 10px 40px -16px hsla(0, 0%, 0%, 0.7),
-      0 4px 12px -4px hsla(0, 0%, 0%, 0.4);
+      inset 0 1px 0 0 hsla(0, 0%, 100%, 0.06),
+      inset 0 0 0 0.5px hsla(0, 0%, 100%, 0.025),
+      0 14px 50px -18px hsla(0, 0%, 0%, 0.85),
+      0 5px 16px -4px hsla(0, 0%, 0%, 0.5);
+    position: relative;
+  }
+  /* Animated border gradient (rose → violet → cyan → violet → rose) qui pan
+     en continu, visible au hover des cards interactives. Effet "objet
+     sculpté irisé" très haut de gamme. */
+  .dark .qc-premium::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      rgba(236, 72, 153, 0.55) 0%,
+      rgba(168, 85, 247, 0.45) 25%,
+      rgba(34, 211, 238, 0.35) 50%,
+      rgba(168, 85, 247, 0.45) 75%,
+      rgba(236, 72, 153, 0.55) 100%
+    );
+    background-size: 200% 100%;
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    animation: qc-border-shimmer 5s linear infinite;
+    transition: opacity 380ms ease-out;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .dark .qc-premium-interactive:hover::after {
+    opacity: 1;
+  }
+  @keyframes qc-border-shimmer {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dark .qc-premium::after { animation: none; }
   }
   :root:not(.dark) .qc-premium {
     background: hsla(38, 35%, 99%, 0.95);
@@ -1032,6 +1076,26 @@ section[id] {
   :root:not(.dark) .hover\:shadow-glow-pink:hover {
     --tw-shadow: 0 0 50px -10px rgb(178 58 38 / 0.35);
     box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+  }
+
+  /* ============ DARK MODE — SIDEBAR gradient violet-noir → noir profond ============
+     Dark : gradient vertical subtle, soupçon de violet en haut (cohérent
+     avec le wordmark) qui se fond vers le noir profond en bas. Effet
+     "rideau de nuit" haut de gamme. */
+  .dark .qc-sidebar {
+    background: linear-gradient(180deg,
+      hsla(265, 35%, 7%, 0.96) 0%,    /* tinté violet en haut */
+      hsla(228, 45%, 3%, 0.97) 60%,
+      hsla(228, 50%, 2%, 0.97) 100%   /* noir absolu en bas */
+    );
+    border-color: hsla(0, 0%, 100%, 0.06);
+  }
+  .dark .qc-app-header {
+    background: linear-gradient(180deg,
+      hsla(228, 45%, 4%, 0.94) 0%,
+      hsla(228, 45%, 3%, 0.94) 100%
+    );
+    border-color: hsla(0, 0%, 100%, 0.06);
   }
 
   /* ============ LIGHT MODE — SIDEBAR FULL TERRACOTTA ROUGE ============

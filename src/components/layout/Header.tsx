@@ -61,7 +61,7 @@ export function Header() {
   const activeMembership = org?.memberships.find((m) => m.id === org.activeOrgId);
 
   return (
-    <header className="fixed top-0 right-0 left-0 md:left-64 z-20 h-16 bg-background/95 dark:bg-[rgba(7,8,17,0.94)] backdrop-blur-xl border-b border-hairline">
+    <header className="qc-app-header fixed top-0 right-0 left-0 md:left-64 z-20 h-16 bg-background/95 backdrop-blur-xl border-b border-hairline">
       {/* Hairline rose/violet en bas du header — DARK uniquement.
           En light : invisible (demande utilisateur : zéro halo rose).
           On bascule via opacity sans changer le background pour garder

@@ -281,12 +281,9 @@ export function Sidebar() {
       data-app-sidebar
       className={[
         'qc-sidebar hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-hairline backdrop-blur-xl',
-        // Dark : bleu nuit/noir profond, plus opaque que bg-card/80 →
-        // les menus se détachent vraiment du Starfield qui reste visible
-        // uniquement au-delà de la sidebar.
-        // Light : la classe .qc-sidebar (globals.css) pose un fond full
-        // terracotta sang + texte crème (demande utilisateur).
-        'dark:bg-[rgba(7,8,17,0.94)]',
+        // Background piloté par .qc-sidebar (globals.css) :
+        //   - Dark : gradient vertical subtle violet-noir → noir profond
+        //   - Light : gradient terracotta sang
       ].join(' ')}
     >
       <SidebarBody />
