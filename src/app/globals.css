@@ -365,6 +365,23 @@ section[id] {
     }
   }
 
+  /* ============ DARK MODE EXPLICITE : gradient rose-magenta-violet ============
+     Garde-fou pour la vitrine publique (dark forcé). En cas de cache CSS
+     navigateur/CDN qui aurait servi une ancienne version sur /plateforme
+     ou /engagements, cette règle re-déclare le gradient signature et
+     bypass toute autre override. !important pour bloquer définitivement. */
+  .dark .qc-italic-accent {
+    background-image: linear-gradient(
+      90deg,
+      rgb(249, 168, 212) 0%,    /* pink-300 */
+      rgb(236, 72, 153) 50%,    /* magenta */
+      rgb(196, 181, 253) 100%   /* violet-300 */
+    ) !important;
+    filter:
+      drop-shadow(0 4px 30px rgba(225, 29, 116, 0.4))
+      drop-shadow(0 0 60px rgba(168, 85, 247, 0.2)) !important;
+  }
+
   /* ============ LIGHT MODE OVERRIDE : terracotta gradient ============
      En light, pas de rose/violet. Gradient terracotta chaud :
      argile claire → terracotta principal → ocre orangé. */
