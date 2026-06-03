@@ -16,13 +16,21 @@ export function JsonLd() {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     '@id': `${SITE.url}#organization`,
-    name: 'Centrium',
+    name: 'Centrium by QuadCore',
+    alternateName: ['Centrium', 'QuadCore SAS'],
     legalName: SITE.legalName,
     url: SITE.url,
     logo: `${SITE.url}/brand/centrium-logo.svg`,
     description: SITE.descriptionEn,
     foundingDate: '2025',
     founders: [{ '@type': 'Person', name: 'Salim El Rahmani' }],
+    // Signal le plus fort pour le Knowledge Graph Google et la triangulation
+    // d'entité par ChatGPT/Perplexity/Bing Copilot. À remplir au fur et à
+    // mesure que les profils publics sont créés (LinkedIn, Crunchbase, etc.).
+    sameAs: [
+      'https://www.linkedin.com/company/centrium-platform',
+      'https://www.linkedin.com/company/quadcore-sas',
+    ],
     contactPoint: [
       {
         '@type': 'ContactPoint',
@@ -50,12 +58,15 @@ export function JsonLd() {
     '@type': 'SoftwareApplication',
     '@id': `${SITE.url}#software`,
     name: 'Centrium',
+    alternateName: 'Centrium by QuadCore',
     operatingSystem: 'Web',
     applicationCategory: 'BusinessApplication',
     applicationSubCategory: 'StaffingManagementSoftware',
     description: SITE.descriptionEn,
     url: SITE.url,
     image: `${SITE.url}/opengraph-image`,
+    // Logo explicite sur SoftwareApplication (Google Rich Results recommandé).
+    logo: `${SITE.url}/brand/centrium-logo.svg`,
     publisher: { '@id': `${SITE.url}#organization` },
     offers: {
       '@type': 'Offer',

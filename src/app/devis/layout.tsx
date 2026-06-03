@@ -1,10 +1,20 @@
 import type { Metadata } from 'next';
 
+import { BreadcrumbJsonLd } from '@/components/seo/BreadcrumbJsonLd';
+import { DevisJsonLd } from '@/components/seo/DevisJsonLd';
+
 export const metadata: Metadata = {
   title: 'Demander un devis',
   description:
     'Décrivez votre ESN en quelques minutes. Réponse sous 24-48 h avec un devis personnalisé. Configuration de votre espace à votre image (logo, couleurs, mentions légales) avant activation.',
-  alternates: { canonical: '/devis' },
+  alternates: {
+    canonical: '/devis',
+    languages: {
+      'fr-FR': '/devis',
+      'en-US': '/devis',
+      'x-default': '/devis',
+    },
+  },
   openGraph: {
     title: 'Demander un devis — Centrium',
     description:
@@ -17,11 +27,15 @@ export const metadata: Metadata = {
     title: 'Demander un devis — Centrium',
     description: 'Devis personnalisé sous 24-48 h. Sans engagement avant signature.',
   },
-  // Page de conversion : indexable mais robots peuvent éviter de la
-  // sur-pondérer (Google la considérera de toute façon comme transactionnelle)
   robots: { index: true, follow: true },
 };
 
 export default function DevisLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  return (
+    <>
+      <BreadcrumbJsonLd crumbs={[{ name: 'Devis', path: '/devis' }]} />
+      <DevisJsonLd />
+      {children}
+    </>
+  );
 }

@@ -1,12 +1,20 @@
 import type { Metadata } from 'next';
 
 import { BreadcrumbJsonLd } from '@/components/seo/BreadcrumbJsonLd';
+import { PlateformeJsonLd } from '@/components/seo/PlateformeJsonLd';
 
 export const metadata: Metadata = {
   title: 'La plateforme',
   description:
     'Tout votre cycle ESN dans un seul flux : bibliothèque consultants, CV Optimizer IA, matching mission, CRA et facturation. Sans rupture, sans ressaisie, hébergé en Europe.',
-  alternates: { canonical: '/plateforme' },
+  alternates: {
+    canonical: '/plateforme',
+    languages: {
+      'fr-FR': '/plateforme',
+      'en-US': '/plateforme',
+      'x-default': '/plateforme',
+    },
+  },
   openGraph: {
     title: 'La plateforme — Centrium',
     description:
@@ -26,6 +34,7 @@ export default function PlateformeLayout({ children }: { children: React.ReactNo
   return (
     <>
       <BreadcrumbJsonLd crumbs={[{ name: 'La plateforme', path: '/plateforme' }]} />
+      <PlateformeJsonLd />
       {children}
     </>
   );

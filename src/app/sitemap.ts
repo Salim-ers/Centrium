@@ -30,7 +30,7 @@ const PAGES: Page[] = [
   { path: '/pricing', changeFrequency: 'monthly', priority: 0.9 },
   { path: '/devis', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/legal/mentions', changeFrequency: 'yearly', priority: 0.3 },
-  { path: '/legal/confidentialite', changeFrequency: 'yearly', priority: 0.3 },
+  { path: '/legal/privacy', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/legal/cgu', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/legal/cookies', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/legal/dpa', changeFrequency: 'yearly', priority: 0.3 },

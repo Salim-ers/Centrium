@@ -12,9 +12,13 @@ type Crumb = { name: string; path: string };
  * La home est ajoutée automatiquement comme premier item.
  */
 export function BreadcrumbJsonLd({ crumbs }: { crumbs: Crumb[] }) {
+  // @id persistant pour permettre aux blocs WebPage de référencer ce
+  // breadcrumb via `"breadcrumb": { "@id": "...#breadcrumb" }`.
+  const lastPath = crumbs[crumbs.length - 1]?.path ?? '';
   const data = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
+    '@id': `${SITE.url}${lastPath}#breadcrumb`,
     itemListElement: [
       {
         '@type': 'ListItem',

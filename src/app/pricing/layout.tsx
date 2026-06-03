@@ -7,7 +7,14 @@ export const metadata: Metadata = {
   title: 'Tarifs sur mesure',
   description:
     'Centrium s\'adapte à votre volume, vos modules et votre accompagnement. Pas de grille publique — devis chiffré sous 48 h, lisible et sans engagement avant signature. Hébergement européen, RGPD.',
-  alternates: { canonical: '/pricing' },
+  alternates: {
+    canonical: '/pricing',
+    languages: {
+      'fr-FR': '/pricing',
+      'en-US': '/pricing',
+      'x-default': '/pricing',
+    },
+  },
   openGraph: {
     title: 'Tarifs sur mesure — Centrium',
     description:

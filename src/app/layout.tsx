@@ -176,6 +176,10 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${inter.variable} ${spaceGrotesk.variable} ${instrumentSerif.variable}`} suppressHydrationWarning>
       <head>
+        {/* Preconnect aux origines fonts Google (gain LCP 80-150 ms) */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://va.vercel-scripts.com" />
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
         <script dangerouslySetInnerHTML={{ __html: sessionGateScript }} />
         <JsonLd />

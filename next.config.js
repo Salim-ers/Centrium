@@ -43,9 +43,27 @@ const nextConfig = {
             value:
               'camera=(), microphone=(), geolocation=(), interest-cohort=(), browsing-topics=()',
           },
-          // Empêche les CDN ou proxys d'indexer ces pages comme si
-          // elles venaient d'eux (signal canonical secondaire)
           { key: 'X-DNS-Prefetch-Control', value: 'on' },
+          // Content-Security-Policy : politique stricte XSS + clickjacking.
+          // 'unsafe-inline' nécessaire pour les <script> bootstrap inline
+          // dans layout.tsx (theme + session gate). À nonce-ifier dans
+          // une prochaine itération pour passer en CSP3 strict.
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://*.vercel-insights.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' https://fonts.gstatic.com data:",
+              "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://*.vercel.app",
+              "connect-src 'self' https://*.supabase.co https://*.supabase.in https://api.anthropic.com https://formspree.io https://*.vercel-insights.com",
+              "frame-ancestors 'self'",
+              "form-action 'self' https://formspree.io",
+              "base-uri 'self'",
+              "object-src 'none'",
+              "upgrade-insecure-requests",
+            ].join('; '),
+          },
         ],
       },
     ];

@@ -6,7 +6,14 @@ export const metadata: Metadata = {
   title: 'Engagements & sécurité',
   description:
     'Manifeste Centrium, 6 piliers de sécurité (TLS, AES-256, hébergement européen, RLS multi-tenant, journalisation, sauvegardes), conformité RGPD/CNIL et DPA signable sur demande.',
-  alternates: { canonical: '/engagements' },
+  alternates: {
+    canonical: '/engagements',
+    languages: {
+      'fr-FR': '/engagements',
+      'en-US': '/engagements',
+      'x-default': '/engagements',
+    },
+  },
   openGraph: {
     title: 'Engagements & sécurité — Centrium',
     description:
