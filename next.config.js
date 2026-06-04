@@ -52,11 +52,24 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://*.vercel-insights.com",
+              // 'unsafe-inline' + 'unsafe-eval' nécessaires pour Tailwind +
+              // scripts bootstrap inline + @react-pdf/renderer qui fait
+              // de l'eval interne pour le layout PDF.
+              // 'blob:' permet aux Web Workers spawnés par @react-pdf
+              // (génération de PDF en off-thread).
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://va.vercel-scripts.com https://*.vercel-insights.com",
+              // worker-src explicite : @react-pdf/renderer + d'autres libs
+              // (html2canvas, jspdf) spawnent des workers depuis Blob URLs.
+              "worker-src 'self' blob:",
+              // child-src fallback pour worker-src + frames éventuelles.
+              "child-src 'self' blob:",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com data:",
+              // 'blob:' indispensable pour <a href={URL.createObjectURL(...)} download>
+              // qui déclenche le téléchargement du PDF généré côté client.
               "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://*.vercel.app",
-              "connect-src 'self' https://*.supabase.co https://*.supabase.in https://api.anthropic.com https://formspree.io https://*.vercel-insights.com",
+              // 'blob:' aussi pour les fetchs internes @react-pdf vers ses ressources.
+              "connect-src 'self' blob: https://*.supabase.co https://*.supabase.in https://api.anthropic.com https://formspree.io https://*.vercel-insights.com",
               "frame-ancestors 'self'",
               "form-action 'self' https://formspree.io",
               "base-uri 'self'",
