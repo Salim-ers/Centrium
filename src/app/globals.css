@@ -15,6 +15,21 @@ section[id] {
   scroll-margin-top: 96px;
 }
 
+/* ============ CONTENT-VISIBILITY OPT-IN ============
+   Optimisation Lighthouse / CWV : les sections marquées `qc-cv-auto`
+   sont skip-rendered si elles sont hors viewport, économisant du temps
+   de layout/paint. À appliquer SEULEMENT sur les sections below-fold
+   (pas le Hero qui doit être paint immédiatement pour le LCP).
+
+   `contain-intrinsic-size` réserve un placeholder pour éviter le
+   layout shift quand la section entre dans le viewport.
+
+   Usage : <section className="qc-cv-auto">...</section> */
+.qc-cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
