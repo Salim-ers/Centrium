@@ -69,7 +69,11 @@ const nextConfig = {
               // qui déclenche le téléchargement du PDF généré côté client.
               "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://*.vercel.app",
               // 'blob:' aussi pour les fetchs internes @react-pdf vers ses ressources.
-              "connect-src 'self' blob: https://*.supabase.co https://*.supabase.in https://api.anthropic.com https://formspree.io https://*.vercel-insights.com",
+              // wss:// nécessaire pour Supabase Realtime (postgres_changes + presence
+              // utilisés par useCrmRealtime, OrgCursorsOverlay, OrgActivityListener,
+              // useRealtimeReload). Sans wss:, l'app interne crash au mount avec
+              // "WebSocket connection blocked by CSP".
+              "connect-src 'self' blob: https://*.supabase.co wss://*.supabase.co https://*.supabase.in wss://*.supabase.in https://api.anthropic.com https://formspree.io https://*.vercel-insights.com",
               "frame-ancestors 'self'",
               "form-action 'self' https://formspree.io",
               "base-uri 'self'",
