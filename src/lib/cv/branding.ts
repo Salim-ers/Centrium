@@ -25,7 +25,7 @@ const DEFAULT_TAGLINE = 'IT Services & Consulting';
 // Bump le `v=` quand tu remplaces le PNG → force navigateurs et CDN
 // à recharger immédiatement la nouvelle image. Sinon ils servent
 // pendant plusieurs heures la version cachée.
-const QUADCORE_VCARD_QR = '/brand/quadcore-vcard-qr.png?v=2';
+const QUADCORE_VCARD_QR = '/brand/quadcore-vcard-qr.png?v=3';
 
 export function resolveBrand(b: OrgBranding | null | undefined): CVBrand {
   const brandName = (b?.brandName?.trim() || b?.name?.trim()) ?? DEFAULT_BRAND;
