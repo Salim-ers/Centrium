@@ -10,8 +10,19 @@ import { usePathname } from 'next/navigation';
  * authentifiée. Évite que la marketing/login s'affichent en clair
  * quand l'utilisateur s'est déconnecté après avoir activé le mode clair.
  */
-const FORCED_DARK_PATHS = ['/', '/login', '/signup', '/register', '/devis', '/pricing'];
-const FORCED_DARK_PREFIXES = ['/auth/', '/invite/'];
+const FORCED_DARK_PATHS = [
+  '/',
+  '/login',
+  '/signup',
+  '/register',
+  '/devis',
+  '/pricing',
+  '/plateforme',
+  '/engagements',
+  '/security',
+  '/manifesto',
+];
+const FORCED_DARK_PREFIXES = ['/auth/', '/invite/', '/legal/'];
 
 const STORAGE_KEY = 'centrium-theme';
 
