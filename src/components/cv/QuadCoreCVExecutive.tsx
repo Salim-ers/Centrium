@@ -31,8 +31,8 @@ export function QuadCoreCVExecutive({
   const b = brand ?? resolveBrand(null);
   return (
     <div
-      className="cv-print-page bg-white text-neutral-900 shadow-2xl mx-auto font-sans"
-      style={{ width: '210mm' }}
+      className="cv-print-page bg-white text-neutral-900 shadow-2xl mx-auto font-sans break-words"
+      style={{ width: '210mm', overflowWrap: 'anywhere' }}
     >
       {/* Header large et majestueux */}
       <header className="px-14 pt-14 pb-10 relative">

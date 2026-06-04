@@ -31,8 +31,8 @@ export function QuadCoreCVDense({
   const b = brand ?? resolveBrand(null);
   return (
     <div
-      className="cv-print-page bg-white text-neutral-900 shadow-2xl mx-auto font-sans"
-      style={{ width: '210mm' }}
+      className="cv-print-page bg-white text-neutral-900 shadow-2xl mx-auto font-sans break-words"
+      style={{ width: '210mm', overflowWrap: 'anywhere' }}
     >
       {/* Header bandeau sombre */}
       <header
@@ -259,7 +259,7 @@ export function QuadCoreCVDense({
                       placeholder="Catégorie"
                     />
                   </div>
-                  <div className="flex-1 text-neutral-800 leading-[1.5]">
+                  <div className="flex-1 min-w-0 text-neutral-800 leading-[1.5]">
                     {cat.items.map((item, i) => {
                       return (
                         <span key={`${catIdx}-${i}`}>
@@ -289,7 +289,7 @@ export function QuadCoreCVDense({
               {content.experiences.map((exp) => (
                 <div key={exp.id} className="cv-article">
                   <div className="flex items-baseline justify-between gap-3">
-                    <h3 className="text-[12px] font-bold text-neutral-900">
+                    <h3 className="flex-1 min-w-0 text-[12px] font-bold text-neutral-900">
                       <Editable
                         as="span"
                         path={`experience.${exp.id}.client_name`}

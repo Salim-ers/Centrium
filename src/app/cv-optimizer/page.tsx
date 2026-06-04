@@ -35,7 +35,6 @@ import { Badge } from '@/components/ui/badge';
 
 import { CVRenderer } from '@/components/cv/CVRenderer';
 import { CVPreviewBoundary } from '@/components/cv/CVPreviewBoundary';
-import { CVPreviewScaler } from '@/components/cv/CVPreviewScaler';
 import { consultantService } from '@/lib/services/consultant.service';
 import { jobOfferService } from '@/lib/services';
 import { generateCVContent } from '@/lib/ai/cv-generator';
@@ -1042,34 +1041,30 @@ function CVOptimizerPageInner() {
                 </CardContent>
               </Card>
               <EditModeBanner editMode={editMode} setEditMode={setEditMode} />
-              <div className="overflow-hidden bg-neutral-200 p-4 md:p-6 rounded-xl">
+              <div className="overflow-auto bg-neutral-200 p-6 rounded-xl">
                 <CVPreviewBoundary onReset={resetOverrides}>
-                  <CVPreviewScaler>
-                    <CVRenderer
-                      content={displayed ?? generated}
-                      templateId={templateId}
-                      editable={editMode}
-                      onEdit={handleInlineEdit}
-                      qrSrc={qrSrc}
-                    />
-                  </CVPreviewScaler>
+                  <CVRenderer
+                    content={displayed ?? generated}
+                    templateId={templateId}
+                    editable={editMode}
+                    onEdit={handleInlineEdit}
+                    qrSrc={qrSrc}
+                  />
                 </CVPreviewBoundary>
               </div>
             </>
           ) : generated ? (
             <>
               <EditModeBanner editMode={editMode} setEditMode={setEditMode} />
-              <div className="overflow-hidden bg-neutral-200 p-4 md:p-6 rounded-xl">
+              <div className="overflow-auto bg-neutral-200 p-6 rounded-xl">
                 <CVPreviewBoundary onReset={resetOverrides}>
-                  <CVPreviewScaler>
-                    <CVRenderer
-                      content={displayed ?? generated}
-                      templateId={templateId}
-                      editable={editMode}
-                      onEdit={handleInlineEdit}
-                      qrSrc={qrSrc}
-                    />
-                  </CVPreviewScaler>
+                  <CVRenderer
+                    content={displayed ?? generated}
+                    templateId={templateId}
+                    editable={editMode}
+                    onEdit={handleInlineEdit}
+                    qrSrc={qrSrc}
+                  />
                 </CVPreviewBoundary>
               </div>
             </>

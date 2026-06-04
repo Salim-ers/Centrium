@@ -34,8 +34,8 @@ export function QuadCoreCVStandard({
 }: Props) {
   const b = brand ?? resolveBrand(null);
   return (
-    <div className="cv-print-page bg-white text-neutral-900 shadow-2xl mx-auto"
-         style={{ width: '210mm', fontFamily: 'Georgia, serif' }}>
+    <div className="cv-print-page bg-white text-neutral-900 shadow-2xl mx-auto break-words"
+         style={{ width: '210mm', fontFamily: 'Georgia, serif', overflowWrap: 'anywhere' }}>
       {/* ============ HEADER ============ */}
       <header className="relative px-12 pt-10 pb-6">
         <div className="flex items-start justify-between gap-6">
@@ -229,7 +229,7 @@ export function QuadCoreCVStandard({
                   placeholder="Catégorie"
                 />
               </div>
-              <div className="flex-1 text-neutral-800 leading-[1.6]">
+              <div className="flex-1 min-w-0 text-neutral-800 leading-[1.6]">
                 {cat.items.map((item, i) => (
                   <span key={`${catIdx}-${i}`}>
                     <Editable
@@ -259,7 +259,7 @@ export function QuadCoreCVStandard({
           {content.experiences.map((exp) => (
             <article key={exp.id} className="cv-article">
               <div className="flex items-baseline justify-between gap-4">
-                <h3 className="font-sans font-bold text-[13px] text-neutral-900">
+                <h3 className="flex-1 min-w-0 font-sans font-bold text-[13px] text-neutral-900">
                   <Editable
                     as="span"
                     path={`experience.${exp.id}.client_name`}
