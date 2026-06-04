@@ -263,6 +263,30 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
       if (typeof window !== 'undefined') {
         window.sessionStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(next));
         window.sessionStorage.setItem(AUTH_CACHE_TS_KEY, String(Date.now()));
+
+        // Pre-fetch organization identity (address, SIREN, etc.) en
+        // arrière-plan : permet à la page /settings d'afficher tout
+        // instantanément depuis sessionStorage à la 1ère visite,
+        // pas seulement aux suivantes. Best-effort silencieux.
+        if (activeOrgId) {
+          fetch('/api/organizations/identity', { credentials: 'include' })
+            .then((r) => (r.ok ? r.json() : null))
+            .then((body: { data: unknown } | null) => {
+              if (body?.data) {
+                try {
+                  window.sessionStorage.setItem(
+                    `centrium-org-identity:${activeOrgId}`,
+                    JSON.stringify(body.data),
+                  );
+                } catch {
+                  /* mode incognito strict */
+                }
+              }
+            })
+            .catch(() => {
+              /* best-effort, /settings re-essaiera */
+            });
+        }
       }
     },
     [supabase],

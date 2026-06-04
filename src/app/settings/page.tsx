@@ -74,14 +74,48 @@ const SECTIONS: Array<{
   },
 ];
 
+// Cache sessionStorage : la réponse /api/organizations/identity ne change
+// quasi jamais (seulement quand l'utilisateur édite ses mentions légales).
+// On peut donc la cacher pour toute la durée de la session navigateur et
+// servir le bloc "Votre organisation" INSTANTANÉMENT à partir de la 2e
+// visite. Au revalidation silencieux en arrière-plan, on update si change.
+const IDENTITY_CACHE_KEY = (orgId: string) => `centrium-org-identity:${orgId}`;
+
+function readIdentityCache(orgId: string): IdentityRow | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(IDENTITY_CACHE_KEY(orgId));
+    if (!raw) return null;
+    return JSON.parse(raw) as IdentityRow;
+  } catch {
+    return null;
+  }
+}
+
+function writeIdentityCache(orgId: string, identity: IdentityRow): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(IDENTITY_CACHE_KEY(orgId), JSON.stringify(identity));
+  } catch {
+    /* mode incognito strict — ignore */
+  }
+}
+
 export default function SettingsPage() {
   const { activeOrgId, memberships, branding } = useOrganization();
-  const [identity, setIdentity] = useState<IdentityRow | null>(null);
-  const [identityLoading, setIdentityLoading] = useState(true);
 
-  // Affiche instantanément les données déjà présentes dans le state
-  // OrganizationProvider (brand_name, footer_tagline, name) pendant que
-  // le fetch détaillé tourne — évite le "—" qui clignote 1-2s.
+  // Lecture SYNCHRONE du cache sessionStorage au premier render — pas
+  // de useEffect, pas d'attente. Si cache présent, identity est posé
+  // direct au mount → bloc affiché instantanément.
+  const [identity, setIdentity] = useState<IdentityRow | null>(() =>
+    activeOrgId ? readIdentityCache(activeOrgId) : null,
+  );
+  const [identityLoading, setIdentityLoading] = useState(() =>
+    activeOrgId ? readIdentityCache(activeOrgId) === null : true,
+  );
+
+  // Fallback depuis le state OrganizationProvider (brandName, footerTagline,
+  // name) pour le tout 1er render avant même qu'on ait le cache.
   const activeMembership = memberships.find((m) => m.id === activeOrgId);
   const fallbackIdentity = activeMembership || branding
     ? {
@@ -99,16 +133,17 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!activeOrgId) return;
     let cancelled = false;
-    setIdentityLoading(true);
-    // cache: 'default' au lieu de 'no-store' → permet au browser cache
-    // de servir instantanément si la page a été visitée récemment dans
-    // l'onglet. Le serveur a déjà les bons cookies d'auth, pas besoin
-    // de bypass le cache.
+    // Revalidation silencieuse en arrière-plan — même si on a déjà servi
+    // depuis le cache, on re-fetch pour avoir les dernières infos au cas
+    // où l'utilisateur a édité ses mentions légales depuis un autre onglet.
     fetch('/api/organizations/identity')
       .then((r) => (r.ok ? r.json() : null))
       .then((body: { data: IdentityRow } | null) => {
         if (cancelled) return;
-        if (body?.data) setIdentity(body.data);
+        if (body?.data) {
+          setIdentity(body.data);
+          writeIdentityCache(activeOrgId, body.data);
+        }
         setIdentityLoading(false);
       })
       .catch(() => {
