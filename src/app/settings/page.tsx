@@ -75,25 +75,52 @@ const SECTIONS: Array<{
 ];
 
 export default function SettingsPage() {
-  const { activeOrgId } = useOrganization();
+  const { activeOrgId, memberships, branding } = useOrganization();
   const [identity, setIdentity] = useState<IdentityRow | null>(null);
+  const [identityLoading, setIdentityLoading] = useState(true);
+
+  // Affiche instantanément les données déjà présentes dans le state
+  // OrganizationProvider (brand_name, footer_tagline, name) pendant que
+  // le fetch détaillé tourne — évite le "—" qui clignote 1-2s.
+  const activeMembership = memberships.find((m) => m.id === activeOrgId);
+  const fallbackIdentity = activeMembership || branding
+    ? {
+        name: branding?.name ?? activeMembership?.name ?? '',
+        brand_name: branding?.brandName ?? null,
+        footer_tagline: branding?.footerTagline ?? null,
+        address: null,
+        city: null,
+        postal_code: null,
+        siren: null,
+      }
+    : null;
+  const displayed = identity ?? fallbackIdentity;
 
   useEffect(() => {
     if (!activeOrgId) return;
     let cancelled = false;
-    fetch('/api/organizations/identity', { cache: 'no-store' })
+    setIdentityLoading(true);
+    // cache: 'default' au lieu de 'no-store' → permet au browser cache
+    // de servir instantanément si la page a été visitée récemment dans
+    // l'onglet. Le serveur a déjà les bons cookies d'auth, pas besoin
+    // de bypass le cache.
+    fetch('/api/organizations/identity')
       .then((r) => (r.ok ? r.json() : null))
       .then((body: { data: IdentityRow } | null) => {
-        if (!cancelled && body?.data) setIdentity(body.data);
+        if (cancelled) return;
+        if (body?.data) setIdentity(body.data);
+        setIdentityLoading(false);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setIdentityLoading(false);
+      });
     return () => {
       cancelled = true;
     };
   }, [activeOrgId]);
 
-  const cityLine = identity
-    ? [identity.postal_code, identity.city].filter(Boolean).join(' ')
+  const cityLine = displayed
+    ? [displayed.postal_code, displayed.city].filter(Boolean).join(' ')
     : '';
 
   return (
@@ -155,28 +182,40 @@ export default function SettingsPage() {
               <p className="flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-magenta" />
                 <strong className="text-foreground">
-                  {identity?.brand_name ?? identity?.name ?? '—'}
+                  {displayed?.brand_name ?? displayed?.name ?? '—'}
                 </strong>
-                {identity?.footer_tagline ? (
-                  <span>— {identity.footer_tagline}</span>
+                {displayed?.footer_tagline ? (
+                  <span>— {displayed.footer_tagline}</span>
                 ) : null}
               </p>
-              {(identity?.address || cityLine) && (
-                <p>
-                  {identity?.address}
-                  {identity?.address && cityLine ? ', ' : ''}
-                  {cityLine}
-                </p>
-              )}
-              {identity?.siren && <p>SIREN : {identity.siren}</p>}
-              {!identity?.address && !identity?.siren && (
-                <p className="italic text-amber-300/80">
-                  Identité légale non renseignée. Allez dans{' '}
-                  <Link href="/settings/branding" className="text-magenta underline">
-                    Identité visuelle
-                  </Link>{' '}
-                  pour la compléter — elle sera utilisée sur vos contrats et factures.
-                </p>
+              {/* Adresse + SIREN : si on charge encore (pas de identity
+                  reçu mais fetch en cours), on affiche un skeleton subtle
+                  au lieu du tiret vide qui inquiétait. */}
+              {identityLoading && !identity ? (
+                <div className="space-y-1.5 pt-1">
+                  <div className="h-3 w-2/3 rounded bg-muted/50 animate-pulse" />
+                  <div className="h-3 w-1/3 rounded bg-muted/50 animate-pulse" />
+                </div>
+              ) : (
+                <>
+                  {(identity?.address || cityLine) && (
+                    <p>
+                      {identity?.address}
+                      {identity?.address && cityLine ? ', ' : ''}
+                      {cityLine}
+                    </p>
+                  )}
+                  {identity?.siren && <p>SIREN : {identity.siren}</p>}
+                  {!identity?.address && !identity?.siren && (
+                    <p className="italic text-amber-300/80">
+                      Identité légale non renseignée. Allez dans{' '}
+                      <Link href="/settings/branding" className="text-magenta underline">
+                        Identité visuelle
+                      </Link>{' '}
+                      pour la compléter — elle sera utilisée sur vos contrats et factures.
+                    </p>
+                  )}
+                </>
               )}
             </AppCardBody>
           </AppCard>
