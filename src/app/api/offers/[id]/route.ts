@@ -31,7 +31,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     );
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
 
   // Vérifie que l'offre appartient bien à l'org courante
   const { data: existing } = await admin
@@ -73,7 +73,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const { data: existing } = await admin
     .from('job_offers')
     .select('organization_id')

@@ -27,7 +27,7 @@ export async function GET() {
   const user = await requireSuperAdmin();
   if (!user) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('onboarding');
   const { data, error } = await admin
     .from('quote_requests')
     .select('*')

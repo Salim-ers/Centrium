@@ -41,7 +41,7 @@ export async function PATCH(req: NextRequest) {
     );
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
 
   // Récupère le consultant_id lié au profile
   const { data: profile } = await admin

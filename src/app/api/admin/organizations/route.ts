@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
 
   // Normalise '' → null pour les champs nullables.
   const blank = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? null : v);

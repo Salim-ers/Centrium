@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'invalid_signature' }, { status: 400 });
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('webhook');
 
   try {
     switch (event.type) {

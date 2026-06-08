@@ -23,7 +23,7 @@ export async function GET() {
     return NextResponse.json({ data: null }, { status: 200 });
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('invitation');
   const { data } = await admin
     .from('organization_invitations')
     .select('id, token, organization_id, email, role, expires_at, organizations(name, brand_name)')

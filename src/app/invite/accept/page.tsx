@@ -29,7 +29,7 @@ export default async function InviteAcceptPage({ searchParams }: Props) {
     );
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('invitation');
   const { data: invite } = await admin
     .from('organization_invitations')
     .select('id, organization_id, email, role, expires_at, accepted_at, organizations(name)')

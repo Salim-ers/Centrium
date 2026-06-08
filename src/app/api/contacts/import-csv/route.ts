@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const records = parsed.data.rows.map((r) => {
     const cleaned = Object.fromEntries(
       Object.entries(r).map(([k, v]) => [k, v === '' ? null : v]),

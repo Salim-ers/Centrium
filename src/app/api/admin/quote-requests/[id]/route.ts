@@ -36,7 +36,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     );
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('onboarding');
   const { data, error } = await admin
     .from('quote_requests')
     .update({ ...parsed.data, updated_at: new Date().toISOString() })
@@ -56,7 +56,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const user = await requireSuperAdmin();
   if (!user) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('onboarding');
   const { error } = await admin
     .from('quote_requests')
     .delete()

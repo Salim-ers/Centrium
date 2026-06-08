@@ -38,7 +38,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     );
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
 
   // Vérifie que le consultant appartient bien à l'org courante
   const { data: consultant } = await admin
@@ -111,7 +111,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ error: 'missing_name' }, { status: 400 });
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
 
   const { data: consultant } = await admin
     .from('consultants')

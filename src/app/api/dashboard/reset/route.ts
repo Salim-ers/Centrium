@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const scopes = new Set(parsed.data.scopes);
   const counts: Record<string, number> = {};
 

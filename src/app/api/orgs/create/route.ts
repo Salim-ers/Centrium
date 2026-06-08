@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('onboarding');
 
   // Slug déjà pris ?
   const { data: existing } = await admin

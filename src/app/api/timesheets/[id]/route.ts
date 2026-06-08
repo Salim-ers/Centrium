@@ -19,7 +19,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const { data: existing } = await admin
     .from('timesheets')
     .select('organization_id')

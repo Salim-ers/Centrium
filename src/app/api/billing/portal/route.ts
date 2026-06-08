@@ -17,7 +17,7 @@ export async function POST() {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const { data: sub } = await admin
     .from('subscriptions')
     .select('stripe_customer_id')

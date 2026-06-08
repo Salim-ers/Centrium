@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
 
   // 4. Envoie l'email d'invitation via Supabase Auth (template "invite"
   //    déjà brandé Centrium). Fallback magic-link si le compte existe déjà.
-  const admin = createAdminClient();
+  const admin = createAdminClient('invitation');
   const inviteData = {
     invitation_token: invite.token,
     organization_name: orgDisplayName,

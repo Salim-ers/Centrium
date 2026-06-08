@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     status: 'open',
   });
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const { data, error } = await admin.from('job_offers').insert(payload).select().single();
   if (error) {
     return NextResponse.json(

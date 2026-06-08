@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('rgpd-export');
 
   // Récupère l'organisation pour pouvoir loguer dans activities (col NOT NULL).
   // Si pas d'org (super_admin), on log dans activities sans org_id pourrait

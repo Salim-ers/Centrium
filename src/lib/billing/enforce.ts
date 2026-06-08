@@ -32,7 +32,7 @@ type SubWithPlan = {
 };
 
 async function fetchSub(organizationId: string) {
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const { data } = (await admin
     .from('subscriptions')
     .select('plan_id, is_exempt_from_billing, plans(id, name, max_consultants, max_users)')
@@ -42,7 +42,7 @@ async function fetchSub(organizationId: string) {
 }
 
 async function countConsultants(organizationId: string): Promise<number> {
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const { count } = await admin
     .from('consultants')
     .select('id', { count: 'exact', head: true })
@@ -55,7 +55,7 @@ async function countInternalMembers(organizationId: string): Promise<number> {
   // Les "utilisateurs internes" = admin, business_manager, recruiter,
   // finance, viewer. Les consultants ont leur propre quota séparé via
   // max_consultants, on ne les compte donc pas ici.
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const { count } = await admin
     .from('organization_members')
     .select('id', { count: 'exact', head: true })
@@ -68,7 +68,7 @@ async function countPendingInvites(organizationId: string): Promise<number> {
   // Les invitations en attente comptent dans le quota — sinon un admin
   // pourrait spammer N invites au-delà de la limite et toutes les voir
   // acceptées d'un coup.
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const { count } = await admin
     .from('organization_invitations')
     .select('id', { count: 'exact', head: true })

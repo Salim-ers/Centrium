@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
 
   // Vérifie que le consultant et l'offre appartiennent bien à cette org
   const { data: consultant } = await admin

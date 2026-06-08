@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'invalid_type' }, { status: 400 });
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const ext = extFromMime(file.type);
   const path = `${ctx.organizationId}/logo-${Date.now()}.${ext}`;
   const buf = Buffer.from(await file.arrayBuffer());
@@ -99,7 +99,7 @@ export async function DELETE() {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const { data: orgRow } = await admin
     .from('organizations')
     .select('logo_url')

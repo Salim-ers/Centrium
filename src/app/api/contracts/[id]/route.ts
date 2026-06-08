@@ -39,7 +39,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     );
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const { data: existing } = await admin
     .from('contracts')
     .select('organization_id, start_date, duration_months')
@@ -87,7 +87,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const { data: existing } = await admin
     .from('contracts')
     .select('organization_id')

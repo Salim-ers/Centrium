@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('onboarding');
   const { data, error } = await admin
     .from('quote_requests')
     .insert({

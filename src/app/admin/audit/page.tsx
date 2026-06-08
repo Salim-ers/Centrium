@@ -25,7 +25,7 @@ const CRITICAL_ACTIONS = new Set(['deleted', 'archived', 'requested']);
  */
 export default async function AdminAuditPage() {
   const user = await requireUser();
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const { data: profile } = await admin
     .from('profiles')
     .select('role')

@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const input = parsed.data;
   const contract_number = input.contract_number ?? (await nextContractNumber(admin, ctx.organizationId));
   const end_date = input.end_date || computeEndDate(input.start_date, input.duration_months ?? 3);

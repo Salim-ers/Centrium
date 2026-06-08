@@ -49,7 +49,7 @@ export async function POST() {
 
   // Activité personnelle — via admin client pour traverser RLS (legitime ici :
   // on filtre strictement par user_id authentifié).
-  const admin = createAdminClient();
+  const admin = createAdminClient('rgpd-export');
   const { data: activities } = await admin
     .from('activities')
     .select('id, action, entity_type, entity_id, created_at')

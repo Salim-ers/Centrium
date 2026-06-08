@@ -1,5 +1,5 @@
 import 'server-only';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * Client Supabase admin (service_role).
@@ -10,15 +10,46 @@ import { createClient } from '@supabase/supabase-js';
  *   • dans les webhooks (Stripe, etc.)
  *
  * JAMAIS dans un Server Component, jamais côté client, jamais dans une page.
+ *
+ * Depuis le hardening sécurité : chaque appel DOIT déclarer un `reason`
+ * libre qui décrit POURQUOI on contourne la RLS. Ce reason est inscrit
+ * dans les logs serveur (et Sentry, s'il est branché) — ça force le dev
+ * à expliciter l'intention et ça donne une piste d'audit.
  */
-export function createAdminClient() {
+type AdminReason =
+  | 'webhook' // ex: Stripe webhook
+  | 'cross-org-query' // ex: super_admin dashboard
+  | 'audit-log-write' // logAudit() qui doit traverser RLS
+  | 'rgpd-export' // export RGPD utilisateur self-service
+  | 'invitation' // création membership cross-org
+  | 'onboarding' // création initiale org + first member
+  | 'system-cron' // jobs planifiés
+  | 'data-migration'; // migration de données one-shot
+
+export function createAdminClient(reason: AdminReason): SupabaseClient {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key) {
     throw new Error(
       'SUPABASE_SERVICE_ROLE_KEY manquante. Ajoute-la dans .env.local (serveur uniquement).',
     );
   }
+
+  // Trace systématique pour faciliter l'audit ex-post.
+  // En prod, ces logs partent dans Vercel Logs / Sentry (à brancher).
+  if (process.env.NODE_ENV !== 'test') {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[supabase.admin] service_role used — reason=${reason} ts=${new Date().toISOString()}`,
+    );
+  }
+
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key, {
     auth: { persistSession: false, autoRefreshToken: false },
+    global: {
+      headers: {
+        // Aide à pister côté Supabase logs quel call provient d'un admin client
+        'x-centrium-admin-reason': reason,
+      },
+    },
   });
 }

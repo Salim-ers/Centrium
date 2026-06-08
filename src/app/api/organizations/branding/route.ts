@@ -25,7 +25,7 @@ const SELECT_COLS =
 
 export async function GET() {
   const ctx = await requireOrg();
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
 
   const { data, error } = await admin
     .from('organizations')
@@ -57,7 +57,7 @@ export async function PUT(req: NextRequest) {
     );
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const { data, error } = await admin
     .from('organizations')
     .update(parsed.data)

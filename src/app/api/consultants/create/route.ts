@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     }
     throw e;
   }
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
 
   // Normalise les champs vides → null
   const normalized = Object.fromEntries(

@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'missing_plan' }, { status: 400 });
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
 
   // Les orgs fondateurs / partenaires sont exemptées — aucun checkout possible.
   const { data: exemptCheck } = await admin

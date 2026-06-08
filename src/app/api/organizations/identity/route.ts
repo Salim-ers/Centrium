@@ -30,7 +30,7 @@ const patchSchema = z.object({
 
 export async function GET() {
   const ctx = await requireOrg();
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
 
   const { data, error } = await admin
     .from('organizations')
@@ -67,7 +67,7 @@ export async function PATCH(req: NextRequest) {
     Object.entries(parsed.data).map(([k, v]) => [k, v === '' ? null : v]),
   );
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const { data, error } = await admin
     .from('organizations')
     .update(payload)

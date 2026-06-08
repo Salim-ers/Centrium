@@ -48,7 +48,7 @@ export type AuditInput = {
 
 export async function logAudit(input: AuditInput): Promise<void> {
   try {
-    const admin = createAdminClient();
+    const admin = createAdminClient('audit-log-write');
     const { error } = await admin.from('activities').insert({
       organization_id: input.organizationId,
       user_id: input.userId ?? null,

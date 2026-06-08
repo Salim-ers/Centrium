@@ -1,0 +1,31 @@
+# Politique de divulgation responsable — Centrium by QuadCore SAS
+# Conforme RFC 9116 (https://www.rfc-editor.org/rfc/rfc9116)
+
+Contact: mailto:security@centrium-platform.com
+Contact: https://centrium-platform.com/security
+Expires: 2027-06-30T23:59:59.000Z
+Preferred-Languages: fr, en
+Canonical: https://centrium-platform.com/.well-known/security.txt
+Policy: https://centrium-platform.com/legal/responsible-disclosure
+Acknowledgments: https://centrium-platform.com/security/hall-of-fame
+
+# Si tu as identifié une vulnérabilité dans Centrium :
+#
+# 1. Envoie un email détaillé à security@centrium-platform.com
+# 2. Décris la vulnérabilité, les étapes pour la reproduire, l'impact estimé
+# 3. Inclue ta preuve de concept (vidéo, captures, requêtes)
+# 4. Ne divulgue PAS publiquement avant qu'on ait confirmé un correctif
+#
+# Notre engagement :
+#   - Accusé de réception sous 48h ouvrées
+#   - Évaluation et triage sous 7 jours
+#   - Correctif déployé selon la criticité (24h-90j)
+#   - Reconnaissance publique (si tu le souhaites) dans notre Hall of Fame
+#   - Bug bounty : programme en cours de lancement (Q4 2026)
+#
+# Hors-scope :
+#   - Attaques nécessitant un accès physique à nos serveurs
+#   - Ingénierie sociale contre nos employés
+#   - Spam / déni de service (DDoS)
+#   - Vulnérabilités sur des sous-traitants tiers (Supabase, Vercel...)
+#     → reporte directement chez eux

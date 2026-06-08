@@ -41,7 +41,7 @@ export async function POST(
     );
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
 
   // 1) Vérifie que le consultant existe et appartient à l'org courante
   const { data: consultant } = await admin

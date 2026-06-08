@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     throw e;
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient('cross-org-query');
   const records = parsed.data.rows.map((r) => {
     // Normalise les '' → null et ajoute organization_id + is_prospect
     const cleaned = Object.fromEntries(
