@@ -87,6 +87,14 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient('cross-org-query');
 
+  // Calcule l'URL absolue pour le redirect Supabase Auth.
+  // Sans une URL absolue qui matche les "Redirect URLs" autorisées dans
+  // Supabase Auth, le lien d'invitation envoie l'utilisateur sur un 404.
+  const reqUrl = new URL(req.url);
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ??
+    `${reqUrl.protocol}//${reqUrl.host}`;
+
   // Normalise '' → null pour les champs nullables.
   const blank = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? null : v);
   const data = parsed.data;
@@ -139,7 +147,7 @@ export async function POST(req: NextRequest) {
         organization_id: org.id,
         role: 'admin',
       },
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/auth/set-password`,
+      redirectTo: `${appUrl}/auth/set-password`,
     },
   );
   if (inviteErr) {
