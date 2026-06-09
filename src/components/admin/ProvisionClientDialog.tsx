@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, Sparkles, Building2, Palette, Scale, Banknote, UserCog } from 'lucide-react';
+import { Loader2, Sparkles, Building2, Palette, Scale, Banknote, UserCog, Wand2 } from 'lucide-react';
+
+import { extractColorsFromImage } from '@/lib/colors/extract-from-image';
 
 import {
   Dialog,
@@ -255,6 +257,23 @@ export function ProvisionClientDialog({
                 onChange={(url) => update('signature_url', url)}
               />
             </Field>
+            {form.logo_url && (
+              <button
+                type="button"
+                onClick={async () => {
+                  const colors = await extractColorsFromImage(form.logo_url);
+                  setForm((f) => ({
+                    ...f,
+                    brand_primary_color: colors.primary,
+                    brand_accent_color: colors.accent,
+                  }));
+                }}
+                className="inline-flex items-center gap-2 rounded-md border border-magenta/30 bg-magenta/[0.08] px-3 py-1.5 text-xs font-medium text-magenta hover:bg-magenta/[0.14] transition"
+              >
+                <Wand2 className="h-3.5 w-3.5" />
+                Extraire les couleurs depuis le logo
+              </button>
+            )}
             <Row>
               <Field label="Couleur primaire">
                 <ColorInput
