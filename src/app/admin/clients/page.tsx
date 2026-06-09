@@ -174,6 +174,12 @@ export default function AdminClientsPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button size="sm" asChild className="qc-cta">
+              <a href="/admin/new-org" className="inline-flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5" />
+                Nouvelle organisation
+              </a>
+            </Button>
             <Button variant="outline" size="sm" asChild>
               <a href="/admin/audit">Audit &amp; conformité</a>
             </Button>
