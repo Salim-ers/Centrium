@@ -193,7 +193,7 @@ export function ProvisionClientDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !busy && onOpenChange(v)}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[min(1400px,96vw)] max-w-[96vw] max-h-[96vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="inline-flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-violet-glow" />
@@ -213,7 +213,7 @@ export function ProvisionClientDialog({
           </div>
         )}
 
-        <div className="space-y-6 pt-2">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 pt-2">
           {/* Identité */}
           <Section title="Identité" icon={<Building2 className="h-3.5 w-3.5" />}>
             <Row>
