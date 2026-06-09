@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { notifyCreated, notifyError } from '@/lib/notify';
+import { AssetUploader } from './AssetUploader';
 
 type QuoteRequest = {
   id: string;
@@ -240,18 +241,18 @@ export function ProvisionClientDialog({
 
           {/* Branding visuel */}
           <Section title="Identité visuelle" icon={<Palette className="h-3.5 w-3.5" />}>
-            <Field label="URL du logo (PNG/SVG, fond transparent)">
-              <Input
+            <Field label="Logo (PNG/SVG, fond transparent)">
+              <AssetUploader
+                kind="logo"
                 value={form.logo_url}
-                onChange={(e) => update('logo_url', e.target.value)}
-                placeholder="https://.../logo.png"
+                onChange={(url) => update('logo_url', url)}
               />
             </Field>
-            <Field label="URL signature (PNG, fond transparent)">
-              <Input
+            <Field label="Signature (PNG fond transparent)">
+              <AssetUploader
+                kind="signature"
                 value={form.signature_url}
-                onChange={(e) => update('signature_url', e.target.value)}
-                placeholder="https://.../signature.png"
+                onChange={(url) => update('signature_url', url)}
               />
             </Field>
             <Row>
