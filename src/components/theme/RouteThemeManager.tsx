@@ -22,7 +22,7 @@ const FORCED_DARK_PATHS = [
   '/security',
   '/manifesto',
 ];
-const FORCED_DARK_PREFIXES = ['/auth/', '/invite/', '/legal/'];
+const FORCED_DARK_PREFIXES = ['/auth/', '/invite/', '/legal/', '/admin/', '/trust'];
 
 const STORAGE_KEY = 'centrium-theme';
 
