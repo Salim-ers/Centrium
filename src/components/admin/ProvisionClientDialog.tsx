@@ -474,8 +474,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-lg border border-hairline bg-white/[0.02] p-4 space-y-3">
-      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-violet-300">
+    <section className="rounded-lg border border-hairline bg-card/40 p-4 space-y-3">
+      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-magenta">
         {icon}
         {title}
       </div>

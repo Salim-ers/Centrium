@@ -88,12 +88,23 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient('cross-org-query');
 
   // Calcule l'URL absolue pour le redirect Supabase Auth.
-  // Sans une URL absolue qui matche les "Redirect URLs" autorisées dans
-  // Supabase Auth, le lien d'invitation envoie l'utilisateur sur un 404.
+  //
+  // PRIORITÉ :
+  //   1. NEXT_PUBLIC_APP_URL si défini (à privilégier en prod)
+  //   2. Domaine canonique 'centrium-platform.com' (hardcoded par sécurité —
+  //      évite que l'invitation pointe vers quad-core-platform.fr (ancien
+  //      domaine) ou un domaine de preview Vercel temporaire).
+  //   3. En dernier recours, l'origine de la requête (utile en dev local).
   const reqUrl = new URL(req.url);
+  const requestHost = reqUrl.host;
+  const isCanonicalRequest = requestHost === 'centrium-platform.com';
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ??
-    `${reqUrl.protocol}//${reqUrl.host}`;
+    (isCanonicalRequest
+      ? 'https://centrium-platform.com'
+      : requestHost.endsWith('localhost') || requestHost.endsWith('localhost:3000')
+        ? `${reqUrl.protocol}//${requestHost}`
+        : 'https://centrium-platform.com'); // force prod canonical sur tout autre domaine (quad-core-platform.fr, preview Vercel, etc.)
 
   // Normalise '' → null pour les champs nullables.
   const blank = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? null : v);

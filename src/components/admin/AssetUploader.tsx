@@ -70,8 +70,8 @@ export function AssetUploader({ kind, value, onChange, label }: Props) {
 
   if (value) {
     return (
-      <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-3">
-        <div className="h-14 w-14 shrink-0 rounded-md border border-white/10 bg-white/95 p-1.5 overflow-hidden flex items-center justify-center">
+      <div className="flex items-center gap-3 rounded-lg border border-hairline bg-card/40 p-3">
+        <div className="h-14 w-14 shrink-0 rounded-md border border-hairline bg-white p-1.5 overflow-hidden flex items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={value}
@@ -80,15 +80,15 @@ export function AssetUploader({ kind, value, onChange, label }: Props) {
           />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-semibold text-white/85">{friendly} prêt</div>
-          <div className="text-[11px] text-white/45 truncate">{value}</div>
+          <div className="text-xs font-semibold text-foreground/90">{friendly} prêt</div>
+          <div className="text-[11px] text-muted-foreground truncate">{value}</div>
         </div>
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={busy}
-            className="rounded-md border border-white/10 px-2.5 py-1.5 text-[11px] text-white/70 hover:bg-white/5 transition"
+            className="rounded-md border border-hairline px-2.5 py-1.5 text-[11px] text-foreground/80 hover-surface transition"
           >
             Remplacer
           </button>
@@ -96,7 +96,7 @@ export function AssetUploader({ kind, value, onChange, label }: Props) {
             type="button"
             onClick={() => onChange('')}
             disabled={busy}
-            className="rounded-md border border-red-500/20 p-1.5 text-red-300 hover:bg-red-500/10 transition"
+            className="rounded-md border border-red-500/30 p-1.5 text-red-500 hover:bg-red-500/10 transition"
             title="Retirer"
           >
             <X className="h-3.5 w-3.5" />
@@ -124,21 +124,21 @@ export function AssetUploader({ kind, value, onChange, label }: Props) {
       onDrop={onDrop}
       className={`group cursor-pointer rounded-lg border-2 border-dashed transition px-4 py-5 text-center ${
         dragOver
-          ? 'border-magenta bg-magenta/[0.04]'
-          : 'border-white/15 bg-white/[0.02] hover:border-white/25 hover:bg-white/[0.04]'
+          ? 'border-magenta bg-magenta/[0.06]'
+          : 'border-hairline bg-card/30 hover:border-magenta/40 hover:bg-card/60'
       } ${busy ? 'opacity-50 cursor-wait' : ''}`}
     >
-      <div className="mx-auto mb-2 inline-flex h-9 w-9 items-center justify-center rounded-md bg-white/[0.06] text-white/70 group-hover:text-magenta transition">
+      <div className="mx-auto mb-2 inline-flex h-9 w-9 items-center justify-center rounded-md bg-muted text-muted-foreground group-hover:text-magenta transition">
         {busy ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
           <Upload className="h-4 w-4" />
         )}
       </div>
-      <div className="text-xs font-semibold text-white/85">
+      <div className="text-xs font-semibold text-foreground/90">
         {busy ? 'Upload en cours…' : `Téléverser ${friendly.toLowerCase()}`}
       </div>
-      <div className="mt-1 text-[10.5px] text-white/45">
+      <div className="mt-1 text-[10.5px] text-muted-foreground">
         Glisse-dépose ou clique · PNG, JPG, WebP, SVG · 5 MB max
       </div>
       <input

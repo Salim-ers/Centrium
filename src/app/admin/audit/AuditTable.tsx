@@ -105,7 +105,7 @@ export function AuditTable({ rows }: { rows: Row[] }) {
       ) : (
         <div className="overflow-x-auto rounded-xl border border-hairline">
           <table className="w-full text-sm">
-            <thead className="bg-white/[0.03] text-white/60 text-xs uppercase tracking-wider">
+            <thead className="bg-card/40 text-muted-foreground text-xs uppercase tracking-wider">
               <tr>
                 <th className="text-left px-4 py-2.5 font-medium">Quand</th>
                 <th className="text-left px-4 py-2.5 font-medium">Entité</th>
@@ -115,41 +115,41 @@ export function AuditTable({ rows }: { rows: Row[] }) {
                 <th className="text-left px-4 py-2.5 font-medium">Détails</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-hairline">
               {filtered.map((r) => {
                 const tone = ACTION_TONE[r.action] ?? 'neutral';
                 return (
-                  <tr key={r.id} className="hover:bg-white/[0.02]">
-                    <td className="px-4 py-2.5 whitespace-nowrap text-white/70 font-mono text-xs">
+                  <tr key={r.id} className="hover-surface">
+                    <td className="px-4 py-2.5 whitespace-nowrap text-foreground/80 font-mono text-xs">
                       {new Date(r.created_at).toLocaleString('fr-FR', {
                         dateStyle: 'short',
                         timeStyle: 'medium',
                       })}
                     </td>
-                    <td className="px-4 py-2.5 text-white/85">{r.entity_type}</td>
+                    <td className="px-4 py-2.5 text-foreground/90">{r.entity_type}</td>
                     <td className="px-4 py-2.5">
                       <StatusBadge tone={tone} dot={false}>
                         {r.action}
                       </StatusBadge>
                     </td>
-                    <td className="px-4 py-2.5 text-white/60 font-mono text-[11px]">
+                    <td className="px-4 py-2.5 text-muted-foreground font-mono text-[11px]">
                       {r.organization_id.slice(0, 8)}…
                     </td>
-                    <td className="px-4 py-2.5 text-white/60 font-mono text-[11px]">
+                    <td className="px-4 py-2.5 text-muted-foreground font-mono text-[11px]">
                       {r.user_id ? r.user_id.slice(0, 8) + '…' : '—'}
                     </td>
-                    <td className="px-4 py-2.5 text-white/60 max-w-md">
+                    <td className="px-4 py-2.5 text-muted-foreground max-w-md">
                       {r.details ? (
                         <details>
                           <summary className="cursor-pointer text-magenta hover:underline text-xs">
                             Voir
                           </summary>
-                          <pre className="mt-2 text-[10px] bg-black/30 p-2 rounded overflow-x-auto">
+                          <pre className="mt-2 text-[10px] bg-muted/80 p-2 rounded overflow-x-auto text-foreground/80">
                             {JSON.stringify(r.details, null, 2)}
                           </pre>
                         </details>
                       ) : (
-                        <span className="text-white/30">—</span>
+                        <span className="text-muted-foreground/60">—</span>
                       )}
                     </td>
                   </tr>
