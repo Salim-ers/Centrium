@@ -1,22 +1,15 @@
 /**
- * Wrapper Sentry minimal sans dépendance externe.
+ * Wrapper Sentry pour les événements sécurité critiques.
  *
- * Sentry n'est PAS installé par défaut (pas de @sentry/nextjs en dependency).
- * Ce module fournit une interface stable pour reporter des incidents
- * sécurité critiques, qui :
+ * Utilise le SDK @sentry/nextjs officiel quand il est configuré
+ * (SENTRY_DSN défini en env). Fallback console.error sinon — utile
+ * en local et garantit qu'on perd jamais un event critique.
  *
- *   - Si SENTRY_DSN est défini → POST raw HTTP vers Sentry (sans SDK lourd)
- *   - Sinon → log structuré dans la console (visible dans Vercel Logs)
- *
- * Pour activer Sentry en prod :
- *   1. Créer un compte sur sentry.io (gratuit jusqu'à 5k events/mois)
- *   2. Créer un projet "centrium-platform" type Next.js
- *   3. Copier le DSN dans SENTRY_DSN env var (Vercel)
- *   4. Redéployer
- *
- * Alternative : installer @sentry/nextjs pour le tracking complet (perf,
- * source maps, replay session). Coûts plus élevés au-delà du tier gratuit.
+ * Tous les événements sécurité passent par reportSecurityEvent() pour
+ * être traçables uniformément et alimenter le dashboard Sentry.
  */
+
+import * as Sentry from '@sentry/nextjs';
 
 type SecurityEventType =
   | 'rls.error' // erreur Postgres liée à RLS (potentiel trou)
@@ -38,78 +31,69 @@ export type SecurityEvent = {
   metadata?: Record<string, unknown>;
 };
 
-export async function reportSecurityEvent(event: SecurityEvent): Promise<void> {
-  const dsn = process.env.SENTRY_DSN;
+const SEVERITY_TO_LEVEL: Record<SecurityEvent['severity'], Sentry.SeverityLevel> = {
+  critical: 'fatal',
+  high: 'error',
+  medium: 'warning',
+  low: 'info',
+};
+
+export function reportSecurityEvent(event: SecurityEvent): void {
   const enriched = {
-    ...event,
-    environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? 'development',
-    timestamp: new Date().toISOString(),
-    release: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'unknown',
+    type: event.type,
+    severity: event.severity,
+    organization_id: event.organizationId,
+    ip: event.ip,
+    ...event.metadata,
   };
 
-  // Log structuré : utile en dev + visible dans Vercel Logs même sans Sentry
+  // Log structuré toujours (visible dans Vercel Logs même sans Sentry)
   // eslint-disable-next-line no-console
   console.error(
     `[SECURITY] ${event.severity.toUpperCase()} ${event.type}: ${event.message}`,
     JSON.stringify(enriched),
   );
 
-  if (!dsn) return;
-
-  try {
-    const parsed = parseDsn(dsn);
-    if (!parsed) return;
-
-    await fetch(
-      `${parsed.host}/api/${parsed.projectId}/store/?sentry_version=7&sentry_key=${parsed.publicKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: event.message,
-          level: mapSeverity(event.severity),
-          tags: {
-            type: event.type,
-            severity: event.severity,
-            org_id: event.organizationId,
-          },
-          user: event.userId ? { id: event.userId, ip_address: event.ip } : undefined,
-          extra: event.metadata,
-        }),
-        signal: AbortSignal.timeout(2000),
-      },
-    );
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.warn('[sentry] failed to report', (e as Error).message);
-  }
+  // Si Sentry est configuré (DSN posé), capture l'event avec contexte enrichi
+  Sentry.withScope((scope) => {
+    scope.setLevel(SEVERITY_TO_LEVEL[event.severity]);
+    scope.setTag('security_event', event.type);
+    scope.setTag('severity', event.severity);
+    if (event.userId) {
+      scope.setUser({ id: event.userId, ip_address: event.ip });
+    }
+    if (event.organizationId) {
+      scope.setTag('organization_id', event.organizationId);
+    }
+    if (event.metadata) {
+      scope.setContext('security_metadata', event.metadata);
+    }
+    Sentry.captureMessage(event.message, SEVERITY_TO_LEVEL[event.severity]);
+  });
 }
 
-function parseDsn(
-  dsn: string,
-): { host: string; projectId: string; publicKey: string } | null {
-  try {
-    const u = new URL(dsn);
-    return {
-      host: `${u.protocol}//${u.host}`,
-      projectId: u.pathname.replace(/^\//, ''),
-      publicKey: u.username,
-    };
-  } catch {
-    return null;
-  }
-}
-
-function mapSeverity(s: SecurityEvent['severity']): string {
-  switch (s) {
-    case 'critical':
-      return 'fatal';
-    case 'high':
-      return 'error';
-    case 'medium':
-      return 'warning';
-    case 'low':
-    default:
-      return 'info';
-  }
+/**
+ * Helper pour capturer manuellement une exception côté code applicatif
+ * avec contexte org/user — utile dans les routes API et services métier.
+ */
+export function captureException(
+  error: unknown,
+  context?: {
+    userId?: string;
+    organizationId?: string;
+    extra?: Record<string, unknown>;
+  },
+): void {
+  Sentry.withScope((scope) => {
+    if (context?.userId) {
+      scope.setUser({ id: context.userId });
+    }
+    if (context?.organizationId) {
+      scope.setTag('organization_id', context.organizationId);
+    }
+    if (context?.extra) {
+      scope.setContext('extra', context.extra);
+    }
+    Sentry.captureException(error);
+  });
 }

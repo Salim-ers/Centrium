@@ -128,7 +128,6 @@ export async function POST(req: NextRequest) {
     (u) => u.email?.toLowerCase() === portal_access.email.toLowerCase(),
   );
 
-  let userId: string;
   if (existing) {
     // User déjà existant : on refuse pour éviter d'écraser un profile
     // appartenant potentiellement à une autre org.
@@ -166,7 +165,7 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     );
   }
-  userId = invited.user.id;
+  const userId: string = invited.user.id;
 
   // 4) Membership + profile consultant
   const { error: memberErr } = await admin.from('organization_members').upsert(

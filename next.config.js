@@ -100,4 +100,29 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+// Wrap avec Sentry (no-op si SENTRY_DSN absent — pas de surcoût en dev).
+// Doit rester la DERNIÈRE transformation appliquée à nextConfig.
+const { withSentryConfig } = require('@sentry/nextjs');
+
+module.exports = withSentryConfig(nextConfig, {
+  // Org/projet Sentry — passés en env vars pour ne pas hardcoder
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN, // pour upload des source maps
+
+  // Mode silencieux en dev (évite les warnings quand DSN absent)
+  silent: !process.env.CI,
+
+  // Source maps : seulement en prod
+  widenClientFileUpload: true,
+  hideSourceMaps: true,
+
+  // Tunneling : contourne les ad-blockers en routant Sentry via notre domaine
+  tunnelRoute: '/monitoring',
+
+  // Tree-shaking des logs Sentry verbeux + désactive le bundler analyzer
+  webpack: {
+    treeshake: { removeDebugLogging: true },
+    automaticVercelMonitors: false,
+  },
+});
