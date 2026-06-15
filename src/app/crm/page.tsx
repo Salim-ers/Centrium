@@ -120,6 +120,8 @@ export default function CRMPage() {
   const [closedOpen, setClosedOpen] = useState(false);
   const [closedFilter, setClosedFilter] = useState<OpportunityStatus | 'all'>('all');
   const [closedDragOver, setClosedDragOver] = useState(false);
+  // Quand on drop sur la zone "Terminées", on demande quel statut (Gagné/Perdu/Veille)
+  const [pendingClosure, setPendingClosure] = useState<{ id: string; title: string } | null>(null);
 
   const totalPipeline = opportunities
     .filter((o) => !CLOSED_STATUSES.includes(o.status))
@@ -283,20 +285,20 @@ export default function CRMPage() {
                 className={cn(
                   'rounded-xl border p-3 flex flex-col min-h-[220px] transition-all duration-200',
                   isTarget
-                    ? 'border-violet-glow/70 bg-violet-glow/[0.06] shadow-[0_0_30px_-12px_rgba(168,85,247,0.65)] scale-[1.01]'
+                    ? 'border-violet-glow/70 bg-violet-glow/[0.08] shadow-[0_0_30px_-12px_rgba(168,85,247,0.65)] scale-[1.01]'
                     : peerHover
-                      ? cn('bg-white/[0.015] scale-[1.005]', peerHover.user.color.border)
+                      ? cn('bg-card/60 scale-[1.005]', peerHover.user.color.border)
                       : isSource
-                        ? 'border-hairline bg-white/[0.015] opacity-70'
-                        : 'border-hairline bg-white/[0.015]',
+                        ? 'border-hairline bg-card/40 opacity-70'
+                        : 'border-hairline bg-card/40',
                 )}
               >
                 <div className="flex items-center gap-1.5 mb-2 px-0.5">
                   <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', COLUMN_DOT[col.status])} />
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">
+                  <span className="text-[11px] uppercase tracking-wider text-foreground/70 font-semibold">
                     {OPPORTUNITY_STATUS_LABEL[col.status]}
                   </span>
-                  <span className="text-[9px] text-muted-foreground/60 font-mono ml-auto">
+                  <span className="text-[10px] text-muted-foreground font-mono ml-auto tabular-nums">
                     {col.items.length}
                   </span>
                   {peerHover && (
@@ -310,10 +312,10 @@ export default function CRMPage() {
                       className={cn(
                         'rounded-md border border-dashed py-10 text-center text-[11px] transition-all duration-200',
                         isTarget
-                          ? 'border-violet-glow/60 text-violet-glow bg-violet-glow/[0.04]'
+                          ? 'border-violet-glow/60 text-violet-glow bg-violet-glow/[0.06]'
                           : peerHover
-                            ? cn('bg-white/[0.02]', peerHover.user.color.border)
-                            : 'border-hairline text-muted-foreground/60',
+                            ? cn('bg-card/60', peerHover.user.color.border)
+                            : 'border-hairline text-muted-foreground/70 bg-card/20',
                       )}
                     >
                       {isTarget
@@ -361,11 +363,12 @@ export default function CRMPage() {
             setClosedDragOver(false);
             setDraggingId(null);
             if (id) {
-              // Drop sur la carte Terminées → on marque "Gagné" par défaut.
-              // L'utilisateur peut changer depuis la fiche si besoin (Perdu / En veille).
-              broadcastDrop(id, 'won');
-              void moveOpportunity(id, 'won');
-              toast.success('Marquée comme Gagnée — change le statut depuis la fiche si besoin (Perdu / En veille)');
+              // Drop sur la carte Terminées → on ouvre un dialog qui demande
+              // explicitement le statut (Gagné / Perdu / En veille).
+              const opp = opportunities.find((o) => o.id === id);
+              if (opp) {
+                setPendingClosure({ id, title: opp.title });
+              }
             } else {
               broadcastCancel();
             }
@@ -373,22 +376,22 @@ export default function CRMPage() {
           className={cn(
             'mt-6 rounded-xl border p-4 transition-all',
             closedDragOver
-              ? 'border-emerald-400/60 bg-emerald-400/[0.05] shadow-[0_0_30px_-12px_rgba(52,211,153,0.55)]'
-              : 'border-hairline bg-white/[0.015]',
+              ? 'border-magenta/60 bg-magenta/[0.06] shadow-[0_0_30px_-12px_rgba(225,29,116,0.55)]'
+              : 'border-hairline bg-card/40',
           )}
         >
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+              <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-foreground/70 font-semibold">
                 <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
                 Opportunités terminées
-                <span className="text-muted-foreground/60 font-mono">({closedTotal})</span>
+                <span className="text-muted-foreground font-mono tabular-nums">({closedTotal})</span>
               </div>
               <div className="mt-2 flex items-center gap-3 text-sm">
                 <ClosedStat
                   label="Gagné"
                   count={closedByStatus.won.length}
-                  dotClass="bg-emerald-400"
+                  dotClass="bg-emerald-500"
                   onClick={() => {
                     setClosedFilter('won');
                     setClosedOpen(true);
@@ -397,7 +400,7 @@ export default function CRMPage() {
                 <ClosedStat
                   label="Perdu"
                   count={closedByStatus.lost.length}
-                  dotClass="bg-red-400"
+                  dotClass="bg-red-500"
                   onClick={() => {
                     setClosedFilter('lost');
                     setClosedOpen(true);
@@ -426,10 +429,95 @@ export default function CRMPage() {
               Voir la liste
             </Button>
           </div>
-          <p className="mt-3 text-[11px] text-muted-foreground/70">
-            💡 Tu peux glisser une carte ici pour la marquer comme Gagnée. Pour Perdu ou En veille, ouvre la fiche et change le statut.
+          <p className="mt-3 text-[11px] text-muted-foreground">
+            💡 Glisse une carte ici, on te demandera ensuite si elle est <strong>Gagnée</strong>, <strong>Perdue</strong> ou <strong>En veille</strong>.
           </p>
         </div>
+
+        {/* Dialog de choix après drop sur "Terminées" */}
+        <Dialog
+          open={pendingClosure !== null}
+          onOpenChange={(open) => {
+            if (!open) setPendingClosure(null);
+          }}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Marquer comme terminée</DialogTitle>
+              <DialogDescription>
+                {pendingClosure ? (
+                  <>
+                    Quel est le statut final de <strong>« {pendingClosure.title} »</strong> ?
+                  </>
+                ) : null}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid grid-cols-1 gap-2 mt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (pendingClosure) {
+                    broadcastDrop(pendingClosure.id, 'won');
+                    void moveOpportunity(pendingClosure.id, 'won');
+                  }
+                  setPendingClosure(null);
+                }}
+                className="flex items-center gap-3 rounded-lg border border-hairline bg-card/40 hover:border-emerald-500/40 hover:bg-emerald-500/[0.06] p-4 text-left transition"
+              >
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-foreground">Gagnée</div>
+                  <div className="text-xs text-muted-foreground">L'opportunité s'est conclue par un contrat signé.</div>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (pendingClosure) {
+                    broadcastDrop(pendingClosure.id, 'lost');
+                    void moveOpportunity(pendingClosure.id, 'lost');
+                  }
+                  setPendingClosure(null);
+                }}
+                className="flex items-center gap-3 rounded-lg border border-hairline bg-card/40 hover:border-red-500/40 hover:bg-red-500/[0.06] p-4 text-left transition"
+              >
+                <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-foreground">Perdue</div>
+                  <div className="text-xs text-muted-foreground">Le client a choisi un autre prestataire ou abandonné.</div>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (pendingClosure) {
+                    broadcastDrop(pendingClosure.id, 'on_hold');
+                    void moveOpportunity(pendingClosure.id, 'on_hold');
+                  }
+                  setPendingClosure(null);
+                }}
+                className="flex items-center gap-3 rounded-lg border border-hairline bg-card/40 hover:border-slate-400/40 hover:bg-slate-400/[0.06] p-4 text-left transition"
+              >
+                <span className="h-2.5 w-2.5 rounded-full bg-slate-500" />
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-foreground">En veille</div>
+                  <div className="text-xs text-muted-foreground">Mise en pause, à reprendre plus tard.</div>
+                </div>
+              </button>
+            </div>
+
+            <div className="mt-3 flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPendingClosure(null)}
+              >
+                Annuler
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* === Dialog des opportunités terminées === */}
         <ClosedOpportunitiesDialogInline
@@ -465,15 +553,15 @@ function ClosedStat({
       onClick={onClick}
       disabled={count === 0}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-md border border-hairline px-2.5 py-1 transition',
+        'inline-flex items-center gap-1.5 rounded-md border border-hairline bg-card/60 px-2.5 py-1.5 transition',
         count > 0
-          ? 'hover:bg-white/[0.04] hover:border-white/20 cursor-pointer'
+          ? 'hover-surface hover:border-magenta/40 cursor-pointer'
           : 'opacity-50 cursor-default',
       )}
     >
       <span className={cn('h-1.5 w-1.5 rounded-full', dotClass)} />
-      <span className="text-xs font-medium text-foreground/85">{label}</span>
-      <span className="text-xs font-mono text-muted-foreground/70 tabular-nums">{count}</span>
+      <span className="text-xs font-medium text-foreground">{label}</span>
+      <span className="text-xs font-mono text-muted-foreground tabular-nums">{count}</span>
     </button>
   );
 }
