@@ -1190,6 +1190,7 @@ export type DashboardKPIs = {
   consultantsOnMission: number;
   consultantsAvailable: number;
   openOpportunities: number;
+  openJobOffers: number;
   opportunitiesWonThisMonth: number;
   /** CA "produit" = TJM × jours ouvrés écoulés ce mois-ci sur les missions actives. */
   revenueThisMonth: number;
@@ -1287,7 +1288,10 @@ export const dashboardService = {
       supabase
         .from('opportunities')
         .select('id', { count: 'exact', head: true })
-        .not('status', 'in', '("won","lost")'),
+        // Pipeline actif uniquement : exclut les statuts terminaux
+        // (won, lost, on_hold). Cohérent avec le Kanban CRM qui ne
+        // montre que les 6 colonnes actives.
+        .not('status', 'in', '("won","lost","on_hold")'),
       supabase
         .from('job_offers')
         .select('id', { count: 'exact', head: true })
@@ -1375,9 +1379,12 @@ export const dashboardService = {
       data: {
         consultantsOnMission,
         consultantsAvailable,
-        // "Ouvertes" = AO en cours (job_offers.open) + opportunités CRM
-        // non clôturées. La plupart des ESN n'utilisent qu'un des deux.
-        openOpportunities: (openOps.count ?? 0) + (openJobOffers.count ?? 0),
+        // "Opportunités ouvertes" = STRICTEMENT les opportunités du CRM
+        // dans une colonne active (new → negotiation). On NE cumule PLUS
+        // avec les job_offers ouverts (les AO ont leur propre KPI sur
+        // la page /offers) — ça créait un total trompeur sur le dashboard.
+        openOpportunities: openOps.count ?? 0,
+        openJobOffers: openJobOffers.count ?? 0,
         opportunitiesWonThisMonth: wonOps.count ?? 0,
         revenueThisMonth,
         revenueThisMonthPaid,
