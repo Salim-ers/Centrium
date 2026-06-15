@@ -189,5 +189,66 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // -----------------------------------------------------------------------
+  // MFA enforcement pour admins quand org.mfa_required_for_admin = true.
+  //
+  // Logique :
+  //   - Si user.role === 'admin' AND org.mfa_required_for_admin = true
+  //     AND la session n'est PAS aal2 (= MFA validé),
+  //     → redirect vers /auth/mfa-challenge (si enrolled) ou /auth/mfa-enroll (sinon)
+  //
+  // Routes whitelistées (sinon boucle infinie) :
+  //   - tout /auth/* (déjà dans PUBLIC_PREFIXES, donc isPublic true plus haut)
+  //   - /api/auth/* (les routes serveur qui gèrent l'enrôlement)
+  //
+  // Super_admin : exempté (retourné plus haut).
+  // -----------------------------------------------------------------------
+  if (role === 'admin' && hasOrg && !pathname.startsWith('/api/auth/') && !isPublic) {
+    const enforced = await enforceMfaForAdmin(supabase, orgId!, request);
+    if (enforced) return enforced;
+  }
+
   return response;
+}
+
+/**
+ * Vérifie si l'admin doit passer un challenge MFA avant de continuer.
+ *
+ * Renvoie une `NextResponse.redirect` si la session ne respecte pas la
+ * politique MFA de l'org, sinon `null` pour laisser passer.
+ *
+ * 3 API calls dans le pire cas (settings + assurance level + listFactors)
+ * — uniquement pour les admins (= minorité des users), uniquement sur
+ * les vraies pages (le matcher Next.js exclut déjà assets/static).
+ */
+async function enforceMfaForAdmin(
+  supabase: ReturnType<typeof createServerClient>,
+  orgId: string,
+  request: NextRequest
+): Promise<NextResponse | null> {
+  // 1) Politique de l'org : MFA obligatoire pour admins ?
+  const { data: settings } = await supabase
+    .from('org_security_settings')
+    .select('mfa_required_for_admin')
+    .eq('organization_id', orgId)
+    .maybeSingle();
+
+  if (!settings?.mfa_required_for_admin) return null;
+
+  // 2) Niveau d'assurance de la session courante
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal?.currentLevel === 'aal2') return null; // déjà MFA-validé
+
+  // 3) L'admin a-t-il au moins un facteur enrôlé ?
+  const { data: factors } = await supabase.auth.mfa.listFactors();
+  const verifiedFactors = factors?.all?.filter((f) => f.status === 'verified') ?? [];
+
+  const url = request.nextUrl.clone();
+  url.pathname = verifiedFactors.length === 0 ? '/auth/mfa-enroll' : '/auth/mfa-challenge';
+  // Ne pas inclure request.nextUrl.search : on évite de fuir des query params
+  // sensibles à travers le flux MFA. Le user perd ses filtres d'URL, OK pour la
+  // session courante — pas un sacrifice fonctionnel.
+  url.search = '';
+  url.searchParams.set('next', request.nextUrl.pathname);
+  return NextResponse.redirect(url);
 }

@@ -516,7 +516,7 @@ Lorsqu'un acheteur Enterprise (DSI, RSSI, équipe Achats) demande à auditer vot
 - Le [SLA & Support Guide](./SLA_AND_SUPPORT_GUIDE.md) (engagements de service).
 - Le DPA signé (téléchargeable depuis `Paramètres > Confidentialité > DPA`).
 - Les attestations d'hébergement Supabase et Vercel (sur demande à `support@centrium-platform.com`).
-- L'attestation SOC 2 Type I (prévue Q1 2027) — en attendant, une lettre de positionnement RSSI est disponible sur demande à `security@centrium-platform.com`.
+- L'attestation SOC 2 Type I (prévue Q4 2026) — en attendant, une lettre de positionnement RSSI est disponible sur demande à `security@centrium-platform.com`.
 
 ### 11.3 Procédure de réponse en cas d'incident
 

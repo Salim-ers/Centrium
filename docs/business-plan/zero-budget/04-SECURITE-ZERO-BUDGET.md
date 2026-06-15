@@ -210,7 +210,7 @@ Ce document liste les **18 besoins sécurité majeurs** d'un SaaS B2B, propose p
 | **Solution payante** | Implémentation + audit Bureau Veritas / AFNOR. **30 000-50 000 €** + 10-15 k€/an surveillance. |
 | **Alternative GRATUITE** | (a) **Self-implementation** avec **ISO 27001 templates open source** (IT Governance Ltd templates gratuits partiels, ISMS Online), (b) **NIST CSF 2.0** comme cadre équivalent partiel, (c) **CIS Controls v8** (gratuit, mappable ISO Annex A), (d) **ANSSI Guide Hygiène Informatique** (42 mesures gratuit). |
 | **Limites / risques** | (i) Pas de certification = pas de logo ISO. (ii) Effort interne ~150-200 jours-homme. (iii) Trous de couverture probables sans expert. |
-| **Mise en œuvre Centrium maintenant** | Différer la certification, mais **construire le SMSI dès maintenant** : (1) Politique de sécurité publiée /trust, (2) Registre des risques (template ISO Annex A 93 contrôles, tableur), (3) Procédures opérationnelles documentées (onboarding, offboarding, incident, backup, change management), (4) Roadmap publique "ISO 27001 audit Q4 2027". |
+| **Mise en œuvre Centrium maintenant** | Différer la certification, mais **construire le SMSI dès maintenant** : (1) Politique de sécurité publiée /trust, (2) Registre des risques (template ISO Annex A 93 contrôles, tableur), (3) Procédures opérationnelles documentées (onboarding, offboarding, incident, backup, change management), (4) Roadmap publique "ISO 27001 évaluation Q2 2027". |
 | **Quand basculer payant** | **3 demandes RFP grand compte exigeant ISO 27001** OU **ARR > 500 k€**. Cabinet startup ~25 k€ packagé. |
 
 ### 2.18 Pen-test as a Service continu (PtaaS)
@@ -309,7 +309,7 @@ Ce document liste les **18 besoins sécurité majeurs** d'un SaaS B2B, propose p
 
 2. **Stack technique défensive de niveau enterprise, payée par les fournisseurs SaaS.** Notre stack repose sur Vercel, Supabase, Cloudflare, GitHub : ces acteurs sont eux-mêmes SOC 2 Type II, ISO 27001, FedRAMP. Nous héritons de leur posture. Le risque résiduel "Centrium specific" est notre code applicatif, audité en continu par Dependabot, Snyk, CodeQL, ZAP, et un programme bug bounty actif.
 
-3. **Engagements contractuels datés et opposables.** Notre roadmap conformité est publique et engageante : SOC 2 Type I Q4 2026, ISO 27001 Q4 2027, cyber-assurance souscrite Q4 2026. Ces dates sont reprises dans notre DPA. Si nous ne les tenons pas, vous résiliez sans pénalité.
+3. **Engagements contractuels datés et opposables.** Notre roadmap conformité est publique et engageante : SOC 2 Type I Q4 2026, SOC 2 Type II Q1 2027, ISO 27001 évaluation Q2 2027, cyber-assurance souscrite Q4 2026. Ces dates sont reprises dans notre DPA. Si nous ne les tenons pas, vous résiliez sans pénalité.
 
 4. **Vous prenez moins de risque avec nous qu'avec un fournisseur "mature" opaque.** Un RSSI préfère un fournisseur qui dit *"voici nos 12 contrôles en place, nos 6 contrôles en cours, nos 3 trous identifiés et compensés par X, Y, Z"* à un fournisseur qui brandit un logo SOC 2 sans expliquer son scope, ses exclusions, ni ses incidents passés. Notre auto-évaluation AICPA est plus honnête qu'un audit acheté.
 
@@ -339,7 +339,7 @@ Cible 9/10 atteignable. Le seul item qui requiert du cash est la cyber-assurance
 
 ## Stack sécu 0 € défendable pour PME ESN 10-50 consultants ?
 
-**Oui, défendable jusqu'à environ 15-30 clients PME ESN françaises**, à condition de tenir trois engagements : (1) transparence totale via une page `/trust` publique listant contrôles en place ET trous, (2) roadmap conformité datée (SOC 2 Type I Q4 2026, cyber-assurance Q4 2026, ISO 27001 Q4 2027), (3) documentation béton (registre RGPD, AIPD, runbooks, hash-chained audit logs, programme bug bounty privé YesWeHack actif). La stack technique sous-jacente (Vercel + Supabase + Cloudflare + GitHub) hérite déjà d'un SOC 2 Type II et ISO 27001 fournisseur — ce qui couvre 80% de la surface réellement auditée.
+**Oui, défendable jusqu'à environ 15-30 clients PME ESN françaises**, à condition de tenir trois engagements : (1) transparence totale via une page `/trust` publique listant contrôles en place ET trous, (2) roadmap conformité datée (SOC 2 Type I Q4 2026, cyber-assurance Q4 2026, ISO 27001 évaluation Q2 2027), (3) documentation béton (registre RGPD, AIPD, runbooks, hash-chained audit logs, programme bug bounty privé YesWeHack actif). La stack technique sous-jacente (Vercel + Supabase + Cloudflare + GitHub) hérite déjà d'un SOC 2 Type II et ISO 27001 fournisseur — ce qui couvre 80% de la surface réellement auditée.
 
 ## Top 3 trous "non-bouchables sans payer" et comment les négocier
 

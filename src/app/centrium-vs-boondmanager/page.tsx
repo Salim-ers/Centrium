@@ -243,7 +243,7 @@ const FEATURE_COMPARISON: Array<{
       },
       {
         name: 'SOC 2 Type I',
-        centrium: 'Q1 2027 (roadmap publique)',
+        centrium: 'Q4 2026 (roadmap publique)',
         boondmanager: 'Non communiqué',
       },
     ],
@@ -494,7 +494,7 @@ export default function CentriumVsBoondmanagerPage() {
                 'Vous gérez 500+ consultants et avez besoin de modules métier ultra-spécialisés (achat, RPA, GED avancée) avec un produit ultra-mature depuis 15 ans',
                 'Vous êtes déjà sous Boondmanager depuis 5+ ans avec une intégration profonde — la migration coûterait plus cher que les gains',
                 'Vous avez une équipe IT interne qui veut un produit on-premise (Centrium est 100 % SaaS cloud)',
-                'Vous travaillez exclusivement avec des clients qui exigent SOC 2 Type II ou ISO 27001 dès maintenant (notre roadmap est Q1-Q3 2027)',
+                'Vous travaillez exclusivement avec des clients qui exigent SOC 2 Type II ou ISO 27001 dès maintenant (notre roadmap : SOC 2 Type I Q4 2026, Type II Q1 2027, ISO 27001 Q2 2027)',
               ].map((item) => (
                 <li key={item} className="flex items-start gap-3">
                   <Check className="h-4 w-4 text-emerald-400 mt-1 shrink-0" />
