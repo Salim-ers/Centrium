@@ -7,6 +7,13 @@ import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { PageHeader } from '@/components/app';
 
 import { opportunityService } from '@/lib/services';
@@ -19,6 +26,10 @@ import type { Opportunity, OpportunityStatus } from '@/types';
 import { OPPORTUNITY_STATUS_LABEL } from '@/constants';
 import { formatCurrency, relativeDate, cn } from '@/lib/utils';
 
+// Colonnes du Kanban : uniquement les statuts du pipeline actif.
+// won / lost / on_hold sont des statuts TERMINAUX → regroupés dans
+// une carte récap "Terminées" en bas du tableau pour éviter d'avoir
+// 3 colonnes vides qui prennent de la place visuelle.
 const PIPELINE_STATUSES: OpportunityStatus[] = [
   'new',
   'contacted',
@@ -26,10 +37,9 @@ const PIPELINE_STATUSES: OpportunityStatus[] = [
   'cv_sent',
   'client_interview',
   'negotiation',
-  'won',
-  'lost',
-  'on_hold',
 ];
+
+const CLOSED_STATUSES: OpportunityStatus[] = ['won', 'lost', 'on_hold'];
 
 const COLUMN_DOT: Record<OpportunityStatus, string> = {
   new: 'bg-slate-400',
@@ -97,8 +107,22 @@ export default function CRMPage() {
     items: opportunities.filter((o) => o.status === status),
   }));
 
+  // Opportunités terminées (gagné/perdu/veille) — regroupées dans une seule
+  // carte récap en bas, avec liste dépliable et drop target qui passe en
+  // 'won' par défaut.
+  const closedByStatus = {
+    won: opportunities.filter((o) => o.status === 'won'),
+    lost: opportunities.filter((o) => o.status === 'lost'),
+    on_hold: opportunities.filter((o) => o.status === 'on_hold'),
+  };
+  const closedTotal =
+    closedByStatus.won.length + closedByStatus.lost.length + closedByStatus.on_hold.length;
+  const [closedOpen, setClosedOpen] = useState(false);
+  const [closedFilter, setClosedFilter] = useState<OpportunityStatus | 'all'>('all');
+  const [closedDragOver, setClosedDragOver] = useState(false);
+
   const totalPipeline = opportunities
-    .filter((o) => !['won', 'lost', 'on_hold'].includes(o.status))
+    .filter((o) => !CLOSED_STATUSES.includes(o.status))
     .reduce((sum, o) => sum + (Number(o.expected_revenue) || 0), 0);
 
   async function moveOpportunity(id: string, newStatus: OpportunityStatus) {
@@ -234,7 +258,8 @@ export default function CRMPage() {
       {loading ? (
         <p className="text-muted-foreground">Chargement…</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3">
           {byStatus.map((col) => {
             const isTarget = dragOverStatus === col.status && draggingId !== null;
             const isSource =
@@ -316,8 +341,242 @@ export default function CRMPage() {
             );
           })}
         </div>
+
+        {/* === Carte récap "Terminées" (won + lost + on_hold regroupés) === */}
+        <div
+          onDragOver={(e) => {
+            if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            setClosedDragOver(true);
+          }}
+          onDragLeave={(e) => {
+            const next = e.relatedTarget as Node | null;
+            if (next && (e.currentTarget as Node).contains(next)) return;
+            setClosedDragOver(false);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            const id = e.dataTransfer.getData(DRAG_MIME);
+            setClosedDragOver(false);
+            setDraggingId(null);
+            if (id) {
+              // Drop sur la carte Terminées → on marque "Gagné" par défaut.
+              // L'utilisateur peut changer depuis la fiche si besoin (Perdu / En veille).
+              broadcastDrop(id, 'won');
+              void moveOpportunity(id, 'won');
+              toast.success('Marquée comme Gagnée — change le statut depuis la fiche si besoin (Perdu / En veille)');
+            } else {
+              broadcastCancel();
+            }
+          }}
+          className={cn(
+            'mt-6 rounded-xl border p-4 transition-all',
+            closedDragOver
+              ? 'border-emerald-400/60 bg-emerald-400/[0.05] shadow-[0_0_30px_-12px_rgba(52,211,153,0.55)]'
+              : 'border-hairline bg-white/[0.015]',
+          )}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                Opportunités terminées
+                <span className="text-muted-foreground/60 font-mono">({closedTotal})</span>
+              </div>
+              <div className="mt-2 flex items-center gap-3 text-sm">
+                <ClosedStat
+                  label="Gagné"
+                  count={closedByStatus.won.length}
+                  dotClass="bg-emerald-400"
+                  onClick={() => {
+                    setClosedFilter('won');
+                    setClosedOpen(true);
+                  }}
+                />
+                <ClosedStat
+                  label="Perdu"
+                  count={closedByStatus.lost.length}
+                  dotClass="bg-red-400"
+                  onClick={() => {
+                    setClosedFilter('lost');
+                    setClosedOpen(true);
+                  }}
+                />
+                <ClosedStat
+                  label="En veille"
+                  count={closedByStatus.on_hold.length}
+                  dotClass="bg-slate-500"
+                  onClick={() => {
+                    setClosedFilter('on_hold');
+                    setClosedOpen(true);
+                  }}
+                />
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setClosedFilter('all');
+                setClosedOpen(true);
+              }}
+              disabled={closedTotal === 0}
+            >
+              Voir la liste
+            </Button>
+          </div>
+          <p className="mt-3 text-[11px] text-muted-foreground/70">
+            💡 Tu peux glisser une carte ici pour la marquer comme Gagnée. Pour Perdu ou En veille, ouvre la fiche et change le statut.
+          </p>
+        </div>
+
+        {/* === Dialog des opportunités terminées === */}
+        <ClosedOpportunitiesDialogInline
+          open={closedOpen}
+          onOpenChange={setClosedOpen}
+          opportunities={opportunities.filter((o) => CLOSED_STATUSES.includes(o.status))}
+          filter={closedFilter}
+          onFilterChange={setClosedFilter}
+          onEdit={openEdit}
+          onMove={moveOpportunity}
+          onDelete={deleteOpportunity}
+        />
+        </>
       )}
     </AppShell>
+  );
+}
+
+function ClosedStat({
+  label,
+  count,
+  dotClass,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  dotClass: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={count === 0}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-md border border-hairline px-2.5 py-1 transition',
+        count > 0
+          ? 'hover:bg-white/[0.04] hover:border-white/20 cursor-pointer'
+          : 'opacity-50 cursor-default',
+      )}
+    >
+      <span className={cn('h-1.5 w-1.5 rounded-full', dotClass)} />
+      <span className="text-xs font-medium text-foreground/85">{label}</span>
+      <span className="text-xs font-mono text-muted-foreground/70 tabular-nums">{count}</span>
+    </button>
+  );
+}
+
+function ClosedOpportunitiesDialogInline({
+  open,
+  onOpenChange,
+  opportunities,
+  filter,
+  onFilterChange,
+  onEdit,
+  onMove,
+  onDelete,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  opportunities: Opportunity[];
+  filter: OpportunityStatus | 'all';
+  onFilterChange: (f: OpportunityStatus | 'all') => void;
+  onEdit: (o: Opportunity) => void;
+  onMove: (id: string, s: OpportunityStatus) => Promise<void>;
+  onDelete: (id: string, title: string) => Promise<void>;
+}) {
+  const filtered =
+    filter === 'all' ? opportunities : opportunities.filter((o) => o.status === filter);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Opportunités terminées</DialogTitle>
+          <DialogDescription>
+            Filtre par sous-statut. Tu peux ré-ouvrir une opportunité en la déplaçant vers un statut actif depuis la fiche.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+          {(['all', 'won', 'lost', 'on_hold'] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => onFilterChange(f)}
+              className={cn(
+                'rounded-md border px-2.5 py-1 text-xs font-medium transition',
+                filter === f
+                  ? 'border-violet-glow/60 bg-violet-glow/10 text-violet-glow'
+                  : 'border-hairline text-muted-foreground hover:text-foreground hover:bg-white/[0.03]',
+              )}
+            >
+              {f === 'all' ? 'Toutes' : OPPORTUNITY_STATUS_LABEL[f]}
+              <span className="ml-1.5 text-[10px] tabular-nums opacity-70">
+                ({f === 'all' ? opportunities.length : opportunities.filter((o) => o.status === f).length})
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-4 space-y-2">
+          {filtered.length === 0 ? (
+            <div className="rounded-md border border-dashed border-hairline py-8 text-center text-sm text-muted-foreground">
+              Aucune opportunité dans cette catégorie.
+            </div>
+          ) : (
+            filtered.map((opp) => (
+              <div
+                key={opp.id}
+                className="flex items-center gap-3 rounded-md border border-hairline bg-card/40 px-3 py-2.5"
+              >
+                <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', COLUMN_DOT[opp.status])} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-foreground truncate">{opp.title}</div>
+                  <div className="text-[11px] text-muted-foreground truncate">
+                    {OPPORTUNITY_STATUS_LABEL[opp.status]}
+                    {opp.expected_revenue ? ` · ${formatCurrency(Number(opp.expected_revenue))}` : ''}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Button size="sm" variant="outline" onClick={() => onEdit(opp)}>
+                    Ouvrir
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void onMove(opp.id, 'negotiation')}
+                    title="Réouvrir cette opportunité"
+                  >
+                    Réouvrir
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-red-500 border-red-500/30 hover:bg-red-500/10"
+                    onClick={() => void onDelete(opp.id, opp.title)}
+                  >
+                    ✕
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
