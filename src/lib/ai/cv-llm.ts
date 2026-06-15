@@ -1,4 +1,10 @@
-import 'server-only';
+// NOTE : pas de `import 'server-only'` ici — cv-generator.ts importe ce module
+// via dynamic import() gardé par `typeof window === 'undefined'`, et le SDK
+// Anthropic n'est jamais initialisé côté client car process.env.ANTHROPIC_API_KEY
+// est server-only (pas NEXT_PUBLIC_*) — getClient() retourne null sinon.
+// Le `import 'server-only'` faisait throw Webpack à l'analyse du graph même
+// pour les imports dynamiques, cassant le build du Client Component qui
+// transite par cv-generator.
 import Anthropic from '@anthropic-ai/sdk';
 
 import type {

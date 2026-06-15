@@ -1,4 +1,7 @@
-import 'server-only';
+// NOTE : pas de `import 'server-only'` (cf. cv-llm.ts pour la justification).
+// Ce module est uniquement appelé depuis /api/matching/justify (server-side),
+// jamais importé par un Client Component. Le SDK Anthropic ne s'initialise
+// pas côté client car process.env.ANTHROPIC_API_KEY est server-only.
 import Anthropic from '@anthropic-ai/sdk';
 
 import type { Consultant, JobOffer, ConsultantSkill } from '@/types';
