@@ -268,12 +268,17 @@ export default function ConsultantsPage() {
     : `${consultants.length} profil${consultants.length > 1 ? 's' : ''} disponible${consultants.length > 1 ? 's' : ''} — pas encore positionné${consultants.length > 1 ? 's' : ''}`;
 
   // KPIs : total / en mission (présent dans consultantsData) / disponibles / intercontrat
+  // ⚠️ active_missions inclut les statuts 'active' ET 'proposed' (CV poussé).
+  // On compte "En Mission" UNIQUEMENT les missions vraiment actives.
+  // Un CV juste poussé pour une opportunité n'est pas "en mission".
   const allData = consultantsData ?? [];
   const totalLibrary = allData.length;
-  const onMissionCount = allData.filter((c) => (c.active_missions?.length ?? 0) > 0).length;
+  const hasActiveMission = (c: typeof allData[number]) =>
+    (c.active_missions ?? []).some((m) => m.status === 'active');
+  const onMissionCount = allData.filter(hasActiveMission).length;
   const availableCount = allData.filter((c) => c.status === 'available').length;
   const interContractCount = allData.filter(
-    (c) => (c.active_missions?.length ?? 0) === 0 && c.status !== 'archived',
+    (c) => !hasActiveMission(c) && c.status !== 'archived',
   ).length;
   const interContractRatio =
     totalLibrary > 0 ? Math.round((interContractCount / totalLibrary) * 100) : 0;
