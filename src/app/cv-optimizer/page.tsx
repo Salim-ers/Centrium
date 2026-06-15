@@ -32,6 +32,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { ConsultantCombobox } from '@/components/ui/ConsultantCombobox';
 
 import { CVRenderer } from '@/components/cv/CVRenderer';
 import { CVPreviewBoundary } from '@/components/cv/CVPreviewBoundary';
@@ -603,19 +604,13 @@ function CVOptimizerPageInner() {
                 </span>
                 Consultant
               </div>
-              <Select
+              <ConsultantCombobox
+                consultants={consultants}
                 value={selectedId}
-                onChange={(e) => setSelectedId(e.target.value)}
-                aria-label="Choisir consultant"
-              >
-                <option value="">— Choisir un consultant —</option>
-                {consultants.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.is_prospect ? '★ [Vivier] ' : ''}
-                    {c.first_name} {c.last_name} — {c.job_title}
-                  </option>
-                ))}
-              </Select>
+                onChange={setSelectedId}
+                placeholder="— Choisir ou taper un nom —"
+                ariaLabel="Choisir un consultant"
+              />
 
               {loadingData && (
                 <p className="text-xs text-muted-foreground flex items-center gap-2">
