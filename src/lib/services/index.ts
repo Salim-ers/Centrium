@@ -206,6 +206,40 @@ export const jobOfferService = {
       return { data: null, error: { message: (e as Error).message } as any };
     }
   },
+
+  // ─── Bulk operations (direct Supabase — RLS applique l'isolation org) ────
+  async archiveMany(ids: string[]): Promise<ServiceResult<number>> {
+    if (ids.length === 0) return { data: 0, error: null };
+    const supabase = createClient();
+    const { error, count } = await supabase
+      .from('job_offers')
+      .update({ archived: true }, { count: 'exact' })
+      .in('id', ids);
+    if (error) return { data: null, error };
+    return { data: count ?? ids.length, error: null };
+  },
+
+  async unarchiveMany(ids: string[]): Promise<ServiceResult<number>> {
+    if (ids.length === 0) return { data: 0, error: null };
+    const supabase = createClient();
+    const { error, count } = await supabase
+      .from('job_offers')
+      .update({ archived: false }, { count: 'exact' })
+      .in('id', ids);
+    if (error) return { data: null, error };
+    return { data: count ?? ids.length, error: null };
+  },
+
+  async deleteMany(ids: string[]): Promise<ServiceResult<number>> {
+    if (ids.length === 0) return { data: 0, error: null };
+    const supabase = createClient();
+    const { error, count } = await supabase
+      .from('job_offers')
+      .delete({ count: 'exact' })
+      .in('id', ids);
+    if (error) return { data: null, error };
+    return { data: count ?? ids.length, error: null };
+  },
 };
 
 // =========================================================================

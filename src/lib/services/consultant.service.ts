@@ -289,6 +289,40 @@ export const consultantService = {
     return { data: true, error: null };
   },
 
+  // ─── Bulk operations ─────────────────────────────────────────────────
+  async archiveMany(ids: string[]): Promise<ServiceResult<number>> {
+    if (ids.length === 0) return { data: 0, error: null };
+    const supabase = createClient();
+    const { error, count } = await supabase
+      .from('consultants')
+      .update({ archived: true, status: 'archived' }, { count: 'exact' })
+      .in('id', ids);
+    if (error) return { data: null, error };
+    return { data: count ?? ids.length, error: null };
+  },
+
+  async unarchiveMany(ids: string[]): Promise<ServiceResult<number>> {
+    if (ids.length === 0) return { data: 0, error: null };
+    const supabase = createClient();
+    const { error, count } = await supabase
+      .from('consultants')
+      .update({ archived: false, status: 'available' }, { count: 'exact' })
+      .in('id', ids);
+    if (error) return { data: null, error };
+    return { data: count ?? ids.length, error: null };
+  },
+
+  async deleteMany(ids: string[]): Promise<ServiceResult<number>> {
+    if (ids.length === 0) return { data: 0, error: null };
+    const supabase = createClient();
+    const { error, count } = await supabase
+      .from('consultants')
+      .delete({ count: 'exact' })
+      .in('id', ids);
+    if (error) return { data: null, error };
+    return { data: count ?? ids.length, error: null };
+  },
+
   /**
    * Marque (ou démarque) le consultant comme "CV poussé".
    *

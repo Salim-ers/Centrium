@@ -35,7 +35,9 @@ import {
   AppCard,
   AppCardBody,
   EmptyState,
+  BulkActionBar,
 } from '@/components/app';
+import { useBulkSelection } from '@/hooks/useBulkSelection';
 import {
   Table,
   TableBody,
@@ -215,6 +217,62 @@ export default function OffersPage() {
     storageKey: 'offers-page-size',
   });
   const paginatedOffers = pagination.paginate(offers);
+
+  // Sélection multiple pour archivage/suppression en masse
+  const offerBulk = useBulkSelection(paginatedOffers.map((o) => o.id));
+  const [offerBulkBusy, setOfferBulkBusy] = useState(false);
+
+  async function handleOfferBulkArchive() {
+    if (offerBulk.selectedCount === 0) return;
+    if (!confirm(`Archiver ${offerBulk.selectedCount} offre${offerBulk.selectedCount > 1 ? 's' : ''} ?`)) return;
+    setOfferBulkBusy(true);
+    const ids = [...offerBulk.selected];
+    const res = await jobOfferService.archiveMany(ids);
+    setOfferBulkBusy(false);
+    if (res.error) {
+      toast.error('Erreur : ' + res.error.message);
+      return;
+    }
+    toast.success(`${res.data ?? ids.length} offre${(res.data ?? ids.length) > 1 ? 's' : ''} archivée${(res.data ?? ids.length) > 1 ? 's' : ''}`);
+    offerBulk.clear();
+    void reload();
+  }
+
+  async function handleOfferBulkUnarchive() {
+    if (offerBulk.selectedCount === 0) return;
+    setOfferBulkBusy(true);
+    const ids = [...offerBulk.selected];
+    const res = await jobOfferService.unarchiveMany(ids);
+    setOfferBulkBusy(false);
+    if (res.error) {
+      toast.error('Erreur : ' + res.error.message);
+      return;
+    }
+    toast.success(`${res.data ?? ids.length} offre${(res.data ?? ids.length) > 1 ? 's' : ''} restaurée${(res.data ?? ids.length) > 1 ? 's' : ''}`);
+    offerBulk.clear();
+    void reload();
+  }
+
+  async function handleOfferBulkDelete() {
+    if (offerBulk.selectedCount === 0) return;
+    if (
+      !confirm(
+        `Supprimer DÉFINITIVEMENT ${offerBulk.selectedCount} offre${offerBulk.selectedCount > 1 ? 's' : ''} ? Cette action est irréversible.`,
+      )
+    )
+      return;
+    setOfferBulkBusy(true);
+    const ids = [...offerBulk.selected];
+    const res = await jobOfferService.deleteMany(ids);
+    setOfferBulkBusy(false);
+    if (res.error) {
+      toast.error('Erreur : ' + res.error.message);
+      return;
+    }
+    toast.success(`${res.data ?? ids.length} offre${(res.data ?? ids.length) > 1 ? 's' : ''} supprimée${(res.data ?? ids.length) > 1 ? 's' : ''}`);
+    offerBulk.clear();
+    void reload();
+  }
 
   function openCreate() {
     setEditing(null);
@@ -512,6 +570,20 @@ export default function OffersPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <input
+                    type="checkbox"
+                    aria-label="Tout sélectionner"
+                    checked={offerBulk.allSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = offerBulk.someSelected;
+                    }}
+                    onChange={(e) =>
+                      e.target.checked ? offerBulk.selectAll() : offerBulk.clear()
+                    }
+                    className="h-4 w-4 cursor-pointer accent-magenta"
+                  />
+                </TableHead>
                 <TableHead>Mission</TableHead>
                 <TableHead>Source</TableHead>
                 <TableHead>Séniorité</TableHead>
@@ -525,7 +597,7 @@ export default function OffersPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8}>
+                  <TableCell colSpan={9}>
                     <div className="h-10 bg-white/[0.02] animate-pulse rounded" />
                   </TableCell>
                 </TableRow>
@@ -534,7 +606,19 @@ export default function OffersPage() {
                   // TJM unique : on lit max en priorité, fallback min.
                   const tjm = o.daily_rate_max ?? o.daily_rate_min ?? null;
                   return (
-                    <TableRow key={o.id}>
+                    <TableRow
+                      key={o.id}
+                      className={offerBulk.isSelected(o.id) ? 'bg-magenta/[0.04]' : undefined}
+                    >
+                      <TableCell className="w-10 align-top py-3">
+                        <input
+                          type="checkbox"
+                          aria-label={`Sélectionner ${o.title}`}
+                          checked={offerBulk.isSelected(o.id)}
+                          onChange={() => offerBulk.toggle(o.id)}
+                          className="h-4 w-4 cursor-pointer accent-magenta"
+                        />
+                      </TableCell>
                       <TableCell className="max-w-[320px] align-top py-3">
                         <div
                           className="font-medium text-sm leading-tight break-words"
@@ -725,6 +809,38 @@ export default function OffersPage() {
         pagination={pagination}
         total={offers.length}
         itemLabel="offre"
+      />
+
+      <BulkActionBar
+        count={offerBulk.selectedCount}
+        entityLabel="offre"
+        onClear={offerBulk.clear}
+        actions={
+          showArchived
+            ? [
+                {
+                  label: 'Restaurer',
+                  icon: <ArchiveRestore className="h-3.5 w-3.5" />,
+                  onClick: handleOfferBulkUnarchive,
+                  busy: offerBulkBusy,
+                },
+                {
+                  label: 'Supprimer définitivement',
+                  icon: <Trash2 className="h-3.5 w-3.5" />,
+                  onClick: handleOfferBulkDelete,
+                  variant: 'destructive',
+                  busy: offerBulkBusy,
+                },
+              ]
+            : [
+                {
+                  label: 'Archiver',
+                  icon: <Archive className="h-3.5 w-3.5" />,
+                  onClick: handleOfferBulkArchive,
+                  busy: offerBulkBusy,
+                },
+              ]
+        }
       />
     </AppShell>
   );

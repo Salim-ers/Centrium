@@ -36,7 +36,9 @@ import {
   AppCard,
   EmptyState,
   StatusBadge,
+  BulkActionBar,
 } from '@/components/app';
+import { useBulkSelection } from '@/hooks/useBulkSelection';
 import {
   Table,
   TableBody,
@@ -182,6 +184,62 @@ export default function ConsultantsPage() {
     storageKey: 'consultants-page-size',
   });
   const paginated = pagination.paginate(consultants);
+
+  // Sélection multiple — bornée à la page courante pour rester lisible
+  const bulkSel = useBulkSelection(paginated.map((c) => c.id));
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  async function handleBulkArchive() {
+    if (bulkSel.selectedCount === 0) return;
+    if (!confirm(`Archiver ${bulkSel.selectedCount} consultant${bulkSel.selectedCount > 1 ? 's' : ''} ?`)) return;
+    setBulkBusy(true);
+    const ids = [...bulkSel.selected];
+    const res = await consultantService.archiveMany(ids);
+    setBulkBusy(false);
+    if (res.error) {
+      notifyError('Erreur : ' + res.error.message);
+      return;
+    }
+    notifyCreated(`${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} archivé${(res.data ?? ids.length) > 1 ? 's' : ''}`);
+    bulkSel.clear();
+    void reload();
+  }
+
+  async function handleBulkUnarchive() {
+    if (bulkSel.selectedCount === 0) return;
+    setBulkBusy(true);
+    const ids = [...bulkSel.selected];
+    const res = await consultantService.unarchiveMany(ids);
+    setBulkBusy(false);
+    if (res.error) {
+      notifyError('Erreur : ' + res.error.message);
+      return;
+    }
+    notifyCreated(`${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} restauré${(res.data ?? ids.length) > 1 ? 's' : ''}`);
+    bulkSel.clear();
+    void reload();
+  }
+
+  async function handleBulkDelete() {
+    if (bulkSel.selectedCount === 0) return;
+    if (
+      !confirm(
+        `Supprimer DÉFINITIVEMENT ${bulkSel.selectedCount} consultant${bulkSel.selectedCount > 1 ? 's' : ''} ? Cette action est irréversible.`,
+      )
+    )
+      return;
+    setBulkBusy(true);
+    const ids = [...bulkSel.selected];
+    const res = await consultantService.deleteMany(ids);
+    setBulkBusy(false);
+    if (res.error) {
+      notifyError('Erreur : ' + res.error.message);
+      return;
+    }
+    notifyDestructive(`${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} supprimé${(res.data ?? ids.length) > 1 ? 's' : ''}`);
+    bulkSel.clear();
+    void reload();
+  }
 
   function openCreate() {
     setEditingConsultant(null);
@@ -477,6 +535,18 @@ export default function ConsultantsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <input
+                    type="checkbox"
+                    aria-label="Tout sélectionner"
+                    checked={bulkSel.allSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = bulkSel.someSelected;
+                    }}
+                    onChange={(e) => (e.target.checked ? bulkSel.selectAll() : bulkSel.clear())}
+                    className="h-4 w-4 cursor-pointer accent-magenta"
+                  />
+                </TableHead>
                 <TableHead>Consultant</TableHead>
                 <TableHead>Séniorité</TableHead>
                 <TableHead>TJM</TableHead>
@@ -492,14 +562,26 @@ export default function ConsultantsPage() {
               {loading || consultantsData === null ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={6}>
+                    <TableCell colSpan={7}>
                       <div className="h-10 rounded-md bg-white/[0.02] animate-pulse" />
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 paginated.map((c) => (
-                  <TableRow key={c.id}>
+                  <TableRow
+                    key={c.id}
+                    className={bulkSel.isSelected(c.id) ? 'bg-magenta/[0.04]' : undefined}
+                  >
+                    <TableCell className="w-10">
+                      <input
+                        type="checkbox"
+                        aria-label={`Sélectionner ${c.first_name} ${c.last_name}`}
+                        checked={bulkSel.isSelected(c.id)}
+                        onChange={() => bulkSel.toggle(c.id)}
+                        className="h-4 w-4 cursor-pointer accent-magenta"
+                      />
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="h-9 w-9 shrink-0 rounded-full bg-qc-gradient flex items-center justify-center text-white text-xs font-semibold">
@@ -652,6 +734,38 @@ export default function ConsultantsPage() {
         pagination={pagination}
         total={totalCount}
         itemLabel="profil"
+      />
+
+      <BulkActionBar
+        count={bulkSel.selectedCount}
+        entityLabel="consultant"
+        onClear={bulkSel.clear}
+        actions={
+          showArchived
+            ? [
+                {
+                  label: 'Restaurer',
+                  icon: <ArchiveRestore className="h-3.5 w-3.5" />,
+                  onClick: handleBulkUnarchive,
+                  busy: bulkBusy,
+                },
+                {
+                  label: 'Supprimer définitivement',
+                  icon: <Trash2 className="h-3.5 w-3.5" />,
+                  onClick: handleBulkDelete,
+                  variant: 'destructive',
+                  busy: bulkBusy,
+                },
+              ]
+            : [
+                {
+                  label: 'Archiver',
+                  icon: <Archive className="h-3.5 w-3.5" />,
+                  onClick: handleBulkArchive,
+                  busy: bulkBusy,
+                },
+              ]
+        }
       />
     </AppShell>
   );
