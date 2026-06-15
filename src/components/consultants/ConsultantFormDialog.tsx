@@ -140,6 +140,23 @@ export function ConsultantFormDialog({
   }, [open, consultant, reset]);
 
   async function handleCVFile(file: File) {
+    // Garde-fou taille : 10 Mo max. Au-delà :
+    //   - parsing trop long (timeout serveur quasi-garanti)
+    //   - risque DoS (gros payload qui bloque le worker Vercel)
+    //   - extraction texte qui swap en RAM
+    const MAX_CV_BYTES = 10 * 1024 * 1024;
+    if (file.size > MAX_CV_BYTES) {
+      const sizeMb = (file.size / 1024 / 1024).toFixed(1);
+      toast.error(
+        `Fichier trop volumineux (${sizeMb} Mo). La limite est de 10 Mo. Compresse-le ou exporte en PDF moins lourd.`,
+      );
+      return;
+    }
+    if (file.size === 0) {
+      toast.error('Fichier vide.');
+      return;
+    }
+
     setParsingCV(true);
     setParsedPreview(null);
     parsedRef.current = null;
@@ -375,7 +392,12 @@ export function ConsultantFormDialog({
       }}
     />
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>
             {isEdit

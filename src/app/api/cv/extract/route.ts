@@ -28,6 +28,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'invalid_file' }, { status: 400 });
   }
 
+  // Garde-fou serveur (défense en profondeur) : 10 Mo max.
+  // Même si le client valide aussi cette limite, on rejette toujours
+  // côté serveur pour bloquer les upload directs via curl/postman.
+  const MAX_BYTES = 10 * 1024 * 1024;
+  if (file.size === 0) {
+    return NextResponse.json(
+      { error: 'invalid_file', message: 'Fichier vide.' },
+      { status: 400 },
+    );
+  }
+  if (file.size > MAX_BYTES) {
+    const sizeMb = (file.size / 1024 / 1024).toFixed(1);
+    return NextResponse.json(
+      {
+        error: 'file_too_large',
+        message: `Fichier de ${sizeMb} Mo — limite à 10 Mo. Compresse ou exporte en PDF plus léger.`,
+      },
+      { status: 413 },
+    );
+  }
+
   const name = (form.get('name') as string | null)?.toLowerCase() ?? '';
   const mime = file.type || '';
   const buf = Buffer.from(await file.arrayBuffer());
