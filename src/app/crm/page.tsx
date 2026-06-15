@@ -734,26 +734,29 @@ function OpportunityCard({
           : 'cursor-grab active:cursor-grabbing',
       )}
     >
-      <CardContent className="p-3 space-y-2">
+      {/* Grip handle déplacé en absolute (apparaît au hover seulement) pour libérer
+          de la place horizontale au titre — colonnes étroites obligent. */}
+      <GripVertical
+        className="absolute left-1.5 top-3 h-4 w-4 text-muted-foreground/0 group-hover:text-muted-foreground/40 transition pointer-events-none"
+        aria-hidden
+      />
+      <CardContent className="p-3 space-y-1.5">
         {peer && (
           <div className="flex items-center justify-end">
             <PeerBadge peer={peer} label="déplace" />
           </div>
         )}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-start gap-1.5 min-w-0">
-            <GripVertical
-              className="h-4 w-4 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition shrink-0 mt-0.5"
-              aria-hidden
-            />
-            <h3 className="text-sm font-semibold line-clamp-2 leading-snug">
-              {opportunity.title}
-            </h3>
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-start justify-between gap-1.5">
+          <h3
+            className="text-sm font-semibold leading-tight break-words flex-1 min-w-0"
+            title={opportunity.title}
+          >
+            {opportunity.title}
+          </h3>
+          <div className="flex items-center gap-0.5 shrink-0">
             <span
               className={cn(
-                'h-2 w-2 rounded-full mt-1',
+                'h-2 w-2 rounded-full mt-1.5 mr-0.5',
                 opportunity.priority === 'critical'
                   ? 'bg-red-400'
                   : opportunity.priority === 'high'
@@ -789,7 +792,7 @@ function OpportunityCard({
         </div>
 
         {opportunity.expected_revenue ? (
-          <p className="text-xs font-semibold qc-gradient-text pl-[22px]">
+          <p className="text-xs font-semibold qc-gradient-text">
             {formatCurrency(Number(opportunity.expected_revenue))}
             {opportunity.probability && (
               <span className="text-muted-foreground ml-1 font-normal">
@@ -800,7 +803,7 @@ function OpportunityCard({
         ) : null}
 
         {(opportunity.daily_rate_eur || opportunity.duration_months) && (
-          <div className="text-[11px] text-muted-foreground pl-[22px]">
+          <div className="text-[11px] text-muted-foreground">
             {opportunity.daily_rate_eur && (
               <>TJM {formatCurrency(Number(opportunity.daily_rate_eur))}</>
             )}
@@ -810,7 +813,7 @@ function OpportunityCard({
         )}
 
         {opportunity.next_follow_up && (
-          <p className="text-[11px] text-muted-foreground pl-[22px]">
+          <p className="text-[11px] text-muted-foreground">
             ⏰ {relativeDate(opportunity.next_follow_up)}
           </p>
         )}
