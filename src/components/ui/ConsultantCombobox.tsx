@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Search, X } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -47,9 +48,47 @@ export function ConsultantCombobox({
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [mounted, setMounted] = useState(false);
+  const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLUListElement>(null);
   const optionsRef = useRef<Array<HTMLLIElement | null>>([]);
+
+  // SSR guard pour createPortal — n'instancie le portal qu'après mount client.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Calcule la position du dropdown sous l'input (fixed position, donc
+  // immunisé contre tout overflow:hidden d'ancêtre).
+  const updateRect = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setDropdownRect({
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    updateRect();
+  }, [open, updateRect]);
+
+  // Recalcule à chaque scroll / resize tant que le dropdown est ouvert.
+  useEffect(() => {
+    if (!open) return;
+    const onWindowChange = () => updateRect();
+    window.addEventListener('scroll', onWindowChange, true);
+    window.addEventListener('resize', onWindowChange);
+    return () => {
+      window.removeEventListener('scroll', onWindowChange, true);
+      window.removeEventListener('resize', onWindowChange);
+    };
+  }, [open, updateRect]);
 
   // Libellé du consultant sélectionné — affiché dans l'input quand pas en train de taper.
   const selectedConsultant = useMemo(
@@ -75,10 +114,16 @@ export function ConsultantCombobox({
   }, [consultants, query]);
 
   // Click extérieur → ferme la liste
+  // Le dropdown est rendu dans un portal (body), donc on doit vérifier
+  // l'input container ET le dropdown séparément.
   useEffect(() => {
     if (!open) return;
     function onClickOutside(e: MouseEvent) {
-      if (!containerRef.current?.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        !containerRef.current?.contains(target) &&
+        !dropdownRef.current?.contains(target)
+      ) {
         setOpen(false);
         setQuery('');
       }
@@ -197,11 +242,20 @@ export function ConsultantCombobox({
         />
       </div>
 
-      {open && (
+      {/* Dropdown rendu via portal dans <body> pour éviter d'être clippé
+          par les overflow:hidden des cards parents (AppCard etc.). */}
+      {mounted && open && dropdownRect && createPortal(
         <ul
+          ref={dropdownRef}
           id={listboxId}
           role="listbox"
-          className="absolute z-50 mt-1 w-full max-h-72 overflow-y-auto rounded-md border border-input bg-popover shadow-lg p-1"
+          style={{
+            position: 'fixed',
+            top: dropdownRect.top,
+            left: dropdownRect.left,
+            width: dropdownRect.width,
+          }}
+          className="z-[100] max-h-72 overflow-y-auto rounded-md border border-input bg-popover shadow-2xl p-1 animate-in fade-in-0 zoom-in-95"
         >
           {filtered.length === 0 ? (
             <li className="px-3 py-6 text-xs text-center text-muted-foreground">
@@ -255,7 +309,8 @@ export function ConsultantCombobox({
               );
             })
           )}
-        </ul>
+        </ul>,
+        document.body
       )}
     </div>
   );
