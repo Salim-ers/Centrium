@@ -43,7 +43,15 @@ export function presenceColor(userId: string): PresenceColor {
   return PALETTE[Math.abs(h) % PALETTE.length];
 }
 
-/** "Jean Dupont" → "JD" ; "jean@a.com" → "J" ; rien → "?". */
+/**
+ * Initiales toujours sur 2 lettres si possible.
+ *
+ *   "Jean Dupont", null               → "JD"
+ *   "Salim", null                     → "SA"  (2 lettres du prénom)
+ *   null, null, "salim.elrs@gmail.com"→ "SE"  (S de salim, E de elrs)
+ *   null, null, "alice@a.com"         → "AL"  (2 lettres du local part)
+ *   null, null, null                  → "?"
+ */
 export function presenceInitials(
   firstName: string | null | undefined,
   lastName: string | null | undefined,
@@ -51,11 +59,30 @@ export function presenceInitials(
 ): string {
   const f = (firstName ?? '').trim();
   const l = (lastName ?? '').trim();
-  if (f || l) {
-    return ((f[0] ?? '') + (l[0] ?? '')).toUpperCase() || '?';
+  if (f && l) {
+    return (f[0]! + l[0]!).toUpperCase();
   }
-  const e = (email ?? '').trim();
-  if (e) return (e[0] ?? '?').toUpperCase();
+  if (f && f.length >= 2) {
+    return (f[0]! + f[1]!).toUpperCase();
+  }
+  if (f) {
+    return f[0]!.toUpperCase();
+  }
+  const e = (email ?? '').trim().toLowerCase();
+  if (e) {
+    const local = e.split('@')[0] ?? '';
+    // Cherche un séparateur dans la partie locale pour reconstituer "prénom.nom"
+    const parts = local.split(/[._+\-]/).filter(Boolean);
+    if (parts.length >= 2 && parts[0]!.length > 0 && parts[1]!.length > 0) {
+      return (parts[0]![0]! + parts[1]![0]!).toUpperCase();
+    }
+    if (local.length >= 2) {
+      return (local[0]! + local[1]!).toUpperCase();
+    }
+    if (local.length === 1) {
+      return local[0]!.toUpperCase();
+    }
+  }
   return '?';
 }
 

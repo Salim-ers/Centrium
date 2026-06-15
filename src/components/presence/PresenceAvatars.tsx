@@ -4,30 +4,54 @@
  * Pile d'avatars "Google Docs" : pastilles colorées avec initiales pour
  * chaque utilisateur actuellement connecté dans la même organisation.
  *
- * - Le user courant a un anneau émeraude pour se distinguer.
- * - On affiche au max 4 pastilles, puis "+N" pour le reste.
- * - Tooltip natif (title) avec le nom complet + email.
- * - Petit "live dot" vert qui pulse pour faire savoir que c'est du temps réel.
+ * - Le user courant a un anneau émeraude et est TOUJOURS épinglé en tête.
+ * - Maximum 5 pastilles visibles à la fois (1 pour me + 4 autres).
+ * - Si > 5 connectés : rotation des "autres" toutes les 4 secondes
+ *   pour les faire défiler sans surcharger l'UI.
+ * - Tooltip natif avec nom complet + email.
+ * - Petit "live dot" vert qui pulse pour signaler le temps réel.
  */
 
+import { useEffect, useState } from 'react';
 import { useOrgPresence, type PresentUser } from '@/hooks/useOrgPresence';
 import { cn } from '@/lib/utils';
 
-const MAX_VISIBLE = 4;
+const MAX_VISIBLE = 5;
+const ROTATION_INTERVAL_MS = 4000;
 
 export function PresenceAvatars() {
   const { users, me, others } = useOrgPresence();
+  const [rotationOffset, setRotationOffset] = useState(0);
+
+  // Rotation des "autres" quand il y en a plus que ce qu'on peut afficher.
+  const slotsForOthers = me ? MAX_VISIBLE - 1 : MAX_VISIBLE;
+  const needsRotation = others.length > slotsForOthers;
+
+  useEffect(() => {
+    if (!needsRotation) {
+      setRotationOffset(0);
+      return;
+    }
+    const id = setInterval(() => {
+      setRotationOffset((o) => (o + 1) % others.length);
+    }, ROTATION_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [needsRotation, others.length]);
 
   if (users.length === 0) return null;
 
-  const ordered: PresentUser[] = me ? [me, ...others] : others;
-  const visible = ordered.slice(0, MAX_VISIBLE);
-  const overflow = Math.max(0, ordered.length - visible.length);
+  // Sélection des "autres" à afficher : tranche circulaire à partir de l'offset
+  const rotatedOthers: PresentUser[] = needsRotation
+    ? Array.from({ length: slotsForOthers }, (_, i) => others[(rotationOffset + i) % others.length]!)
+    : others.slice(0, slotsForOthers);
+
+  const visible: PresentUser[] = me ? [me, ...rotatedOthers] : rotatedOthers;
+  const overflow = Math.max(0, others.length - slotsForOthers);
 
   return (
     <div
       className="hidden sm:flex items-center gap-1.5"
-      title={`${ordered.length} personne${ordered.length > 1 ? 's' : ''} en ligne`}
+      title={`${users.length} personne${users.length > 1 ? 's' : ''} en ligne`}
     >
       <span
         aria-hidden
@@ -45,8 +69,8 @@ export function PresenceAvatars() {
         {overflow > 0 && (
           <div
             className="relative z-0 h-7 w-7 rounded-full bg-card border border-hairline text-foreground text-[10px] font-semibold flex items-center justify-center"
-            title={ordered
-              .slice(MAX_VISIBLE)
+            title={others
+              .slice(slotsForOthers)
               .map((u) => u.displayName)
               .join(', ')}
           >
@@ -70,6 +94,7 @@ function Avatar({ user, isMe }: { user: PresentUser; isMe: boolean }) {
         'ring-2',
         isMe ? 'ring-emerald-400' : 'ring-card',
         'shadow-[0_2px_8px_-2px_rgba(0,0,0,0.4)]',
+        'transition-opacity duration-500',
       )}
     >
       {user.initials}
