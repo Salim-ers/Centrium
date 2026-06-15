@@ -9,7 +9,19 @@ import { OrgActivityListener } from '@/components/realtime/OrgActivityListener';
 import { ManageCookiesLink } from '@/components/marketing/CookieBanner';
 import { SessionPresenceGate } from '@/components/auth/SessionPresenceGate';
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  /**
+   * `wide` : retire le max-w-7xl pour utiliser toute la largeur disponible.
+   * Recommandé pour les vues type Kanban (CRM Pipeline), tableaux denses,
+   * matching où l'utilisateur a besoin de voir beaucoup de colonnes en
+   * parallèle. Par défaut (false), garde la lecture confortable centrée.
+   */
+  wide = false,
+}: {
+  children: React.ReactNode;
+  wide?: boolean;
+}) {
   return (
     <div className="min-h-screen app-bg text-foreground flex flex-col relative">
       <BrandingStyles />
@@ -22,7 +34,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <Header />
       <main className="relative z-[1] md:pl-64 pt-16 flex-1 flex flex-col">
-        <div className="mx-auto max-w-7xl w-full px-4 md:px-8 py-8 flex-1">
+        <div
+          className={`mx-auto w-full px-4 md:px-8 py-8 flex-1 ${
+            wide ? 'max-w-none' : 'max-w-7xl'
+          }`}
+        >
           {children}
         </div>
         <footer className="md:pl-0 mt-8 border-t border-hairline">

@@ -224,7 +224,7 @@ export default function CRMPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell wide>
       <PageHeader
         eyebrow="Commercial"
         title={
@@ -261,7 +261,7 @@ export default function CRMPage() {
         <p className="text-muted-foreground">Chargement…</p>
       ) : (
         <>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {byStatus.map((col) => {
             const isTarget = dragOverStatus === col.status && draggingId !== null;
             const isSource =
@@ -748,7 +748,7 @@ function OpportunityCard({
         )}
         <div className="flex items-start justify-between gap-1.5">
           <h3
-            className="text-sm font-semibold leading-tight break-words flex-1 min-w-0"
+            className="text-sm font-semibold leading-snug line-clamp-2 flex-1 min-w-0"
             title={opportunity.title}
           >
             {opportunity.title}
