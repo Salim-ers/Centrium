@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   XCircle,
   ArrowRight,
+  LogOut,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -186,6 +187,17 @@ export default function AdminClientsPage() {
             <Button variant="outline" size="sm" onClick={load}>
               Rafraîchir
             </Button>
+            <form action="/api/auth/logout" method="POST" className="inline">
+              <Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                className="text-red-500 border-red-500/30 hover:bg-red-500/10 hover:text-red-500"
+              >
+                <LogOut className="h-3.5 w-3.5 mr-1.5" />
+                Déconnexion
+              </Button>
+            </form>
           </div>
         </div>
       </header>

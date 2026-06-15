@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft, Activity, AlertTriangle, ShieldAlert, Users as UsersIcon } from 'lucide-react';
+import { ArrowLeft, Activity, AlertTriangle, ShieldAlert, Users as UsersIcon, LogOut } from 'lucide-react';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth/guards';
@@ -62,13 +62,24 @@ export default async function AdminAuditPage() {
               </p>
             </div>
           </div>
-          <Link
-            href="/admin/clients"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Console admin
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/admin/clients"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Console admin
+            </Link>
+            <form action="/api/auth/logout" method="POST" className="inline">
+              <button
+                type="submit"
+                className="inline-flex items-center gap-1.5 rounded-md border border-red-500/30 px-2.5 py-1.5 text-xs font-medium text-red-500 hover:bg-red-500/10 transition"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Déconnexion
+              </button>
+            </form>
+          </div>
         </div>
       </header>
 
