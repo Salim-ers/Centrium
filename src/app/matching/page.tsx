@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { Target, TrendingUp, Plus, Briefcase, Pencil } from 'lucide-react';
+import { Target, TrendingUp, Plus, Briefcase, Pencil, Sparkles } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,6 +37,7 @@ function MatchingInner() {
   const [offerId, setOfferId] = useState<string>('');
   const [results, setResults] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [enriching, setEnriching] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<JobOffer | null>(null);
   const [assignDialog, setAssignDialog] = useState<{
@@ -86,7 +87,20 @@ function MatchingInner() {
         setResults([]);
         return;
       }
-      setResults(res.data ?? []);
+      const initial = res.data ?? [];
+      setResults(initial);
+
+      // Enrichissement IA du top 5 — non bloquant
+      if (initial.length > 0) {
+        setEnriching(true);
+        matchingService
+          .enrichTopWithJustification(offerId, initial, 5)
+          .then((enriched) => setResults(enriched))
+          .catch(() => {
+            // échec silencieux : le matching reste utilisable sans pitch
+          })
+          .finally(() => setEnriching(false));
+      }
     } catch (e) {
       toast.error('Erreur inattendue : ' + ((e as Error).message ?? 'inconnu'));
       setResults([]);
@@ -211,6 +225,13 @@ function MatchingInner() {
                 {results.length} profils <span className="qc-italic-accent font-editorial italic">classés.</span>
               </>
             }
+            description={
+              enriching
+                ? 'L’IA rédige les justifications du top 5…'
+                : results.some((r) => r.justification)
+                  ? 'Top 5 enrichi par une justification IA (pitch + risques).'
+                  : undefined
+            }
           />
           {results.map((r) => {
             // Garde-fous : profils anciens peuvent avoir des champs nulls.
@@ -223,9 +244,19 @@ function MatchingInner() {
             const statusKey = c.status as keyof typeof CONSULTANT_STATUS_LABEL;
             const matched = r.matchedSkills ?? [];
             const missing = r.missingSkills ?? [];
+            const conf = r.justification?.confidence;
+            const confLabel =
+              conf === 'high' ? 'Confiance haute' : conf === 'medium' ? 'Confiance moyenne' : conf === 'low' ? 'Confiance faible' : null;
+            const confClass =
+              conf === 'high'
+                ? 'border-emerald-400/40 text-emerald-300'
+                : conf === 'medium'
+                  ? 'border-amber-400/40 text-amber-300'
+                  : 'border-rose-400/40 text-rose-300';
             return (
             <Card key={c.id} className="qc-card-hover">
-              <CardContent className="p-4 flex items-center justify-between gap-4">
+              <CardContent className="p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="h-12 w-12 rounded-full bg-qc-gradient flex items-center justify-center text-white font-semibold">
                     {initials}
@@ -312,6 +343,36 @@ function MatchingInner() {
                     </Link>
                   </Button>
                 </div>
+              </div>
+
+              {r.justification && (
+                <div className="rounded-md border border-violet-400/20 bg-violet-500/[0.04] px-3 py-2.5 text-xs leading-relaxed">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Sparkles className="h-3 w-3 text-violet-300" />
+                    <span className="text-[10px] uppercase tracking-[0.18em] text-violet-300/80">
+                      Pitch IA
+                    </span>
+                    {confLabel && (
+                      <Badge variant="outline" className={`text-[9px] ${confClass}`}>
+                        {confLabel}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-foreground/90">{r.justification.pitch}</p>
+                  {r.justification.risks.length > 0 && (
+                    <div className="mt-2 flex gap-1.5 flex-wrap">
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Risques :
+                      </span>
+                      {r.justification.risks.map((risk, i) => (
+                        <span key={i} className="text-[10px] text-amber-200/80">
+                          {risk}{i < r.justification!.risks.length - 1 ? ' ·' : ''}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               </CardContent>
             </Card>
             );

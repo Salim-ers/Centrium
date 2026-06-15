@@ -3,11 +3,13 @@
 // -------------------------------------------------------------------------
 // Ce module est l'interface entre l'UI et le moteur de génération CV.
 //
-// STRATÉGIE :
-// - En mode MVP : mock déterministe ; aucune invention ; reformulation
-//   basée sur des templates et un scoring de matching local.
-// - En V1      : remplacer `generateCVContent` par un appel Claude API
-//                en gardant STRICTEMENT les mêmes garde-fous.
+// STRATÉGIE V1 (juin 2026) :
+// - Appel Claude API (haiku 4.5) pour reformulation summary + bullets
+//   en parallèle, avec fallback transparent sur l'engine déterministe
+//   si l'API échoue ou retourne du contenu invalide.
+// - Toutes les sorties LLM repassent dans auditNoInvention() — si une
+//   compétence/client est inventé, on rejette et on bascule sur le mock.
+// - Le matching reste en local (pas d'IA) — c'est de la logique pure.
 //
 // RÈGLES ABSOLUES (voir .claude/skills/cv-generation/SKILL.md) :
 // - Jamais inventer d'expérience, de compétence, de date, de certification.
@@ -277,6 +279,41 @@ export async function generateCVContent(input: GenerateCVInput): Promise<Generat
 
   const matching = computeMatching(skills, jobOffer);
 
+  // ─── 1. Tente de reformuler le summary via Claude (parallélisé avec les bullets) ───
+  // Import dynamique pour éviter de charger le SDK Anthropic côté client
+  // (cv-llm.ts est marqué 'server-only').
+  const sortedExperiences = experiences
+    .slice()
+    .sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime());
+
+  let llmSummary: string | null = null;
+  let llmBulletsByExpIndex: Array<string[] | null> = sortedExperiences.map(() => null);
+
+  if (typeof window === 'undefined' && process.env.ANTHROPIC_API_KEY) {
+    try {
+      const { reformulateSummary, reformulateExperienceBullets } = await import('./cv-llm');
+
+      const [summaryResult, ...bulletResults] = await Promise.all([
+        reformulateSummary({ consultant, skills, experiences: sortedExperiences, jobOffer }),
+        ...sortedExperiences.map((exp) =>
+          reformulateExperienceBullets({ experience: exp, jobOffer }),
+        ),
+      ]);
+
+      llmSummary = summaryResult;
+      llmBulletsByExpIndex = bulletResults;
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('[cv-generator] LLM call failed, falling back to deterministic engine', (e as Error).message);
+    }
+  }
+
+  // ─── 2. Compose le CVContent — LLM si dispo, sinon fallback déterministe ───
+  const fallbackSummary =
+    consultant.summary && consultant.summary.trim().length > 0
+      ? consultant.summary
+      : buildExecutiveSummary(consultant, skills, experiences);
+
   const content: CVContent = {
     header: {
       displayName:
@@ -293,18 +330,19 @@ export async function generateCVContent(input: GenerateCVInput): Promise<Generat
           ? 'Disponible immédiatement'
           : null,
     },
-    summary:
-      consultant.summary && consultant.summary.trim().length > 0
-        ? consultant.summary
-        : buildExecutiveSummary(consultant, skills, experiences),
+    summary: llmSummary && llmSummary.length > 20 ? llmSummary : fallbackSummary,
     skillCategories: groupSkillsByCategory(skills, jobOffer?.required_skills ?? []),
-    experiences: experiences
-      .slice()
-      .sort((a, b) => (new Date(b.start_date).getTime()) - new Date(a.start_date).getTime())
-      .map((exp) => ({
-        ...exp,
-        tasks: (exp.tasks ?? []).map(reformulateBullet),
-      })),
+    experiences: sortedExperiences.map((exp, i) => {
+      const llmBullets = llmBulletsByExpIndex[i];
+      const sourceBullets = exp.tasks ?? [];
+      // Si le LLM a renvoyé un tableau valide de la bonne taille → on l'utilise
+      // Sinon fallback sur la reformulation locale (regex).
+      const finalTasks =
+        llmBullets && llmBullets.length === sourceBullets.length
+          ? llmBullets
+          : sourceBullets.map(reformulateBullet);
+      return { ...exp, tasks: finalTasks };
+    }),
     educations: educations.slice().sort((a, b) => b.year - a.year),
     languages: (consultant.languages as Language[]) ?? [],
   };

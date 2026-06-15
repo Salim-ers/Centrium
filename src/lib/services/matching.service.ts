@@ -2,12 +2,20 @@ import { createClient } from '@/lib/supabase/client';
 import type { Consultant, JobOffer, ConsultantSkill, ServiceResult } from '@/types';
 import { computeMatching } from '@/lib/ai/cv-generator';
 
+export type MatchJustification = {
+  pitch: string;
+  confidence: 'high' | 'medium' | 'low';
+  risks: string[];
+};
+
 export type MatchResult = {
   consultant: Consultant;
   score: number;
   matchedSkills: string[];
   missingSkills: string[];
   recommendation: 'recommend' | 'maybe' | 'not_recommended';
+  /** Justification IA — peuplée à la demande pour le top N via /api/matching/justify. */
+  justification?: MatchJustification | null;
 };
 
 export const matchingService = {
@@ -80,5 +88,50 @@ export const matchingService = {
     });
 
     return { data: results, error: null };
+  },
+
+  /**
+   * Enrichit les N premiers résultats avec une justification LLM (Claude haiku).
+   * Échec silencieux → les résultats restent affichables sans pitch IA.
+   * Limité à 5 candidats max pour économiser les tokens.
+   */
+  async enrichTopWithJustification(
+    offerId: string,
+    results: MatchResult[],
+    topN = 5
+  ): Promise<MatchResult[]> {
+    const top = results.slice(0, topN);
+    if (top.length === 0) return results;
+
+    try {
+      const res = await fetch('/api/matching/justify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          offerId,
+          candidates: top.map((r) => ({
+            consultantId: r.consultant.id,
+            scoreRaw: r.score,
+            matchedSkills: r.matchedSkills,
+            missingSkills: r.missingSkills,
+          })),
+        }),
+      });
+      if (!res.ok) return results;
+
+      const json = (await res.json()) as {
+        data?: { justifications?: Array<{ consultantId: string; justification: MatchJustification | null }> };
+      };
+      const byId = new Map<string, MatchJustification | null>();
+      for (const item of json.data?.justifications ?? []) {
+        byId.set(item.consultantId, item.justification ?? null);
+      }
+
+      return results.map((r) =>
+        byId.has(r.consultant.id) ? { ...r, justification: byId.get(r.consultant.id) } : r
+      );
+    } catch {
+      return results;
+    }
   },
 };
