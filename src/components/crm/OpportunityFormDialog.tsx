@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { FormDialogContent } from '@/components/ui/form-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -95,7 +96,7 @@ export function OpportunityFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
+      <FormDialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Éditer l\'opportunité' : 'Nouvelle opportunité'}</DialogTitle>
           <DialogDescription>
@@ -188,7 +189,7 @@ export function OpportunityFormDialog({
             </Button>
           </DialogFooter>
         </form>
-      </DialogContent>
+      </FormDialogContent>
     </Dialog>
   );
 }

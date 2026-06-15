@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { FormDialogContent } from '@/components/ui/form-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -193,7 +194,7 @@ export function ProvisionClientDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !busy && onOpenChange(v)}>
-      <DialogContent className="w-[min(1400px,96vw)] max-w-[96vw] max-h-[96vh] overflow-y-auto">
+      <FormDialogContent className="w-[min(1400px,96vw)] max-w-[96vw] max-h-[96vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="inline-flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-violet-glow" />
@@ -459,7 +460,7 @@ export function ProvisionClientDialog({
             Créer l&apos;espace et inviter l&apos;admin
           </Button>
         </DialogFooter>
-      </DialogContent>
+      </FormDialogContent>
     </Dialog>
   );
 }

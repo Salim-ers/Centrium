@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { FormDialogContent } from '@/components/ui/form-dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -110,7 +111,7 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
+      <FormDialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Nouveau CRA</DialogTitle>
           <DialogDescription>
@@ -187,7 +188,7 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
             </Button>
           </DialogFooter>
         </form>
-      </DialogContent>
+      </FormDialogContent>
     </Dialog>
   );
 }

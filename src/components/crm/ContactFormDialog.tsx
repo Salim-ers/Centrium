@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { FormDialogContent } from '@/components/ui/form-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -122,7 +123,7 @@ export function ContactFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
+      <FormDialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Éditer le contact' : 'Nouveau contact'}</DialogTitle>
           <DialogDescription>
@@ -203,7 +204,7 @@ export function ContactFormDialog({
             </Button>
           </DialogFooter>
         </form>
-      </DialogContent>
+      </FormDialogContent>
     </Dialog>
   );
 }

@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { FormDialogContent } from '@/components/ui/form-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -128,7 +129,7 @@ export function PromoteToConsultantDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <FormDialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ArrowRightCircle className="h-5 w-5 text-emerald-300" />
@@ -205,7 +206,7 @@ export function PromoteToConsultantDialog({
             Promouvoir
           </Button>
         </DialogFooter>
-      </DialogContent>
+      </FormDialogContent>
     </Dialog>
   );
 }

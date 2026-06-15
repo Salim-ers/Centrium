@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient as createServerClient } from '@/lib/supabase/server';
+import { ensureFileSafe } from '@/lib/security/virustotal';
 
 export const runtime = 'nodejs';
 
@@ -99,6 +100,24 @@ export async function POST(req: NextRequest) {
   const pendingId = randomId();
   const path = `_pending/${pendingId}/${kindParse.data}-${Date.now()}.${ext}`;
   const buf = Buffer.from(await file.arrayBuffer());
+
+  // Scan antivirus VirusTotal sur l'asset uploadé (logo, signature)
+  // Bloque l'upload si ≥ 2 moteurs détectent une menace.
+  const scan = await ensureFileSafe({
+    buf,
+    fileName: `${kindParse.data}.${ext}`,
+    userId: user.id,
+    context: 'admin_asset_upload',
+  });
+  if (!scan.ok) {
+    return NextResponse.json(
+      {
+        error: 'malicious_file',
+        message: 'Fichier détecté comme malveillant — upload bloqué.',
+      },
+      { status: 422 },
+    );
+  }
 
   const { error: upErr } = await admin.storage
     .from(BUCKET)

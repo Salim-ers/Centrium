@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { ensureFileSafe } from '@/lib/security/virustotal';
+
 // =========================================================================
 // /api/cv/extract — Extraction texte brut depuis PDF / DOCX / TXT
 // -------------------------------------------------------------------------
@@ -52,6 +54,24 @@ export async function POST(req: NextRequest) {
   const name = (form.get('name') as string | null)?.toLowerCase() ?? '';
   const mime = file.type || '';
   const buf = Buffer.from(await file.arrayBuffer());
+
+  // Scan antivirus VirusTotal (silencieux si VIRUSTOTAL_API_KEY absente)
+  // Bloque l'extraction si ≥ 2 moteurs détectent une menace.
+  const scan = await ensureFileSafe({
+    buf,
+    fileName: name || 'unnamed',
+    context: 'cv_upload_extract',
+  });
+  if (!scan.ok) {
+    return NextResponse.json(
+      {
+        error: 'malicious_file',
+        message:
+          'Ce fichier a été détecté comme malveillant et a été bloqué. Vérifie sa source ou contacte le support si tu penses que c\'est une erreur.',
+      },
+      { status: 422 },
+    );
+  }
 
   try {
     let text = '';
