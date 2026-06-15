@@ -48,7 +48,7 @@ const GROUPS: NavGroup[] = [
       { label: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
       { label: 'Alertes', href: '/alerts', icon: BellRing },
       // To do list privée par utilisateur (RLS stricte sur user_todos.user_id).
-      { label: 'To do list', href: '/todos', icon: CheckSquare },
+      { label: 'À faire', href: '/todos', icon: CheckSquare },
     ],
   },
   {
@@ -68,11 +68,10 @@ const GROUPS: NavGroup[] = [
     label: 'Commercial',
     icon: Briefcase,
     items: [
-      { label: 'Offres & missions', href: '/offers', icon: Briefcase },
-      { label: 'Matching', href: '/matching', icon: Target },
-      { label: 'Suivi prospect', href: '/crm', icon: Kanban },
-      { label: 'Carnet de contacts', href: '/contacts', icon: UserCircle },
-      { label: 'Contrats', href: '/contracts', icon: FileSignature },
+      { label: 'Missions', href: '/offers', icon: Briefcase },
+      { label: 'Matching IA', href: '/matching', icon: Target },
+      { label: 'Pipeline', href: '/crm', icon: Kanban },
+      { label: 'Contacts', href: '/contacts', icon: UserCircle },
     ],
   },
   {
@@ -80,10 +79,10 @@ const GROUPS: NavGroup[] = [
     label: 'Facturation',
     icon: Receipt,
     items: [
-      { label: 'Comptes rendus (CRA)', href: '/timesheets', icon: ClipboardCheck },
+      { label: 'CRA', href: '/timesheets', icon: ClipboardCheck },
+      { label: 'Contrats', href: '/contracts', icon: FileSignature },
       { label: 'Factures', href: '/invoices', icon: Receipt },
-      { label: 'Assistant compta', href: '/accounting', icon: Calculator },
-      { label: 'Abonnement', href: '/billing', icon: CreditCard },
+      { label: 'Comptabilité', href: '/accounting', icon: Calculator },
     ],
   },
   {
@@ -92,6 +91,7 @@ const GROUPS: NavGroup[] = [
     icon: Building2,
     items: [
       { label: 'Équipe', href: '/settings/team', icon: Package },
+      { label: 'Abonnement', href: '/billing', icon: CreditCard },
       { label: 'Paramètres', href: '/settings', icon: Settings },
     ],
   },
@@ -171,7 +171,7 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
         <CentriumWordmark size="lg" orientation="vertical" />
       </Link>
 
-      <nav className="relative flex-1 overflow-y-auto px-2 py-3 space-y-3">
+      <nav className="relative flex-1 overflow-y-auto px-2 py-3 space-y-1">
         {GROUPS.map((group) => {
           const open = openGroups[group.id] ?? false;
           const GroupIcon = group.icon;
@@ -184,85 +184,117 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
           const groupActive = group.items.some(itemMatches);
 
           return (
-            <div key={group.id}>
+            <div key={group.id} className="relative">
               <button
                 type="button"
                 onClick={() => toggleGroup(group.id)}
+                aria-expanded={open}
                 className={cn(
-                  'w-full flex items-center justify-between gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition',
+                  'group/btn w-full flex items-center justify-between gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] rounded-lg transition-all duration-200',
                   groupActive
-                    ? 'text-violet-glow'
-                    : 'text-muted-foreground/70 hover:text-foreground',
+                    ? 'text-magenta-neon bg-magenta/[0.06]'
+                    : 'text-muted-foreground/70 hover:text-foreground hover:bg-white/[0.03]',
                 )}
               >
-                <span className="flex items-center gap-2">
-                  <GroupIcon className="h-3 w-3" />
+                <span className="flex items-center gap-2.5">
+                  <span
+                    className={cn(
+                      'flex h-5 w-5 items-center justify-center rounded-md transition-all duration-200',
+                      groupActive
+                        ? 'bg-magenta/15 text-magenta-neon'
+                        : 'bg-white/[0.04] text-muted-foreground/80 group-hover/btn:bg-white/[0.08] group-hover/btn:text-foreground',
+                    )}
+                  >
+                    <GroupIcon className="h-3 w-3" />
+                  </span>
                   {group.label}
                 </span>
                 <ChevronDown
                   className={cn(
-                    'h-3 w-3 transition-transform',
+                    'h-3.5 w-3.5 transition-transform duration-300 ease-out',
                     open ? 'rotate-0' : '-rotate-90',
+                    groupActive ? 'opacity-80' : 'opacity-50 group-hover/btn:opacity-90',
                   )}
                 />
               </button>
 
-              {open && group.id === 'organisation' && brandingMissing && (
-                <Link
-                  href="/onboarding/setup"
-                  onClick={onItemClick}
-                  className="mt-2 mx-1 flex items-start gap-2 rounded-lg border border-violet-glow/30 bg-violet-glow/[0.06] px-3 py-2 hover:border-violet-glow/60 transition-colors"
-                  title="Configure le logo, les couleurs et l'identité légale de ton ESN"
-                >
-                  <Sparkles className="h-3.5 w-3.5 text-violet-glow shrink-0 mt-0.5" />
-                  <div className="text-[11px] leading-tight">
-                    <div className="font-semibold text-violet-glow">Personnalise ton ESN</div>
-                    <div className="text-muted-foreground mt-0.5">
-                      Logo, couleurs, identité légale
-                    </div>
-                  </div>
-                </Link>
-              )}
+              {/* Conteneur animé pour smooth open/close (grid-rows trick = animation height auto) */}
+              <div
+                className={cn(
+                  'grid transition-[grid-template-rows] duration-300 ease-out',
+                  open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+                )}
+              >
+                <div className="overflow-hidden">
+                  {group.id === 'organisation' && brandingMissing && (
+                    <Link
+                      href="/onboarding/setup"
+                      onClick={onItemClick}
+                      className="mt-2 mx-1 flex items-start gap-2 rounded-lg border border-violet-glow/30 bg-violet-glow/[0.06] px-3 py-2 hover:border-violet-glow/60 transition-colors"
+                      title="Configure le logo, les couleurs et l'identité légale de ton ESN"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-violet-glow shrink-0 mt-0.5" />
+                      <div className="text-[11px] leading-tight">
+                        <div className="font-semibold text-violet-glow">Personnalise ton ESN</div>
+                        <div className="text-muted-foreground mt-0.5">
+                          Logo, couleurs, identité légale
+                        </div>
+                      </div>
+                    </Link>
+                  )}
 
-              {open && (
-                <ul className="mt-1 space-y-0.5">
-                  {group.items.map((item) => {
-                    // Match "le plus spécifique l'emporte" : si un sibling a
-                    // un href plus précis qui matche aussi (ex: /settings/team
-                    // sibling de /settings), il prend la priorité et les
-                    // autres ne s'allument pas.
-                    let active = itemMatches(item);
-                    if (active && pathname !== item.href) {
-                      const moreSpecific = group.items.some(
-                        (other) =>
-                          other.href !== item.href &&
-                          other.href.startsWith(item.href + '/') &&
-                          (pathname === other.href ||
-                            pathname.startsWith(other.href + '/')),
-                      );
-                      if (moreSpecific) active = false;
-                    }
-                    const Icon = item.icon;
-                    return (
-                      <li key={item.href}>
-                        <Link
-                          href={item.href}
-                          onClick={onItemClick}
-                          className={cn(
-                            'group flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm transition-all',
-                            active
-                              ? 'bg-magenta/[0.12] text-magenta-neon border border-magenta/40 shadow-[0_0_30px_-8px_rgba(236,72,153,0.6),inset_0_0_20px_-10px_rgba(236,72,153,0.3)]'
-                              : 'text-muted-foreground hover-surface hover:text-foreground border border-transparent',
+                  <ul className="mt-1 mb-2 ml-4 pl-3 space-y-0.5 border-l border-white/[0.06]">
+                    {group.items.map((item) => {
+                      // Match "le plus spécifique l'emporte" : si un sibling a
+                      // un href plus précis qui matche aussi (ex: /settings/team
+                      // sibling de /settings), il prend la priorité et les
+                      // autres ne s'allument pas.
+                      let active = itemMatches(item);
+                      if (active && pathname !== item.href) {
+                        const moreSpecific = group.items.some(
+                          (other) =>
+                            other.href !== item.href &&
+                            other.href.startsWith(item.href + '/') &&
+                            (pathname === other.href ||
+                              pathname.startsWith(other.href + '/')),
+                        );
+                        if (moreSpecific) active = false;
+                      }
+                      const Icon = item.icon;
+                      return (
+                        <li key={item.href} className="relative">
+                          {/* Indicateur de page active : barre verticale magenta à gauche */}
+                          {active && (
+                            <span
+                              aria-hidden
+                              className="absolute -left-[13px] top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-full bg-magenta-neon shadow-[0_0_8px_rgba(236,72,153,0.8)]"
+                            />
                           )}
-                        >
-                          <Icon className="h-4 w-4 shrink-0" />
-                          <span>{item.label}</span>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+                          <Link
+                            href={item.href}
+                            onClick={onItemClick}
+                            aria-current={active ? 'page' : undefined}
+                            className={cn(
+                              'group/link flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-all duration-150',
+                              active
+                                ? 'bg-magenta/[0.10] text-magenta-neon font-medium'
+                                : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground',
+                            )}
+                          >
+                            <Icon
+                              className={cn(
+                                'h-3.5 w-3.5 shrink-0 transition-transform duration-150',
+                                active ? 'scale-110' : 'group-hover/link:scale-105',
+                              )}
+                            />
+                            <span className="truncate">{item.label}</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </div>
             </div>
           );
         })}
