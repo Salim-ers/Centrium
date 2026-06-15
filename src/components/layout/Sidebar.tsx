@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -99,6 +99,41 @@ const GROUPS: NavGroup[] = [
 
 const STORAGE_KEY = 'quadcore-sidebar-open-groups';
 
+// useLayoutEffect émet un warning côté serveur — on bascule vers useEffect
+// pendant le SSR. Côté client, on garde useLayoutEffect pour set le bon state
+// AVANT que le browser ne peigne (évite le flash "tout fermé → tout ouvert").
+const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
+function computeInitialOpenGroups(pathname: string): Record<string, boolean> {
+  const initial: Record<string, boolean> = {};
+  GROUPS.forEach((g) => (initial[g.id] = false));
+
+  // Lecture localStorage (peut être null en SSR ou si bloqué)
+  try {
+    if (typeof window !== 'undefined') {
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as Record<string, boolean>;
+        Object.assign(initial, parsed);
+      }
+    }
+  } catch {
+    // ignore — localStorage parse error
+  }
+
+  // Auto-ouverture du groupe contenant la route active
+  const matchesItem = (i: NavItem) =>
+    pathname === i.href ||
+    pathname.startsWith(i.href + '/') ||
+    (i.matchAlso ?? []).some(
+      (m) => pathname === m || pathname.startsWith(m + '/'),
+    );
+  const activeGroup = GROUPS.find((g) => g.items.some(matchesItem));
+  if (activeGroup) initial[activeGroup.id] = true;
+
+  return initial;
+}
+
 /**
  * Contenu intérieur de la sidebar : halo, wordmark, nav, footer.
  * Réutilisé par la Sidebar desktop (fixed) ET le MobileNav (drawer).
@@ -112,39 +147,49 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
   const brandingMissing =
     !!org?.branding && !org.branding.logoUrl && !org.branding.primaryColor;
 
+  // État initial = tous fermés (= ce que le serveur rend → pas de hydration mismatch).
+  // useLayoutEffect ci-dessous corrige ÉGALEMENT avant le 1er paint client.
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     GROUPS.forEach((g) => (initial[g.id] = false));
     return initial;
   });
+  // Tant que `animEnabled` est false, on désactive les transitions CSS pour
+  // ne PAS animer le passage initial "tout fermé → groupe actif ouvert"
+  // (cause du "saut" visible à chaque navigation).
+  const [animEnabled, setAnimEnabled] = useState(false);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    const matchesItem = (i: NavItem) => {
-      if (pathname === i.href || pathname.startsWith(i.href + '/')) return true;
-      return (i.matchAlso ?? []).some(
-        (m) => pathname === m || pathname.startsWith(m + '/'),
-      );
-    };
-    const activeGroup = GROUPS.find((g) => g.items.some(matchesItem));
-
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as Record<string, boolean>;
-        if (activeGroup) parsed[activeGroup.id] = true;
-        setOpenGroups((prev) => ({ ...prev, ...parsed }));
-        return;
-      } catch {
-        // ignore, fallback below
-      }
-    }
-
-    if (activeGroup) {
-      setOpenGroups((prev) => ({ ...prev, [activeGroup.id]: true }));
-    }
+  // 1) Pre-paint sync : positionne le bon state avant que le browser ne dessine.
+  useIsoLayoutEffect(() => {
+    setOpenGroups(computeInitialOpenGroups(pathname));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 2) Post-paint : active les animations APRÈS le 1er paint avec le bon state.
+  //    Double rAF garantit qu'on est passé au-delà de la peinture initiale.
+  useEffect(() => {
+    const id1 = requestAnimationFrame(() => {
+      const id2 = requestAnimationFrame(() => setAnimEnabled(true));
+      return () => cancelAnimationFrame(id2);
+    });
+    return () => cancelAnimationFrame(id1);
+  }, []);
+
+  // 3) Sur changement de route, ouvre le groupe contenant la page courante
+  //    SANS toucher aux autres groupes (l'utilisateur peut en garder plusieurs
+  //    ouverts manuellement).
+  useEffect(() => {
+    const matchesItem = (i: NavItem) =>
+      pathname === i.href ||
+      pathname.startsWith(i.href + '/') ||
+      (i.matchAlso ?? []).some(
+        (m) => pathname === m || pathname.startsWith(m + '/'),
+      );
+    const activeGroup = GROUPS.find((g) => g.items.some(matchesItem));
+    if (activeGroup) {
+      setOpenGroups((prev) => (prev[activeGroup.id] ? prev : { ...prev, [activeGroup.id]: true }));
+    }
+  }, [pathname]);
 
   function toggleGroup(id: string) {
     setOpenGroups((prev) => {
@@ -218,10 +263,13 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
                 />
               </button>
 
-              {/* Conteneur animé pour smooth open/close (grid-rows trick = animation height auto) */}
+              {/* Conteneur animé pour smooth open/close (grid-rows trick = animation height auto).
+                  La transition est désactivée au premier rendu pour éviter le "saut" à chaque
+                  remount (AppShell n'étant pas un layout Next.js persistant). */}
               <div
                 className={cn(
-                  'grid transition-[grid-template-rows] duration-300 ease-out',
+                  'grid',
+                  animEnabled && 'transition-[grid-template-rows,opacity] duration-300 ease-out',
                   open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
                 )}
               >
