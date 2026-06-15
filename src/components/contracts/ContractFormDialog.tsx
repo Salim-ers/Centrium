@@ -42,6 +42,20 @@ type MissionOption = {
   } | null;
 };
 
+type SupplierOption = {
+  /** Identifiant unique calculé localement (hash de raison sociale + RCS). */
+  key: string;
+  company_name: string;
+  address: string | null;
+  postal_code: string | null;
+  city: string | null;
+  rcs: string | null;
+  representative: string | null;
+  email: string | null;
+  /** Nombre de contrats déjà signés avec ce fournisseur (pour trier par fréquence). */
+  usageCount: number;
+};
+
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -59,6 +73,7 @@ export function ContractFormDialog({
 }: Props) {
   const [consultants, setConsultants] = useState<Consultant[]>([]);
   const [missions, setMissions] = useState<MissionOption[]>([]);
+  const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
   const [selectedMissionId, setSelectedMissionId] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const isEdit = !!contract;
@@ -106,6 +121,50 @@ export function ContractFormDialog({
         .order('start_date', { ascending: false })
         .then(({ data }) => {
           setMissions((data as MissionOption[] | null) ?? []);
+        });
+
+      // Charge tous les fournisseurs déjà saisis sur les contrats précédents,
+      // dédupliqués par raison sociale (+ RCS si dispo) pour permettre la
+      // sélection rapide depuis un dropdown.
+      supabase
+        .from('contracts')
+        .select(
+          `supplier_company_name, supplier_address, supplier_postal_code,
+           supplier_city, supplier_rcs, supplier_representative, supplier_email`,
+        )
+        .not('supplier_company_name', 'is', null)
+        .order('created_at', { ascending: false })
+        .then(({ data }) => {
+          const byKey = new Map<string, SupplierOption>();
+          for (const row of data ?? []) {
+            const name = (row.supplier_company_name as string | null)?.trim();
+            if (!name) continue;
+            const rcs = (row.supplier_rcs as string | null)?.trim() ?? '';
+            const key = `${name.toLowerCase()}|${rcs.toLowerCase()}`;
+            const existing = byKey.get(key);
+            if (existing) {
+              existing.usageCount += 1;
+            } else {
+              byKey.set(key, {
+                key,
+                company_name: name,
+                address: (row.supplier_address as string | null) ?? null,
+                postal_code: (row.supplier_postal_code as string | null) ?? null,
+                city: (row.supplier_city as string | null) ?? null,
+                rcs: (row.supplier_rcs as string | null) ?? null,
+                representative: (row.supplier_representative as string | null) ?? null,
+                email: (row.supplier_email as string | null) ?? null,
+                usageCount: 1,
+              });
+            }
+          }
+          // Tri par fréquence d'utilisation décroissante, puis nom.
+          setSuppliers(
+            [...byKey.values()].sort((a, b) => {
+              if (a.usageCount !== b.usageCount) return b.usageCount - a.usageCount;
+              return a.company_name.localeCompare(b.company_name, 'fr');
+            }),
+          );
         });
       setSelectedMissionId(contract?.mission_id ?? '');
       if (contract) {
@@ -335,6 +394,46 @@ export function ContractFormDialog({
             <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
               Fournisseur (société du consultant)
             </h3>
+
+            {/* Dropdown : reprendre un fournisseur déjà saisi sur un précédent contrat */}
+            {suppliers.length > 0 && (
+              <div className="mb-4 rounded-md border border-magenta/25 bg-magenta/[0.04] p-3">
+                <Label className="text-magenta text-[10px] uppercase tracking-wider font-semibold">
+                  Reprendre un fournisseur existant
+                </Label>
+                <Select
+                  onChange={(e) => {
+                    const key = e.target.value;
+                    if (!key) return;
+                    const s = suppliers.find((x) => x.key === key);
+                    if (!s) return;
+                    setValue('supplier_company_name', s.company_name);
+                    setValue('supplier_address', s.address ?? '');
+                    setValue('supplier_postal_code', s.postal_code ?? '');
+                    setValue('supplier_city', s.city ?? '');
+                    setValue('supplier_rcs', s.rcs ?? '');
+                    setValue('supplier_representative', s.representative ?? '');
+                    setValue('supplier_email', s.email ?? '');
+                    toast.success(`Fournisseur « ${s.company_name} » pré-rempli`);
+                    e.target.value = ''; // reset select pour pouvoir le re-sélectionner
+                  }}
+                  className="mt-1.5"
+                >
+                  <option value="">— Choisir un fournisseur déjà saisi —</option>
+                  {suppliers.map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {s.company_name}
+                      {s.city ? ` (${s.city})` : ''}
+                      {s.usageCount > 1 ? ` · ${s.usageCount} contrats` : ''}
+                    </option>
+                  ))}
+                </Select>
+                <p className="mt-2 text-[10.5px] text-muted-foreground">
+                  💡 Tu peux ensuite ajuster les champs ci-dessous au cas par cas.
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <Label>Raison sociale *</Label>
