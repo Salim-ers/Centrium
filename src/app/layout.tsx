@@ -192,10 +192,11 @@ export default function RootLayout({
         </LocaleProvider>
         <Toaster
           position="top-right"
+          visibleToasts={2}
+          expand={false}
+          gap={8}
           toastOptions={{
-            duration: 4500,
-            // Pas de wrapper Sonner (background gris, padding, etc.) sur les
-            // toasts custom — on a notre propre design (BrandToast).
+            duration: 2500,
             unstyled: true,
             classNames: { toast: 'pointer-events-auto' },
           }}

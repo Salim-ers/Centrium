@@ -35,7 +35,6 @@ import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { formatCurrency, relativeDate } from '@/lib/utils';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { ResetDashboardDialog } from '@/components/dashboard/ResetDashboardDialog';
-import { LiveSyncBadge } from '@/components/dashboard/LiveSyncBadge';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import {
   PageHeader,
@@ -152,14 +151,7 @@ export default function DashboardPage() {
             <span className="qc-italic-accent font-editorial italic">tableau de bord.</span>
           </>
         }
-        description={
-          <>
-            Vue d&apos;ensemble de votre activité {brandName}.
-            <span className="ml-2 inline-block align-middle">
-              <LiveSyncBadge />
-            </span>
-          </>
-        }
+        description={<>Vue d&apos;ensemble de votre activité {brandName}.</>}
         actions={
           <Button
             variant="outline"
