@@ -235,7 +235,7 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
                 onClick={() => toggleGroup(group.id)}
                 aria-expanded={open}
                 className={cn(
-                  'group/btn w-full flex items-center justify-between gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] rounded-lg transition-all duration-200',
+                  'group/btn w-full flex items-center justify-between gap-2 px-3 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] rounded-lg transition-all duration-200',
                   groupActive
                     ? 'text-magenta-neon bg-magenta/[0.06]'
                     : 'text-muted-foreground/70 hover:text-foreground hover:bg-white/[0.03]',
@@ -244,19 +244,19 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
                 <span className="flex items-center gap-2.5">
                   <span
                     className={cn(
-                      'flex h-5 w-5 items-center justify-center rounded-md transition-all duration-200',
+                      'flex h-6 w-6 items-center justify-center rounded-md transition-all duration-200',
                       groupActive
                         ? 'bg-magenta/15 text-magenta-neon'
                         : 'bg-white/[0.04] text-muted-foreground/80 group-hover/btn:bg-white/[0.08] group-hover/btn:text-foreground',
                     )}
                   >
-                    <GroupIcon className="h-3 w-3" />
+                    <GroupIcon className="h-3.5 w-3.5" />
                   </span>
                   {group.label}
                 </span>
                 <ChevronDown
                   className={cn(
-                    'h-3.5 w-3.5 transition-transform duration-300 ease-out',
+                    'h-4 w-4 transition-transform duration-300 ease-out',
                     open ? 'rotate-0' : '-rotate-90',
                     groupActive ? 'opacity-80' : 'opacity-50 group-hover/btn:opacity-90',
                   )}
@@ -323,7 +323,7 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
                             onClick={onItemClick}
                             aria-current={active ? 'page' : undefined}
                             className={cn(
-                              'group/link flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-all duration-150',
+                              'group/link flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14px] transition-all duration-150',
                               active
                                 ? 'bg-magenta/[0.10] text-magenta-neon font-medium'
                                 : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground',
@@ -331,7 +331,7 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
                           >
                             <Icon
                               className={cn(
-                                'h-3.5 w-3.5 shrink-0 transition-transform duration-150',
+                                'h-4 w-4 shrink-0 transition-transform duration-150',
                                 active ? 'scale-110' : 'group-hover/link:scale-105',
                               )}
                             />
