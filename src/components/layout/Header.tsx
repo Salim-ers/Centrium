@@ -11,9 +11,11 @@ import { TutorialButton } from '@/components/onboarding/NewUserTutorial';
 import { PresenceAvatars } from '@/components/presence/PresenceAvatars';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
+import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
 
 export function Header() {
   const org = useOrganizationSafe();
+  const [collapsed] = useSidebarCollapsed();
   const [menuOpen, setMenuOpen] = useState(false);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -61,7 +63,11 @@ export function Header() {
   const activeMembership = org?.memberships.find((m) => m.id === org.activeOrgId);
 
   return (
-    <header className="qc-app-header fixed top-0 right-0 left-0 md:left-64 z-20 h-16 bg-background/95 backdrop-blur-xl border-b border-hairline">
+    <header
+      className={`qc-app-header fixed top-0 right-0 left-0 z-20 h-16 bg-background/95 backdrop-blur-xl border-b border-hairline transition-[left] duration-300 ease-out ${
+        collapsed ? 'md:left-0' : 'md:left-64'
+      }`}
+    >
       {/* Hairline rose/violet en bas du header — DARK uniquement.
           En light : invisible (demande utilisateur : zéro halo rose).
           On bascule via opacity sans changer le background pour garder

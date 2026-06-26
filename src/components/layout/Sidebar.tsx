@@ -19,6 +19,8 @@ import {
   CreditCard,
   Briefcase,
   ChevronDown,
+  ChevronsLeft,
+  ChevronsRight,
   Activity,
   Building2,
   Package,
@@ -29,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useOrganizationSafe } from '@/lib/auth/context';
+import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
 
 type NavItem = {
   label: string;
@@ -356,17 +359,46 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
 }
 
 export function Sidebar() {
+  const [collapsed, setCollapsed] = useSidebarCollapsed();
+
   return (
-    <aside
-      data-app-sidebar
-      className={[
-        'qc-sidebar hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-hairline backdrop-blur-xl',
-        // Background piloté par .qc-sidebar (globals.css) :
-        //   - Dark : gradient vertical subtle violet-noir → noir profond
-        //   - Light : gradient terracotta sang
-      ].join(' ')}
-    >
-      <SidebarBody />
-    </aside>
+    <>
+      <aside
+        data-app-sidebar
+        aria-hidden={collapsed}
+        className={cn(
+          'qc-sidebar group/sidebar hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-hairline backdrop-blur-xl transition-transform duration-300 ease-out',
+          // Background piloté par .qc-sidebar (globals.css) :
+          //   - Dark : gradient vertical subtle violet-noir → noir profond
+          //   - Light : gradient terracotta sang
+          collapsed ? '-translate-x-full' : 'translate-x-0',
+        )}
+      >
+        {/* Bouton "collapse" en haut à droite de la sidebar, apparaît au hover */}
+        <button
+          type="button"
+          onClick={() => setCollapsed(true)}
+          aria-label="Réduire le menu"
+          title="Réduire le menu (full screen)"
+          className="hidden md:flex absolute top-3 right-2 z-10 h-7 w-7 items-center justify-center rounded-md text-white/60 hover:bg-white/10 hover:text-white opacity-0 group-hover/sidebar:opacity-100 transition"
+        >
+          <ChevronsLeft className="h-4 w-4" />
+        </button>
+        <SidebarBody />
+      </aside>
+
+      {/* Bouton flottant "ouvrir le menu" quand collapsed (visible md+) */}
+      {collapsed && (
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          aria-label="Afficher le menu"
+          title="Afficher le menu"
+          className="hidden md:flex fixed left-3 top-3 z-40 h-9 w-9 items-center justify-center rounded-lg border border-hairline bg-card/90 backdrop-blur shadow-lg text-foreground/70 hover:bg-card hover:text-foreground transition"
+        >
+          <ChevronsRight className="h-4 w-4" />
+        </button>
+      )}
+    </>
   );
 }

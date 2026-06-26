@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 
 import { Sidebar } from './Sidebar';
@@ -8,6 +10,7 @@ import { OrgCursorsOverlay } from '@/components/realtime/OrgCursorsOverlay';
 import { OrgActivityListener } from '@/components/realtime/OrgActivityListener';
 import { ManageCookiesLink } from '@/components/marketing/CookieBanner';
 import { SessionPresenceGate } from '@/components/auth/SessionPresenceGate';
+import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
 
 export function AppShell({
   children,
@@ -22,6 +25,7 @@ export function AppShell({
   children: React.ReactNode;
   wide?: boolean;
 }) {
+  const [collapsed] = useSidebarCollapsed();
   return (
     <div className="min-h-screen app-bg text-foreground flex flex-col relative">
       <BrandingStyles />
@@ -33,7 +37,11 @@ export function AppShell({
       <AppBackground />
       <Sidebar />
       <Header />
-      <main className="relative z-[1] md:pl-64 pt-16 flex-1 flex flex-col">
+      <main
+        className={`relative z-[1] pt-16 flex-1 flex flex-col transition-[padding] duration-300 ease-out ${
+          collapsed ? 'md:pl-0' : 'md:pl-64'
+        }`}
+      >
         <div
           className={`mx-auto w-full px-4 md:px-8 py-8 flex-1 ${
             wide ? 'max-w-none' : 'max-w-7xl'
