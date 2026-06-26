@@ -367,20 +367,20 @@ export function Sidebar() {
         data-app-sidebar
         aria-hidden={collapsed}
         className={cn(
-          'qc-sidebar group/sidebar hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-hairline backdrop-blur-xl transition-transform duration-300 ease-out',
+          'qc-sidebar hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-hairline backdrop-blur-xl transition-transform duration-300 ease-out',
           // Background piloté par .qc-sidebar (globals.css) :
           //   - Dark : gradient vertical subtle violet-noir → noir profond
           //   - Light : gradient terracotta sang
           collapsed ? '-translate-x-full' : 'translate-x-0',
         )}
       >
-        {/* Bouton "collapse" en haut à droite de la sidebar, apparaît au hover */}
+        {/* Bouton "collapse" en haut à droite de la sidebar, toujours visible */}
         <button
           type="button"
           onClick={() => setCollapsed(true)}
           aria-label="Réduire le menu"
-          title="Réduire le menu (full screen)"
-          className="hidden md:flex absolute top-3 right-2 z-10 h-7 w-7 items-center justify-center rounded-md text-white/60 hover:bg-white/10 hover:text-white opacity-0 group-hover/sidebar:opacity-100 transition"
+          title="Réduire le menu (mode plein écran)"
+          className="hidden md:flex absolute top-3 right-2 z-10 h-7 w-7 items-center justify-center rounded-md bg-white/5 text-white/70 hover:bg-white/15 hover:text-white border border-white/10 transition"
         >
           <ChevronsLeft className="h-4 w-4" />
         </button>
