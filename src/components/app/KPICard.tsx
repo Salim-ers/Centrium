@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { type LucideIcon, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -60,6 +61,8 @@ type Props = {
   hint?: string;
   /** Si défini, rend la carte cliquable comme un Link */
   href?: string;
+  /** Affiche un skeleton à la place de la valeur (évite le flash "0" pendant le fetch). */
+  loading?: boolean;
   className?: string;
 };
 
@@ -85,6 +88,7 @@ export function KPICard({
   delta,
   hint,
   href,
+  loading = false,
   className,
 }: Props) {
   const t = TONE_CLASSES[tone];
@@ -127,18 +131,24 @@ export function KPICard({
           </div>
         )}
       </div>
-      <div className="relative z-10 mt-4 flex items-baseline gap-1">
-        {prefix && <span className="text-2xl text-muted-foreground">{prefix}</span>}
-        <span className="font-display font-light tracking-[-0.04em] text-[clamp(1.8rem,3vw,2.5rem)] text-foreground leading-none">
-          {valueText !== undefined ? (
-            valueText
-          ) : value !== undefined ? (
-            <AnimatedNumber value={value} />
-          ) : (
-            '—'
-          )}
-        </span>
-        {suffix && <span className="text-2xl text-muted-foreground ml-0.5">{suffix}</span>}
+      <div className="relative z-10 mt-4 flex items-baseline gap-1 min-h-[2.5rem]">
+        {loading ? (
+          <span className="inline-block h-10 w-24 rounded-md bg-foreground/[0.08] animate-pulse" />
+        ) : (
+          <>
+            {prefix && <span className="text-2xl text-muted-foreground">{prefix}</span>}
+            <span className="font-display font-light tracking-[-0.04em] text-[clamp(1.8rem,3vw,2.5rem)] text-foreground leading-none">
+              {valueText !== undefined ? (
+                valueText
+              ) : value !== undefined && Number.isFinite(value) ? (
+                <AnimatedNumber value={value} />
+              ) : (
+                '—'
+              )}
+            </span>
+            {suffix && <span className="text-2xl text-muted-foreground ml-0.5">{suffix}</span>}
+          </>
+        )}
       </div>
       {(hint || delta !== undefined) && (
         <div className="relative z-10 mt-3 flex items-center gap-2 text-[11px] text-muted-foreground">
@@ -166,9 +176,9 @@ export function KPICard({
 
   if (href) {
     return (
-      <a href={href} className={baseClasses}>
+      <Link href={href} className={baseClasses} prefetch={false}>
         {inner}
-      </a>
+      </Link>
     );
   }
   return <div className={baseClasses}>{inner}</div>;

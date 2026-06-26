@@ -35,6 +35,9 @@ import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { formatCurrency, relativeDate } from '@/lib/utils';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { ResetDashboardDialog } from '@/components/dashboard/ResetDashboardDialog';
+import { InterContractWidget } from '@/components/dashboard/InterContractWidget';
+import { MissionsEndingSoonWidget } from '@/components/dashboard/MissionsEndingSoonWidget';
+import { OverdueFollowUpsWidget } from '@/components/dashboard/OverdueFollowUpsWidget';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import {
   PageHeader,
@@ -44,7 +47,11 @@ import {
   EmptyState as AppEmptyState,
 } from '@/components/app';
 
-type DashboardData = { kpis: DashboardKPIs | null; alerts: ComputedAlert[] };
+type DashboardData = {
+  kpis: DashboardKPIs | null;
+  alerts: ComputedAlert[];
+  alertsTotal: number;
+};
 
 // Priorité → style visuel pour la mini-carte alerte sur le dashboard.
 const ALERT_TONE: Record<
@@ -108,15 +115,18 @@ export default function DashboardPage() {
         dashboardService.getKPIs(activeOrgId ?? undefined),
         alertService.listComputed(activeOrgId ?? undefined),
       ]);
+      const all = alertsRes.data ?? [];
       return {
         kpis: kpisRes.data ?? null,
-        alerts: alertsRes.data ? alertsRes.data.slice(0, 5) : [],
+        alerts: all.slice(0, 5),
+        alertsTotal: all.length,
       };
     },
     { enabled: !!activeOrgId },
   );
   const kpis = data?.kpis ?? null;
   const alerts = data?.alerts ?? [];
+  const alertsTotal = data?.alertsTotal ?? 0;
   const [resetOpen, setResetOpen] = useState(false);
 
   // Auto-invalidation : dès qu'une table impactant un KPI change (chez moi
@@ -193,37 +203,63 @@ export default function DashboardPage() {
         </Link>
       )}
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      {/* KPIs — chaque carte est cliquable et drille vers la page concernée */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
         <KPICard
           icon={Users}
           label="Consultants en mission"
           value={kpis?.consultantsOnMission ?? 0}
           tone="magenta"
+          loading={!kpis}
+          href="/consultants?status=on_mission"
+          hint={
+            kpis?.consultantsOnMission
+              ? `voir la liste`
+              : undefined
+          }
         />
         <KPICard
           icon={CheckCircle2}
           label="Disponibles"
           value={kpis?.consultantsAvailable ?? 0}
           tone="emerald"
+          loading={!kpis}
+          href="/consultants?status=available"
+          hint={
+            kpis?.consultantsAvailable
+              ? `voir le vivier disponible`
+              : undefined
+          }
         />
         <KPICard
           icon={TrendingUp}
           label="Opportunités ouvertes"
           value={kpis?.openOpportunities ?? 0}
           tone="cyan"
+          loading={!kpis}
+          href="/crm"
+          hint="pipeline commercial"
         />
         <KPICard
           icon={Banknote}
           label="CA du mois"
           valueText={kpis ? formatCurrency(kpis.revenueThisMonth ?? 0) : '—'}
           tone="violet"
+          loading={!kpis}
+          href="/invoices"
           hint={
             kpis
               ? `Encaissé : ${formatCurrency(kpis.revenueThisMonthPaid)}`
               : undefined
           }
         />
+      </div>
+
+      {/* Action Row — 3 widgets opérationnels : ce que je dois faire aujourd'hui */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <InterContractWidget />
+        <MissionsEndingSoonWidget />
+        <OverdueFollowUpsWidget />
       </div>
 
       {/* Graph CA / Missions */}
@@ -242,7 +278,10 @@ export default function DashboardPage() {
                   Alertes prioritaires
                 </div>
                 <p className="text-[12.5px] text-muted-foreground mt-1">
-                  {alerts.length} alerte{alerts.length > 1 ? 's' : ''} à traiter
+                  {alertsTotal} alerte{alertsTotal > 1 ? 's' : ''} à traiter
+                  {alertsTotal > alerts.length && (
+                    <span className="text-foreground/60"> — top {alerts.length} affiché{alerts.length > 1 ? 'es' : 'e'}</span>
+                  )}
                 </p>
               </div>
               <Button variant="outline" size="sm" asChild>
@@ -280,17 +319,20 @@ export default function DashboardPage() {
                 icon={<Send className="h-4 w-4 text-blue-400" />}
                 label="En attente"
                 value={<AnimatedNumber value={kpis?.pendingInvoices} />}
+                href="/invoices?status=sent"
               />
               <StatRow
                 icon={<AlertTriangle className="h-4 w-4 text-red-400" />}
                 label="En retard"
                 value={<AnimatedNumber value={kpis?.overdueInvoices} />}
                 highlight={kpis?.overdueInvoices ? kpis.overdueInvoices > 0 : false}
+                href="/invoices?status=overdue"
               />
               <StatRow
                 icon={<Clock className="h-4 w-4 text-amber-400" />}
                 label="CRA à valider"
                 value={<AnimatedNumber value={kpis?.pendingTimesheets} />}
+                href="/timesheets?status=submitted"
               />
               <Button variant="outline" className="w-full mt-2" asChild>
                 <Link href="/invoices">Gérer la facturation</Link>
@@ -321,21 +363,29 @@ function StatRow({
   label,
   value,
   highlight,
+  href,
 }: {
   icon: React.ReactNode;
   label: string;
   value: React.ReactNode;
   highlight?: boolean;
+  href?: string;
 }) {
-  return (
-    <div className="flex items-center justify-between">
+  const inner = (
+    <div className="flex items-center justify-between gap-2 px-2 py-1.5 -mx-2 rounded-md hover:bg-white/[0.04] transition group">
       <div className="flex items-center gap-2 text-sm">
         {icon}
-        <span className="text-muted-foreground">{label}</span>
+        <span className="text-muted-foreground group-hover:text-foreground transition">{label}</span>
       </div>
-      <span className={`font-semibold ${highlight ? 'text-red-400' : ''}`}>{value}</span>
+      <div className="flex items-center gap-1.5">
+        <span className={`font-semibold ${highlight ? 'text-red-400' : ''}`}>{value}</span>
+        {href && (
+          <ArrowUpRight className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground transition" />
+        )}
+      </div>
     </div>
   );
+  return href ? <Link href={href}>{inner}</Link> : inner;
 }
 
 function QuickAction({ href, label }: { href: string; label: string }) {
@@ -389,7 +439,7 @@ function Skeleton() {
   return (
     <div className="space-y-2">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="h-14 rounded-lg bg-white/[0.02] animate-pulse" />
+        <div key={i} className="h-14 rounded-lg bg-foreground/[0.04] animate-pulse" />
       ))}
     </div>
   );

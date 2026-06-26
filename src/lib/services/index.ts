@@ -1409,23 +1409,30 @@ export const dashboardService = {
       0
     );
 
+    // Wrapper defensive : tout KPI doit être un nombre fini.
+    // Évite NaN/undefined qui ferait flash "—" ou crasher AnimatedNumber.
+    const safeNum = (v: unknown, fallback = 0): number => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : fallback;
+    };
+
     return {
       data: {
-        consultantsOnMission,
-        consultantsAvailable,
+        consultantsOnMission: safeNum(consultantsOnMission),
+        consultantsAvailable: safeNum(consultantsAvailable),
         // "Opportunités ouvertes" = STRICTEMENT les opportunités du CRM
         // dans une colonne active (new → negotiation). On NE cumule PLUS
         // avec les job_offers ouverts (les AO ont leur propre KPI sur
         // la page /offers) — ça créait un total trompeur sur le dashboard.
-        openOpportunities: openOps.count ?? 0,
-        openJobOffers: openJobOffers.count ?? 0,
-        opportunitiesWonThisMonth: wonOps.count ?? 0,
-        revenueThisMonth,
-        revenueThisMonthPaid,
-        pendingInvoices: invoicesPending.count ?? 0,
-        overdueInvoices: invoicesOverdue.count ?? 0,
-        pendingTimesheets: timesheetsPending.count ?? 0,
-        criticalAlerts: criticalAlerts.count ?? 0,
+        openOpportunities: safeNum(openOps.count),
+        openJobOffers: safeNum(openJobOffers.count),
+        opportunitiesWonThisMonth: safeNum(wonOps.count),
+        revenueThisMonth: safeNum(revenueThisMonth),
+        revenueThisMonthPaid: safeNum(revenueThisMonthPaid),
+        pendingInvoices: safeNum(invoicesPending.count),
+        overdueInvoices: safeNum(invoicesOverdue.count),
+        pendingTimesheets: safeNum(timesheetsPending.count),
+        criticalAlerts: safeNum(criticalAlerts.count),
       },
       error: null,
     };

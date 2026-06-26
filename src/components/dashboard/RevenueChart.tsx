@@ -68,10 +68,32 @@ export function RevenueChart() {
   //    zéro jaune, zéro violet — demande utilisateur). Les 3 courbes restent
   //    distinguables : sang foncé pour CA, terracotta principal pour missions,
   //    terracotta orangé pour CV poussés.
+  // Palette adaptée au thème — 3 tons distincts pour lisibilité maximale :
+  //   - DARK : magenta (CA) + violet (missions) + ambre (CV poussés)
+  //   - LIGHT : terracotta sang (CA) + olive (missions) + ocre brûlé (CV poussés)
+  //     (palette validée user "zéro jaune/violet en light")
   const chartColors =
     theme === 'dark'
       ? { ca: '#e11d74', missions: '#8b5cf6', proposed: '#fbbf24' }
-      : { ca: '#9a3e2e', missions: '#c45a32', proposed: '#b23a26' };
+      : { ca: '#9a3e2e', missions: '#5b6f3a', proposed: '#c97a1f' };
+
+  // Couleurs axes/grid/tooltip — contraste WCAG AA sur fond crème/noir
+  const chartTheme =
+    theme === 'dark'
+      ? {
+          axisStroke: 'rgba(255,255,255,0.55)',
+          gridStroke: 'rgba(255,255,255,0.06)',
+          tooltipBg: 'rgba(15, 17, 25, 0.95)',
+          tooltipBorder: 'rgba(225,29,116,0.3)',
+          tooltipText: '#ffffff',
+        }
+      : {
+          axisStroke: 'rgba(42,26,18,0.7)', // terre sombre lisible sur crème
+          gridStroke: 'rgba(42,26,18,0.12)',
+          tooltipBg: '#fffaf2',
+          tooltipBorder: 'rgba(154,62,46,0.7)', // bumped pour contraste border visible (≥3.5:1)
+          tooltipText: '#2a1a12',
+        };
 
   const { data, loading } = useCachedQuery<MonthlyPoint[]>(
     `revenue-chart:${activeOrgId ?? 'none'}`,
@@ -133,29 +155,29 @@ export function RevenueChart() {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="h-64 rounded-lg bg-white/[0.02] animate-pulse" />
+          <div className="h-64 rounded-lg bg-foreground/[0.04] animate-pulse" />
         ) : (
           <div className="h-64 -mx-2">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={points} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="ca-pink" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={chartColors.ca} stopOpacity={0.55} />
+                    <stop offset="0%" stopColor={chartColors.ca} stopOpacity={theme === 'light' ? 0.45 : 0.55} />
                     <stop offset="100%" stopColor={chartColors.ca} stopOpacity={0.02} />
                   </linearGradient>
                   <linearGradient id="missions-violet" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={chartColors.missions} stopOpacity={0.35} />
+                    <stop offset="0%" stopColor={chartColors.missions} stopOpacity={theme === 'light' ? 0.32 : 0.35} />
                     <stop offset="100%" stopColor={chartColors.missions} stopOpacity={0.02} />
                   </linearGradient>
                   <linearGradient id="proposed-amber" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={chartColors.proposed} stopOpacity={0.3} />
+                    <stop offset="0%" stopColor={chartColors.proposed} stopOpacity={theme === 'light' ? 0.28 : 0.3} />
                     <stop offset="100%" stopColor={chartColors.proposed} stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <CartesianGrid stroke={chartTheme.gridStroke} vertical={false} />
                 <XAxis
                   dataKey="monthLabel"
-                  stroke="rgba(255,255,255,0.4)"
+                  stroke={chartTheme.axisStroke}
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
@@ -163,7 +185,7 @@ export function RevenueChart() {
                 <YAxis
                   yAxisId="ca"
                   orientation="left"
-                  stroke="rgba(255,255,255,0.4)"
+                  stroke={chartTheme.axisStroke}
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
@@ -172,7 +194,7 @@ export function RevenueChart() {
                 <YAxis
                   yAxisId="missions"
                   orientation="right"
-                  stroke="rgba(255,255,255,0.4)"
+                  stroke={chartTheme.axisStroke}
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
@@ -180,12 +202,15 @@ export function RevenueChart() {
                 />
                 <Tooltip
                   contentStyle={{
-                    background: 'rgba(15, 17, 25, 0.95)',
-                    border: '1px solid rgba(225,29,116,0.3)',
+                    background: chartTheme.tooltipBg,
+                    border: `1px solid ${chartTheme.tooltipBorder}`,
                     borderRadius: 8,
-                    color: 'white',
+                    color: chartTheme.tooltipText,
                     fontSize: 12,
+                    boxShadow: theme === 'light' ? '0 8px 24px -8px rgba(40,30,25,0.25)' : '0 8px 24px -8px rgba(0,0,0,0.5)',
                   }}
+                  labelStyle={{ color: chartTheme.tooltipText, fontWeight: 600 }}
+                  itemStyle={{ color: chartTheme.tooltipText }}
                   formatter={(value, name) => {
                     if (name === 'CA') return [formatCurrency(Number(value)), 'CA'];
                     return [value, name];
