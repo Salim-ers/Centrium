@@ -1226,8 +1226,12 @@ export type DashboardKPIs = {
   openOpportunities: number;
   openJobOffers: number;
   opportunitiesWonThisMonth: number;
-  /** CA "produit" = TJM × jours ouvrés écoulés ce mois-ci sur les missions actives. */
+  /** CA "produit" = TJM × jours ouvrés écoulés ce mois-ci sur les missions actives.
+   *  C'est du prévisionnel (ce qui SERA facturé, pas ce qui l'est déjà). */
   revenueThisMonth: number;
+  /** CA réellement facturé ce mois-ci (somme des invoices émises, hors draft/cancelled).
+   *  Cohérent avec la courbe "CA cumulé 12 derniers mois" du graphe. */
+  revenueThisMonthInvoiced: number;
   /** CA réellement encaissé ce mois-ci (factures status='paid'). */
   revenueThisMonthPaid: number;
   pendingInvoices: number;
@@ -1302,6 +1306,7 @@ export const dashboardService = {
       openJobOffers,
       wonOps,
       invoicesPaid,
+      invoicesIssuedThisMonth,
       invoicesPending,
       invoicesOverdue,
       timesheetsPending,
@@ -1309,10 +1314,16 @@ export const dashboardService = {
     ] = await Promise.all([
       // Source de vérité = la table missions. On ramène aussi TJM + dates
       // pour calculer le CA "produit" du mois sans requête supplémentaire.
+      // ⚠️ status='active' UNIQUEMENT — les missions 'proposed' (CV poussés)
+      // sont des propositions qui peuvent échouer, elles ne doivent PAS
+      // compter dans "Consultants en mission" ni dans le CA produit du mois.
+      // Bug user du 16/06/2026 : 8400€ affiché alors que toutes les missions
+      // étaient en proposed (vraies invoices = 0€).
       supabase
         .from('missions')
         .select('consultant_id, daily_rate_eur, start_date, end_date')
-        .in('status', ['proposed', 'active']),
+        .eq('status', 'active')
+        .eq('archived', false),
       supabase
         .from('consultants')
         .select('id', { count: 'exact', head: true })
@@ -1339,6 +1350,14 @@ export const dashboardService = {
         .from('invoices')
         .select('amount_ht')
         .eq('status', 'paid')
+        .gte('issue_date', firstDayMonth.split('T')[0]),
+      // Factures émises ce mois (status sent/overdue/paid, hors draft/cancelled)
+      // — base de calcul du CA "facturé" du mois, cohérente avec la courbe
+      // dashboard 12 mois.
+      supabase
+        .from('invoices')
+        .select('amount_ht')
+        .in('status', ['sent', 'overdue', 'paid'])
         .gte('issue_date', firstDayMonth.split('T')[0]),
       supabase
         .from('invoices')
@@ -1408,6 +1427,12 @@ export const dashboardService = {
       (sum, inv) => sum + Number(inv.amount_ht ?? 0),
       0
     );
+    // CA "facturé" du mois = somme des invoices émises (sent + overdue + paid)
+    // depuis le 1er du mois. Cohérent avec la courbe CA cumulé du graphe.
+    const revenueThisMonthInvoiced = (invoicesIssuedThisMonth.data ?? []).reduce(
+      (sum, inv) => sum + Number(inv.amount_ht ?? 0),
+      0
+    );
 
     // Wrapper defensive : tout KPI doit être un nombre fini.
     // Évite NaN/undefined qui ferait flash "—" ou crasher AnimatedNumber.
@@ -1428,6 +1453,7 @@ export const dashboardService = {
         openJobOffers: safeNum(openJobOffers.count),
         opportunitiesWonThisMonth: safeNum(wonOps.count),
         revenueThisMonth: safeNum(revenueThisMonth),
+        revenueThisMonthInvoiced: safeNum(revenueThisMonthInvoiced),
         revenueThisMonthPaid: safeNum(revenueThisMonthPaid),
         pendingInvoices: safeNum(invoicesPending.count),
         overdueInvoices: safeNum(invoicesOverdue.count),

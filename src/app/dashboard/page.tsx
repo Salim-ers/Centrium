@@ -242,14 +242,14 @@ export default function DashboardPage() {
         />
         <KPICard
           icon={Banknote}
-          label="CA du mois"
-          valueText={kpis ? formatCurrency(kpis.revenueThisMonth ?? 0) : '—'}
+          label="CA facturé ce mois"
+          valueText={kpis ? formatCurrency(kpis.revenueThisMonthInvoiced ?? 0) : '—'}
           tone="violet"
           loading={!kpis}
           href="/invoices"
           hint={
             kpis
-              ? `Encaissé : ${formatCurrency(kpis.revenueThisMonthPaid)}`
+              ? `Encaissé ${formatCurrency(kpis.revenueThisMonthPaid)} · Prévu ${formatCurrency(kpis.revenueThisMonth)}`
               : undefined
           }
         />
