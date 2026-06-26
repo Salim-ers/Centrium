@@ -87,6 +87,19 @@ export type GenerateCVOutput = {
 
 // ---------- Matching local ----------
 
+import { normalizeSkill } from './matching/normalize';
+
+/**
+ * Matching skills-only (compat historique).
+ *
+ * Utilise la normalisation intelligente (synonymes ESN + fuzzy Jaro-Winkler)
+ * pour comparer les noms. Pour un scoring multi-critères complet (séniorité,
+ * dispo, TJM, langues, location), utiliser `computeMatchingV2` de
+ * `@/lib/ai/matching/score`.
+ *
+ * Conservé pour la rétrocompat avec les tests + la génération CV qui
+ * n'a besoin que du score skill brut.
+ */
 export function computeMatching(
   consultantSkills: ConsultantSkill[],
   offer: JobOffer | null | undefined
@@ -102,18 +115,23 @@ export function computeMatching(
   const required = offer.required_skills ?? [];
   const niceToHave = offer.nice_to_have ?? [];
 
-  const normalize = (s: string) => s.toLowerCase().trim();
-  const skillNames = new Set(consultantSkills.map((s) => normalize(s.name)));
+  // Normalisation intelligente : "K8s" → "kubernetes", "JS" → "javascript",
+  // "Postgrs" → "postgresql" (fuzzy), accents/ponctuation/case insensibles.
+  const skillCanonicals = new Set(
+    consultantSkills.map((s) => normalizeSkill(s.name).canonical),
+  );
 
   const matched: string[] = [];
   const missing: string[] = [];
 
   for (const req of required) {
-    if (skillNames.has(normalize(req))) matched.push(req);
+    if (skillCanonicals.has(normalizeSkill(req).canonical)) matched.push(req);
     else missing.push(req);
   }
 
-  const matchedNice = niceToHave.filter((s) => skillNames.has(normalize(s)));
+  const matchedNice = niceToHave.filter((s) =>
+    skillCanonicals.has(normalizeSkill(s).canonical),
+  );
 
   const coverage = required.length === 0 ? 0.5 : matched.length / required.length;
   const bonus = niceToHave.length === 0 ? 0 : (matchedNice.length / niceToHave.length) * 0.15;

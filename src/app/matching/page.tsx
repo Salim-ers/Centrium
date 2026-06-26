@@ -244,7 +244,8 @@ function MatchingInner() {
             const statusKey = c.status as keyof typeof CONSULTANT_STATUS_LABEL;
             const matched = r.matchedSkills ?? [];
             const missing = r.missingSkills ?? [];
-            const conf = r.justification?.confidence;
+            // Confiance affichée = LLM si dispo, sinon score local
+            const conf = r.justification?.confidence ?? r.confidence;
             const confLabel =
               conf === 'high' ? 'Confiance haute' : conf === 'medium' ? 'Confiance moyenne' : conf === 'low' ? 'Confiance faible' : null;
             const confClass =
@@ -253,6 +254,8 @@ function MatchingInner() {
                 : conf === 'medium'
                   ? 'border-amber-400/40 text-amber-300'
                   : 'border-rose-400/40 text-rose-300';
+            const breakdown = r.breakdown;
+            const gates = r.gates ?? [];
             return (
             <Card key={c.id} className="qc-card-hover">
               <CardContent className="p-4 flex flex-col gap-3">
@@ -345,6 +348,43 @@ function MatchingInner() {
                 </div>
               </div>
 
+              {/* Breakdown détaillé du scoring (7 composants pondérés) */}
+              {breakdown && (
+                <div className="rounded-md border border-white/10 bg-white/[0.02] px-3 py-2.5">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                      Détail du scoring
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {confLabel && (
+                        <Badge variant="outline" className={`text-[9px] ${confClass}`}>
+                          {confLabel}
+                        </Badge>
+                      )}
+                      {gates.map((g) => (
+                        <Badge
+                          key={g}
+                          variant="outline"
+                          className="text-[9px] border-rose-400/40 text-rose-300"
+                          title="Plafond appliqué par le moteur"
+                        >
+                          ⚠ {gateLabel(g)}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <ScoreBar label="Skills requis" points={breakdown.skillsRequired?.points ?? 0} max={50} tone="magenta" />
+                    <ScoreBar label="Nice to have" points={breakdown.skillsNice?.points ?? 0} max={10} tone="violet" />
+                    <ScoreBar label="Séniorité" points={breakdown.seniority?.points ?? 0} max={12} tone="blue" />
+                    <ScoreBar label="Disponibilité" points={breakdown.availability?.points ?? 0} max={12} tone="emerald" />
+                    <ScoreBar label="TJM" points={breakdown.dailyRate?.points ?? 0} max={8} tone="amber" />
+                    <ScoreBar label="Langues" points={breakdown.languages?.points ?? 0} max={5} tone="sky" />
+                    <ScoreBar label="Localisation" points={breakdown.location?.points ?? 0} max={3} tone="slate" />
+                  </div>
+                </div>
+              )}
+
               {r.justification && (
                 <div className="rounded-md border border-violet-400/20 bg-violet-500/[0.04] px-3 py-2.5 text-xs leading-relaxed">
                   <div className="flex items-center gap-2 mb-1.5">
@@ -352,11 +392,6 @@ function MatchingInner() {
                     <span className="text-[10px] uppercase tracking-[0.18em] text-violet-300/80">
                       Pitch IA
                     </span>
-                    {confLabel && (
-                      <Badge variant="outline" className={`text-[9px] ${confClass}`}>
-                        {confLabel}
-                      </Badge>
-                    )}
                   </div>
                   <p className="text-foreground/90">{r.justification.pitch}</p>
                   {r.justification.risks.length > 0 && (
@@ -391,6 +426,61 @@ function MatchingInner() {
       />
     </AppShell>
   );
+}
+
+/** Mini-barre de score pour un composant du breakdown matching. */
+function ScoreBar({
+  label,
+  points,
+  max,
+  tone,
+}: {
+  label: string;
+  points: number;
+  max: number;
+  tone: 'magenta' | 'violet' | 'blue' | 'emerald' | 'amber' | 'sky' | 'slate';
+}) {
+  const pct = max > 0 ? Math.min(100, (points / max) * 100) : 0;
+  const toneClass: Record<typeof tone, string> = {
+    magenta: 'bg-magenta-neon',
+    violet: 'bg-violet-400',
+    blue: 'bg-blue-400',
+    emerald: 'bg-emerald-400',
+    amber: 'bg-amber-400',
+    sky: 'bg-sky-400',
+    slate: 'bg-slate-400',
+  };
+  return (
+    <div className="space-y-1">
+      <div className="flex items-baseline justify-between gap-1">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+          {label}
+        </span>
+        <span className="text-[10px] font-mono text-foreground/80 shrink-0">
+          {points.toFixed(1)}/{max}
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+        <div
+          className={`h-full ${toneClass[tone]} transition-all`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function gateLabel(g: string): string {
+  switch (g) {
+    case 'unavailable':
+      return 'Indisponible';
+    case 'seniority-mismatch':
+      return 'Écart séniorité';
+    case 'skills-too-low':
+      return 'Skills trop bas';
+    default:
+      return g;
+  }
 }
 
 export default function MatchingPage() {
