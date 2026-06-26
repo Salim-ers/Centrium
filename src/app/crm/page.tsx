@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Plus, Trash2, Pencil, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -62,6 +62,10 @@ export default function CRMPage() {
   const [editingOpp, setEditingOpp] = useState<Opportunity | null>(null);
   // États drag & drop
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  // Ref synchrone pour savoir si onDropColumn a réussi AVANT que onDragEnd
+  // ne lise draggingId via une closure stale. Voir onDragEndCard pour
+  // l'explication détaillée du bug "broadcastCancel après drop réussi".
+  const dropSucceededRef = useRef(false);
   const [dragOverStatus, setDragOverStatus] = useState<OpportunityStatus | null>(null);
 
   const {
@@ -183,7 +187,16 @@ export default function CRMPage() {
     // Note : onDragEnd fire SYSTEMATIQUEMENT après onDrop (HTML5 spec). On
     // ne broadcast `cancel` que si aucun drop n'a eu lieu — sinon on
     // détruirait l'indicateur peer juste après l'avoir mis à jour via drop.
-    const wasDropped = !draggingId;
+    //
+    // BUG FIX : avant on lisait `!draggingId`, mais la closure capture la
+    // valeur du state AVANT le re-render. Le setDraggingId(null) du
+    // onDropColumn n'est visible qu'au prochain render — onDragEnd fire
+    // entre les deux → on voyait toujours draggingId === id → wasDropped
+    // === false → broadcastCancel TOUJOURS appelé, même après un drop
+    // réussi → désync peers (peer voit cancel juste après drop).
+    // Solution : flag synchrone via useRef set dans onDropColumn.
+    const wasDropped = dropSucceededRef.current;
+    dropSucceededRef.current = false; // reset pour la prochaine séquence
     setDraggingId(null);
     setDragOverStatus(null);
     if (!wasDropped) broadcastCancel();
@@ -214,6 +227,9 @@ export default function CRMPage() {
     setDragOverStatus(null);
     setDraggingId(null);
     if (id) {
+      // Marque le drop comme réussi de manière SYNCHRONE — onDragEnd va lire
+      // ce flag (au lieu de draggingId qui est en attente de re-render).
+      dropSucceededRef.current = true;
       // Broadcast SYNCHRONE le drop final pour que les peers appliquent
       // l'optimistic move immédiatement (avant postgres_changes).
       broadcastDrop(id, status);

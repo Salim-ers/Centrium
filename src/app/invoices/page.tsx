@@ -133,12 +133,18 @@ export default function InvoicesPage() {
     reload();
   }
 
+  // Defensive : amount_ht peut être null/string sur données legacy → NaN
+  // qui pollue les sommes. safeAmount garantit un number fini.
+  const safeAmount = (v: unknown): number => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
   const totalPaid = invoices
     .filter((i) => i.status === 'paid')
-    .reduce((s, i) => s + Number(i.amount_ht), 0);
+    .reduce((s, i) => s + safeAmount(i.amount_ht), 0);
   const totalPending = invoices
     .filter((i) => ['sent', 'overdue'].includes(i.status))
-    .reduce((s, i) => s + Number(i.amount_ht), 0);
+    .reduce((s, i) => s + safeAmount(i.amount_ht), 0);
 
   // KPIs : émis ce mois / encaissé / en attente / en retard
   const now = new Date();
@@ -150,10 +156,10 @@ export default function InvoicesPage() {
       const d = new Date(i.issue_date);
       return d.getMonth() === currMonth && d.getFullYear() === currYear;
     })
-    .reduce((s, i) => s + Number(i.amount_ht), 0);
+    .reduce((s, i) => s + safeAmount(i.amount_ht), 0);
   const overdueAmount = invoices
     .filter((i) => i.status === 'overdue')
-    .reduce((s, i) => s + Number(i.amount_ht), 0);
+    .reduce((s, i) => s + safeAmount(i.amount_ht), 0);
 
   // Mapping statut métier → tone unifié
   const statusToTone = (s: InvoiceListItem['status']): StatusTone => {
@@ -283,7 +289,7 @@ export default function InvoicesPage() {
                   // lien direct sur la facture (cas des factures manuelles).
                   const c = inv.mission?.consultant ?? inv.consultant ?? null;
                   const consultantName = c
-                    ? `${c.first_name} ${c.last_name}`
+                    ? `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() || '—'
                     : '—';
                   return (
                     <TableRow key={inv.id}>
@@ -292,8 +298,8 @@ export default function InvoicesPage() {
                         <div className="flex items-center gap-2">
                           {c ? (
                             <div className="h-6 w-6 rounded-full bg-qc-gradient flex items-center justify-center text-white text-[9px] font-semibold shrink-0">
-                              {c.first_name[0]}
-                              {c.last_name[0]}
+                              {(c.first_name?.[0] ?? '?').toUpperCase()}
+                              {(c.last_name?.[0] ?? '').toUpperCase()}
                             </div>
                           ) : null}
                           <span className="text-sm">{consultantName}</span>

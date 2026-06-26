@@ -334,11 +334,18 @@ export default function ContactsPage() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow>
-                  <TableCell colSpan={7}>
-                    <div className="h-10 bg-white/[0.02] animate-pulse rounded" />
-                  </TableCell>
-                </TableRow>
+                // 3 lignes skeleton pour donner l'impression d'un tableau
+                // qui se remplit (avant : 1 seule ligne qui faisait coller
+                // l'œil au vide). Hauteur 10 ~= ligne réelle.
+                <>
+                  {[0, 1, 2].map((i) => (
+                    <TableRow key={i}>
+                      <TableCell colSpan={7}>
+                        <div className="h-8 bg-foreground/[0.04] animate-pulse rounded" />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </>
               ) : (
                 paginatedContacts.map((c) => {
                   const latest = latestByContact.get(c.id) ?? null;

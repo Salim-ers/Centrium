@@ -192,7 +192,7 @@ export default function ContractsPage() {
           view === 'archived' ? ' archivé' : ''
         }${contracts.length > 1 && view === 'archived' ? 's' : ''} — assistance technique, sous-traitance, avenants.`}
         actions={
-          <Button onClick={openCreate}>
+          <Button onClick={openCreate} disabled={!activeOrgId}>
             <Plus className="h-4 w-4" />
             Nouveau contrat
           </Button>

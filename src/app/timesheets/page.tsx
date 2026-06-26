@@ -208,7 +208,7 @@ export default function TimesheetsPage() {
           title="Aucun CRA"
           description="Crée ton premier compte-rendu d'activité pour démarrer la facturation."
           action={
-            <Button onClick={() => setDialogOpen(true)}>
+            <Button onClick={() => setDialogOpen(true)} disabled={!activeOrgId}>
               <Plus className="h-4 w-4" />
               Nouveau CRA
             </Button>
@@ -231,7 +231,7 @@ export default function TimesheetsPage() {
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={5}>
-                    <div className="h-10 bg-white/[0.02] animate-pulse rounded" />
+                    <div className="h-10 bg-foreground/[0.04] animate-pulse rounded" />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -281,12 +281,14 @@ export default function TimesheetsPage() {
       </AppCard>
       )}
 
-      <PaginationFooter
-        pagination={pagination}
-        total={timesheets.length}
-        itemLabel="CRA"
-        itemLabelPlural="CRA"
-      />
+      {timesheets.length > 0 && (
+        <PaginationFooter
+          pagination={pagination}
+          total={timesheets.length}
+          itemLabel="CRA"
+          itemLabelPlural="CRA"
+        />
+      )}
     </AppShell>
   );
 }

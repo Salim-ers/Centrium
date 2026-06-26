@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
@@ -38,6 +38,12 @@ function MatchingInner() {
   const [results, setResults] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [enriching, setEnriching] = useState(false);
+  // ID de requête pour éviter les race conditions sur double-click :
+  // chaque runMatching incrémente runIdRef.current. Les .then() vérifient
+  // que leur snapshot ID correspond toujours à la dernière request avant
+  // d'écraser setResults. Sinon une enrichment lente d'un ancien click
+  // peut overwrite les résultats d'un click plus récent.
+  const runIdRef = useRef(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<JobOffer | null>(null);
   const [assignDialog, setAssignDialog] = useState<{
@@ -79,9 +85,12 @@ function MatchingInner() {
       toast.error('Sélectionne une offre');
       return;
     }
+    // Snapshot l'ID de cette run pour invalider les .then() de runs précédents
+    const myRunId = ++runIdRef.current;
     setLoading(true);
     try {
       const res = await matchingService.matchConsultantsToOffer(offerId);
+      if (myRunId !== runIdRef.current) return; // une run plus récente est en cours
       if (res.error) {
         toast.error('Matching impossible : ' + (res.error.message ?? 'inconnu'));
         setResults([]);
@@ -90,22 +99,29 @@ function MatchingInner() {
       const initial = res.data ?? [];
       setResults(initial);
 
-      // Enrichissement IA du top 5 — non bloquant
+      // Enrichissement IA du top 5 — non bloquant, mais on vérifie l'ID
+      // au retour pour ne pas écraser une run plus récente.
       if (initial.length > 0) {
         setEnriching(true);
         matchingService
           .enrichTopWithJustification(offerId, initial, 5)
-          .then((enriched) => setResults(enriched))
+          .then((enriched) => {
+            if (myRunId !== runIdRef.current) return;
+            setResults(enriched);
+          })
           .catch(() => {
             // échec silencieux : le matching reste utilisable sans pitch
           })
-          .finally(() => setEnriching(false));
+          .finally(() => {
+            if (myRunId === runIdRef.current) setEnriching(false);
+          });
       }
     } catch (e) {
+      if (myRunId !== runIdRef.current) return;
       toast.error('Erreur inattendue : ' + ((e as Error).message ?? 'inconnu'));
       setResults([]);
     } finally {
-      setLoading(false);
+      if (myRunId === runIdRef.current) setLoading(false);
     }
   }
 

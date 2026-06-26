@@ -50,10 +50,10 @@ const PRIORITY_META: Record<
     cardBg: 'bg-red-500/[0.05]',
     leftAccent: 'bg-red-500',
     iconBg: 'bg-red-500/15',
-    iconText: 'text-red-300',
+    iconText: 'text-red-700 dark:text-red-300',
     badgeBg: 'bg-red-500/15',
-    badgeText: 'text-red-300',
-    sectionHeaderText: 'text-red-300',
+    badgeText: 'text-red-700 dark:text-red-300',
+    sectionHeaderText: 'text-red-700 dark:text-red-300',
   },
   high: {
     label: 'Important',
@@ -64,10 +64,10 @@ const PRIORITY_META: Record<
     cardBg: 'bg-amber-500/[0.05]',
     leftAccent: 'bg-amber-500',
     iconBg: 'bg-amber-500/15',
-    iconText: 'text-amber-300',
+    iconText: 'text-amber-700 dark:text-amber-300',
     badgeBg: 'bg-amber-500/15',
-    badgeText: 'text-amber-300',
-    sectionHeaderText: 'text-amber-300',
+    badgeText: 'text-amber-700 dark:text-amber-300',
+    sectionHeaderText: 'text-amber-700 dark:text-amber-300',
   },
   medium: {
     label: 'Modéré',
@@ -78,10 +78,10 @@ const PRIORITY_META: Record<
     cardBg: 'bg-blue-500/[0.04]',
     leftAccent: 'bg-blue-500',
     iconBg: 'bg-blue-500/15',
-    iconText: 'text-blue-300',
+    iconText: 'text-blue-700 dark:text-blue-300',
     badgeBg: 'bg-blue-500/15',
-    badgeText: 'text-blue-300',
-    sectionHeaderText: 'text-blue-300',
+    badgeText: 'text-blue-700 dark:text-blue-300',
+    sectionHeaderText: 'text-blue-700 dark:text-blue-300',
   },
   low: {
     label: 'Info',
@@ -92,10 +92,10 @@ const PRIORITY_META: Record<
     cardBg: 'bg-slate-500/[0.04]',
     leftAccent: 'bg-slate-500',
     iconBg: 'bg-slate-500/15',
-    iconText: 'text-slate-300',
+    iconText: 'text-slate-700 dark:text-slate-300',
     badgeBg: 'bg-slate-500/15',
-    badgeText: 'text-slate-300',
-    sectionHeaderText: 'text-slate-300',
+    badgeText: 'text-slate-700 dark:text-slate-300',
+    sectionHeaderText: 'text-slate-700 dark:text-slate-300',
   },
 };
 
@@ -198,7 +198,7 @@ export default function AlertsPage() {
               className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs ${
                 c > 0
                   ? `${meta.cardBorder} ${meta.cardBg} ${meta.sectionHeaderText}`
-                  : 'border-hairline bg-white/[0.02] text-muted-foreground'
+                  : 'border-hairline bg-foreground/[0.04] text-muted-foreground'
               }`}
             >
               <meta.Icon className="h-3.5 w-3.5" />
@@ -212,7 +212,7 @@ export default function AlertsPage() {
       {loading ? (
         <div className="space-y-2">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-20 rounded-lg bg-white/[0.02] animate-pulse" />
+            <div key={i} className="h-20 rounded-lg bg-foreground/[0.04] animate-pulse" />
           ))}
         </div>
       ) : totalCount === 0 ? (
@@ -269,7 +269,7 @@ function AlertItem({
   const kindLabel = KIND_LABEL_FR[alert.kind] ?? alert.kind.replace(/_/g, ' ');
 
   const body = (
-    <div className="pl-5 pr-32 py-3 flex items-start gap-3">
+    <div className="pl-5 pr-4 sm:pr-24 md:pr-32 py-3 flex items-start gap-3">
       <div className={`rounded-md p-2 shrink-0 ${meta.iconBg} ${meta.iconText}`}>
         <meta.Icon className="h-4 w-4" />
       </div>
