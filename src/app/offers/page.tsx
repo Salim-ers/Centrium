@@ -456,7 +456,7 @@ export default function OffersPage() {
       {/* Switcher pipeline : Disponibles (offres pas encore pushées)
           / Avec CV poussé (offres déjà engagées). Caché en vue archivée. */}
       {!showArchived && (
-        <div className="mb-4 flex items-center gap-1 rounded-lg border border-hairline bg-white/[0.02] p-1 w-fit">
+        <div className="mb-4 flex items-center gap-1 rounded-lg border border-hairline bg-foreground/[0.03] p-1 w-fit">
           <button
             type="button"
             onClick={() => setPipelineTab('available')}
@@ -464,7 +464,7 @@ export default function OffersPage() {
               'inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm transition',
               pipelineTab === 'available'
                 ? 'bg-violet-glow/15 text-violet-glow border border-violet-glow/30 shadow-[0_0_30px_-12px_rgba(139,92,246,0.5)]'
-                : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.03] border border-transparent',
+                : 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04] border border-transparent',
             )}
             title="Offres encore disponibles pour pousser un CV"
           >
@@ -474,8 +474,8 @@ export default function OffersPage() {
               className={cn(
                 'text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
                 pipelineTab === 'available'
-                  ? 'bg-violet-glow/25 text-violet-50'
-                  : 'bg-white/[0.05] text-muted-foreground',
+                  ? 'bg-violet-glow/25 text-violet-50 dark:text-violet-50'
+                  : 'bg-foreground/[0.06] text-muted-foreground',
               )}
             >
               {availableCount}
@@ -488,7 +488,7 @@ export default function OffersPage() {
               'inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm transition',
               pipelineTab === 'pushed'
                 ? 'bg-magenta-neon/15 text-magenta-neon border border-magenta-neon/30 shadow-[0_0_30px_-12px_rgba(236,72,153,0.5)]'
-                : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.03] border border-transparent',
+                : 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04] border border-transparent',
             )}
             title="Offres déjà avec un CV poussé (en attente de validation ou en mission)"
           >
@@ -498,8 +498,8 @@ export default function OffersPage() {
               className={cn(
                 'text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
                 pipelineTab === 'pushed'
-                  ? 'bg-magenta-neon/25 text-magenta-50'
-                  : 'bg-white/[0.05] text-muted-foreground',
+                  ? 'bg-magenta-neon/25 text-magenta-50 dark:text-magenta-50'
+                  : 'bg-foreground/[0.06] text-muted-foreground',
               )}
             >
               {pushedCount}

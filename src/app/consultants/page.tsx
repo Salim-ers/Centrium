@@ -253,23 +253,33 @@ export default function ConsultantsPage() {
 
   async function handleStatusChange(consultantId: string, next: Consultant['status']) {
     // Optimistic update : la liste se rafraîchit avant l'aller-retour DB.
-    const prev = consultantsData;
+    // On capture le statut ACTUEL du consultant (pas tout l'array) pour
+    // un rollback ciblé qui ne réécrase pas les autres updates entre-temps.
+    let previousStatus: Consultant['status'] | null = null;
     setConsultants((list) =>
-      (list ?? []).map((c) =>
-        c.id === consultantId ? { ...c, status: next } : c,
-      ),
+      (list ?? []).map((c) => {
+        if (c.id !== consultantId) return c;
+        previousStatus = c.status;
+        return { ...c, status: next };
+      }),
     );
     const res = await consultantService.update(consultantId, { status: next });
     if (res.error) {
       notifyError('Mise à jour du statut impossible : ' + res.error.message);
-      setConsultants(prev ?? []);
+      if (previousStatus !== null) {
+        const rollback = previousStatus;
+        setConsultants((list) =>
+          (list ?? []).map((c) => (c.id === consultantId ? { ...c, status: rollback } : c)),
+        );
+      }
     }
   }
 
   async function archiveConsultant(consultant: Consultant) {
+    const displayName = `${consultant.first_name ?? ''} ${consultant.last_name ?? ''}`.trim() || 'ce consultant';
     if (
       !confirm(
-        `Archiver ${consultant.first_name} ${consultant.last_name} ? Le profil disparaît de la liste mais ses données (CV, CRA, factures) sont conservées.`,
+        `Archiver ${displayName} ? Le profil disparaît de la liste mais ses données (CV, CRA, factures) sont conservées.`,
       )
     ) {
       return;
@@ -279,17 +289,18 @@ export default function ConsultantsPage() {
       notifyError('Erreur : ' + res.error.message);
       return;
     }
-    notifyDestructive(`${consultant.first_name} ${consultant.last_name} archivé`);
+    notifyDestructive(`${displayName} archivé`);
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
   }
 
   async function unarchiveConsultant(consultant: Consultant) {
+    const displayName = `${consultant.first_name ?? ''} ${consultant.last_name ?? ''}`.trim() || 'ce consultant';
     const res = await consultantService.unarchive(consultant.id);
     if (res.error) {
       notifyError('Erreur : ' + res.error.message);
       return;
     }
-    notifyCreated(`${consultant.first_name} ${consultant.last_name} restauré`);
+    notifyCreated(`${displayName} restauré`);
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
   }
 
@@ -585,23 +596,23 @@ export default function ConsultantsPage() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="h-9 w-9 shrink-0 rounded-full bg-qc-gradient flex items-center justify-center text-white text-xs font-semibold">
-                          {c.first_name[0]}
-                          {c.last_name[0]}
+                          {(c.first_name?.[0] ?? '?').toUpperCase()}
+                          {(c.last_name?.[0] ?? '').toUpperCase()}
                         </div>
                         <div>
                           <div className="font-medium">
-                            <span className="uppercase">{c.last_name}</span>{' '}
-                            {c.first_name}
+                            <span className="uppercase">{c.last_name ?? '—'}</span>{' '}
+                            {c.first_name ?? ''}
                           </div>
-                          <div className="text-xs text-muted-foreground">{c.job_title}</div>
+                          <div className="text-xs text-muted-foreground">{c.job_title ?? '—'}</div>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{SENIORITY_LABEL[c.seniority]}</Badge>
+                      <Badge variant="outline">{c.seniority ? (SENIORITY_LABEL[c.seniority] ?? c.seniority) : '—'}</Badge>
                     </TableCell>
                     <TableCell className="font-medium">
-                      {formatCurrency(c.daily_rate_eur)}
+                      {c.daily_rate_eur ? formatCurrency(c.daily_rate_eur) : '—'}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-xs">
                       {c.city ?? '—'}
@@ -640,6 +651,7 @@ export default function ConsultantsPage() {
                             CONSULTANT_STATUS_STYLE[c.status],
                           )}
                           title="Changer le statut du consultant"
+                          aria-label={`Statut de ${c.first_name ?? ''} ${c.last_name ?? ''}`}
                         >
                           <option value="available">Disponible</option>
                           <option value="soon_available">Bientôt dispo</option>

@@ -91,7 +91,17 @@ function CVOptimizerPageInner() {
   const [templateId, setTemplateId] = useState<CVTemplateId>('standard');
   // Tant que l'utilisateur n'a pas explicitement changé le template, on suit le
   // défaut configuré par l'organisation dans /settings/branding.
+  // Choix manuel persisté en localStorage pour survivre aux F5.
+  const TEMPLATE_LS_KEY = 'qc-cv-optimizer-template';
   const templateTouchedRef = useRef(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem(TEMPLATE_LS_KEY) as CVTemplateId | null;
+    if (stored && ['standard', 'dense', 'executive'].includes(stored)) {
+      templateTouchedRef.current = true;
+      setTemplateId(stored);
+    }
+  }, []);
   useEffect(() => {
     if (templateTouchedRef.current) return;
     const pref = branding?.defaultCvTemplate;
@@ -101,6 +111,9 @@ function CVOptimizerPageInner() {
   const handleTemplateChange = (value: CVTemplateId) => {
     templateTouchedRef.current = true;
     setTemplateId(value);
+    if (typeof window !== 'undefined') {
+      try { window.localStorage.setItem(TEMPLATE_LS_KEY, value); } catch { /* quota */ }
+    }
   };
   const [generated, setGenerated] = useState<CVContent | null>(null);
   const [matching, setMatching] = useState<{
@@ -287,8 +300,11 @@ function CVOptimizerPageInner() {
       profile_requirements: [],
       working_conditions: [],
       contract_kind: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      // Dates "epoch" stables : utilisées nulle part dans la logique de matching/
+      // génération CV, mais le type JobOffer les requiert. Une vraie date
+      // dynamique ferait regen le CV à chaque render.
+      created_at: '1970-01-01T00:00:00.000Z',
+      updated_at: '1970-01-01T00:00:00.000Z',
     };
   }, [offerTitle, offerDescription, offerSkills]);
 
@@ -314,9 +330,14 @@ function CVOptimizerPageInner() {
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         if (res.status === 503) {
-          toast.error('Clé API Anthropic manquante. Ajoute ANTHROPIC_API_KEY dans .env.local.');
+          toast.error('Service IA temporairement indisponible. Réessaie dans un instant.');
+        } else if (res.status === 429) {
+          toast.error('Trop de requêtes IA. Attends quelques secondes avant de relancer.');
+        } else if (res.status === 401 || res.status === 403) {
+          toast.error('Accès IA refusé. Vérifie ta connexion ou contacte le support.');
         } else {
-          toast.error(`Analyse IA impossible : ${body.message ?? `HTTP ${res.status}`}`);
+          const msg = body?.message ?? `Erreur ${res.status}`;
+          toast.error(`Analyse impossible : ${msg}`);
         }
         return;
       }
@@ -459,12 +480,11 @@ function CVOptimizerPageInner() {
     }
     setExporting('pdf');
     try {
-      const safeName = `${loaded.consultant.first_name}_${loaded.consultant.last_name}`.replace(
-        /[^a-zA-Z0-9_-]/g,
-        '',
-      );
-      const logoSrc = brand.logoUrl ?? `${window.location.origin}/brand/quadcore-logo-dark.png`;
-      const brandSlug = (brand.brandName || 'CV').replace(/[^a-zA-Z0-9_-]/g, '');
+      const fn = loaded.consultant.first_name ?? '';
+      const ln = loaded.consultant.last_name ?? '';
+      const safeName = `${fn}_${ln}`.replace(/[^a-zA-Z0-9_-]/g, '') || 'consultant';
+      const logoSrc = brand?.logoUrl ?? `${window.location.origin}/brand/quadcore-logo-dark.png`;
+      const brandSlug = (brand?.brandName ?? 'CV').replace(/[^a-zA-Z0-9_-]/g, '') || 'CV';
       await exportCVToPdf(displayed, {
         filename: `CV_${brandSlug}_${safeName}`,
         templateId,
@@ -494,11 +514,10 @@ function CVOptimizerPageInner() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const safeName = `${loaded.consultant.first_name}_${loaded.consultant.last_name}`.replace(
-        /[^a-zA-Z0-9_-]/g,
-        '',
-      );
-      const brandSlug = brand.brandName.replace(/[^a-zA-Z0-9]/g, '') || 'CV';
+      const fn = loaded.consultant.first_name ?? '';
+      const ln = loaded.consultant.last_name ?? '';
+      const safeName = `${fn}_${ln}`.replace(/[^a-zA-Z0-9_-]/g, '') || 'consultant';
+      const brandSlug = (brand?.brandName ?? 'CV').replace(/[^a-zA-Z0-9]/g, '') || 'CV';
       a.download = `CV_${brandSlug}_${safeName}.docx`;
       document.body.appendChild(a);
       a.click();
@@ -584,14 +603,17 @@ function CVOptimizerPageInner() {
         />
       </div>
 
-      {editMode && hasOverrides && (
-        <div className="no-print mb-3 text-[11px] text-violet-300/80">
-          {Object.keys(overrides).length} modification
-          {Object.keys(overrides).length > 1 ? 's' : ''} manuelle
-          {Object.keys(overrides).length > 1 ? 's' : ''} appliquée
-          {Object.keys(overrides).length > 1 ? 's' : ''} — elles seront incluses dans l'export.
-        </div>
-      )}
+      {editMode && hasOverrides && (() => {
+        const n = Object.keys(overrides).length;
+        const plural = n > 1;
+        return (
+          <div className="no-print mb-3 text-[11px] text-violet-600 dark:text-violet-300/80">
+            {n} modification{plural ? 's' : ''} manuelle{plural ? 's' : ''} appliquée{plural ? 's' : ''}
+            {' — '}
+            elle{plural ? 's' : ''} ser{plural ? 'ont' : 'a'} incluse{plural ? 's' : ''} dans l&apos;export.
+          </div>
+        );
+      })()}
 
       <div className="no-print grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-6">
         {/* Sidebar config */}
@@ -680,7 +702,7 @@ function CVOptimizerPageInner() {
                   ))}
                 </Select>
                 {selectedOfferId && (
-                  <p className="text-[11px] text-violet-300/80 mt-1">
+                  <p className="text-[11px] text-violet-600 dark:text-violet-300/80 mt-1">
                     Offre sélectionnée — les champs ci-dessous sont pré-remplis et restent éditables.
                   </p>
                 )}
@@ -1036,7 +1058,7 @@ function CVOptimizerPageInner() {
                 </CardContent>
               </Card>
               <EditModeBanner editMode={editMode} setEditMode={setEditMode} />
-              <div className="overflow-auto bg-neutral-200 p-6 rounded-xl">
+              <div className="overflow-auto bg-neutral-200 dark:bg-neutral-800 p-6 rounded-xl">
                 <CVPreviewBoundary onReset={resetOverrides}>
                   <CVRenderer
                     content={displayed ?? generated}
@@ -1051,7 +1073,7 @@ function CVOptimizerPageInner() {
           ) : generated ? (
             <>
               <EditModeBanner editMode={editMode} setEditMode={setEditMode} />
-              <div className="overflow-auto bg-neutral-200 p-6 rounded-xl">
+              <div className="overflow-auto bg-neutral-200 dark:bg-neutral-800 p-6 rounded-xl">
                 <CVPreviewBoundary onReset={resetOverrides}>
                   <CVRenderer
                     content={displayed ?? generated}

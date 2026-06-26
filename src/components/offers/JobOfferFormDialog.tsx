@@ -269,6 +269,13 @@ export function JobOfferFormDialog({
   }
 
   async function onSubmit(values: JobOfferInput) {
+    // Garde-fou : sans compétences requises, le matching ne peut pas scorer
+    // l'offre. On bloque la création silencieusement plutôt que de produire
+    // des matches faussement à 50% pour tous les consultants.
+    if (requiredSkills.length === 0) {
+      toast.error('Ajoute au moins 1 compétence requise — le matching IA en a besoin pour scorer les profils.');
+      return;
+    }
     setSaving(true);
     try {
       // TJM unique : on aligne min = max = TJM saisi pour rester compatible
