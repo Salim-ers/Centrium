@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Plus,
@@ -67,11 +68,21 @@ export default function InvoicesPage() {
     },
     { enabled: !!activeOrgId },
   );
-  const invoices = invoicesData ?? [];
+  const allInvoices = invoicesData ?? [];
 
   // Auto-sync : un collègue qui crée/édite/paie une facture est visible
   // sans F5. invoice_items est inclus car les totaux peuvent changer.
   useRealtimeReload(['invoices', 'invoice_items'], () => reload());
+
+  // Drill-down depuis dashboard : ?status=sent|overdue|paid → filtre la liste
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const urlStatusFilter = searchParams?.get('status') ?? null;
+  const invoices = urlStatusFilter
+    ? allInvoices.filter((i) => i.status === urlStatusFilter)
+    : allInvoices;
+  const hasUrlFilter = !!urlStatusFilter;
+  const clearUrlFilter = () => router.push('/invoices');
 
   const pagination = usePagination(invoices.length, {
     storageKey: 'invoices-page-size',
@@ -241,17 +252,43 @@ export default function InvoicesPage() {
         onSaved={() => reload()}
       />
 
+      {/* Bandeau filtre URL (drill-down depuis dashboard StatRow) */}
+      {hasUrlFilter && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-violet-glow/30 bg-violet-glow/[0.06] px-4 py-2.5">
+          <div className="text-sm">
+            <span className="text-muted-foreground mr-1">Filtre actif :</span>
+            <span className="font-medium">
+              {urlStatusFilter === 'sent' && 'Factures en attente'}
+              {urlStatusFilter === 'overdue' && 'Factures en retard'}
+              {urlStatusFilter === 'paid' && 'Factures payées'}
+              {urlStatusFilter === 'draft' && 'Brouillons'}
+              {!['sent', 'overdue', 'paid', 'draft'].includes(urlStatusFilter ?? '') && `Statut : ${urlStatusFilter}`}
+            </span>
+            <span className="ml-2 text-xs text-muted-foreground">({invoices.length} factures)</span>
+          </div>
+          <Button variant="ghost" size="sm" onClick={clearUrlFilter} className="h-7">
+            Retirer le filtre
+          </Button>
+        </div>
+      )}
+
       {!loading && invoices.length === 0 ? (
         <EmptyState
           icon={Receipt}
-          title={showArchived ? 'Aucune facture archivée' : 'Aucune facture'}
+          title={showArchived ? 'Aucune facture archivée' : hasUrlFilter ? 'Aucune facture ne correspond au filtre' : 'Aucune facture'}
           description={
             showArchived
               ? 'Les factures archivées apparaîtront ici.'
-              : 'Crée ta première facture pour démarrer la facturation client.'
+              : hasUrlFilter
+                ? 'Aucune facture ne correspond aux critères. Retire le filtre pour voir toutes les factures.'
+                : 'Crée ta première facture pour démarrer la facturation client.'
           }
           action={
-            !showArchived ? (
+            hasUrlFilter ? (
+              <Button variant="outline" onClick={clearUrlFilter}>
+                Retirer le filtre
+              </Button>
+            ) : !showArchived ? (
               <Button onClick={() => setDialogOpen(true)}>
                 <Plus className="h-4 w-4" />
                 Nouvelle facture

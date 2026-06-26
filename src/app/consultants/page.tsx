@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   notifyDestructive,
   notifyError,
@@ -176,9 +177,33 @@ export default function ConsultantsPage() {
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
   })();
 
-  const consultants = familyFiltered.filter((c) =>
+  const cityFiltered = familyFiltered.filter((c) =>
     cityFilter.size === 0 ? true : c.city ? cityFilter.has(c.city) : false,
   );
+
+  // Drill-down depuis dashboard/widgets : ?status=available, ?status=on_mission,
+  // ?endedBefore=today. On lit l'URL et on filtre la liste affichée. Si filtre
+  // actif, on affiche un bandeau au-dessus du tableau avec un bouton "Retirer".
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const urlStatusFilter = searchParams?.get('status') ?? null;
+  const urlEndedBefore = searchParams?.get('endedBefore') ?? null;
+  const consultants = (() => {
+    let list = cityFiltered;
+    if (urlStatusFilter) {
+      list = list.filter((c) => c.status === urlStatusFilter);
+    }
+    if (urlEndedBefore === 'today') {
+      const today = new Date().toISOString().slice(0, 10);
+      list = list.filter(
+        (c) => c.current_mission_end !== null && (c.current_mission_end as string) <= today,
+      );
+    }
+    return list;
+  })();
+  const hasUrlFilter = !!urlStatusFilter || !!urlEndedBefore;
+  const clearUrlFilter = () => router.push('/consultants');
+
   const totalCount = consultants.length;
   const pagination = usePagination(totalCount, {
     storageKey: 'consultants-page-size',
@@ -515,6 +540,26 @@ export default function ConsultantsPage() {
           onChange={setCityFilter}
         />
       </div>
+
+      {/* Bandeau filtre URL actif (drill-down depuis dashboard/widget) */}
+      {hasUrlFilter && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-violet-glow/30 bg-violet-glow/[0.06] px-4 py-2.5">
+          <div className="text-sm">
+            <span className="text-muted-foreground mr-1">Filtre actif :</span>
+            <span className="font-medium">
+              {urlStatusFilter === 'available' && 'Disponibles'}
+              {urlStatusFilter === 'on_mission' && 'En mission'}
+              {urlStatusFilter === 'soon_available' && 'Bientôt disponibles'}
+              {urlStatusFilter === 'unavailable' && 'Indisponibles'}
+              {urlEndedBefore === 'today' && ' · mission terminée'}
+            </span>
+            <span className="ml-2 text-xs text-muted-foreground">({totalCount} profils)</span>
+          </div>
+          <Button variant="ghost" size="sm" onClick={clearUrlFilter} className="h-7">
+            Retirer le filtre
+          </Button>
+        </div>
+      )}
 
       {!loading && consultantsData !== null && totalCount === 0 ? (
         <EmptyState
