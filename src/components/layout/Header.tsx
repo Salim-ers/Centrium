@@ -80,7 +80,11 @@ export function Header() {
             'linear-gradient(90deg, transparent, rgba(236,72,153,0.45) 40%, rgba(168,85,247,0.35) 60%, transparent)',
         }}
       />
-      <div className="relative flex h-full items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6">
+      <div
+        className={`relative flex h-full items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6 transition-[padding] duration-300 ease-out ${
+          collapsed ? 'md:pl-16' : ''
+        }`}
+      >
         {/* À gauche : burger + wordmark sur mobile (la sidebar est cachée).
             Sur desktop : barre de recherche large. */}
         <div className="flex items-center gap-2 min-w-0 flex-1">
