@@ -114,21 +114,21 @@ export function OpportunityFormDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Statut</Label>
+              <Label>{t.forms.opportunity.status}</Label>
               <Select {...register('status')}>
-                <option value="new">Nouveau</option>
-                <option value="contacted">Contacté</option>
-                <option value="discussion">En discussion</option>
-                <option value="cv_sent">CV envoyé</option>
-                <option value="client_interview">Entretien client</option>
-                <option value="negotiation">Négociation</option>
-                <option value="won">Gagné</option>
-                <option value="lost">Perdu</option>
-                <option value="on_hold">En veille</option>
+                <option value="new">{t.badges.opportunity_status.new}</option>
+                <option value="contacted">{t.badges.opportunity_status.contacted}</option>
+                <option value="discussion">{t.badges.opportunity_status.discussion}</option>
+                <option value="cv_sent">{t.badges.opportunity_status.cv_sent}</option>
+                <option value="client_interview">{t.badges.opportunity_status.client_interview}</option>
+                <option value="negotiation">{t.badges.opportunity_status.negotiation}</option>
+                <option value="won">{t.badges.opportunity_status.won}</option>
+                <option value="lost">{t.badges.opportunity_status.lost}</option>
+                <option value="on_hold">{t.badges.opportunity_status.on_hold}</option>
               </Select>
             </div>
             <div>
-              <Label>Priorité</Label>
+              <Label>{t.forms.opportunity.priority}</Label>
               <Select {...register('priority')}>
                 <option value="low">Faible</option>
                 <option value="medium">Moyenne</option>
@@ -140,33 +140,33 @@ export function OpportunityFormDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>TJM visé (€)</Label>
+              <Label>{t.forms.opportunity.daily_rate}</Label>
               <Input type="number" min="0" step="1" {...register('daily_rate_eur')} placeholder="550" />
             </div>
             <div>
-              <Label>Durée mission (mois)</Label>
+              <Label>{t.forms.opportunity.duration_months}</Label>
               <Input type="number" min="0" step="1" {...register('duration_months')} placeholder="6" />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>CA prévisionnel (€)</Label>
+              <Label>{t.forms.opportunity.expected_revenue}</Label>
               <Input type="number" min="0" step="1000" {...register('expected_revenue')} />
             </div>
             <div>
-              <Label>Probabilité (%)</Label>
+              <Label>{t.forms.opportunity.probability}</Label>
               <Input type="number" min="0" max="100" {...register('probability')} />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Date de closing prévue</Label>
+              <Label>{t.forms.opportunity.expected_close}</Label>
               <Input type="date" {...register('expected_close')} />
             </div>
             <div>
-              <Label>Prochaine relance</Label>
+              <Label>{t.forms.opportunity.next_follow_up}</Label>
               <Input type="date" {...register('next_follow_up')} />
             </div>
           </div>

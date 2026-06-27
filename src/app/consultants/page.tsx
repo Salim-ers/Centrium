@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useConsultantStatusLabels, useSeniorityLabels } from '@/lib/i18n/useBadges';
 import {
   notifyDestructive,
   notifyError,
@@ -93,6 +94,8 @@ import { formatCurrency } from '@/lib/utils';
 function ConsultantsPageInner() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
+  const consultantStatusI18n = useConsultantStatusLabels();
+  const seniorityI18n = useSeniorityLabels();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -651,7 +654,7 @@ function ConsultantsPageInner() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{c.seniority ? (SENIORITY_LABEL[c.seniority] ?? c.seniority) : '—'}</Badge>
+                      <Badge variant="outline">{c.seniority ? (seniorityI18n[c.seniority] ?? SENIORITY_LABEL[c.seniority] ?? c.seniority) : '—'}</Badge>
                     </TableCell>
                     <TableCell className="font-medium">
                       {c.daily_rate_eur ? formatCurrency(c.daily_rate_eur) : '—'}
@@ -676,7 +679,7 @@ function ConsultantsPageInner() {
                                     : 'neutral'
                           }
                         >
-                          {CONSULTANT_STATUS_LABEL[c.status]}
+                          {consultantStatusI18n[c.status as keyof typeof consultantStatusI18n] ?? CONSULTANT_STATUS_LABEL[c.status]}
                         </StatusBadge>
                       ) : (
                         <Select

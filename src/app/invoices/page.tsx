@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useInvoiceStatusLabels } from '@/lib/i18n/useBadges';
 import {
   Plus,
   Receipt,
@@ -53,6 +54,7 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 function InvoicesPageInner() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
+  const invoiceLabels = useInvoiceStatusLabels();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
 
@@ -354,7 +356,7 @@ function InvoicesPageInner() {
                       </TableCell>
                       <TableCell>
                         <StatusBadge tone={statusToTone(inv.status)}>
-                          {INVOICE_STATUS_LABEL[inv.status]}
+                          {invoiceLabels[inv.status as keyof typeof invoiceLabels] ?? INVOICE_STATUS_LABEL[inv.status]}
                         </StatusBadge>
                       </TableCell>
                       <TableCell className="text-right">

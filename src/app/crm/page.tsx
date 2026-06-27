@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { Plus, Trash2, Pencil, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useOpportunityStatusLabels } from '@/lib/i18n/useBadges';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
@@ -60,6 +61,7 @@ const DRAG_MIME = 'application/x-opportunity-id';
 export default function CRMPage() {
   const { activeOrgId, user } = useOrganization();
   const t = useAppT();
+  const oppLabels = useOpportunityStatusLabels();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingOpp, setEditingOpp] = useState<Opportunity | null>(null);
   // États drag & drop
@@ -315,7 +317,7 @@ export default function CRMPage() {
                 <div className="flex items-center gap-1.5 mb-2 px-0.5">
                   <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', COLUMN_DOT[col.status])} />
                   <span className="text-[11px] uppercase tracking-wider text-foreground/70 font-semibold">
-                    {OPPORTUNITY_STATUS_LABEL[col.status]}
+                    {(oppLabels[col.status as keyof typeof oppLabels] ?? OPPORTUNITY_STATUS_LABEL[col.status])}
                   </span>
                   <span className="text-[10px] text-muted-foreground font-mono ml-auto tabular-nums">
                     {col.items.length}
@@ -604,6 +606,7 @@ function ClosedOpportunitiesDialogInline({
   onMove: (id: string, s: OpportunityStatus) => Promise<void>;
   onDelete: (id: string, title: string) => Promise<void>;
 }) {
+  const oppLabels = useOpportunityStatusLabels();
   const filtered =
     filter === 'all' ? opportunities : opportunities.filter((o) => o.status === filter);
 
@@ -630,7 +633,7 @@ function ClosedOpportunitiesDialogInline({
                   : 'border-hairline text-muted-foreground hover:text-foreground hover:bg-white/[0.03]',
               )}
             >
-              {f === 'all' ? 'Toutes' : OPPORTUNITY_STATUS_LABEL[f]}
+              {f === 'all' ? 'Toutes' : (oppLabels[f as keyof typeof oppLabels] ?? OPPORTUNITY_STATUS_LABEL[f])}
               <span className="ml-1.5 text-[10px] tabular-nums opacity-70">
                 ({f === 'all' ? opportunities.length : opportunities.filter((o) => o.status === f).length})
               </span>

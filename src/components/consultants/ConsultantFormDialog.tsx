@@ -485,14 +485,14 @@ export function ConsultantFormDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Prénom *</Label>
+              <Label>{t.forms.consultant.first_name} *</Label>
               <Input {...register('first_name')} />
               {errors.first_name && (
                 <p className="text-xs text-red-400 mt-1">{errors.first_name.message}</p>
               )}
             </div>
             <div>
-              <Label>Nom *</Label>
+              <Label>{t.forms.consultant.last_name} *</Label>
               <Input {...register('last_name')} />
               {errors.last_name && (
                 <p className="text-xs text-red-400 mt-1">{errors.last_name.message}</p>
@@ -501,49 +501,49 @@ export function ConsultantFormDialog({
           </div>
 
           <div>
-            <Label>Intitulé de poste *</Label>
+            <Label>{t.forms.consultant.job_title} *</Label>
             <Input {...register('job_title')} placeholder="ex: QA Automation Confirmé" />
           </div>
 
           <div>
-            <Label>Sous-titre</Label>
+            <Label>{t.forms.consultant.sub_title}</Label>
             <Input {...register('sub_title')} placeholder="Playwright / TypeScript / SQL" />
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label>Séniorité</Label>
+              <Label>{t.forms.consultant.seniority}</Label>
               <Select {...register('seniority')}>
-                <option value="junior">Junior</option>
-                <option value="confirmed">Confirmé</option>
-                <option value="senior">Senior</option>
-                <option value="expert">Expert</option>
-                <option value="lead">Lead</option>
-                <option value="architect">Architecte</option>
+                <option value="junior">{t.seniority.junior}</option>
+                <option value="confirmed">{t.seniority.confirmed}</option>
+                <option value="senior">{t.seniority.senior}</option>
+                <option value="expert">{t.seniority.expert}</option>
+                <option value="lead">{t.seniority.lead}</option>
+                <option value="architect">{t.seniority.architect}</option>
               </Select>
             </div>
             <div>
-              <Label>Années d'exp.</Label>
+              <Label>{t.forms.consultant.years_xp}</Label>
               <Input type="number" min="0" max="50" {...register('years_experience')} />
             </div>
             <div>
-              <Label>TJM (€)</Label>
+              <Label>{t.forms.consultant.daily_rate}</Label>
               <Input type="number" min="0" step="1" {...register('daily_rate_eur')} />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Ville</Label>
+              <Label>{t.forms.consultant.city}</Label>
               <Input {...register('city')} placeholder="Paris" />
             </div>
             <div>
-              <Label>Statut</Label>
+              <Label>{t.forms.opportunity.status}</Label>
               <Select {...register('status')}>
-                <option value="available">Disponible</option>
-                <option value="soon_available">Bientôt disponible</option>
-                <option value="on_mission">En mission</option>
-                <option value="unavailable">Indisponible</option>
+                <option value="available">{t.consultant_status.available}</option>
+                <option value="soon_available">{t.consultant_status.soon_available}</option>
+                <option value="on_mission">{t.consultant_status.on_mission}</option>
+                <option value="unavailable">{t.consultant_status.unavailable}</option>
               </Select>
             </div>
           </div>
@@ -556,8 +556,8 @@ export function ConsultantFormDialog({
           <input type="hidden" {...register('available_from')} />
 
           <div>
-            <Label>Résumé exécutif</Label>
-            <Textarea {...register('summary')} rows={3} placeholder="Résumé court du profil..." />
+            <Label>{t.forms.consultant.summary}</Label>
+            <Textarea {...register('summary')} rows={3} placeholder={t.forms.consultant.summary_placeholder} />
           </div>
 
           {/* Accès portail consultant — seulement en création d'un consultant actif */}
