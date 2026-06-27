@@ -12,10 +12,13 @@ import { PresenceAvatars } from '@/components/presence/PresenceAvatars';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
+import { LocaleToggle } from '@/components/i18n/LocaleToggle';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 
 export function Header() {
   const org = useOrganizationSafe();
   const [collapsed] = useSidebarCollapsed();
+  const t = useAppT();
   const [menuOpen, setMenuOpen] = useState(false);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -101,7 +104,7 @@ export function Header() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Rechercher un consultant, contact, opportunité…"
+              placeholder={t.header.search_placeholder}
               className="pl-9 h-9"
             />
           </div>
@@ -109,6 +112,7 @@ export function Header() {
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <PresenceAvatars />
+          <LocaleToggle variant="app" />
           <div className="hidden sm:block">
             <TutorialButton variant="cta" />
           </div>

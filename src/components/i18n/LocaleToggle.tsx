@@ -3,7 +3,7 @@
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import type { Locale } from '@/lib/i18n/landing';
 
-type Variant = 'default' | 'compact' | 'mobile';
+type Variant = 'default' | 'compact' | 'mobile' | 'app';
 
 const LOCALES: { code: Locale; label: string }[] = [
   { code: 'fr', label: 'FR' },
@@ -54,6 +54,29 @@ export function LocaleToggle({
           );
         })}
       </div>
+    );
+  }
+
+  // Variante "app" : adaptive light/dark via les variables foreground/hairline.
+  // Conçue pour le Header app où le fond peut être crème (light) ou noir (dark).
+  if (variant === 'app') {
+    const next: Locale = locale === 'fr' ? 'en' : 'fr';
+    return (
+      <button
+        type="button"
+        onClick={() => setLocale(next)}
+        className={[
+          'inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md border border-hairline bg-foreground/[0.03]',
+          'text-[11px] font-semibold tracking-[0.15em] text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition',
+          className,
+        ].join(' ')}
+        aria-label={`Switch to ${next.toUpperCase()}`}
+        title={`Switch to ${next.toUpperCase()}`}
+      >
+        <span className={locale === 'fr' ? 'text-foreground' : 'text-muted-foreground/50'}>FR</span>
+        <span className="text-muted-foreground/30">/</span>
+        <span className={locale === 'en' ? 'text-foreground' : 'text-muted-foreground/50'}>EN</span>
+      </button>
     );
   }
 

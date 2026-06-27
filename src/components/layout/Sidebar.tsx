@@ -32,6 +32,8 @@ import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useOrganizationSafe } from '@/lib/auth/context';
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
+import type { AppDict } from '@/lib/i18n/app';
 
 type NavItem = {
   label: string;
@@ -42,63 +44,69 @@ type NavItem = {
 };
 type NavGroup = { id: string; label: string; icon: React.ElementType; items: NavItem[] };
 
-const GROUPS: NavGroup[] = [
-  {
-    id: 'pilotage',
-    label: 'Pilotage',
-    icon: Activity,
-    items: [
-      { label: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
-      { label: 'Alertes', href: '/alerts', icon: BellRing },
-      // To do list privée par utilisateur (RLS stricte sur user_todos.user_id).
-      { label: 'À faire', href: '/todos', icon: CheckSquare },
-    ],
-  },
-  {
-    id: 'talents',
-    label: 'Talents',
-    icon: Users,
-    items: [
-      // Consultants regroupe la bibliothèque + le vivier (prospection), avec
-      // un switcher d'onglets sur les pages elles-mêmes. Une seule entrée
-      // dans le menu pour ne pas alourdir la navigation.
-      { label: 'Consultants', href: '/consultants', icon: Users, matchAlso: ['/prospects', '/cv-pushed', '/en-mission'] },
-      { label: 'CV Optimizer', href: '/cv-optimizer', icon: FileText },
-    ],
-  },
-  {
-    id: 'commercial',
-    label: 'Commercial',
-    icon: Briefcase,
-    items: [
-      { label: 'Missions', href: '/offers', icon: Briefcase },
-      { label: 'Matching IA', href: '/matching', icon: Target },
-      { label: 'Pipeline', href: '/crm', icon: Kanban },
-      { label: 'Contacts', href: '/contacts', icon: UserCircle },
-    ],
-  },
-  {
-    id: 'facturation',
-    label: 'Facturation',
-    icon: Receipt,
-    items: [
-      { label: 'CRA', href: '/timesheets', icon: ClipboardCheck },
-      { label: 'Contrats', href: '/contracts', icon: FileSignature },
-      { label: 'Factures', href: '/invoices', icon: Receipt },
-      { label: 'Comptabilité', href: '/accounting', icon: Calculator },
-    ],
-  },
-  {
-    id: 'organisation',
-    label: 'Organisation',
-    icon: Building2,
-    items: [
-      { label: 'Équipe', href: '/settings/team', icon: Package },
-      { label: 'Abonnement', href: '/billing', icon: CreditCard },
-      { label: 'Paramètres', href: '/settings', icon: Settings },
-    ],
-  },
-];
+/**
+ * Construit la liste des groupes/items à partir du dictionnaire i18n.
+ * Appelée à chaque render via useAppT() → réactive au changement de langue.
+ */
+function buildGroups(t: AppDict): NavGroup[] {
+  return [
+    {
+      id: 'pilotage',
+      label: t.sidebar.pilotage,
+      icon: Activity,
+      items: [
+        { label: t.nav.dashboard, href: '/dashboard', icon: LayoutDashboard },
+        { label: t.nav.alerts, href: '/alerts', icon: BellRing },
+        { label: t.nav.todos, href: '/todos', icon: CheckSquare },
+      ],
+    },
+    {
+      id: 'talents',
+      label: t.sidebar.talents,
+      icon: Users,
+      items: [
+        { label: t.nav.consultants, href: '/consultants', icon: Users, matchAlso: ['/prospects', '/cv-pushed', '/en-mission'] },
+        { label: t.nav.cv_optimizer, href: '/cv-optimizer', icon: FileText },
+      ],
+    },
+    {
+      id: 'commercial',
+      label: t.sidebar.commercial,
+      icon: Briefcase,
+      items: [
+        { label: t.nav.missions, href: '/offers', icon: Briefcase },
+        { label: t.nav.matching, href: '/matching', icon: Target },
+        { label: t.nav.pipeline, href: '/crm', icon: Kanban },
+        { label: t.nav.contacts, href: '/contacts', icon: UserCircle },
+      ],
+    },
+    {
+      id: 'facturation',
+      label: t.sidebar.facturation,
+      icon: Receipt,
+      items: [
+        { label: t.nav.cra, href: '/timesheets', icon: ClipboardCheck },
+        { label: t.nav.contracts, href: '/contracts', icon: FileSignature },
+        { label: t.nav.invoices, href: '/invoices', icon: Receipt },
+        { label: t.nav.accounting, href: '/accounting', icon: Calculator },
+      ],
+    },
+    {
+      id: 'organisation',
+      label: t.sidebar.organisation,
+      icon: Building2,
+      items: [
+        { label: t.nav.team, href: '/settings/team', icon: Package },
+        { label: t.nav.billing, href: '/billing', icon: CreditCard },
+        { label: t.nav.settings, href: '/settings', icon: Settings },
+      ],
+    },
+  ];
+}
+
+// Constante de référence pour computeInitialOpenGroups (qui s'exécute hors render).
+// Les IDs sont stables, seuls les labels changent avec la locale.
+const GROUP_IDS = ['pilotage', 'talents', 'commercial', 'facturation', 'organisation'] as const;
 
 const STORAGE_KEY = 'quadcore-sidebar-open-groups';
 
@@ -107,9 +115,12 @@ const STORAGE_KEY = 'quadcore-sidebar-open-groups';
 // AVANT que le browser ne peigne (évite le flash "tout fermé → tout ouvert").
 const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
-function computeInitialOpenGroups(pathname: string): Record<string, boolean> {
+function computeInitialOpenGroups(
+  pathname: string,
+  groups: NavGroup[],
+): Record<string, boolean> {
   const initial: Record<string, boolean> = {};
-  GROUPS.forEach((g) => (initial[g.id] = false));
+  GROUP_IDS.forEach((id) => (initial[id] = false));
 
   // Lecture localStorage (peut être null en SSR ou si bloqué)
   try {
@@ -131,7 +142,7 @@ function computeInitialOpenGroups(pathname: string): Record<string, boolean> {
     (i.matchAlso ?? []).some(
       (m) => pathname === m || pathname.startsWith(m + '/'),
     );
-  const activeGroup = GROUPS.find((g) => g.items.some(matchesItem));
+  const activeGroup = groups.find((g) => g.items.some(matchesItem));
   if (activeGroup) initial[activeGroup.id] = true;
 
   return initial;
@@ -147,6 +158,8 @@ function computeInitialOpenGroups(pathname: string): Record<string, boolean> {
 export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) {
   const pathname = usePathname();
   const org = useOrganizationSafe();
+  const t = useAppT();
+  const groups = buildGroups(t);
   const brandingMissing =
     !!org?.branding && !org.branding.logoUrl && !org.branding.primaryColor;
 
@@ -154,7 +167,7 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
   // useLayoutEffect ci-dessous corrige ÉGALEMENT avant le 1er paint client.
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
-    GROUPS.forEach((g) => (initial[g.id] = false));
+    GROUP_IDS.forEach((id) => (initial[id] = false));
     return initial;
   });
   // Tant que `animEnabled` est false, on désactive les transitions CSS pour
@@ -164,7 +177,7 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
 
   // 1) Pre-paint sync : positionne le bon state avant que le browser ne dessine.
   useIsoLayoutEffect(() => {
-    setOpenGroups(computeInitialOpenGroups(pathname));
+    setOpenGroups(computeInitialOpenGroups(pathname, groups));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -188,7 +201,7 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
       (i.matchAlso ?? []).some(
         (m) => pathname === m || pathname.startsWith(m + '/'),
       );
-    const activeGroup = GROUPS.find((g) => g.items.some(matchesItem));
+    const activeGroup = groups.find((g) => g.items.some(matchesItem));
     if (activeGroup) {
       setOpenGroups((prev) => (prev[activeGroup.id] ? prev : { ...prev, [activeGroup.id]: true }));
     }
@@ -220,7 +233,7 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
       </Link>
 
       <nav className="relative flex-1 overflow-y-auto px-2 py-3 space-y-1">
-        {GROUPS.map((group) => {
+        {groups.map((group) => {
           const open = openGroups[group.id] ?? false;
           const GroupIcon = group.icon;
           const itemMatches = (i: NavItem) =>
@@ -360,6 +373,7 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useSidebarCollapsed();
+  const t = useAppT();
 
   return (
     <>
@@ -378,8 +392,8 @@ export function Sidebar() {
         <button
           type="button"
           onClick={() => setCollapsed(true)}
-          aria-label="Réduire le menu"
-          title="Réduire le menu (mode plein écran)"
+          aria-label={t.nav.collapse_menu}
+          title={t.nav.collapse_menu}
           className="hidden md:flex absolute top-3 right-2 z-10 h-7 w-7 items-center justify-center rounded-md bg-white/5 text-white/70 hover:bg-white/15 hover:text-white border border-white/10 transition"
         >
           <ChevronsLeft className="h-4 w-4" />
@@ -392,8 +406,8 @@ export function Sidebar() {
         <button
           type="button"
           onClick={() => setCollapsed(false)}
-          aria-label="Afficher le menu"
-          title="Afficher le menu"
+          aria-label={t.nav.expand_menu}
+          title={t.nav.expand_menu}
           className="hidden md:flex fixed left-3 top-3 z-40 h-9 w-9 items-center justify-center rounded-lg border border-hairline bg-card/90 backdrop-blur shadow-lg text-foreground/70 hover:bg-card hover:text-foreground transition"
         >
           <ChevronsRight className="h-4 w-4" />

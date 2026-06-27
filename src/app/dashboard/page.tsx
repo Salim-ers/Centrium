@@ -46,6 +46,7 @@ import {
   AppCardBody,
   EmptyState as AppEmptyState,
 } from '@/components/app';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 
 type DashboardData = {
   kpis: DashboardKPIs | null;
@@ -102,6 +103,7 @@ const ALERT_TONE: Record<
 export default function DashboardPage() {
   const { activeOrgId, branding } = useOrganization();
   const brandName = useBrandName();
+  const t = useAppT();
   // "Branding non configuré" = pas de logo ET pas de couleur primaire perso.
   // Évite de hasseler les orgs qui ont décidé de garder le défaut.
   const brandingMissing =
@@ -154,24 +156,24 @@ export default function DashboardPage() {
         onReset={() => reload()}
       />
       <PageHeader
-        eyebrow="Pilotage"
+        eyebrow={t.dashboard.eyebrow}
         title={
           <>
-            Votre{' '}
-            <span className="qc-italic-accent font-editorial italic">tableau de bord.</span>
+            {t.dashboard.title_a}{' '}
+            <span className="qc-italic-accent font-editorial italic">{t.dashboard.title_b}</span>
           </>
         }
-        description={<>Vue d&apos;ensemble de votre activité {brandName}.</>}
+        description={t.dashboard.description.replace('{brand}', brandName)}
         actions={
           <Button
             variant="outline"
             size="sm"
             onClick={() => setResetOpen(true)}
-            title="Réinitialiser les données transactionnelles (missions, CRAs, factures, alertes)"
+            title={t.dashboard.reset_title}
             className="text-amber-300 hover:bg-amber-500/10 border-amber-500/30"
           >
             <RotateCcw className="h-4 w-4" />
-            Réinitialiser
+            {t.dashboard.reset}
           </Button>
         }
       />
@@ -207,49 +209,41 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
         <KPICard
           icon={Users}
-          label="Consultants en mission"
+          label={t.dashboard.consultants_on_mission}
           value={kpis?.consultantsOnMission ?? 0}
           tone="magenta"
           loading={!kpis}
           href="/consultants?status=on_mission"
-          hint={
-            kpis?.consultantsOnMission
-              ? `voir la liste`
-              : undefined
-          }
+          hint={kpis?.consultantsOnMission ? t.dashboard.see_list : undefined}
         />
         <KPICard
           icon={CheckCircle2}
-          label="Disponibles"
+          label={t.dashboard.available}
           value={kpis?.consultantsAvailable ?? 0}
           tone="emerald"
           loading={!kpis}
           href="/consultants?status=available"
-          hint={
-            kpis?.consultantsAvailable
-              ? `voir le vivier disponible`
-              : undefined
-          }
+          hint={kpis?.consultantsAvailable ? t.dashboard.see_available_pool : undefined}
         />
         <KPICard
           icon={TrendingUp}
-          label="Opportunités ouvertes"
+          label={t.dashboard.open_opportunities}
           value={kpis?.openOpportunities ?? 0}
           tone="cyan"
           loading={!kpis}
           href="/crm"
-          hint="pipeline commercial"
+          hint={t.dashboard.commercial_pipeline}
         />
         <KPICard
           icon={Banknote}
-          label="CA facturé ce mois"
+          label={t.dashboard.invoiced_this_month}
           valueText={kpis ? formatCurrency(kpis.revenueThisMonthInvoiced ?? 0) : '—'}
           tone="violet"
           loading={!kpis}
           href="/invoices"
           hint={
             kpis
-              ? `Encaissé ${formatCurrency(kpis.revenueThisMonthPaid)} · Prévu ${formatCurrency(kpis.revenueThisMonth)}`
+              ? `${t.dashboard.cashed} ${formatCurrency(kpis.revenueThisMonthPaid)} · ${t.dashboard.forecast} ${formatCurrency(kpis.revenueThisMonth)}`
               : undefined
           }
         />
@@ -275,17 +269,19 @@ export default function DashboardPage() {
               <div>
                 <div className="flex items-center gap-2 text-foreground font-medium">
                   <AlertTriangle className="h-4 w-4 text-amber-400" />
-                  Alertes prioritaires
+                  {t.dashboard.priority_alerts}
                 </div>
                 <p className="text-[12.5px] text-muted-foreground mt-1">
-                  {alertsTotal} alerte{alertsTotal > 1 ? 's' : ''} à traiter
+                  {t.dashboard.alerts_to_handle
+                    .replace('{n}', String(alertsTotal))
+                    .replace('{s}', alertsTotal > 1 ? 's' : '')}
                   {alertsTotal > alerts.length && (
-                    <span className="text-foreground/60"> — top {alerts.length} affiché{alerts.length > 1 ? 'es' : 'e'}</span>
+                    <span className="text-foreground/60"> — top {alerts.length}</span>
                   )}
                 </p>
               </div>
               <Button variant="outline" size="sm" asChild>
-                <Link href="/alerts">Tout voir</Link>
+                <Link href="/alerts">{t.dashboard.see_all}</Link>
               </Button>
             </div>
             <div className="space-y-2">
@@ -294,8 +290,8 @@ export default function DashboardPage() {
               ) : alerts.length === 0 ? (
                 <AppEmptyState
                   icon={CheckCircle2}
-                  title="Tout est sous contrôle"
-                  description="Aucune alerte. Tout est sous contrôle."
+                  title={t.dashboard.all_under_control}
+                  description={t.dashboard.all_under_control}
                 />
               ) : (
                 alerts.map((alert) => <DashboardAlertItem key={alert.id} alert={alert} />)
@@ -310,32 +306,32 @@ export default function DashboardPage() {
             <div className="mb-4">
               <div className="flex items-center gap-2 text-foreground font-medium">
                 <FileText className="h-4 w-4 text-violet-400" />
-                Facturation
+                {t.dashboard.invoicing}
               </div>
-              <p className="text-[12.5px] text-muted-foreground mt-1">État des factures</p>
+              <p className="text-[12.5px] text-muted-foreground mt-1">{t.dashboard.invoices_state}</p>
             </div>
             <div className="space-y-3">
               <StatRow
                 icon={<Send className="h-4 w-4 text-blue-400" />}
-                label="En attente"
+                label={t.dashboard.pending}
                 value={<AnimatedNumber value={kpis?.pendingInvoices} />}
                 href="/invoices?status=sent"
               />
               <StatRow
                 icon={<AlertTriangle className="h-4 w-4 text-red-400" />}
-                label="En retard"
+                label={t.dashboard.overdue}
                 value={<AnimatedNumber value={kpis?.overdueInvoices} />}
                 highlight={kpis?.overdueInvoices ? kpis.overdueInvoices > 0 : false}
                 href="/invoices?status=overdue"
               />
               <StatRow
                 icon={<Clock className="h-4 w-4 text-amber-400" />}
-                label="CRA à valider"
+                label={t.dashboard.cra_to_validate}
                 value={<AnimatedNumber value={kpis?.pendingTimesheets} />}
                 href="/timesheets?status=submitted"
               />
               <Button variant="outline" className="w-full mt-2" asChild>
-                <Link href="/invoices">Gérer la facturation</Link>
+                <Link href="/invoices">{t.dashboard.manage_invoicing}</Link>
               </Button>
             </div>
           </AppCardBody>
@@ -345,12 +341,12 @@ export default function DashboardPage() {
       {/* Raccourcis */}
       <AppCard variant="default" className="mt-6">
         <AppCardBody size="md">
-          <div className="mb-4 text-foreground font-medium">Actions rapides</div>
+          <div className="mb-4 text-foreground font-medium">{t.dashboard.quick_actions}</div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <QuickAction href="/consultants" label="Ajouter consultant" />
-            <QuickAction href="/cv-optimizer" label="Générer un CV" />
-            <QuickAction href="/crm" label="Nouvelle opportunité" />
-            <QuickAction href="/invoices" label="Créer une facture" />
+            <QuickAction href="/consultants" label={t.dashboard.add_consultant} />
+            <QuickAction href="/cv-optimizer" label={t.dashboard.generate_cv} />
+            <QuickAction href="/crm" label={t.dashboard.new_opportunity} />
+            <QuickAction href="/invoices" label={t.dashboard.new_invoice} />
           </div>
         </AppCardBody>
       </AppCard>
