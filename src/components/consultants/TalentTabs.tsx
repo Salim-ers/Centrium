@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Users, Send, BriefcaseBusiness } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 
 type Tab = 'consultants' | 'cv-pushed' | 'on-mission';
 
@@ -21,6 +22,7 @@ type Props = {
  * - En Mission   : a au moins une mission "active" (validée, comptée dans le dashboard)
  */
 export function TalentTabs({ active, counts }: Props) {
+  const ti = useAppT();
   const tabs: {
     id: Tab;
     href: string;
@@ -32,7 +34,7 @@ export function TalentTabs({ active, counts }: Props) {
     {
       id: 'consultants',
       href: '/consultants',
-      label: 'Consultants',
+      label: ti.pages.consultants.tabs_library,
       sub: 'Bibliothèque + vivier — profils disponibles à positionner',
       Icon: Users,
       countKey: 'consultants',
@@ -40,7 +42,7 @@ export function TalentTabs({ active, counts }: Props) {
     {
       id: 'cv-pushed',
       href: '/cv-pushed',
-      label: 'CV poussés',
+      label: ti.pages.consultants.tabs_cv_pushed,
       sub: 'CV envoyé sur une offre, en attente de validation client',
       Icon: Send,
       countKey: 'cvPushed',
@@ -48,7 +50,7 @@ export function TalentTabs({ active, counts }: Props) {
     {
       id: 'on-mission',
       href: '/en-mission',
-      label: 'En Mission',
+      label: ti.pages.consultants.tabs_on_mission,
       sub: 'Missions validées — comptées dans le dashboard',
       Icon: BriefcaseBusiness,
       countKey: 'onMission',

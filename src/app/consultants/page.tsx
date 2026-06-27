@@ -363,8 +363,8 @@ function ConsultantsPageInner() {
   }
 
   const headerSub = showArchived
-    ? `${consultants.length} archivé${consultants.length > 1 ? 's' : ''}`
-    : `${consultants.length} profil${consultants.length > 1 ? 's' : ''} disponible${consultants.length > 1 ? 's' : ''} — pas encore positionné${consultants.length > 1 ? 's' : ''}`;
+    ? `${consultants.length} ${consultants.length > 1 ? 'archivés' : 'archivé'}`
+    : `${consultants.length} ${t.pages.consultants.profiles_available} — ${t.pages.consultants.not_positioned_yet}`;
 
   // KPIs : total / en mission (présent dans consultantsData) / disponibles / intercontrat
   // ⚠️ active_missions inclut les statuts 'active' ET 'proposed' (CV poussé).
@@ -399,17 +399,17 @@ function ConsultantsPageInner() {
             <Button
               variant="outline"
               onClick={() => setShowArchived((v) => !v)}
-              title={showArchived ? 'Revenir à la liste active' : 'Afficher les archivés'}
+              title={showArchived ? t.pages.consultants.see_active : t.pages.consultants.see_archived}
             >
               {showArchived ? (
                 <>
                   <ArchiveRestore className="h-4 w-4" />
-                  Voir les actifs
+                  {t.pages.consultants.see_active}
                 </>
               ) : (
                 <>
                   <Archive className="h-4 w-4" />
-                  Voir les archivés
+                  {t.pages.consultants.see_archived}
                 </>
               )}
             </Button>
@@ -417,11 +417,11 @@ function ConsultantsPageInner() {
               <>
                 <Button variant="outline" onClick={() => setCsvOpen(true)}>
                   <FileUp className="h-4 w-4" />
-                  Importer CSV
+                  {t.pages.consultants.import_csv}
                 </Button>
                 <Button onClick={openCreate}>
                   <Plus className="h-4 w-4" />
-                  Nouveau consultant
+                  {t.pages.consultants.new}
                 </Button>
               </>
             )}
@@ -433,30 +433,30 @@ function ConsultantsPageInner() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <KPICard
             icon={Users}
-            label="Bibliothèque"
+            label={t.pages.consultants.kpi_library}
             value={totalLibrary}
             tone="magenta"
-            hint="Tous profils confondus"
+            hint={t.pages.consultants.kpi_library_sub}
           />
           <KPICard
             icon={Briefcase}
-            label="En mission"
+            label={t.pages.consultants.kpi_on_mission}
             value={onMissionCount}
             tone="violet"
           />
           <KPICard
             icon={UserCheck}
-            label="Disponibles"
+            label={t.pages.consultants.kpi_available}
             value={availableCount}
             tone="emerald"
           />
           <KPICard
             icon={Timer}
-            label="Intercontrat"
+            label={t.pages.consultants.kpi_intercontract}
             value={interContractRatio}
             suffix="%"
             tone="amber"
-            hint={`${interContractCount} profil${interContractCount > 1 ? 's' : ''}`}
+            hint={`${interContractCount} ${t.pages.consultants.kpi_intercontract_sub}`}
           />
         </div>
       )}
@@ -515,7 +515,7 @@ function ConsultantsPageInner() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Rechercher par nom, intitulé…"
+              placeholder={t.pages.consultants.search_placeholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -603,12 +603,12 @@ function ConsultantsPageInner() {
                     className="h-4 w-4 cursor-pointer accent-magenta"
                   />
                 </TableHead>
-                <TableHead>Consultant</TableHead>
-                <TableHead>Séniorité</TableHead>
-                <TableHead>TJM</TableHead>
-                <TableHead>Ville</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t.pages.consultants.table_consultant}</TableHead>
+                <TableHead>{t.pages.consultants.table_seniority}</TableHead>
+                <TableHead>{t.pages.consultants.table_daily_rate}</TableHead>
+                <TableHead>{t.pages.consultants.table_city}</TableHead>
+                <TableHead>{t.pages.consultants.table_status}</TableHead>
+                <TableHead className="text-right">{t.pages.consultants.table_actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -698,18 +698,18 @@ function ConsultantsPageInner() {
                           title="Changer le statut du consultant"
                           aria-label={`Statut de ${c.first_name ?? ''} ${c.last_name ?? ''}`}
                         >
-                          <option value="available">Disponible</option>
-                          <option value="soon_available">Bientôt dispo</option>
-                          <option value="unavailable">Indisponible</option>
+                          <option value="available">{consultantStatusI18n.available}</option>
+                          <option value="soon_available">{consultantStatusI18n.soon_available}</option>
+                          <option value="unavailable">{consultantStatusI18n.unavailable}</option>
                         </Select>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="sm" asChild title="Voir la fiche">
+                        <Button variant="ghost" size="sm" asChild title={t.pages.consultants.action_view}>
                           <Link href={`/consultants/${c.id}`}>
                             <Eye className="h-3.5 w-3.5" />
-                            Voir
+                            {t.pages.consultants.action_view}
                           </Link>
                         </Button>
                         {showArchived ? (
@@ -745,7 +745,7 @@ function ConsultantsPageInner() {
                               className="text-magenta-neon hover:bg-magenta/10"
                             >
                               <Send className="h-3.5 w-3.5" />
-                              Pousser CV
+                              {t.pages.consultants.action_push_cv}
                             </Button>
                             <Button
                               variant="ghost"

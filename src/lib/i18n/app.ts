@@ -313,6 +313,43 @@ export type AppDict = {
       empty_title_archived: string;
       empty_description: string;
       empty_description_archived: string;
+      see_archived: string;
+      see_active: string;
+      kpi_library: string;
+      kpi_library_sub: string;
+      kpi_on_mission: string;
+      kpi_available: string;
+      kpi_intercontract: string;
+      kpi_intercontract_sub: string;
+      tab_all: string;
+      tab_qa: string;
+      tab_dev: string;
+      tab_data: string;
+      tab_devops: string;
+      tab_cyber: string;
+      tab_pm: string;
+      tab_ba: string;
+      tab_architect: string;
+      tab_support: string;
+      tab_design: string;
+      tab_other: string;
+      filter_city: string;
+      search_placeholder: string;
+      table_consultant: string;
+      table_seniority: string;
+      table_daily_rate: string;
+      table_city: string;
+      table_status: string;
+      table_actions: string;
+      action_view: string;
+      action_push_cv: string;
+      consultants_count_unlimited: string;
+      consultants_count_limit: string;
+      tabs_library: string;
+      tabs_cv_pushed: string;
+      tabs_on_mission: string;
+      profiles_available: string;
+      not_positioned_yet: string;
     };
     cv_optimizer: {
       eyebrow: string;
@@ -745,6 +782,43 @@ export const APP_DICT: Record<Locale, AppDict> = {
         empty_title_archived: 'Aucun profil archivé',
         empty_description: 'Importez votre première bibliothèque CSV ou créez un consultant manuellement.',
         empty_description_archived: 'Les profils archivés apparaîtront ici.',
+        see_archived: 'Voir les archivés',
+        see_active: 'Voir les actifs',
+        kpi_library: 'Bibliothèque',
+        kpi_library_sub: 'Tous profils confondus',
+        kpi_on_mission: 'En mission',
+        kpi_available: 'Disponibles',
+        kpi_intercontract: 'Intercontrat',
+        kpi_intercontract_sub: 'profils',
+        tab_all: 'TOUS',
+        tab_qa: 'QA',
+        tab_dev: 'DEV',
+        tab_data: 'DATA',
+        tab_devops: 'DEVOPS / CLOUD',
+        tab_cyber: 'CYBER',
+        tab_pm: 'CHEF DE PROJET',
+        tab_ba: 'BUSINESS ANALYST',
+        tab_architect: 'ARCHITECTE',
+        tab_support: 'SUPPORT / TECH',
+        tab_design: 'DESIGN / UX',
+        tab_other: 'AUTRES',
+        filter_city: 'Ville',
+        search_placeholder: 'Rechercher par nom, intitulé…',
+        table_consultant: 'CONSULTANT',
+        table_seniority: 'SÉNIORITÉ',
+        table_daily_rate: 'TJM',
+        table_city: 'VILLE',
+        table_status: 'STATUT',
+        table_actions: 'ACTIONS',
+        action_view: 'Voir',
+        action_push_cv: 'Pousser CV',
+        consultants_count_unlimited: '{n} / illimité consultants · Compte Fondateur — aucune limite',
+        consultants_count_limit: '{n} / {max} consultants',
+        tabs_library: 'Consultants',
+        tabs_cv_pushed: 'CV poussés',
+        tabs_on_mission: 'En Mission',
+        profiles_available: 'profils disponibles',
+        not_positioned_yet: 'pas encore positionnés',
       },
       cv_optimizer: {
         eyebrow: 'Talents',
@@ -1175,6 +1249,43 @@ export const APP_DICT: Record<Locale, AppDict> = {
         empty_title_archived: 'No archived profile',
         empty_description: 'Import your first CSV library or create a consultant manually.',
         empty_description_archived: 'Archived profiles will appear here.',
+        see_archived: 'See archived',
+        see_active: 'See active',
+        kpi_library: 'Library',
+        kpi_library_sub: 'All profiles',
+        kpi_on_mission: 'On mission',
+        kpi_available: 'Available',
+        kpi_intercontract: 'Bench',
+        kpi_intercontract_sub: 'profiles',
+        tab_all: 'ALL',
+        tab_qa: 'QA',
+        tab_dev: 'DEV',
+        tab_data: 'DATA',
+        tab_devops: 'DEVOPS / CLOUD',
+        tab_cyber: 'CYBER',
+        tab_pm: 'PROJECT MANAGER',
+        tab_ba: 'BUSINESS ANALYST',
+        tab_architect: 'ARCHITECT',
+        tab_support: 'SUPPORT / TECH',
+        tab_design: 'DESIGN / UX',
+        tab_other: 'OTHER',
+        filter_city: 'City',
+        search_placeholder: 'Search by name, title…',
+        table_consultant: 'CONSULTANT',
+        table_seniority: 'SENIORITY',
+        table_daily_rate: 'DAY RATE',
+        table_city: 'CITY',
+        table_status: 'STATUS',
+        table_actions: 'ACTIONS',
+        action_view: 'View',
+        action_push_cv: 'Push CV',
+        consultants_count_unlimited: '{n} / unlimited consultants · Founder account — no limit',
+        consultants_count_limit: '{n} / {max} consultants',
+        tabs_library: 'Consultants',
+        tabs_cv_pushed: 'CVs pushed',
+        tabs_on_mission: 'On Mission',
+        profiles_available: 'profiles available',
+        not_positioned_yet: 'not positioned yet',
       },
       cv_optimizer: {
         eyebrow: 'Talents',
