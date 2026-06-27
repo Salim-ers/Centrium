@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
@@ -89,7 +89,7 @@ import { formatCurrency } from '@/lib/utils';
  * "Pousser CV" ouvre AssignMissionDialog (sélection d'offre + TJM).
  * Création d'une mission "proposed" → le profil bascule en CV poussés.
  */
-export default function ConsultantsPage() {
+function ConsultantsPageInner() {
   const { activeOrgId } = useOrganization();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -825,5 +825,13 @@ export default function ConsultantsPage() {
         }
       />
     </AppShell>
+  );
+}
+
+export default function ConsultantsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ConsultantsPageInner />
+    </Suspense>
   );
 }

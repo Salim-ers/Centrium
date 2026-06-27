@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
@@ -57,7 +57,7 @@ const STATUS_LABEL: Record<Timesheet['status'], string> = {
   rejected: 'Rejeté',
 };
 
-export default function TimesheetsPage() {
+function TimesheetsPageInner() {
   const { activeOrgId } = useOrganization();
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -331,5 +331,13 @@ export default function TimesheetsPage() {
         />
       )}
     </AppShell>
+  );
+}
+
+export default function TimesheetsPage() {
+  return (
+    <Suspense fallback={null}>
+      <TimesheetsPageInner />
+    </Suspense>
   );
 }

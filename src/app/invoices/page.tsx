@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -49,7 +49,7 @@ import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import { INVOICE_STATUS_LABEL } from '@/constants';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
-export default function InvoicesPage() {
+function InvoicesPageInner() {
   const { activeOrgId } = useOrganization();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
@@ -437,5 +437,13 @@ export default function InvoicesPage() {
         itemLabel="facture"
       />
     </AppShell>
+  );
+}
+
+export default function InvoicesPage() {
+  return (
+    <Suspense fallback={null}>
+      <InvoicesPageInner />
+    </Suspense>
   );
 }
