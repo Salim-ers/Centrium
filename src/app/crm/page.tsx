@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { Plus, Trash2, Pencil, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent } from '@/components/ui/card';
@@ -58,6 +59,7 @@ const DRAG_MIME = 'application/x-opportunity-id';
 
 export default function CRMPage() {
   const { activeOrgId, user } = useOrganization();
+  const t = useAppT();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingOpp, setEditingOpp] = useState<Opportunity | null>(null);
   // États drag & drop
@@ -242,10 +244,11 @@ export default function CRMPage() {
   return (
     <AppShell wide>
       <PageHeader
-        eyebrow="Commercial"
+        eyebrow={t.pages.crm.eyebrow}
         title={
           <>
-            Pipeline <span className="qc-italic-accent font-editorial italic">commercial.</span>
+            {t.pages.crm.title_a}{' '}
+            <span className="qc-italic-accent font-editorial italic">{t.pages.crm.title_b}</span>
           </>
         }
         description={

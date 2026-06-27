@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import {
   UserCircle,
   Plus,
@@ -71,6 +72,7 @@ import { relativeDate } from '@/lib/utils';
  */
 export default function ContactsPage() {
   const { activeOrgId } = useOrganization();
+  const t = useAppT();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [csvOpen, setCsvOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
@@ -185,10 +187,11 @@ export default function ContactsPage() {
   return (
     <AppShell>
       <PageHeader
-        eyebrow="Commercial"
+        eyebrow={t.pages.contacts.eyebrow}
         title={
           <>
-            Carnet de <span className="qc-italic-accent font-editorial italic">contacts.</span>
+            {t.pages.contacts.title_a}{' '}
+            <span className="qc-italic-accent font-editorial italic">{t.pages.contacts.title_b}</span>
           </>
         }
         description={

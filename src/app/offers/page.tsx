@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import {
@@ -83,6 +84,7 @@ const SENIORITY_LABEL: Record<string, string> = {
  */
 export default function OffersPage() {
   const { activeOrgId, branding } = useOrganization();
+  const t = useAppT();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<JobOffer | null>(null);
   const [exportingOfferId, setExportingOfferId] = useState<string | null>(null);
@@ -356,7 +358,7 @@ export default function OffersPage() {
   return (
     <AppShell>
       <PageHeader
-        eyebrow="Commercial"
+        eyebrow={t.pages.offers.eyebrow}
         title={
           showArchived ? (
             <>
@@ -364,7 +366,8 @@ export default function OffersPage() {
             </>
           ) : (
             <>
-              Offres &amp; <span className="qc-italic-accent font-editorial italic">missions.</span>
+              {t.pages.offers.title_a}{' '}
+              <span className="qc-italic-accent font-editorial italic">{t.pages.offers.title_b}</span>
             </>
           )
         }

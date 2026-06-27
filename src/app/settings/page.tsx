@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { LogOut, Palette, Users, User, ShieldCheck, Building2, Sparkles } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { Button } from '@/components/ui/button';
 import { useOrganization } from '@/lib/auth/context';
 import {
@@ -103,6 +104,7 @@ function writeIdentityCache(orgId: string, identity: IdentityRow): void {
 
 export default function SettingsPage() {
   const { activeOrgId, memberships, branding } = useOrganization();
+  const t = useAppT();
 
   // Lecture SYNCHRONE du cache sessionStorage au premier render — pas
   // de useEffect, pas d'attente. Si cache présent, identity est posé
@@ -161,13 +163,11 @@ export default function SettingsPage() {
   return (
     <AppShell>
       <PageHeader
-        eyebrow="Organisation"
+        eyebrow={t.pages.settings.eyebrow}
         title={
           <>
-            Paramètres{' '}
-            <span className="qc-italic-accent font-editorial italic">
-              de votre ESN.
-            </span>
+            {t.pages.settings.title_a}{' '}
+            <span className="qc-italic-accent font-editorial italic">{t.pages.settings.title_b}</span>
           </>
         }
         description="Profil personnel, équipe, identité visuelle, conformité RGPD — pilotez votre espace Centrium."

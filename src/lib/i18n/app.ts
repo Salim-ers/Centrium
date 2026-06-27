@@ -130,6 +130,157 @@ export type AppDict = {
     lead: string;
     architect: string;
   };
+  // ---------- Pages secondaires (PageHeader + KPIs + EmptyStates) ----------
+  pages: {
+    consultants: {
+      eyebrow: string;
+      title_a: string;
+      title_b: string;
+      description: string;
+      new: string;
+      import_csv: string;
+      empty_title: string;
+      empty_title_archived: string;
+      empty_description: string;
+      empty_description_archived: string;
+    };
+    cv_optimizer: {
+      eyebrow: string;
+      title_a: string;
+      title_b: string;
+      description: string;
+      edit_cv: string;
+      stop_editing: string;
+      export_word: string;
+      export_pdf: string;
+      empty_title: string;
+      empty_description: string;
+      consultant_label: string;
+      template_label: string;
+      offer_label: string;
+      offer_hint: string;
+      pick_existing: string;
+      manual_entry: string;
+      job_title: string;
+      required_skills: string;
+      full_description: string;
+    };
+    matching: {
+      eyebrow: string;
+      title_a: string;
+      title_b: string;
+      description: string;
+      new_offer: string;
+      manage_offers: string;
+      pick_offer: string;
+      offer_select: string;
+      run_match: string;
+      results_classified: string;
+      ai_enriching: string;
+      empty_select_offer: string;
+      empty_select_description: string;
+    };
+    crm: {
+      eyebrow: string;
+      title_a: string;
+      title_b: string;
+      description: string;
+      new_opp: string;
+      pipeline_value: string;
+      closed_opps: string;
+      see_list: string;
+    };
+    offers: {
+      eyebrow: string;
+      title_a: string;
+      title_b: string;
+      description: string;
+      new: string;
+      tab_available: string;
+      tab_pushed: string;
+      empty_title: string;
+      empty_description: string;
+    };
+    contacts: {
+      eyebrow: string;
+      title_a: string;
+      title_b: string;
+      description: string;
+      new: string;
+      empty_title: string;
+      empty_description: string;
+    };
+    contracts: {
+      eyebrow: string;
+      title_a: string;
+      title_b: string;
+      description: string;
+      new: string;
+      empty_title: string;
+      empty_description: string;
+    };
+    timesheets: {
+      eyebrow: string;
+      title_a: string;
+      title_b: string;
+      description: string;
+      new: string;
+      empty_title: string;
+      empty_description: string;
+      kpi_total_days: string;
+      kpi_validated_days: string;
+      kpi_pending_days: string;
+      kpi_billable_ratio: string;
+    };
+    invoices: {
+      eyebrow: string;
+      title_a: string;
+      title_b: string;
+      description: string;
+      new: string;
+      see_archived: string;
+      see_active: string;
+      empty_title: string;
+      empty_title_archived: string;
+      empty_description: string;
+      kpi_issued: string;
+      kpi_paid: string;
+      kpi_pending: string;
+      kpi_overdue: string;
+    };
+    accounting: {
+      eyebrow: string;
+      title_a: string;
+      title_b: string;
+      description: string;
+    };
+    alerts: {
+      eyebrow: string;
+      title_a: string;
+      title_b: string;
+      description: string;
+      empty_title: string;
+      empty_description: string;
+    };
+    todos: {
+      eyebrow: string;
+      title_a: string;
+      title_b: string;
+      description: string;
+    };
+    billing: {
+      eyebrow: string;
+      title_a: string;
+      title_b: string;
+      description: string;
+    };
+    settings: {
+      eyebrow: string;
+      title_a: string;
+      title_b: string;
+      description: string;
+    };
+  };
 };
 
 export const APP_DICT: Record<Locale, AppDict> = {
@@ -245,6 +396,156 @@ export const APP_DICT: Record<Locale, AppDict> = {
       lead: 'Lead',
       architect: 'Architecte',
     },
+    pages: {
+      consultants: {
+        eyebrow: 'Talents',
+        title_a: 'Vos',
+        title_b: 'consultants.',
+        description: 'Bibliothèque de profils — sélectionne et pousse un CV à une offre.',
+        new: 'Nouveau consultant',
+        import_csv: 'Importer CSV',
+        empty_title: 'Aucun profil disponible',
+        empty_title_archived: 'Aucun profil archivé',
+        empty_description: 'Importez votre première bibliothèque CSV ou créez un consultant manuellement.',
+        empty_description_archived: 'Les profils archivés apparaîtront ici.',
+      },
+      cv_optimizer: {
+        eyebrow: 'Talents',
+        title_a: 'CV Optimizer',
+        title_b: 'IA.',
+        description: 'Sélectionne un consultant — le CV se génère automatiquement. Colle une offre pour aligner le wording.',
+        edit_cv: 'Modifier le CV',
+        stop_editing: 'Fin édition',
+        export_word: 'Word (.docx)',
+        export_pdf: 'PDF',
+        empty_title: 'Sélectionne un consultant pour commencer',
+        empty_description: "Le CV s'affichera automatiquement",
+        consultant_label: 'Consultant',
+        template_label: 'Template',
+        offer_label: 'Offre client',
+        offer_hint: 'Optionnel — active le scoring & le surlignage des skills demandées',
+        pick_existing: 'Choisir une offre existante',
+        manual_entry: '— Saisie manuelle —',
+        job_title: 'Intitulé',
+        required_skills: 'Compétences demandées (séparées par virgule)',
+        full_description: 'Description complète',
+      },
+      matching: {
+        eyebrow: 'Commercial',
+        title_a: 'Matching',
+        title_b: 'IA.',
+        description: 'Trouve les meilleurs profils pour chaque offre client — scoring multi-critères sur skills, séniorité, TJM et disponibilité.',
+        new_offer: 'Nouvelle offre',
+        manage_offers: 'Gérer les offres',
+        pick_offer: 'Sélection de l’offre.',
+        offer_select: 'Offre',
+        run_match: 'Lancer le matching',
+        results_classified: 'profils classés.',
+        ai_enriching: 'L’IA rédige les justifications du top 5…',
+        empty_select_offer: 'Lance le matching pour voir les profils classés',
+        empty_select_description: 'Choisis une offre puis clique sur « Lancer le matching » pour obtenir les meilleurs candidats.',
+      },
+      crm: {
+        eyebrow: 'Commercial',
+        title_a: 'Pipeline',
+        title_b: 'commercial.',
+        description: 'Glisse une carte d’une colonne à l’autre pour changer son statut.',
+        new_opp: 'Nouvelle opportunité',
+        pipeline_value: 'Pipeline prévisionnel',
+        closed_opps: 'Opportunités terminées',
+        see_list: 'Voir la liste',
+      },
+      offers: {
+        eyebrow: 'Commercial',
+        title_a: 'Missions',
+        title_b: 'clients.',
+        description: 'Suivi des offres reçues et des CV poussés.',
+        new: 'Nouvelle mission',
+        tab_available: 'Disponibles',
+        tab_pushed: 'Avec CV poussé',
+        empty_title: 'Aucune mission',
+        empty_description: 'Ajoute ta première mission client ou importe-la via screenshot.',
+      },
+      contacts: {
+        eyebrow: 'Commercial',
+        title_a: 'Carnet de',
+        title_b: 'contacts.',
+        description: 'Recruteurs, clients, ESN partenaires — toute votre relation commerciale.',
+        new: 'Nouveau contact',
+        empty_title: 'Aucun contact',
+        empty_description: 'Ajoute ton premier contact pour démarrer ton carnet.',
+      },
+      contracts: {
+        eyebrow: 'Facturation',
+        title_a: 'Vos',
+        title_b: 'contrats.',
+        description: 'Contrats assistance technique, sous-traitance, avenants — toute la chaîne facturable.',
+        new: 'Nouveau contrat',
+        empty_title: 'Aucun contrat',
+        empty_description: 'Crée ton premier contrat pour démarrer la chaîne facturable.',
+      },
+      timesheets: {
+        eyebrow: 'Facturation',
+        title_a: 'Comptes rendus',
+        title_b: "d'activité.",
+        description: 'Saisie mensuelle des jours travaillés — base de la facturation.',
+        new: 'Nouveau CRA',
+        empty_title: 'Aucun CRA',
+        empty_description: "Crée ton premier compte-rendu d'activité pour démarrer la facturation.",
+        kpi_total_days: 'Jours travaillés',
+        kpi_validated_days: 'Jours validés',
+        kpi_pending_days: 'En attente',
+        kpi_billable_ratio: 'Ratio facturable',
+      },
+      invoices: {
+        eyebrow: 'Facturation',
+        title_a: 'Factures',
+        title_b: 'clients.',
+        description: "Suivi du chiffre d'affaires, des encaissements et des relances.",
+        new: 'Nouvelle facture',
+        see_archived: 'Voir archivées',
+        see_active: 'Voir actives',
+        empty_title: 'Aucune facture',
+        empty_title_archived: 'Aucune facture archivée',
+        empty_description: 'Crée ta première facture pour démarrer la facturation client.',
+        kpi_issued: 'Émis ce mois',
+        kpi_paid: 'Encaissé',
+        kpi_pending: 'En attente',
+        kpi_overdue: 'En retard',
+      },
+      accounting: {
+        eyebrow: 'Facturation',
+        title_a: 'Assistant',
+        title_b: 'comptable.',
+        description: 'Synthèse mensuelle des factures, encaissements et écritures comptables.',
+      },
+      alerts: {
+        eyebrow: 'Pilotage',
+        title_a: 'Centre',
+        title_b: "d'alertes.",
+        description: 'Les signaux qui requièrent ton attention — triés par priorité.',
+        empty_title: 'Tout est sous contrôle',
+        empty_description: 'Aucune alerte en cours.',
+      },
+      todos: {
+        eyebrow: 'Pilotage',
+        title_a: 'À',
+        title_b: 'faire.',
+        description: 'Tes tâches personnelles — privées, RLS stricte sur user_id.',
+      },
+      billing: {
+        eyebrow: 'Organisation',
+        title_a: 'Votre',
+        title_b: 'abonnement.',
+        description: 'Plan, facturation, consommation — gère ton abonnement Centrium.',
+      },
+      settings: {
+        eyebrow: 'Organisation',
+        title_a: 'Paramètres',
+        title_b: 'de votre ESN.',
+        description: 'Profil personnel, équipe, identité visuelle, conformité RGPD — pilotez votre espace Centrium.',
+      },
+    },
   },
   en: {
     sidebar: {
@@ -357,6 +658,156 @@ export const APP_DICT: Record<Locale, AppDict> = {
       expert: 'Expert',
       lead: 'Lead',
       architect: 'Architect',
+    },
+    pages: {
+      consultants: {
+        eyebrow: 'Talents',
+        title_a: 'Your',
+        title_b: 'consultants.',
+        description: 'Profile library — pick and push a CV to a client offer.',
+        new: 'New consultant',
+        import_csv: 'Import CSV',
+        empty_title: 'No profile available',
+        empty_title_archived: 'No archived profile',
+        empty_description: 'Import your first CSV library or create a consultant manually.',
+        empty_description_archived: 'Archived profiles will appear here.',
+      },
+      cv_optimizer: {
+        eyebrow: 'Talents',
+        title_a: 'CV Optimizer',
+        title_b: 'AI.',
+        description: 'Pick a consultant — the CV is generated automatically. Paste an offer to align the wording.',
+        edit_cv: 'Edit CV',
+        stop_editing: 'Stop editing',
+        export_word: 'Word (.docx)',
+        export_pdf: 'PDF',
+        empty_title: 'Pick a consultant to start',
+        empty_description: 'The CV will display automatically',
+        consultant_label: 'Consultant',
+        template_label: 'Template',
+        offer_label: 'Client offer',
+        offer_hint: 'Optional — enables scoring & highlighting of requested skills',
+        pick_existing: 'Pick an existing offer',
+        manual_entry: '— Manual entry —',
+        job_title: 'Title',
+        required_skills: 'Required skills (comma-separated)',
+        full_description: 'Full description',
+      },
+      matching: {
+        eyebrow: 'Sales',
+        title_a: 'AI',
+        title_b: 'Matching.',
+        description: 'Find the best profiles for each client offer — multi-criteria scoring on skills, seniority, day rate and availability.',
+        new_offer: 'New offer',
+        manage_offers: 'Manage offers',
+        pick_offer: 'Offer selection.',
+        offer_select: 'Offer',
+        run_match: 'Run matching',
+        results_classified: 'profiles ranked.',
+        ai_enriching: 'AI is writing top-5 justifications…',
+        empty_select_offer: 'Run the matching to see ranked profiles',
+        empty_select_description: 'Pick an offer then click "Run matching" to get the best candidates.',
+      },
+      crm: {
+        eyebrow: 'Sales',
+        title_a: 'Sales',
+        title_b: 'pipeline.',
+        description: 'Drag a card from one column to another to change its status.',
+        new_opp: 'New opportunity',
+        pipeline_value: 'Forecast pipeline',
+        closed_opps: 'Closed opportunities',
+        see_list: 'See list',
+      },
+      offers: {
+        eyebrow: 'Sales',
+        title_a: 'Client',
+        title_b: 'missions.',
+        description: 'Track received offers and pushed CVs.',
+        new: 'New mission',
+        tab_available: 'Available',
+        tab_pushed: 'With pushed CV',
+        empty_title: 'No mission',
+        empty_description: 'Add your first client mission or import it from a screenshot.',
+      },
+      contacts: {
+        eyebrow: 'Sales',
+        title_a: 'Contact',
+        title_b: 'book.',
+        description: 'Recruiters, clients, partner ESNs — all your commercial relationships.',
+        new: 'New contact',
+        empty_title: 'No contact',
+        empty_description: 'Add your first contact to start your book.',
+      },
+      contracts: {
+        eyebrow: 'Billing',
+        title_a: 'Your',
+        title_b: 'contracts.',
+        description: 'Service contracts, subcontracting, addenda — the full billable chain.',
+        new: 'New contract',
+        empty_title: 'No contract',
+        empty_description: 'Create your first contract to start the billable chain.',
+      },
+      timesheets: {
+        eyebrow: 'Billing',
+        title_a: 'Activity',
+        title_b: 'timesheets.',
+        description: 'Monthly entry of worked days — basis for invoicing.',
+        new: 'New timesheet',
+        empty_title: 'No timesheet',
+        empty_description: 'Create your first activity report to start invoicing.',
+        kpi_total_days: 'Days worked',
+        kpi_validated_days: 'Validated days',
+        kpi_pending_days: 'Pending',
+        kpi_billable_ratio: 'Billable ratio',
+      },
+      invoices: {
+        eyebrow: 'Billing',
+        title_a: 'Client',
+        title_b: 'invoices.',
+        description: 'Track revenue, collections and follow-ups.',
+        new: 'New invoice',
+        see_archived: 'Show archived',
+        see_active: 'Show active',
+        empty_title: 'No invoice',
+        empty_title_archived: 'No archived invoice',
+        empty_description: 'Create your first invoice to start client billing.',
+        kpi_issued: 'Issued this month',
+        kpi_paid: 'Cashed',
+        kpi_pending: 'Pending',
+        kpi_overdue: 'Overdue',
+      },
+      accounting: {
+        eyebrow: 'Billing',
+        title_a: 'Accounting',
+        title_b: 'assistant.',
+        description: 'Monthly summary of invoices, cash-ins and accounting entries.',
+      },
+      alerts: {
+        eyebrow: 'Overview',
+        title_a: 'Alert',
+        title_b: 'center.',
+        description: 'Signals requiring your attention — sorted by priority.',
+        empty_title: 'All under control',
+        empty_description: 'No active alert.',
+      },
+      todos: {
+        eyebrow: 'Overview',
+        title_a: 'To',
+        title_b: 'do.',
+        description: 'Your personal tasks — private, strict RLS on user_id.',
+      },
+      billing: {
+        eyebrow: 'Organization',
+        title_a: 'Your',
+        title_b: 'subscription.',
+        description: 'Plan, billing, usage — manage your Centrium subscription.',
+      },
+      settings: {
+        eyebrow: 'Organization',
+        title_a: 'Settings',
+        title_b: 'of your firm.',
+        description: 'Personal profile, team, branding, GDPR compliance — steer your Centrium workspace.',
+      },
     },
   },
 };

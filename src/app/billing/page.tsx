@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -56,6 +57,7 @@ export default function BillingPage() {
 
 function BillingPageInner() {
   const { activeOrgId, role } = useOrganization();
+  const t = useAppT();
   const searchParams = useSearchParams();
   const [sub, setSub] = useState<Subscription | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -135,13 +137,14 @@ function BillingPageInner() {
   return (
     <AppShell>
       <PageHeader
-        eyebrow="Facturation"
+        eyebrow={t.pages.billing.eyebrow}
         title={
           <>
-            Abonnement & <span className="qc-italic-accent font-editorial italic">usage.</span>
+            {t.pages.billing.title_a}{' '}
+            <span className="qc-italic-accent font-editorial italic">{t.pages.billing.title_b}</span>
           </>
         }
-        description="Plan de l'organisation, limites, et gestion du paiement."
+        description={t.pages.billing.description}
         actions={
           <div className="flex items-center gap-2">
             <CreditCard className="h-4 w-4 text-violet-glow" />

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import {
@@ -74,6 +75,7 @@ type View = 'active' | 'archived';
 
 export default function ContractsPage() {
   const { activeOrgId } = useOrganization();
+  const t = useAppT();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Contract | undefined>(undefined);
   const [view, setView] = useState<View>('active');
@@ -182,10 +184,11 @@ export default function ContractsPage() {
   return (
     <AppShell>
       <PageHeader
-        eyebrow="Commercial"
+        eyebrow={t.pages.contracts.eyebrow}
         title={
           <>
-            Suivi <span className="qc-italic-accent font-editorial italic">contrats.</span>
+            {t.pages.contracts.title_a}{' '}
+            <span className="qc-italic-accent font-editorial italic">{t.pages.contracts.title_b}</span>
           </>
         }
         description={`${contracts.length} contrat${contracts.length > 1 ? 's' : ''}${

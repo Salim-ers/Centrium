@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import {
   Plus,
   Receipt,
@@ -51,6 +52,7 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 
 function InvoicesPageInner() {
   const { activeOrgId } = useOrganization();
+  const t = useAppT();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
 
@@ -184,13 +186,14 @@ function InvoicesPageInner() {
   return (
     <AppShell>
       <PageHeader
-        eyebrow="Facturation"
+        eyebrow={t.pages.invoices.eyebrow}
         title={
           <>
-            Factures <span className="qc-italic-accent font-editorial italic">clients.</span>
+            {t.pages.invoices.title_a}{' '}
+            <span className="qc-italic-accent font-editorial italic">{t.pages.invoices.title_b}</span>
           </>
         }
-        description="Suivi du chiffre d'affaires, des encaissements et des relances."
+        description={t.pages.invoices.description}
         actions={
           <>
             <Button

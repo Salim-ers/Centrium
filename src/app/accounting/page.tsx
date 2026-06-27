@@ -15,6 +15,7 @@ import {
 import { toast } from 'sonner';
 
 import { AppShell } from '@/components/layout/AppShell';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +35,7 @@ const TONE_STYLES: Record<string, string> = {
 };
 
 export default function AccountingAssistantPage() {
+  const t = useAppT();
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
@@ -87,13 +89,14 @@ export default function AccountingAssistantPage() {
   return (
     <AppShell>
       <PageHeader
-        eyebrow="Facturation"
+        eyebrow={t.pages.accounting.eyebrow}
         title={
           <>
-            Assistant <span className="qc-italic-accent font-editorial italic">comptable.</span>
+            {t.pages.accounting.title_a}{' '}
+            <span className="qc-italic-accent font-editorial italic">{t.pages.accounting.title_b}</span>
           </>
         }
-        description="Analyse des factures, CRA, trésorerie et TVA de ta SAS. Réponses calculées en temps réel depuis tes données."
+        description={t.pages.accounting.description}
         actions={
           <Badge variant="outline" className="bg-violet-500/10 text-violet-300 border-violet-500/20">
             <Sparkles className="h-3 w-3" />

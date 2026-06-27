@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import {
   notifyDestructive,
   notifyError,
@@ -91,6 +92,7 @@ import { formatCurrency } from '@/lib/utils';
  */
 function ConsultantsPageInner() {
   const { activeOrgId } = useOrganization();
+  const t = useAppT();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -381,17 +383,12 @@ function ConsultantsPageInner() {
     <AppShell>
       <TalentTabs active="consultants" counts={{ consultants: allInPool.length }} />
       <PageHeader
-        eyebrow="Talents"
+        eyebrow={t.pages.consultants.eyebrow}
         title={
-          showArchived ? (
-            <>
-              Profils <span className="qc-italic-accent font-editorial italic">archivés.</span>
-            </>
-          ) : (
-            <>
-              Bibliothèque <span className="qc-italic-accent font-editorial italic">consultants.</span>
-            </>
-          )
+          <>
+            {t.pages.consultants.title_a}{' '}
+            <span className="qc-italic-accent font-editorial italic">{t.pages.consultants.title_b}</span>
+          </>
         }
         description={headerSub}
         actions={

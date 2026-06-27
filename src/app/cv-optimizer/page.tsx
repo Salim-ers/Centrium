@@ -33,6 +33,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ConsultantCombobox } from '@/components/ui/ConsultantCombobox';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 
 import { CVRenderer } from '@/components/cv/CVRenderer';
 import { CVPreviewBoundary } from '@/components/cv/CVPreviewBoundary';
@@ -75,6 +76,7 @@ function CVOptimizerPageInner() {
   const initialId = params?.get('consultantId') ?? '';
   const initialOfferId = params?.get('offerId') ?? '';
   const { branding } = useOrganization();
+  const t = useAppT();
   const brand = useMemo(() => resolveBrand(branding), [branding]);
 
   const [consultants, setConsultants] = useState<Consultant[]>([]);
@@ -542,13 +544,14 @@ function CVOptimizerPageInner() {
     <AppShell>
       <div className="no-print">
         <PageHeader
-          eyebrow="Talents"
+          eyebrow={t.pages.cv_optimizer.eyebrow}
           title={
             <>
-              CV Optimizer <span className="qc-italic-accent font-editorial italic">IA.</span>
+              {t.pages.cv_optimizer.title_a}{' '}
+              <span className="qc-italic-accent font-editorial italic">{t.pages.cv_optimizer.title_b}</span>
             </>
           }
-          description="Sélectionne un consultant — le CV se génère automatiquement. Colle une offre pour aligner le wording."
+          description={t.pages.cv_optimizer.description}
           actions={
             <>
               <Button

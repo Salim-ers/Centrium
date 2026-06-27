@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PageHeader, StatusBadge, type StatusTone } from '@/components/app';
@@ -102,6 +103,7 @@ const DRAG_MIME = 'application/x-todo-id';
  */
 export default function TodosPage() {
   const { user, activeOrgId } = useOrganization();
+  const t = useAppT();
   const [filter, setFilter] = useState<'pending' | 'done' | 'all'>('pending');
   const [editing, setEditing] = useState<Todo | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -395,11 +397,11 @@ export default function TodosPage() {
   return (
     <AppShell>
       <PageHeader
-        eyebrow="Productivité"
+        eyebrow={t.pages.todos.eyebrow}
         title={
           <>
-            To do{' '}
-            <span className="qc-italic-accent font-editorial italic">list.</span>
+            {t.pages.todos.title_a}{' '}
+            <span className="qc-italic-accent font-editorial italic">{t.pages.todos.title_b}</span>
           </>
         }
         description={

@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import {
   ClipboardCheck,
   CheckCircle2,
@@ -59,6 +60,7 @@ const STATUS_LABEL: Record<Timesheet['status'], string> = {
 
 function TimesheetsPageInner() {
   const { activeOrgId } = useOrganization();
+  const t = useAppT();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const {
@@ -162,13 +164,14 @@ function TimesheetsPageInner() {
   return (
     <AppShell>
       <PageHeader
-        eyebrow="Facturation"
+        eyebrow={t.pages.timesheets.eyebrow}
         title={
           <>
-            Comptes-rendus <span className="qc-italic-accent font-editorial italic">d'activité.</span>
+            {t.pages.timesheets.title_a}{' '}
+            <span className="qc-italic-accent font-editorial italic">{t.pages.timesheets.title_b}</span>
           </>
         }
-        description="Validation et suivi mensuel des CRA — générez les factures en un clic."
+        description={t.pages.timesheets.description}
         actions={
           <Button onClick={() => setDialogOpen(true)}>
             <Plus className="h-4 w-4" />

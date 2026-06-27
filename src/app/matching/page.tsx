@@ -24,6 +24,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { matchingService, type MatchResult } from '@/lib/services/matching.service';
 import { JobOfferFormDialog } from '@/components/offers/JobOfferFormDialog';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { AssignMissionDialog } from '@/components/missions/AssignMissionDialog';
 import { useOrganization } from '@/lib/auth/context';
 import type { JobOffer, Consultant } from '@/types';
@@ -32,6 +33,7 @@ import { formatCurrency } from '@/lib/utils';
 
 function MatchingInner() {
   const { activeOrgId } = useOrganization();
+  const t = useAppT();
   const searchParams = useSearchParams();
   const [offers, setOffers] = useState<JobOffer[]>([]);
   const [offerId, setOfferId] = useState<string>('');
@@ -144,13 +146,14 @@ function MatchingInner() {
       />
 
       <PageHeader
-        eyebrow="Commercial"
+        eyebrow={t.pages.matching.eyebrow}
         title={
           <>
-            Matching <span className="qc-italic-accent font-editorial italic">IA.</span>
+            {t.pages.matching.title_a}{' '}
+            <span className="qc-italic-accent font-editorial italic">{t.pages.matching.title_b}</span>
           </>
         }
-        description="Trouve les meilleurs profils pour chaque offre client — scoring multi-critères sur skills, séniorité, TJM et disponibilité."
+        description={t.pages.matching.description}
         actions={
           <>
             <Button variant="outline" asChild>

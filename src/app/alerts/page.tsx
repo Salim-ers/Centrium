@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { alertService, type ComputedAlert } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
@@ -119,6 +120,7 @@ const KIND_LABEL_FR: Record<string, string> = {
 
 export default function AlertsPage() {
   const { activeOrgId } = useOrganization();
+  const t = useAppT();
 
   const {
     data: alertsData,
@@ -177,14 +179,14 @@ export default function AlertsPage() {
   return (
     <AppShell>
       <PageHeader
-        eyebrow="Pilotage"
+        eyebrow={t.pages.alerts.eyebrow}
         title={
           <>
-            Alertes{' '}
-            <span className="qc-italic-accent font-editorial italic">prioritaires.</span>
+            {t.pages.alerts.title_a}{' '}
+            <span className="qc-italic-accent font-editorial italic">{t.pages.alerts.title_b}</span>
           </>
         }
-        description="Signaux à traiter, classés par importance et calculés en temps réel sur ton activité."
+        description={t.pages.alerts.description}
       />
 
       {/* Sommaire en chips */}
