@@ -120,9 +120,9 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
           <div>
-            <Label>Mission *</Label>
+            <Label>{t.forms.timesheet.mission} *</Label>
             <Select {...register('mission_id')}>
-              <option value="">— Choisir une mission —</option>
+              <option value="">— {t.forms.timesheet.mission} —</option>
               {missions.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.consultant

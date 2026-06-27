@@ -439,7 +439,7 @@ export function JobOfferFormDialog({
           )}
 
           <div>
-            <Label>Intitulé de la mission *</Label>
+            <Label>{t.forms.job_offer.title_field} *</Label>
             <Input {...register('title')} placeholder="ex: Lead Dev Backend — Banque de détail" />
             {errors.title && (
               <p className="text-xs text-red-400 mt-1">{errors.title.message}</p>
@@ -447,7 +447,7 @@ export function JobOfferFormDialog({
           </div>
 
           <div>
-            <Label>Description</Label>
+            <Label>{t.forms.job_offer.description}</Label>
             <Textarea
               {...register('description')}
               rows={4}
@@ -457,7 +457,7 @@ export function JobOfferFormDialog({
 
           {/* Compétences requises */}
           <div>
-            <Label>Compétences requises *</Label>
+            <Label>{t.forms.job_offer.required_skills} *</Label>
             <div className="flex gap-2">
               <Input
                 value={skillInput}
