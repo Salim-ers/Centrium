@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import {
@@ -102,6 +103,7 @@ export function JobOfferFormDialog({
   onSaved,
   offer,
 }: Props) {
+  const t = useAppT();
   const [saving, setSaving] = useState(false);
   const [requiredSkills, setRequiredSkills] = useState<string[]>([]);
   const [niceToHave, setNiceToHave] = useState<string[]>([]);
@@ -301,7 +303,7 @@ export function JobOfferFormDialog({
         toast.error(res.error.message);
         return;
       }
-      toast.success(isEdit ? 'Offre mise à jour' : 'Offre créée');
+      toast.success(isEdit ? t.forms.job_offer.updated : t.forms.job_offer.created);
       onSaved?.(res.data);
       reset();
       onOpenChange(false);
@@ -317,12 +319,7 @@ export function JobOfferFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <FormDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Éditer l\'offre' : 'Nouvelle offre / mission'}</DialogTitle>
-          <DialogDescription>
-            {isEdit
-              ? 'Modifie les informations de l\'offre'
-              : 'Décris la mission pour ensuite matcher les meilleurs consultants'}
-          </DialogDescription>
+          <DialogTitle>{isEdit ? t.forms.job_offer.title_edit : t.forms.job_offer.title_create}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
@@ -706,11 +703,11 @@ export function JobOfferFormDialog({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Annuler
+              {t.actions.cancel}
             </Button>
             <Button type="submit" disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isEdit ? 'Enregistrer' : 'Créer l\'offre'}
+              {isEdit ? t.actions.save : t.actions.create}
             </Button>
           </DialogFooter>
         </form>

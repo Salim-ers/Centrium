@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { notifyCreated, notifyUpdated, notifyError } from '@/lib/notify';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { Loader2, UserPlus, Mail, FileUp, Sparkles, CheckCircle2 } from 'lucide-react';
 
 import {
@@ -100,6 +101,7 @@ export function ConsultantFormDialog({
   consultant,
   isProspect = false,
 }: Props) {
+  const t = useAppT();
   const [saving, setSaving] = useState(false);
   const [planLimit, setPlanLimit] = useState<PlanLimitPayload | null>(null);
   const org = useOrganizationSafe();
@@ -400,19 +402,8 @@ export function ConsultantFormDialog({
       >
         <DialogHeader>
           <DialogTitle>
-            {isEdit
-              ? 'Éditer le consultant'
-              : isProspect
-                ? 'Nouveau prospect'
-                : 'Nouveau consultant'}
+            {isEdit ? t.forms.consultant.title_edit : t.forms.consultant.title_create}
           </DialogTitle>
-          <DialogDescription>
-            {isEdit
-              ? 'Modifie les informations du consultant'
-              : isProspect
-                ? 'Ajoute un profil à ton vivier. Il ne compte pas dans l\'effectif tant que tu ne le promeus pas.'
-                : 'Ajoute un consultant à ta bibliothèque'}
-          </DialogDescription>
         </DialogHeader>
 
         <form
@@ -616,11 +607,11 @@ export function ConsultantFormDialog({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Annuler
+              {t.actions.cancel}
             </Button>
             <Button type="submit" disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isEdit ? 'Enregistrer' : 'Créer'}
+              {isEdit ? t.actions.save : t.actions.create}
             </Button>
           </DialogFooter>
         </form>

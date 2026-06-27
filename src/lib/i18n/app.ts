@@ -130,6 +130,176 @@ export type AppDict = {
     lead: string;
     architect: string;
   };
+  // ---------- Formulaires (modales de création / édition) ----------
+  forms: {
+    consultant: {
+      title_create: string;
+      title_edit: string;
+      first_name: string;
+      last_name: string;
+      email: string;
+      phone: string;
+      linkedin: string;
+      job_title: string;
+      sub_title: string;
+      seniority: string;
+      years_xp: string;
+      city: string;
+      country: string;
+      mobility: string;
+      daily_rate: string;
+      contract_type: string;
+      summary: string;
+      summary_placeholder: string;
+      languages: string;
+      saving: string;
+      created: string;
+      updated: string;
+    };
+    opportunity: {
+      title_create: string;
+      title_edit: string;
+      title_field: string;
+      company: string;
+      contact: string;
+      status: string;
+      priority: string;
+      expected_revenue: string;
+      probability: string;
+      daily_rate: string;
+      duration_months: string;
+      expected_close: string;
+      next_follow_up: string;
+      notes: string;
+      created: string;
+      updated: string;
+      deleted: string;
+    };
+    invoice: {
+      title_create: string;
+      title_edit: string;
+      invoice_number: string;
+      mission: string;
+      consultant: string;
+      issue_date: string;
+      due_date: string;
+      period: string;
+      amount_ht: string;
+      vat_rate: string;
+      payment_terms: string;
+      created: string;
+      updated: string;
+      marked_paid: string;
+      marked_sent: string;
+      deleted: string;
+    };
+    job_offer: {
+      title_create: string;
+      title_edit: string;
+      title_field: string;
+      description: string;
+      required_skills: string;
+      nice_to_have: string;
+      seniority: string;
+      daily_rate_min: string;
+      daily_rate_max: string;
+      location: string;
+      remote_days: string;
+      start_date: string;
+      duration_months: string;
+      deadline: string;
+      source: string;
+      created: string;
+      updated: string;
+    };
+    contract: {
+      title_create: string;
+      title_edit: string;
+      kind: string;
+      reference: string;
+      consultant: string;
+      client: string;
+      start_date: string;
+      end_date: string;
+      daily_rate: string;
+      status: string;
+      created: string;
+      updated: string;
+      archived: string;
+    };
+    timesheet: {
+      title_create: string;
+      title_edit: string;
+      mission: string;
+      period: string;
+      days_worked: string;
+      days_validated: string;
+      status: string;
+      created: string;
+      validated: string;
+      rejected: string;
+    };
+    common: {
+      required_field: string;
+      invalid_email: string;
+      saving: string;
+      validation_error: string;
+    };
+  };
+  // ---------- Toasts génériques ----------
+  toasts: {
+    saved: string;
+    deleted: string;
+    archived: string;
+    restored: string;
+    copied: string;
+    error_generic: string;
+    error_network: string;
+    error_permission: string;
+    confirm_delete: string;
+    confirm_archive: string;
+  };
+  // ---------- Badges / chips / statuts métier ----------
+  badges: {
+    opportunity_status: {
+      new: string;
+      contacted: string;
+      discussion: string;
+      cv_sent: string;
+      client_interview: string;
+      negotiation: string;
+      won: string;
+      lost: string;
+      on_hold: string;
+    };
+    invoice_status: {
+      draft: string;
+      sent: string;
+      paid: string;
+      overdue: string;
+      cancelled: string;
+    };
+    timesheet_status: {
+      draft: string;
+      submitted: string;
+      client_validated: string;
+      rejected: string;
+    };
+    mission_status: {
+      proposed: string;
+      active: string;
+      ended: string;
+      suspended: string;
+      rejected: string;
+    };
+    contract_status: {
+      draft: string;
+      signed: string;
+      active: string;
+      ended: string;
+      cancelled: string;
+    };
+  };
   // ---------- Pages secondaires (PageHeader + KPIs + EmptyStates) ----------
   pages: {
     consultants: {
@@ -396,6 +566,173 @@ export const APP_DICT: Record<Locale, AppDict> = {
       lead: 'Lead',
       architect: 'Architecte',
     },
+    forms: {
+      consultant: {
+        title_create: 'Nouveau consultant',
+        title_edit: 'Éditer le consultant',
+        first_name: 'Prénom',
+        last_name: 'Nom',
+        email: 'Email',
+        phone: 'Téléphone',
+        linkedin: 'LinkedIn',
+        job_title: 'Poste',
+        sub_title: 'Sous-titre',
+        seniority: 'Séniorité',
+        years_xp: "Années d'expérience",
+        city: 'Ville',
+        country: 'Pays',
+        mobility: 'Mobilité',
+        daily_rate: 'TJM (€)',
+        contract_type: 'Type de contrat',
+        summary: 'Résumé exécutif',
+        summary_placeholder: 'Décrivez le profil en quelques phrases…',
+        languages: 'Langues',
+        saving: 'Enregistrement…',
+        created: 'Consultant créé',
+        updated: 'Consultant mis à jour',
+      },
+      opportunity: {
+        title_create: 'Nouvelle opportunité',
+        title_edit: "Éditer l'opportunité",
+        title_field: 'Intitulé',
+        company: 'Société',
+        contact: 'Contact',
+        status: 'Statut',
+        priority: 'Priorité',
+        expected_revenue: 'CA prévisionnel',
+        probability: 'Probabilité (%)',
+        daily_rate: 'TJM (€)',
+        duration_months: 'Durée (mois)',
+        expected_close: 'Closing prévu',
+        next_follow_up: 'Prochaine relance',
+        notes: 'Notes',
+        created: 'Opportunité créée',
+        updated: 'Opportunité mise à jour',
+        deleted: 'Opportunité supprimée',
+      },
+      invoice: {
+        title_create: 'Nouvelle facture',
+        title_edit: 'Éditer la facture',
+        invoice_number: 'N° facture',
+        mission: 'Mission',
+        consultant: 'Consultant',
+        issue_date: "Date d'émission",
+        due_date: "Date d'échéance",
+        period: 'Période',
+        amount_ht: 'Montant HT (€)',
+        vat_rate: 'TVA (%)',
+        payment_terms: 'Conditions de paiement',
+        created: 'Facture créée',
+        updated: 'Facture mise à jour',
+        marked_paid: 'Facture marquée payée',
+        marked_sent: 'Facture marquée envoyée',
+        deleted: 'Facture supprimée',
+      },
+      job_offer: {
+        title_create: 'Nouvelle offre',
+        title_edit: "Éditer l'offre",
+        title_field: 'Intitulé',
+        description: 'Description',
+        required_skills: 'Compétences requises',
+        nice_to_have: 'Nice to have',
+        seniority: 'Séniorité',
+        daily_rate_min: 'TJM min (€)',
+        daily_rate_max: 'TJM max (€)',
+        location: 'Localisation',
+        remote_days: 'Jours remote',
+        start_date: 'Date de début',
+        duration_months: 'Durée (mois)',
+        deadline: 'Deadline',
+        source: 'Source',
+        created: 'Offre créée',
+        updated: 'Offre mise à jour',
+      },
+      contract: {
+        title_create: 'Nouveau contrat',
+        title_edit: 'Éditer le contrat',
+        kind: 'Type',
+        reference: 'Référence',
+        consultant: 'Consultant',
+        client: 'Client',
+        start_date: 'Date de début',
+        end_date: 'Date de fin',
+        daily_rate: 'TJM (€)',
+        status: 'Statut',
+        created: 'Contrat créé',
+        updated: 'Contrat mis à jour',
+        archived: 'Contrat archivé',
+      },
+      timesheet: {
+        title_create: 'Nouveau CRA',
+        title_edit: 'Éditer le CRA',
+        mission: 'Mission',
+        period: 'Période',
+        days_worked: 'Jours travaillés',
+        days_validated: 'Jours validés',
+        status: 'Statut',
+        created: 'CRA créé',
+        validated: 'CRA validé',
+        rejected: 'CRA rejeté',
+      },
+      common: {
+        required_field: 'Champ requis',
+        invalid_email: 'Email invalide',
+        saving: 'Enregistrement…',
+        validation_error: 'Vérifie les champs en erreur',
+      },
+    },
+    toasts: {
+      saved: 'Enregistré',
+      deleted: 'Supprimé',
+      archived: 'Archivé',
+      restored: 'Restauré',
+      copied: 'Copié',
+      error_generic: 'Une erreur est survenue',
+      error_network: 'Erreur réseau',
+      error_permission: 'Action non autorisée',
+      confirm_delete: 'Supprimer définitivement ?',
+      confirm_archive: 'Archiver ?',
+    },
+    badges: {
+      opportunity_status: {
+        new: 'Nouveau',
+        contacted: 'Contacté',
+        discussion: 'En discussion',
+        cv_sent: 'CV envoyé',
+        client_interview: 'Entretien client',
+        negotiation: 'Négociation',
+        won: 'Gagnée',
+        lost: 'Perdue',
+        on_hold: 'En veille',
+      },
+      invoice_status: {
+        draft: 'Brouillon',
+        sent: 'Envoyée',
+        paid: 'Payée',
+        overdue: 'En retard',
+        cancelled: 'Annulée',
+      },
+      timesheet_status: {
+        draft: 'Brouillon',
+        submitted: 'Soumis',
+        client_validated: 'Validé',
+        rejected: 'Rejeté',
+      },
+      mission_status: {
+        proposed: 'CV poussé',
+        active: 'Active',
+        ended: 'Terminée',
+        suspended: 'Suspendue',
+        rejected: 'Rejetée',
+      },
+      contract_status: {
+        draft: 'Brouillon',
+        signed: 'Signé',
+        active: 'Actif',
+        ended: 'Terminé',
+        cancelled: 'Annulé',
+      },
+    },
     pages: {
       consultants: {
         eyebrow: 'Talents',
@@ -658,6 +995,173 @@ export const APP_DICT: Record<Locale, AppDict> = {
       expert: 'Expert',
       lead: 'Lead',
       architect: 'Architect',
+    },
+    forms: {
+      consultant: {
+        title_create: 'New consultant',
+        title_edit: 'Edit consultant',
+        first_name: 'First name',
+        last_name: 'Last name',
+        email: 'Email',
+        phone: 'Phone',
+        linkedin: 'LinkedIn',
+        job_title: 'Job title',
+        sub_title: 'Subtitle',
+        seniority: 'Seniority',
+        years_xp: 'Years of experience',
+        city: 'City',
+        country: 'Country',
+        mobility: 'Mobility',
+        daily_rate: 'Day rate (€)',
+        contract_type: 'Contract type',
+        summary: 'Executive summary',
+        summary_placeholder: 'Describe the profile in a few sentences…',
+        languages: 'Languages',
+        saving: 'Saving…',
+        created: 'Consultant created',
+        updated: 'Consultant updated',
+      },
+      opportunity: {
+        title_create: 'New opportunity',
+        title_edit: 'Edit opportunity',
+        title_field: 'Title',
+        company: 'Company',
+        contact: 'Contact',
+        status: 'Status',
+        priority: 'Priority',
+        expected_revenue: 'Expected revenue',
+        probability: 'Probability (%)',
+        daily_rate: 'Day rate (€)',
+        duration_months: 'Duration (months)',
+        expected_close: 'Expected close',
+        next_follow_up: 'Next follow-up',
+        notes: 'Notes',
+        created: 'Opportunity created',
+        updated: 'Opportunity updated',
+        deleted: 'Opportunity deleted',
+      },
+      invoice: {
+        title_create: 'New invoice',
+        title_edit: 'Edit invoice',
+        invoice_number: 'Invoice #',
+        mission: 'Mission',
+        consultant: 'Consultant',
+        issue_date: 'Issue date',
+        due_date: 'Due date',
+        period: 'Period',
+        amount_ht: 'Amount excl. VAT (€)',
+        vat_rate: 'VAT (%)',
+        payment_terms: 'Payment terms',
+        created: 'Invoice created',
+        updated: 'Invoice updated',
+        marked_paid: 'Invoice marked paid',
+        marked_sent: 'Invoice marked sent',
+        deleted: 'Invoice deleted',
+      },
+      job_offer: {
+        title_create: 'New offer',
+        title_edit: 'Edit offer',
+        title_field: 'Title',
+        description: 'Description',
+        required_skills: 'Required skills',
+        nice_to_have: 'Nice to have',
+        seniority: 'Seniority',
+        daily_rate_min: 'Min day rate (€)',
+        daily_rate_max: 'Max day rate (€)',
+        location: 'Location',
+        remote_days: 'Remote days',
+        start_date: 'Start date',
+        duration_months: 'Duration (months)',
+        deadline: 'Deadline',
+        source: 'Source',
+        created: 'Offer created',
+        updated: 'Offer updated',
+      },
+      contract: {
+        title_create: 'New contract',
+        title_edit: 'Edit contract',
+        kind: 'Type',
+        reference: 'Reference',
+        consultant: 'Consultant',
+        client: 'Client',
+        start_date: 'Start date',
+        end_date: 'End date',
+        daily_rate: 'Day rate (€)',
+        status: 'Status',
+        created: 'Contract created',
+        updated: 'Contract updated',
+        archived: 'Contract archived',
+      },
+      timesheet: {
+        title_create: 'New timesheet',
+        title_edit: 'Edit timesheet',
+        mission: 'Mission',
+        period: 'Period',
+        days_worked: 'Days worked',
+        days_validated: 'Validated days',
+        status: 'Status',
+        created: 'Timesheet created',
+        validated: 'Timesheet validated',
+        rejected: 'Timesheet rejected',
+      },
+      common: {
+        required_field: 'Required field',
+        invalid_email: 'Invalid email',
+        saving: 'Saving…',
+        validation_error: 'Check fields in error',
+      },
+    },
+    toasts: {
+      saved: 'Saved',
+      deleted: 'Deleted',
+      archived: 'Archived',
+      restored: 'Restored',
+      copied: 'Copied',
+      error_generic: 'An error occurred',
+      error_network: 'Network error',
+      error_permission: 'Action not allowed',
+      confirm_delete: 'Delete permanently?',
+      confirm_archive: 'Archive?',
+    },
+    badges: {
+      opportunity_status: {
+        new: 'New',
+        contacted: 'Contacted',
+        discussion: 'In discussion',
+        cv_sent: 'CV sent',
+        client_interview: 'Client interview',
+        negotiation: 'Negotiation',
+        won: 'Won',
+        lost: 'Lost',
+        on_hold: 'On hold',
+      },
+      invoice_status: {
+        draft: 'Draft',
+        sent: 'Sent',
+        paid: 'Paid',
+        overdue: 'Overdue',
+        cancelled: 'Cancelled',
+      },
+      timesheet_status: {
+        draft: 'Draft',
+        submitted: 'Submitted',
+        client_validated: 'Validated',
+        rejected: 'Rejected',
+      },
+      mission_status: {
+        proposed: 'CV pushed',
+        active: 'Active',
+        ended: 'Ended',
+        suspended: 'Suspended',
+        rejected: 'Rejected',
+      },
+      contract_status: {
+        draft: 'Draft',
+        signed: 'Signed',
+        active: 'Active',
+        ended: 'Ended',
+        cancelled: 'Cancelled',
+      },
     },
     pages: {
       consultants: {

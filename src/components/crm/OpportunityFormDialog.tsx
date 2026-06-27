@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -58,6 +59,7 @@ export function OpportunityFormDialog({
   onSaved,
   opportunity,
 }: Props) {
+  const t = useAppT();
   const [saving, setSaving] = useState(false);
   const isEdit = !!opportunity;
 
@@ -85,7 +87,7 @@ export function OpportunityFormDialog({
         toast.error('Erreur : ' + res.error.message);
         return;
       }
-      toast.success(isEdit ? 'Opportunité mise à jour' : 'Opportunité créée');
+      toast.success(isEdit ? t.forms.opportunity.updated : t.forms.opportunity.created);
       onSaved?.(res.data);
       reset();
       onOpenChange(false);
@@ -98,12 +100,7 @@ export function OpportunityFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <FormDialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Éditer l\'opportunité' : 'Nouvelle opportunité'}</DialogTitle>
-          <DialogDescription>
-            {isEdit
-              ? 'Modifie les informations de cette opportunité'
-              : 'Ajoute une opportunité au pipeline commercial'}
-          </DialogDescription>
+          <DialogTitle>{isEdit ? t.forms.opportunity.title_edit : t.forms.opportunity.title_create}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
@@ -181,11 +178,11 @@ export function OpportunityFormDialog({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Annuler
+              {t.actions.cancel}
             </Button>
             <Button type="submit" disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isEdit ? 'Enregistrer' : 'Créer'}
+              {isEdit ? t.actions.save : t.actions.create}
             </Button>
           </DialogFooter>
         </form>

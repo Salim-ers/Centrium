@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -55,6 +56,7 @@ const MONTHS = [
 ];
 
 export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSaved }: Props) {
+  const t = useAppT();
   const [saving, setSaving] = useState(false);
   const [missions, setMissions] = useState<MissionRow[]>([]);
   const now = new Date();
@@ -113,10 +115,7 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
     <Dialog open={open} onOpenChange={onOpenChange}>
       <FormDialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>Nouveau CRA</DialogTitle>
-          <DialogDescription>
-            Crée un compte rendu d&apos;activité mensuel lié à une mission active.
-          </DialogDescription>
+          <DialogTitle>{t.forms.timesheet.title_create}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
@@ -180,11 +179,11 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Annuler
+              {t.actions.cancel}
             </Button>
             <Button type="submit" disabled={saving || missions.length === 0}>
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              Créer le CRA
+              {t.actions.create}
             </Button>
           </DialogFooter>
         </form>

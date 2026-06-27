@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Plus, X } from 'lucide-react';
 
@@ -54,6 +55,7 @@ function plus30DaysISO() {
 }
 
 export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved }: Props) {
+  const t = useAppT();
   const [saving, setSaving] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [consultants, setConsultants] = useState<Consultant[]>([]);
@@ -209,10 +211,7 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <FormDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nouvelle facture</DialogTitle>
-          <DialogDescription>
-            Crée une facture en brouillon. Tu pourras l&apos;envoyer ensuite depuis la liste.
-          </DialogDescription>
+          <DialogTitle>{t.forms.invoice.title_create}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
@@ -425,11 +424,11 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Annuler
+              {t.actions.cancel}
             </Button>
             <Button type="submit" disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              Créer
+              {t.actions.create}
             </Button>
           </DialogFooter>
         </form>

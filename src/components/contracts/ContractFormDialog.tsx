@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Loader2, Briefcase } from 'lucide-react';
@@ -72,6 +73,7 @@ export function ContractFormDialog({
   contract,
   onSaved,
 }: Props) {
+  const t = useAppT();
   const [consultants, setConsultants] = useState<Consultant[]>([]);
   const [missions, setMissions] = useState<MissionOption[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
@@ -294,7 +296,7 @@ export function ContractFormDialog({
         toast.error(`Erreur : ${res.error.message}`);
         return;
       }
-      toast.success(isEdit ? 'Contrat mis à jour' : 'Contrat créé');
+      toast.success(isEdit ? t.forms.contract.updated : t.forms.contract.created);
       onSaved?.(res.data);
       onOpenChange(false);
     } finally {
@@ -307,11 +309,8 @@ export function ContractFormDialog({
       <FormDialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {isEdit ? 'Modifier le contrat' : 'Nouveau contrat d\'assistance technique'}
+            {isEdit ? t.forms.contract.title_edit : t.forms.contract.title_create}
           </DialogTitle>
-          <DialogDescription>
-            Génère un contrat QuadCore prêt à envoyer au fournisseur
-          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-2">
