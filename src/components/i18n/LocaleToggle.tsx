@@ -57,26 +57,39 @@ export function LocaleToggle({
     );
   }
 
-  // Variante "app" : adaptive light/dark via les variables foreground/hairline.
+  // Variante "app" : pill 2 segments très visible, adaptive light/dark.
   // Conçue pour le Header app où le fond peut être crème (light) ou noir (dark).
   if (variant === 'app') {
-    const next: Locale = locale === 'fr' ? 'en' : 'fr';
     return (
-      <button
-        type="button"
-        onClick={() => setLocale(next)}
+      <div
         className={[
-          'inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md border border-hairline bg-foreground/[0.03]',
-          'text-[11px] font-semibold tracking-[0.15em] text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition',
+          'inline-flex items-center rounded-md border border-hairline bg-foreground/[0.05] p-0.5 shrink-0',
           className,
         ].join(' ')}
-        aria-label={`Switch to ${next.toUpperCase()}`}
-        title={`Switch to ${next.toUpperCase()}`}
+        role="group"
+        aria-label="Langue / Language"
       >
-        <span className={locale === 'fr' ? 'text-foreground' : 'text-muted-foreground/50'}>FR</span>
-        <span className="text-muted-foreground/30">/</span>
-        <span className={locale === 'en' ? 'text-foreground' : 'text-muted-foreground/50'}>EN</span>
-      </button>
+        {LOCALES.map((l) => {
+          const active = l.code === locale;
+          return (
+            <button
+              key={l.code}
+              type="button"
+              onClick={() => setLocale(l.code)}
+              aria-pressed={active}
+              title={l.code === 'fr' ? 'Français' : 'English'}
+              className={[
+                'px-2.5 py-1 text-[11px] font-bold tracking-[0.15em] rounded transition-all',
+                active
+                  ? 'bg-foreground text-background shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              ].join(' ')}
+            >
+              {l.label}
+            </button>
+          );
+        })}
+      </div>
     );
   }
 
