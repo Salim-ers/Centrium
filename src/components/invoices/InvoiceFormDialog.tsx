@@ -217,7 +217,7 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>N° facture *</Label>
+              <Label>{t.forms.invoice.invoice_number} *</Label>
               <Input {...register('invoice_number')} />
               {errors.invoice_number && (
                 <p className="text-xs text-red-400 mt-1">{errors.invoice_number.message}</p>
@@ -397,7 +397,7 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label>Montant HT (€) *</Label>
+              <Label>{t.forms.invoice.amount_ht} *</Label>
               <Input type="number" min="0" step="0.01" {...register('amount_ht')} />
               {errors.amount_ht && (
                 <p className="text-xs text-red-400 mt-1">Montant obligatoire</p>

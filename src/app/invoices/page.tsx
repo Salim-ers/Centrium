@@ -96,14 +96,14 @@ function InvoicesPageInner() {
   async function markPaid(id: string) {
     const res = await invoiceService.markAsPaid(id);
     if (res.error) return toast.error('Erreur : ' + res.error.message);
-    toast.success('Facture marquée payée');
+    toast.success(t.forms.invoice.marked_paid);
     reload();
   }
 
   async function markSent(id: string) {
     const res = await invoiceService.markAsSent(id);
     if (res.error) return toast.error('Erreur : ' + res.error.message);
-    toast.success('Facture marquée envoyée');
+    toast.success(t.forms.invoice.marked_sent);
     reload();
   }
 
@@ -144,7 +144,7 @@ function InvoicesPageInner() {
       return;
     const res = await invoiceService.remove(inv.id);
     if (res.error) return toast.error(res.error.message);
-    toast.success(`Facture ${inv.invoice_number} supprimée`);
+    toast.success(`${t.forms.invoice.deleted} — ${inv.invoice_number}`);
     reload();
   }
 

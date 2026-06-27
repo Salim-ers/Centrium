@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useTimesheetStatusLabels } from '@/lib/i18n/useBadges';
 import {
   ClipboardCheck,
   CheckCircle2,
@@ -61,6 +62,7 @@ const STATUS_LABEL: Record<Timesheet['status'], string> = {
 function TimesheetsPageInner() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
+  const tsLabels = useTimesheetStatusLabels();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const {
@@ -288,7 +290,7 @@ function TimesheetsPageInner() {
                     <TableCell>{t.days_validated}</TableCell>
                     <TableCell>
                       <StatusBadge tone={statusToTone(t.status)}>
-                        {STATUS_LABEL[t.status]}
+                        {tsLabels[t.status as keyof typeof tsLabels] ?? STATUS_LABEL[t.status]}
                       </StatusBadge>
                     </TableCell>
                     <TableCell className="text-right">

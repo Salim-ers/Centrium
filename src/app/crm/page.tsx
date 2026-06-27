@@ -173,7 +173,7 @@ export default function CRMPage() {
       return;
     }
     setOpportunities((prev) => (prev ?? []).filter((o) => o.id !== id));
-    toast.success('Opportunité supprimée');
+    toast.success(t.forms.opportunity.deleted);
     void broadcastOrgActivity(activeOrgId, user?.id, 'opportunity_deleted', title, '/crm');
   }
 

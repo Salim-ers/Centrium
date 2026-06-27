@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useContractStatusLabels } from '@/lib/i18n/useBadges';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import {
@@ -76,6 +77,7 @@ type View = 'active' | 'archived';
 export default function ContractsPage() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
+  const ctLabels = useContractStatusLabels();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Contract | undefined>(undefined);
   const [view, setView] = useState<View>('active');
@@ -111,7 +113,7 @@ export default function ContractsPage() {
     setContracts((prev) =>
       (prev ?? []).map((c) => (c.id === id ? { ...c, status } : c)),
     );
-    toast.success('Statut mis à jour');
+    toast.success(t.toasts.saved);
   }
 
   async function archive(id: string) {
@@ -145,7 +147,7 @@ export default function ContractsPage() {
       return;
     }
     setContracts((prev) => (prev ?? []).filter((x) => x.id !== c.id));
-    toast.success('Contrat supprimé');
+    toast.success(t.toasts.deleted);
   }
 
   function openEdit(c: Contract) {
@@ -308,7 +310,7 @@ export default function ContractsPage() {
                         </TableCell>
                         <TableCell>
                           <StatusBadge tone={STATUS_TONE[c.status]}>
-                            {STATUS_LABEL[c.status]}
+                            {ctLabels[c.status as keyof typeof ctLabels] ?? STATUS_LABEL[c.status]}
                           </StatusBadge>
                         </TableCell>
                         <TableCell className="text-right">
