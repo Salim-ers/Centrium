@@ -67,14 +67,16 @@ import {
   type JobFamilyId,
 } from '@/lib/consultants/job-family';
 
-const SENIORITY_LABEL: Record<string, string> = {
-  junior: 'Junior',
-  confirmed: 'Confirmé',
-  senior: 'Senior',
-  expert: 'Expert',
-  lead: 'Lead',
-  architect: 'Architecte',
-};
+function getSeniorityLabel(t: ReturnType<typeof useAppT>): Record<string, string> {
+  return {
+    junior: t.seniority.junior,
+    confirmed: t.seniority.confirmed,
+    senior: t.seniority.senior,
+    expert: t.seniority.expert,
+    lead: t.seniority.lead,
+    architect: t.seniority.architect,
+  };
+}
 
 /**
  * Liste des offres / missions. Une seule "vue active" — on ne distingue
@@ -85,6 +87,7 @@ const SENIORITY_LABEL: Record<string, string> = {
 export default function OffersPage() {
   const { activeOrgId, branding } = useOrganization();
   const t = useAppT();
+  const seniorityLabel = getSeniorityLabel(t);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<JobOffer | null>(null);
   const [exportingOfferId, setExportingOfferId] = useState<string | null>(null);
@@ -226,16 +229,16 @@ export default function OffersPage() {
 
   async function handleOfferBulkArchive() {
     if (offerBulk.selectedCount === 0) return;
-    if (!confirm(`Archiver ${offerBulk.selectedCount} offre${offerBulk.selectedCount > 1 ? 's' : ''} ?`)) return;
+    if (!confirm(t.pages.offers.bulk_confirm_archive.replace('{n}', offerBulk.selectedCount.toString()))) return;
     setOfferBulkBusy(true);
     const ids = [...offerBulk.selected];
     const res = await jobOfferService.archiveMany(ids);
     setOfferBulkBusy(false);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error(t.toasts.error_generic + ': ' + res.error.message);
       return;
     }
-    toast.success(`${res.data ?? ids.length} offre${(res.data ?? ids.length) > 1 ? 's' : ''} archivée${(res.data ?? ids.length) > 1 ? 's' : ''}`);
+    toast.success(t.pages.offers.toast_offers_archived.replace('{n}', (res.data ?? ids.length).toString()));
     offerBulk.clear();
     void reload();
   }
@@ -247,10 +250,10 @@ export default function OffersPage() {
     const res = await jobOfferService.unarchiveMany(ids);
     setOfferBulkBusy(false);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error(t.toasts.error_generic + ': ' + res.error.message);
       return;
     }
-    toast.success(`${res.data ?? ids.length} offre${(res.data ?? ids.length) > 1 ? 's' : ''} restaurée${(res.data ?? ids.length) > 1 ? 's' : ''}`);
+    toast.success(t.pages.offers.toast_offers_restored.replace('{n}', (res.data ?? ids.length).toString()));
     offerBulk.clear();
     void reload();
   }
@@ -259,7 +262,7 @@ export default function OffersPage() {
     if (offerBulk.selectedCount === 0) return;
     if (
       !confirm(
-        `Supprimer DÉFINITIVEMENT ${offerBulk.selectedCount} offre${offerBulk.selectedCount > 1 ? 's' : ''} ? Cette action est irréversible.`,
+        t.pages.offers.bulk_confirm_delete_permanent.replace('{n}', offerBulk.selectedCount.toString()),
       )
     )
       return;
@@ -268,10 +271,10 @@ export default function OffersPage() {
     const res = await jobOfferService.deleteMany(ids);
     setOfferBulkBusy(false);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error(t.toasts.error_generic + ': ' + res.error.message);
       return;
     }
-    toast.success(`${res.data ?? ids.length} offre${(res.data ?? ids.length) > 1 ? 's' : ''} supprimée${(res.data ?? ids.length) > 1 ? 's' : ''}`);
+    toast.success(t.pages.offers.toast_offers_deleted.replace('{n}', (res.data ?? ids.length).toString()));
     offerBulk.clear();
     void reload();
   }
@@ -287,13 +290,13 @@ export default function OffersPage() {
   }
 
   async function deleteOffer(o: JobOffer) {
-    if (!confirm(`Supprimer l'offre "${o.title}" ?\n\nCette action est irréversible.`)) return;
+    if (!confirm(t.pages.offers.confirm_delete.replace('{title}', o.title))) return;
     const res = await jobOfferService.remove(o.id);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error(t.toasts.error_generic + ': ' + res.error.message);
       return;
     }
-    toast.success('Offre supprimée');
+    toast.success(t.pages.offers.toast_offer_deleted);
     setOffers((prev) => (prev ?? []).filter((x) => x.id !== o.id));
   }
 
@@ -307,11 +310,11 @@ export default function OffersPage() {
         filename: `Fiche_Poste_${safeTitle}_${brandSlug}`,
         brand,
       });
-      toast.success('Fiche de poste téléchargée');
+      toast.success(t.pages.offers.toast_poster_downloaded);
     } catch (e) {
       console.error(e);
       toast.error(
-        `Erreur export PDF : ${e instanceof Error ? e.message : 'inconnue'}`,
+        `${t.pages.offers.toast_export_pdf_error}: ${e instanceof Error ? e.message : ''}`,
       );
     } finally {
       setExportingOfferId(null);
@@ -321,27 +324,27 @@ export default function OffersPage() {
   async function archiveOffer(o: JobOffer) {
     if (
       !confirm(
-        `Archiver l'offre "${o.title}" ?\n\nElle disparaît du KPI "Opportunités ouvertes" et de la liste par défaut.`,
+        t.pages.offers.confirm_archive.replace('{title}', o.title),
       )
     ) {
       return;
     }
     const res = await jobOfferService.update(o.id, { archived: true });
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error(t.toasts.error_generic + ': ' + res.error.message);
       return;
     }
-    toast.success(`Offre "${o.title}" archivée`);
+    toast.success(t.pages.offers.toast_offer_archived.replace('{title}', o.title));
     setOffers((prev) => (prev ?? []).filter((x) => x.id !== o.id));
   }
 
   async function unarchiveOffer(o: JobOffer) {
     const res = await jobOfferService.update(o.id, { archived: false });
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error(t.toasts.error_generic + ': ' + res.error.message);
       return;
     }
-    toast.success(`Offre "${o.title}" restaurée`);
+    toast.success(t.pages.offers.toast_offer_restored.replace('{title}', o.title));
     setOffers((prev) => (prev ?? []).filter((x) => x.id !== o.id));
   }
 
@@ -362,7 +365,8 @@ export default function OffersPage() {
         title={
           showArchived ? (
             <>
-              Offres <span className="qc-italic-accent font-editorial italic">archivées.</span>
+              {t.pages.offers.archived_title_a}{' '}
+              <span className="qc-italic-accent font-editorial italic">{t.pages.offers.archived_title_b}</span>
             </>
           ) : (
             <>
@@ -371,23 +375,23 @@ export default function OffersPage() {
             </>
           )
         }
-        description={`${offers.length} offre${offers.length > 1 ? 's' : ''}${showArchived ? ' archivée' : ''} — besoins clients qui alimentent le matching.`}
+        description={`${offers.length} ${t.pages.offers.item_label}${offers.length > 1 ? 's' : ''}${showArchived ? t.pages.offers.description_suffix_archived : t.pages.offers.description_suffix}`}
         actions={
           <>
             <Button
               variant="outline"
               onClick={() => setShowArchived((v) => !v)}
-              title={showArchived ? 'Revenir aux offres actives' : 'Voir les offres archivées'}
+              title={showArchived ? t.pages.offers.see_active : t.pages.offers.see_archived}
             >
               {showArchived ? (
                 <>
                   <ArchiveRestore className="h-4 w-4" />
-                  Voir les actives
+                  {t.pages.offers.see_active}
                 </>
               ) : (
                 <>
                   <Archive className="h-4 w-4" />
-                  Voir les archivées
+                  {t.pages.offers.see_archived}
                 </>
               )}
             </Button>
@@ -396,12 +400,12 @@ export default function OffersPage() {
                 <Button variant="outline" asChild>
                   <Link href="/matching" className="inline-flex items-center gap-1.5">
                     <Target className="h-4 w-4" />
-                    Lancer matching
+                    {t.pages.offers.launch_matching}
                   </Link>
                 </Button>
                 <Button onClick={openCreate}>
                   <Plus className="h-4 w-4" />
-                  Nouvelle offre
+                  {t.pages.offers.new}
                 </Button>
               </>
             )}
@@ -412,32 +416,32 @@ export default function OffersPage() {
       {!showArchived && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <KPICard
-            label="Offres ouvertes"
+            label={t.pages.offers.kpi_open}
             value={openCount}
             icon={DoorOpen}
             tone="cyan"
-            hint="disponibles pour matching"
+            hint={t.pages.offers.kpi_open_hint}
           />
           <KPICard
-            label="Avec CV poussé"
+            label={t.pages.offers.kpi_pushed}
             value={pushedCount}
             icon={Trophy}
             tone="magenta"
-            hint="en proposition / validation"
+            hint={t.pages.offers.kpi_pushed_hint}
           />
           <KPICard
-            label="Total offres"
+            label={t.pages.offers.kpi_total}
             value={allOffers.length}
             icon={TrendingUp}
             tone="violet"
           />
           <KPICard
-            label="TJM moyen"
+            label={t.pages.offers.kpi_avg_tjm}
             value={avgTjm}
             prefix="€"
             icon={Coins}
             tone="emerald"
-            hint={tjmValues.length > 0 ? `sur ${tjmValues.length} offre${tjmValues.length > 1 ? 's' : ''}` : 'aucune donnée'}
+            hint={tjmValues.length > 0 ? t.pages.offers.kpi_avg_tjm_hint.replace('{n}', tjmValues.length.toString()) : t.pages.offers.kpi_avg_tjm_hint_zero}
           />
         </div>
       )}
@@ -469,10 +473,10 @@ export default function OffersPage() {
                 ? 'bg-violet-glow/15 text-violet-glow border border-violet-glow/30 shadow-[0_0_30px_-12px_rgba(139,92,246,0.5)]'
                 : 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04] border border-transparent',
             )}
-            title="Offres encore disponibles pour pousser un CV"
+            title={t.pages.offers.tab_available_tooltip}
           >
             <Briefcase className="h-4 w-4 shrink-0" />
-            <span className="font-medium">Disponibles</span>
+            <span className="font-medium">{t.pages.offers.tab_available}</span>
             <span
               className={cn(
                 'text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
@@ -493,10 +497,10 @@ export default function OffersPage() {
                 ? 'bg-magenta-neon/15 text-magenta-neon border border-magenta-neon/30 shadow-[0_0_30px_-12px_rgba(236,72,153,0.5)]'
                 : 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04] border border-transparent',
             )}
-            title="Offres déjà avec un CV poussé (en attente de validation ou en mission)"
+            title={t.pages.offers.tab_pushed_tooltip}
           >
             <Target className="h-4 w-4 shrink-0" />
-            <span className="font-medium">Avec CV poussé</span>
+            <span className="font-medium">{t.pages.offers.tab_pushed}</span>
             <span
               className={cn(
                 'text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
@@ -517,7 +521,7 @@ export default function OffersPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Rechercher par intitulé, skill, source, lieu…"
+              placeholder={t.pages.offers.search_placeholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -544,7 +548,7 @@ export default function OffersPage() {
             onClick={() => setCityFilter(new Set())}
             className="text-[11px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
           >
-            Effacer le filtre ville
+            {t.pages.offers.clear_city_filter}
           </button>
         )}
       </div>
@@ -552,17 +556,17 @@ export default function OffersPage() {
       {!loading && offers.length === 0 ? (
         <EmptyState
           icon={Briefcase}
-          title={showArchived ? 'Aucune offre archivée' : 'Aucune offre pour l’instant'}
+          title={showArchived ? t.pages.offers.empty_archived_title : t.pages.offers.empty_no_offers_title}
           description={
             showArchived
-              ? 'Les offres archivées apparaîtront ici.'
-              : 'Crée ta première offre pour alimenter le matching et le CRM.'
+              ? t.pages.offers.empty_archived_description
+              : t.pages.offers.empty_no_offers_description
           }
           action={
             !showArchived ? (
               <Button onClick={openCreate}>
                 <Plus className="h-4 w-4" />
-                Nouvelle offre
+                {t.pages.offers.new}
               </Button>
             ) : undefined
           }
@@ -576,7 +580,7 @@ export default function OffersPage() {
                 <TableHead className="w-10">
                   <input
                     type="checkbox"
-                    aria-label="Tout sélectionner"
+                    aria-label={t.pages.offers.select_all_aria}
                     checked={offerBulk.allSelected}
                     ref={(el) => {
                       if (el) el.indeterminate = offerBulk.someSelected;
@@ -587,14 +591,14 @@ export default function OffersPage() {
                     className="h-4 w-4 cursor-pointer accent-magenta"
                   />
                 </TableHead>
-                <TableHead>Mission</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Séniorité</TableHead>
-                <TableHead>TJM</TableHead>
-                <TableHead>Lieu</TableHead>
-                <TableHead>Skills</TableHead>
-                <TableHead>Maj</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t.pages.offers.table_mission}</TableHead>
+                <TableHead>{t.pages.offers.table_source}</TableHead>
+                <TableHead>{t.pages.offers.table_seniority}</TableHead>
+                <TableHead>{t.pages.offers.table_tjm}</TableHead>
+                <TableHead>{t.pages.offers.table_location}</TableHead>
+                <TableHead>{t.pages.offers.table_skills}</TableHead>
+                <TableHead>{t.pages.offers.table_updated}</TableHead>
+                <TableHead className="text-right">{t.pages.offers.table_actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -633,7 +637,7 @@ export default function OffersPage() {
                           <div className="text-[11px] text-muted-foreground inline-flex items-center gap-1 mt-0.5">
                             <Calendar className="h-3 w-3" />
                             {new Date(o.start_date).toLocaleDateString('fr-FR')}
-                            {o.duration_months ? ` · ${o.duration_months} mois` : ''}
+                            {o.duration_months ? ` · ${o.duration_months} ${t.pages.offers.duration_months_short}` : ''}
                           </div>
                         )}
                       </TableCell>
@@ -655,7 +659,7 @@ export default function OffersPage() {
                             </div>
                             {o.source_kind && (
                               <div className="text-[10px] text-muted-foreground mt-0.5 pl-[18px]">
-                                {o.source_kind === 'esn' ? 'ESN partenaire' : 'Client direct'}
+                                {o.source_kind === 'esn' ? t.pages.offers.esn_partner : t.pages.offers.direct_client}
                               </div>
                             )}
                           </>
@@ -666,17 +670,17 @@ export default function OffersPage() {
                             <div className="flex items-start gap-1.5 min-w-0 font-medium text-amber-200/80">
                               <HelpCircle className="h-3 w-3 text-amber-300/80 shrink-0 mt-0.5" />
                               <span className="leading-tight break-words">
-                                Client à définir
+                                {t.pages.offers.client_to_define}
                               </span>
                             </div>
                             <div className="text-[10px] text-muted-foreground mt-0.5 pl-[18px] italic">
-                              À renseigner sur l&apos;AO
+                              {t.pages.offers.client_to_fill}
                             </div>
                           </>
                         )}
                       </TableCell>
                       <TableCell className="text-xs">
-                        {o.seniority ? SENIORITY_LABEL[o.seniority] : '—'}
+                        {o.seniority ? seniorityLabel[o.seniority] : '—'}
                       </TableCell>
                       <TableCell className="text-xs font-medium">
                         {tjm != null ? (
@@ -692,7 +696,7 @@ export default function OffersPage() {
                         </div>
                         {o.remote_days != null && o.remote_days > 0 && (
                           <div className="text-[10px] text-violet-300 mt-0.5">
-                            {o.remote_days}j TT/sem.
+                            {o.remote_days}{t.pages.offers.remote_short}
                           </div>
                         )}
                       </TableCell>
@@ -728,7 +732,7 @@ export default function OffersPage() {
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => unarchiveOffer(o)}
-                                title="Restaurer l'offre"
+                                title={t.pages.offers.action_unarchive}
                                 className="text-emerald-300 hover:text-emerald-200"
                               >
                                 <ArchiveRestore className="h-3.5 w-3.5" />
@@ -737,7 +741,7 @@ export default function OffersPage() {
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => deleteOffer(o)}
-                                title="Supprimer définitivement"
+                                title={t.pages.offers.action_delete}
                               >
                                 <Trash2 className="h-3.5 w-3.5 text-red-400" />
                               </Button>
@@ -748,7 +752,7 @@ export default function OffersPage() {
                                 size="sm"
                                 variant="ghost"
                                 asChild
-                                title="Lancer le matching sur cette offre"
+                                title={t.pages.offers.action_run_matching}
                               >
                                 <Link href={`/matching?offerId=${o.id}`}>
                                   <Target className="h-3.5 w-3.5 text-violet-glow" />
@@ -759,7 +763,7 @@ export default function OffersPage() {
                                 variant="ghost"
                                 onClick={() => downloadPoster(o)}
                                 disabled={exportingOfferId === o.id}
-                                title="Télécharger la fiche de poste PDF"
+                                title={t.pages.offers.action_download_poster}
                               >
                                 <FileDown
                                   className={`h-3.5 w-3.5 ${
@@ -773,7 +777,7 @@ export default function OffersPage() {
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => openEdit(o)}
-                                title="Éditer"
+                                title={t.pages.offers.action_edit}
                               >
                                 <Pencil className="h-3.5 w-3.5 text-violet-glow" />
                               </Button>
@@ -781,7 +785,7 @@ export default function OffersPage() {
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => archiveOffer(o)}
-                                title="Archiver — sort des KPI, peut être restauré"
+                                title={t.pages.offers.action_archive}
                                 className="text-muted-foreground hover:text-foreground"
                               >
                                 <Archive className="h-3.5 w-3.5" />
@@ -790,7 +794,7 @@ export default function OffersPage() {
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => deleteOffer(o)}
-                                title="Supprimer définitivement"
+                                title={t.pages.offers.action_delete}
                               >
                                 <Trash2 className="h-3.5 w-3.5 text-red-400" />
                               </Button>
@@ -811,24 +815,24 @@ export default function OffersPage() {
       <PaginationFooter
         pagination={pagination}
         total={offers.length}
-        itemLabel="offre"
+        itemLabel={t.pages.offers.item_label}
       />
 
       <BulkActionBar
         count={offerBulk.selectedCount}
-        entityLabel="offre"
+        entityLabel={t.pages.offers.item_label}
         onClear={offerBulk.clear}
         actions={
           showArchived
             ? [
                 {
-                  label: 'Restaurer',
+                  label: t.pages.offers.bulk_restore,
                   icon: <ArchiveRestore className="h-3.5 w-3.5" />,
                   onClick: handleOfferBulkUnarchive,
                   busy: offerBulkBusy,
                 },
                 {
-                  label: 'Supprimer définitivement',
+                  label: t.pages.offers.bulk_delete_permanent,
                   icon: <Trash2 className="h-3.5 w-3.5" />,
                   onClick: handleOfferBulkDelete,
                   variant: 'destructive',
@@ -837,7 +841,7 @@ export default function OffersPage() {
               ]
             : [
                 {
-                  label: 'Archiver',
+                  label: t.pages.offers.bulk_archive,
                   icon: <Archive className="h-3.5 w-3.5" />,
                   onClick: handleOfferBulkArchive,
                   busy: offerBulkBusy,

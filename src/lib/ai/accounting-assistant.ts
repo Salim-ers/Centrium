@@ -425,12 +425,21 @@ export async function askAssistant(
   }
 }
 
-export const QUICK_PROMPTS: Array<{ label: string; question: string }> = [
-  { label: "Vue d'ensemble", question: "Donne-moi une vue d'ensemble comptable" },
-  { label: 'Factures en retard', question: 'Quelles factures sont en retard ?' },
-  { label: 'Trésorerie 30j', question: 'Fais-moi une prévi de trésorerie sur 30 jours' },
-  { label: 'CRA à valider', question: 'Quels CRA sont à valider ?' },
-  { label: 'CRA non facturés', question: 'Quels CRA validés ne sont pas encore facturés ?' },
-  { label: 'TVA du trimestre', question: 'Calcule la TVA du trimestre' },
-  { label: 'Rédige une relance', question: 'Rédige un email de relance pour la facture la plus en retard' },
+export type QuickPromptKey =
+  | 'overview'
+  | 'overdue_invoices'
+  | 'treasury_30'
+  | 'cra_to_validate'
+  | 'cra_not_invoiced'
+  | 'vat_quarter'
+  | 'draft_followup';
+
+export const QUICK_PROMPTS: Array<{ key: QuickPromptKey; label: string; question: string }> = [
+  { key: 'overview', label: "Vue d'ensemble", question: "Donne-moi une vue d'ensemble comptable" },
+  { key: 'overdue_invoices', label: 'Factures en retard', question: 'Quelles factures sont en retard ?' },
+  { key: 'treasury_30', label: 'Trésorerie 30j', question: 'Fais-moi une prévi de trésorerie sur 30 jours' },
+  { key: 'cra_to_validate', label: 'CRA à valider', question: 'Quels CRA sont à valider ?' },
+  { key: 'cra_not_invoiced', label: 'CRA non facturés', question: 'Quels CRA validés ne sont pas encore facturés ?' },
+  { key: 'vat_quarter', label: 'TVA du trimestre', question: 'Calcule la TVA du trimestre' },
+  { key: 'draft_followup', label: 'Rédige une relance', question: 'Rédige un email de relance pour la facture la plus en retard' },
 ];

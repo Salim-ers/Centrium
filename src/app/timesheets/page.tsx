@@ -97,45 +97,41 @@ function TimesheetsPageInner() {
   });
   const paginatedTimesheets = pagination.paginate(timesheets);
 
-  async function removeTimesheet(t: Timesheet) {
-    const period = `${MONTHS[t.period_month - 1]} ${t.period_year}`;
-    if (
-      !confirm(
-        `Supprimer le CRA de ${period} ?\n\nIrréversible. Échouera si une facture y est rattachée — supprime d'abord la facture liée.`,
-      )
-    ) {
+  async function removeTimesheet(ts: Timesheet) {
+    const period = `${MONTHS[ts.period_month - 1]} ${ts.period_year}`;
+    if (!confirm(`${t.pages.todos.delete_confirm_prefix} ${period} ?`)) {
       return;
     }
-    const res = await timesheetService.remove(t.id);
+    const res = await timesheetService.remove(ts.id);
     if (res.error) {
       toast.error(res.error.message);
       return;
     }
-    setTimesheets((prev) => (prev ?? []).filter((x) => x.id !== t.id));
-    toast.success(`CRA de ${period} supprimé`);
+    setTimesheets((prev) => (prev ?? []).filter((x) => x.id !== ts.id));
+    toast.success(`${period}${t.pages.todos.toast_deleted_suffix}`);
   }
 
   async function validate(id: string) {
     if (!activeOrgId) {
-      toast.error('Organisation active manquante');
+      toast.error(t.toasts.error_generic);
       return;
     }
     const res = await timesheetService.validateAndInvoice(id, activeOrgId);
     if (res.error || !res.data) {
-      toast.error('Erreur : ' + (res.error?.message ?? 'inconnue'));
+      toast.error(t.toasts.error_generic + ': ' + (res.error?.message ?? ''));
       return;
     }
     setTimesheets((prev) =>
-      (prev ?? []).map((t) =>
-        t.id === id
-          ? { ...t, status: 'client_validated', days_validated: t.days_worked }
-          : t,
+      (prev ?? []).map((ts) =>
+        ts.id === id
+          ? { ...ts, status: 'client_validated', days_validated: ts.days_worked }
+          : ts,
       ),
     );
     if (res.data.alreadyInvoiced) {
-      toast.success('CRA validé (facture déjà existante)');
+      toast.success(t.forms.timesheet.validated);
     } else {
-      toast.success(`CRA validé → facture ${res.data.invoice.invoice_number} générée et marquée payée`);
+      toast.success(t.forms.timesheet.validated + ` — ${res.data.invoice.invoice_number}`);
     }
   }
 
@@ -177,7 +173,7 @@ function TimesheetsPageInner() {
         actions={
           <Button onClick={() => setDialogOpen(true)}>
             <Plus className="h-4 w-4" />
-            Nouveau CRA
+            {t.pages.timesheets.new}
           </Button>
         }
       />
@@ -185,26 +181,26 @@ function TimesheetsPageInner() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <KPICard
           icon={CheckCircle2}
-          label="Validés ce mois"
+          label={t.pages.timesheets.kpi_validated_month}
           value={validatedThisMonth}
           tone="emerald"
         />
         <KPICard
           icon={Clock3}
-          label="En attente"
+          label={t.pages.timesheets.kpi_pending}
           value={pendingCount}
           tone="amber"
         />
         <KPICard
           icon={CalendarDays}
-          label="Jours saisis"
+          label={t.pages.timesheets.kpi_days_entered}
           value={totalDaysWorked}
           tone="magenta"
-          hint={`${totalDaysValidated} validé${totalDaysValidated > 1 ? 's' : ''}`}
+          hint={t.pages.timesheets.kpi_validated_count.replace('{n}', String(totalDaysValidated))}
         />
         <KPICard
           icon={Percent}
-          label="Ratio facturable"
+          label={t.pages.timesheets.kpi_billable_ratio}
           value={billableRatio}
           suffix="%"
           tone="violet"
@@ -222,18 +218,13 @@ function TimesheetsPageInner() {
       {hasUrlFilter && (
         <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-violet-glow/30 bg-violet-glow/[0.06] px-4 py-2.5">
           <div className="text-sm">
-            <span className="text-muted-foreground mr-1">Filtre actif :</span>
             <span className="font-medium">
-              {urlStatusFilter === 'submitted' && 'CRA soumis (à valider)'}
-              {urlStatusFilter === 'draft' && 'Brouillons'}
-              {urlStatusFilter === 'client_validated' && 'CRA validés'}
-              {urlStatusFilter === 'rejected' && 'CRA rejetés'}
-              {!['submitted', 'draft', 'client_validated', 'rejected'].includes(urlStatusFilter ?? '') && `Statut : ${urlStatusFilter}`}
+              {urlStatusFilter && (tsLabels[urlStatusFilter as keyof typeof tsLabels] ?? urlStatusFilter)}
             </span>
-            <span className="ml-2 text-xs text-muted-foreground">({timesheets.length} CRA)</span>
+            <span className="ml-2 text-xs text-muted-foreground">({timesheets.length})</span>
           </div>
           <Button variant="ghost" size="sm" onClick={clearUrlFilter} className="h-7">
-            Retirer le filtre
+            {t.actions.remove_filter}
           </Button>
         </div>
       )}
@@ -241,21 +232,17 @@ function TimesheetsPageInner() {
       {!loading && timesheets.length === 0 ? (
         <EmptyState
           icon={ClipboardCheck}
-          title={hasUrlFilter ? 'Aucun CRA ne correspond au filtre' : 'Aucun CRA'}
-          description={
-            hasUrlFilter
-              ? 'Aucun CRA ne correspond aux critères. Retire le filtre pour voir tous les CRA.'
-              : "Crée ton premier compte-rendu d'activité pour démarrer la facturation."
-          }
+          title={t.pages.timesheets.empty_title}
+          description={t.pages.timesheets.empty_description}
           action={
             hasUrlFilter ? (
               <Button variant="outline" onClick={clearUrlFilter}>
-                Retirer le filtre
+                {t.actions.remove_filter}
               </Button>
             ) : (
               <Button onClick={() => setDialogOpen(true)} disabled={!activeOrgId}>
                 <Plus className="h-4 w-4" />
-                Nouveau CRA
+                {t.pages.timesheets.new}
               </Button>
             )
           }
@@ -266,11 +253,11 @@ function TimesheetsPageInner() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Période</TableHead>
-                <TableHead>Jours travaillés</TableHead>
-                <TableHead>Jours validés</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t.forms.timesheet.period}</TableHead>
+                <TableHead>{t.forms.timesheet.days_worked}</TableHead>
+                <TableHead>{t.forms.timesheet.days_validated}</TableHead>
+                <TableHead>{t.forms.timesheet.status}</TableHead>
+                <TableHead className="text-right">{t.pages.consultants.table_actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -281,37 +268,37 @@ function TimesheetsPageInner() {
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedTimesheets.map((t) => (
-                  <TableRow key={t.id}>
+                paginatedTimesheets.map((ts) => (
+                  <TableRow key={ts.id}>
                     <TableCell className="font-medium">
-                      {MONTHS[t.period_month - 1]} {t.period_year}
+                      {MONTHS[ts.period_month - 1]} {ts.period_year}
                     </TableCell>
-                    <TableCell>{t.days_worked}</TableCell>
-                    <TableCell>{t.days_validated}</TableCell>
+                    <TableCell>{ts.days_worked}</TableCell>
+                    <TableCell>{ts.days_validated}</TableCell>
                     <TableCell>
-                      <StatusBadge tone={statusToTone(t.status)}>
-                        {tsLabels[t.status as keyof typeof tsLabels] ?? STATUS_LABEL[t.status]}
+                      <StatusBadge tone={statusToTone(ts.status)}>
+                        {tsLabels[ts.status as keyof typeof tsLabels] ?? STATUS_LABEL[ts.status]}
                       </StatusBadge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button size="sm" variant="ghost" asChild>
-                          <Link href={`/timesheets/${t.id}`}>
+                          <Link href={`/timesheets/${ts.id}`}>
                             <Eye className="h-3 w-3" />
-                            Voir
+                            {t.pages.alerts.view}
                           </Link>
                         </Button>
-                        {t.status !== 'client_validated' && (
-                          <Button size="sm" variant="ghost" onClick={() => validate(t.id)}>
+                        {ts.status !== 'client_validated' && (
+                          <Button size="sm" variant="ghost" onClick={() => validate(ts.id)}>
                             <CheckCircle2 className="h-3 w-3" />
-                            Valider
+                            {t.actions.confirm}
                           </Button>
                         )}
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => removeTimesheet(t)}
-                          title="Supprimer le CRA"
+                          onClick={() => removeTimesheet(ts)}
+                          title={t.actions.delete}
                           className="text-red-400 hover:bg-red-500/10"
                         >
                           <Trash2 className="h-3 w-3" />

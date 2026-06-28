@@ -77,11 +77,17 @@ type OrgMember = OwnerProfile & {
   role: string | null;
 };
 
-const PRIORITY_LABEL: Record<Todo['priority'], string> = {
-  high: 'Haute',
-  medium: 'Moyenne',
-  low: 'Basse',
-};
+/**
+ * Construit le mapping priority → label depuis le dictionnaire i18n.
+ * Doit être appelé depuis un composant React qui a accès au hook `useAppT`.
+ */
+function buildPriorityLabel(t: ReturnType<typeof useAppT>): Record<Todo['priority'], string> {
+  return {
+    high: t.pages.todos.prio_high,
+    medium: t.pages.todos.prio_medium,
+    low: t.pages.todos.prio_low,
+  };
+}
 
 const PRIORITY_TONE: Record<Todo['priority'], StatusTone> = {
   high: 'danger',
@@ -104,6 +110,7 @@ const DRAG_MIME = 'application/x-todo-id';
 export default function TodosPage() {
   const { user, activeOrgId } = useOrganization();
   const t = useAppT();
+  const PRIORITY_LABEL = useMemo(() => buildPriorityLabel(t), [t]);
   const [filter, setFilter] = useState<'pending' | 'done' | 'all'>('pending');
   const [editing, setEditing] = useState<Todo | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -280,23 +287,23 @@ export default function TodosPage() {
       .update({ done: nextDone })
       .eq('id', todo.id);
     if (error) {
-      notifyError('Mise à jour impossible : ' + error.message);
+      notifyError(t.pages.todos.err_save_failed_prefix + error.message);
       reload();
     }
   }
 
   async function deleteTodo(todo: Todo) {
-    if (!confirm(`Supprimer "${todo.title}" ?`)) return;
+    if (!confirm(`${t.pages.todos.delete_confirm_prefix} "${todo.title}" ?`)) return;
     const prev = todosData;
     setTodos((list) => (list ?? []).filter((t) => t.id !== todo.id));
     const supabase = createClient();
     const { error } = await supabase.from('user_todos').delete().eq('id', todo.id);
     if (error) {
-      notifyError('Suppression impossible : ' + error.message);
+      notifyError(t.pages.todos.err_delete_failed + error.message);
       setTodos(prev ?? []);
       return;
     }
-    notifyDestructive(`"${todo.title}" supprimé`);
+    notifyDestructive(`"${todo.title}"${t.pages.todos.toast_deleted_suffix}`);
   }
 
   /**
@@ -306,7 +313,7 @@ export default function TodosPage() {
   async function toggleShare(todo: Todo) {
     if (!user?.id || todo.user_id !== user.id) return;
     if (!activeOrgId) {
-      notifyError('Organisation introuvable — impossible de partager');
+      notifyError(t.pages.todos.err_no_org);
       return;
     }
     const nextShared = !todo.shared;
@@ -331,12 +338,12 @@ export default function TodosPage() {
       })
       .eq('id', todo.id);
     if (error) {
-      notifyError('Partage impossible : ' + error.message);
+      notifyError(t.pages.todos.err_share_failed + error.message);
       setTodos(prev ?? []);
       return;
     }
     if (nextShared) {
-      notifyCreated(`"${todo.title}" partagé avec l'équipe`);
+      notifyCreated(`"${todo.title}"${t.pages.todos.toast_shared_suffix}`);
       void broadcastOrgActivity(
         activeOrgId,
         user.id,
@@ -345,7 +352,7 @@ export default function TodosPage() {
         '/todos',
       );
     } else {
-      notifyUpdated(`"${todo.title}" remis en privé`);
+      notifyUpdated(`"${todo.title}"${t.pages.todos.toast_back_private_suffix}`);
     }
   }
 
@@ -407,7 +414,9 @@ export default function TodosPage() {
         description={
           <span className="inline-flex items-center gap-1.5">
             <Lock className="h-3.5 w-3.5 text-violet-glow" />
-            Tes tâches privées + les tâches partagées par l&apos;équipe — clique sur l&apos;icône <Users className="inline h-3.5 w-3.5" /> pour partager.
+            {t.pages.todos.share_hint_prefix}
+            <Users className="inline h-3.5 w-3.5" />
+            {' '}{t.pages.todos.share_hint_suffix}
           </span>
         }
         actions={
@@ -419,7 +428,7 @@ export default function TodosPage() {
             className="bg-gradient-to-r from-violet-glow to-magenta-neon hover:opacity-95"
           >
             <Plus className="h-4 w-4" />
-            Nouvelle tâche
+            {t.pages.todos.new_task}
           </Button>
         }
       />
@@ -432,21 +441,21 @@ export default function TodosPage() {
           tone="violet"
           active={filter === 'pending'}
           onClick={() => setFilter('pending')}
-          label="À faire"
+          label={t.pages.todos.tab_pending}
           count={counts.pending}
         />
         <FilterChip
           tone="violet"
           active={filter === 'done'}
           onClick={() => setFilter('done')}
-          label="Terminées"
+          label={t.pages.todos.tab_done}
           count={counts.done}
         />
         <FilterChip
           tone="violet"
           active={filter === 'all'}
           onClick={() => setFilter('all')}
-          label="Toutes"
+          label={t.pages.todos.tab_all}
           count={counts.all}
         />
       </div>
@@ -505,6 +514,8 @@ export default function TodosPage() {
       {/* Helper inline pour rendre une ligne de todo, réutilisé par les
           deux tableaux Perso / Équipe pour éviter la duplication. */}
       {(() => {
+        // Alias `t` (i18n) pour éviter le shadowing par la variable Todo locale.
+        const tt = t;
         const renderRow = (t: Todo) => {
           const isMine = t.user_id === user?.id;
           const owner = isMine ? null : ownerProfiles.get(t.user_id) ?? null;
@@ -542,7 +553,7 @@ export default function TodosPage() {
                 type="button"
                 onClick={() => toggleDone(t)}
                 className="mt-0.5 shrink-0 text-muted-foreground hover:text-violet-glow transition"
-                title={t.done ? 'Marquer non fait' : 'Marquer fait'}
+                title={t.done ? tt.pages.todos.mark_undone_short : tt.pages.todos.mark_done_short}
               >
                 {t.done ? (
                   <CheckSquare className="h-5 w-5 text-emerald-400" />
@@ -554,7 +565,7 @@ export default function TodosPage() {
                 type="button"
                 onClick={() => setViewing(t)}
                 className="flex-1 min-w-0 text-left rounded-md -mx-2 px-2 py-1 hover:bg-white/[0.02] transition cursor-pointer"
-                title="Voir les détails"
+                title={tt.pages.todos.view_tooltip}
               >
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
@@ -572,10 +583,10 @@ export default function TodosPage() {
                     <Badge
                       variant="outline"
                       className="text-[10px] border-violet-glow/40 bg-violet-glow/[0.08] text-violet-glow inline-flex items-center gap-1"
-                      title="Tâche partagée avec l'équipe"
+                      title={tt.pages.todos.shared_with_team}
                     >
                       <Globe className="h-3 w-3" />
-                      Équipe
+                      {tt.pages.todos.team_badge}
                     </Badge>
                   )}
                   {t.pinged_user_id &&
@@ -585,7 +596,7 @@ export default function TodosPage() {
                       const name = `${m.first_name ?? ''} ${m.last_name ?? ''}`.trim() || m.email;
                       const pingedSelf = t.pinged_user_id === user?.id;
                       const fromName = pingedSelf
-                        ? memberById.get(t.user_id)?.first_name ?? 'Un collègue'
+                        ? memberById.get(t.user_id)?.first_name ?? tt.pages.todos.a_colleague
                         : '';
                       return (
                         <span
@@ -595,10 +606,10 @@ export default function TodosPage() {
                               ? 'border-amber-500/60 bg-amber-500/15 text-amber-300'
                               : 'border-violet-glow/40 bg-violet-glow/[0.08] text-violet-glow',
                           )}
-                          title={pingedSelf ? `${fromName} t'a pingué sur cette tâche` : `Ping → ${name}`}
+                          title={pingedSelf ? `${tt.pages.todos.pinged_by_label} ${fromName}` : `${tt.pages.todos.ping_to_label} → ${name}`}
                         >
                           <Users className="h-3 w-3" />
-                          {pingedSelf ? `Pingué par ${fromName}` : `→ ${name}`}
+                          {pingedSelf ? `${tt.pages.todos.pinged_by_label} ${fromName}` : `→ ${name}`}
                         </span>
                       );
                     })()}
@@ -646,8 +657,8 @@ export default function TodosPage() {
                         ? 'text-violet-glow bg-violet-glow/15 hover:bg-violet-glow/25'
                         : 'text-muted-foreground hover:text-violet-glow hover:bg-violet-glow/10',
                     )}
-                    title={t.shared ? 'Repasser en privé' : 'Partager avec l\'équipe'}
-                    aria-label={t.shared ? 'Repasser en privé' : 'Partager avec l\'équipe'}
+                    title={t.shared ? tt.pages.todos.back_to_private : tt.pages.todos.share_with_team}
+                    aria-label={t.shared ? tt.pages.todos.back_to_private : tt.pages.todos.share_with_team}
                   >
                     {t.shared ? (
                       <Lock className="h-3.5 w-3.5" />
@@ -664,7 +675,7 @@ export default function TodosPage() {
                       setShowForm(true);
                     }}
                     className="h-7 w-7 rounded-md inline-flex items-center justify-center text-violet-glow hover:bg-violet-glow/10 transition"
-                    title="Éditer"
+                    title={tt.pages.todos.edit_button}
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
@@ -674,7 +685,7 @@ export default function TodosPage() {
                     type="button"
                     onClick={() => deleteTodo(t)}
                     className="h-7 w-7 rounded-md inline-flex items-center justify-center text-red-400 hover:bg-red-500/10 transition"
-                    title="Supprimer"
+                    title={tt.pages.todos.delete_button}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -707,7 +718,9 @@ export default function TodosPage() {
               >
                 <p className="text-sm font-medium">
                   {dragOverTarget === dropTarget && draggingId !== null
-                    ? `Déposer ici pour ${dropTarget === 'team' ? 'partager avec l’équipe' : 'repasser en privé'}`
+                    ? dropTarget === 'team'
+                      ? tt.pages.todos.drop_team_hint
+                      : tt.pages.todos.drop_private_hint
                     : emptyText}
                 </p>
               </div>
@@ -750,7 +763,7 @@ export default function TodosPage() {
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
                     <Lock className="h-4 w-4 text-violet-glow" />
-                    Mes tâches
+                    {tt.pages.todos.card_my_title}
                     <span className="ml-auto text-[10px] font-mono text-muted-foreground">
                       {mineTodos.length}
                     </span>
@@ -760,10 +773,10 @@ export default function TodosPage() {
                   {renderList(
                     mineTodos,
                     filter === 'pending'
-                      ? 'Rien à faire — tout est sous contrôle 🎯'
+                      ? tt.pages.todos.empty_mine_pending
                       : filter === 'done'
-                        ? 'Aucune tâche terminée pour le moment'
-                        : 'Aucune tâche perso. Clique sur « Nouvelle tâche ».',
+                        ? tt.pages.todos.empty_mine_done
+                        : tt.pages.todos.empty_mine_all,
                     'mine',
                   )}
                 </CardContent>
@@ -778,7 +791,7 @@ export default function TodosPage() {
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
                     <Users className="h-4 w-4 text-violet-glow" />
-                    Tâches équipe
+                    {tt.pages.todos.card_team_title}
                     <span className="ml-auto text-[10px] font-mono text-muted-foreground">
                       {teamTodos.length}
                     </span>
@@ -788,10 +801,10 @@ export default function TodosPage() {
                   {renderList(
                     teamTodos,
                     filter === 'pending'
-                      ? 'Aucune tâche d’équipe en cours'
+                      ? tt.pages.todos.empty_team_pending
                       : filter === 'done'
-                        ? 'Aucune tâche d’équipe terminée'
-                        : 'Glisse une de tes tâches ici pour la partager avec l’équipe.',
+                        ? tt.pages.todos.empty_team_done
+                        : tt.pages.todos.empty_team_all,
                     'team',
                   )}
                 </CardContent>
@@ -883,6 +896,8 @@ function TodoDetailDialog({
   onDelete: (t: Todo) => void;
   onToggleShare: (t: Todo) => void;
 }) {
+  const t = useAppT();
+  const PRIORITY_LABEL = buildPriorityLabel(t);
   if (!todo) return null;
   const isMine = currentUserId !== null && todo.user_id === currentUserId;
   const ownerColor = owner ? presenceColor(owner.id) : null;
@@ -924,7 +939,7 @@ function TodoDetailDialog({
           </DialogTitle>
           <DialogDescription className="flex items-center gap-2 flex-wrap pt-1">
             <StatusBadge tone={PRIORITY_TONE[todo.priority]} dot={false}>
-              Priorité {PRIORITY_LABEL[todo.priority].toLowerCase()}
+              {t.pages.todos.priority_label} {PRIORITY_LABEL[todo.priority].toLowerCase()}
             </StatusBadge>
             {todo.shared && (
               <Badge
@@ -932,7 +947,7 @@ function TodoDetailDialog({
                 className="text-[10px] border-violet-glow/40 bg-violet-glow/[0.08] text-violet-glow inline-flex items-center gap-1"
               >
                 <Globe className="h-3 w-3" />
-                Partagé avec l&apos;équipe
+                {t.pages.todos.shared_team_badge}
               </Badge>
             )}
             {pingedMember &&
@@ -944,7 +959,7 @@ function TodoDetailDialog({
                 const ownerName = ownerMember
                   ? `${ownerMember.first_name ?? ''} ${ownerMember.last_name ?? ''}`.trim() ||
                     ownerMember.email
-                  : 'un collègue';
+                  : t.pages.todos.a_colleague;
                 return (
                   <Badge
                     variant="outline"
@@ -956,7 +971,7 @@ function TodoDetailDialog({
                     )}
                   >
                     <Users className="h-3 w-3" />
-                    {pingedSelf ? `Pingué par ${ownerName}` : `Pinge ${name}`}
+                    {pingedSelf ? `${t.pages.todos.pinged_by_label} ${ownerName}` : `${t.pages.todos.ping_to_label} ${name}`}
                   </Badge>
                 );
               })()}
@@ -971,7 +986,7 @@ function TodoDetailDialog({
                 >
                   {ownerInitials}
                 </span>
-                Créée par {ownerName}
+                {t.pages.todos.created_by_label} {ownerName}
               </span>
             )}
           </DialogDescription>
@@ -981,31 +996,31 @@ function TodoDetailDialog({
           {todo.description ? (
             <div>
               <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1.5">
-                Notes
+                {t.pages.todos.notes_label}
               </div>
               <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/90">
                 {todo.description}
               </p>
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground italic">Aucune note.</p>
+            <p className="text-xs text-muted-foreground italic">{t.pages.todos.no_notes}</p>
           )}
 
           <div className="grid grid-cols-2 gap-3 text-xs">
             <DetailRow
               icon={<Calendar className="h-3.5 w-3.5 text-violet-glow" />}
-              label="Échéance"
-              value={dueLabel ?? 'Aucune'}
+              label={t.pages.todos.due_label}
+              value={dueLabel ?? t.pages.todos.no_due}
             />
             <DetailRow
               icon={<Plus className="h-3.5 w-3.5 text-muted-foreground" />}
-              label="Créée le"
+              label={t.pages.todos.created_label}
               value={createdLabel}
             />
             {completedLabel && (
               <DetailRow
                 icon={<CheckSquare className="h-3.5 w-3.5 text-emerald-400" />}
-                label="Terminée le"
+                label={t.pages.todos.completed_label}
                 value={completedLabel}
               />
             )}
@@ -1022,12 +1037,12 @@ function TodoDetailDialog({
             {todo.done ? (
               <>
                 <Square className="h-4 w-4" />
-                Remettre à faire
+                {t.pages.todos.mark_undone}
               </>
             ) : (
               <>
                 <CheckSquare className="h-4 w-4" />
-                Marquer fait
+                {t.pages.todos.mark_done}
               </>
             )}
           </Button>
@@ -1043,12 +1058,12 @@ function TodoDetailDialog({
                 {todo.shared ? (
                   <>
                     <Lock className="h-4 w-4" />
-                    Repasser en privé
+                    {t.pages.todos.back_to_private}
                   </>
                 ) : (
                   <>
                     <Users className="h-4 w-4" />
-                    Partager avec l&apos;équipe
+                    {t.pages.todos.share_with_team}
                   </>
                 )}
               </Button>
@@ -1059,7 +1074,7 @@ function TodoDetailDialog({
                 className="border-violet-glow/40 text-violet-glow hover:bg-violet-glow/10"
               >
                 <Pencil className="h-4 w-4" />
-                Éditer
+                {t.pages.todos.edit_button}
               </Button>
               <Button
                 type="button"
@@ -1068,7 +1083,7 @@ function TodoDetailDialog({
                 className="border-red-500/40 text-red-300 hover:bg-red-500/10"
               >
                 <Trash2 className="h-4 w-4" />
-                Supprimer
+                {t.pages.todos.delete_button}
               </Button>
             </>
           )}
@@ -1100,6 +1115,7 @@ type FormProps = {
 };
 
 function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
+  const t = useAppT();
   const [title, setTitle] = useState(todo?.title ?? '');
   const [description, setDescription] = useState(todo?.description ?? '');
   const [priority, setPriority] = useState<Todo['priority']>(todo?.priority ?? 'medium');
@@ -1121,11 +1137,11 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
     async (e: React.FormEvent) => {
       e.preventDefault();
       if (!title.trim()) {
-        notifyError('Le titre est requis');
+        notifyError(t.pages.todos.err_title_required);
         return;
       }
       if (!userId) {
-        notifyError('Session expirée — reconnecte-toi');
+        notifyError(t.pages.todos.err_session_expired);
         return;
       }
       setBusy(true);
@@ -1146,10 +1162,10 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
             .select()
             .single();
           if (error || !data) {
-            notifyError('Mise à jour impossible : ' + (error?.message ?? 'inconnu'));
+            notifyError(t.pages.todos.err_save_failed_prefix + (error?.message ?? 'unknown'));
             return;
           }
-          notifyUpdated(`"${data.title}" mis à jour`);
+          notifyUpdated(`"${data.title}"${t.pages.todos.toast_updated_suffix}`);
           onSaved(data as Todo);
         } else {
           const { data, error } = await supabase
@@ -1158,17 +1174,17 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
             .select()
             .single();
           if (error || !data) {
-            notifyError('Création impossible : ' + (error?.message ?? 'inconnu'));
+            notifyError(t.pages.todos.err_create_failed_prefix + (error?.message ?? 'unknown'));
             return;
           }
-          notifyUpdated(`"${data.title}" ajouté`);
+          notifyUpdated(`"${data.title}"${t.pages.todos.toast_added_suffix}`);
           onSaved(data as Todo);
         }
       } finally {
         setBusy(false);
       }
     },
-    [title, description, priority, dueDate, pingedUserId, isEdit, todo, userId, onSaved],
+    [title, description, priority, dueDate, pingedUserId, isEdit, todo, userId, onSaved, t],
   );
 
   return (
@@ -1178,49 +1194,49 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold inline-flex items-center gap-2">
               {isEdit ? <Pencil className="h-4 w-4 text-violet-glow" /> : <Plus className="h-4 w-4 text-violet-glow" />}
-              {isEdit ? 'Modifier la tâche' : 'Nouvelle tâche'}
+              {isEdit ? t.pages.todos.form_edit_title : t.pages.todos.form_create_title}
             </h2>
             <button
               type="button"
               onClick={onClose}
               className="h-7 w-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
-              title="Fermer"
+              title={t.pages.todos.form_close}
             >
               <X className="h-4 w-4" />
             </button>
           </div>
 
           <div>
-            <Label>Titre *</Label>
+            <Label>{t.pages.todos.form_title_label}</Label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: Relancer Banque Postale pour la mission Tech Lead"
+              placeholder={t.pages.todos.form_title_placeholder}
               autoFocus
             />
           </div>
 
           <div>
-            <Label>Notes (optionnel)</Label>
+            <Label>{t.pages.todos.form_notes_label}</Label>
             <Textarea
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Détails, contexte, prochaines étapes…"
+              placeholder={t.pages.todos.form_notes_placeholder}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Priorité</Label>
+              <Label>{t.pages.todos.form_priority_label}</Label>
               <Select value={priority} onChange={(e) => setPriority(e.target.value as Todo['priority'])}>
-                <option value="high">Haute</option>
-                <option value="medium">Moyenne</option>
-                <option value="low">Basse</option>
+                <option value="high">{t.pages.todos.prio_high}</option>
+                <option value="medium">{t.pages.todos.prio_medium}</option>
+                <option value="low">{t.pages.todos.prio_low}</option>
               </Select>
             </div>
             <div>
-              <Label>Échéance</Label>
+              <Label>{t.pages.todos.form_due_label}</Label>
               <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </div>
           </div>
@@ -1228,10 +1244,10 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
           <div>
             <Label className="inline-flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5 text-violet-glow" />
-              Ping une personne <span className="text-muted-foreground/60 font-normal">(optionnel)</span>
+              {t.pages.todos.form_ping_label} <span className="text-muted-foreground/60 font-normal">{t.pages.todos.form_ping_optional}</span>
             </Label>
             <Select value={pingedUserId} onChange={(e) => setPingedUserId(e.target.value)}>
-              <option value="">— Personne —</option>
+              <option value="">{t.pages.todos.form_ping_none}</option>
               {pingCandidates.map((m) => {
                 const name = `${m.first_name ?? ''} ${m.last_name ?? ''}`.trim() || m.email;
                 return (
@@ -1242,13 +1258,13 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
               })}
             </Select>
             <p className="text-[11px] text-muted-foreground mt-1">
-              La personne pinguée verra la tâche et pourra la cocher. Elle ne peut ni l&apos;éditer ni la supprimer.
+              {t.pages.todos.form_ping_hint}
             </p>
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-1">
             <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
-              Annuler
+              {t.pages.todos.form_cancel}
             </Button>
             <Button
               type="submit"
@@ -1256,7 +1272,7 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
               className="bg-gradient-to-r from-violet-glow to-magenta-neon hover:opacity-95"
             >
               {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isEdit ? 'Enregistrer' : 'Ajouter'}
+              {isEdit ? t.pages.todos.form_save : t.pages.todos.form_add}
             </Button>
           </div>
         </form>

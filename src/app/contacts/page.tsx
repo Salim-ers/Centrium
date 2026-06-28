@@ -155,27 +155,27 @@ export default function ContactsPage() {
   }
 
   async function deleteContact(contact: Contact) {
-    if (!confirm(`Supprimer le contact "${contact.first_name} ${contact.last_name}" ?`)) return;
+    if (!confirm(`${t.pages.todos.delete_confirm_prefix} "${contact.first_name} ${contact.last_name}" ?`)) return;
     const res = await contactService.archive(contact.id);
     if (res.error) {
-      notifyError('Erreur : ' + res.error.message);
+      notifyError(t.toasts.error_generic + ': ' + res.error.message);
       return;
     }
-    notifyDestructive(`${contact.first_name} ${contact.last_name} supprimé`);
+    notifyDestructive(`${contact.first_name} ${contact.last_name}${t.pages.todos.toast_deleted_suffix}`);
     setContacts((prev) => (prev ?? []).filter((c) => c.id !== contact.id));
   }
 
   async function markContacted(contact: Contact) {
     const res = await contactService.markInteracted(contact.id, { clear: false });
     if (res.error || !res.data) {
-      notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
+      notifyError(t.toasts.error_generic + ': ' + (res.error?.message ?? ''));
       return;
     }
     setContacts((prev) =>
       (prev ?? []).map((c) => (c.id === contact.id ? res.data! : c)),
     );
     notifyUpdated(
-      `${contact.first_name} ${contact.last_name} — contacté à l'instant`,
+      `${contact.first_name} ${contact.last_name}`,
     );
   }
 
@@ -197,24 +197,21 @@ export default function ContactsPage() {
         description={
           q ? (
             <>
-              {contacts.length} / {allContacts.length} contact
-              {allContacts.length > 1 ? 's' : ''} — recruteurs, clients, ESN partenaires.
+              {contacts.length} / {t.pages.contacts.description_count.replace('{n}', String(allContacts.length))}
             </>
           ) : (
-            <>
-              {allContacts.length} contact{allContacts.length > 1 ? 's' : ''} — recruteurs, clients, ESN partenaires.
-            </>
+            <>{t.pages.contacts.description_count.replace('{n}', String(allContacts.length))}</>
           )
         }
         actions={
           <>
             <Button variant="outline" onClick={() => setCsvOpen(true)}>
               <FileUp className="h-4 w-4" />
-              Importer CSV
+              {t.pages.contacts.import_csv}
             </Button>
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4" />
-              Nouveau contact
+              {t.pages.contacts.new}
             </Button>
           </>
         }
@@ -222,25 +219,25 @@ export default function ContactsPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KPICard
-          label="Total contacts"
+          label={t.pages.contacts.kpi_total}
           value={allContacts.length}
           icon={Users}
           tone="magenta"
         />
         <KPICard
-          label="Recruteurs"
+          label={t.pages.contacts.kpi_recruiters}
           value={recruiterCount}
           icon={Briefcase}
           tone="cyan"
         />
         <KPICard
-          label="Clients finaux"
+          label={t.pages.contacts.kpi_clients}
           value={clientCount}
           icon={Building2}
           tone="violet"
         />
         <KPICard
-          label="ESN partenaires"
+          label={t.pages.contacts.kpi_esn}
           value={partnerCount}
           icon={Network}
           tone="amber"
@@ -283,7 +280,7 @@ export default function ContactsPage() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Rechercher par nom, entreprise, email, téléphone, poste…"
+              placeholder={t.pages.contacts.search_placeholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -297,24 +294,20 @@ export default function ContactsPage() {
           icon={UserCircle}
           title={
             q
-              ? `Aucun contact ne correspond à « ${search.trim()} »`
-              : 'Aucun contact pour l’instant'
+              ? `${t.pages.contacts.empty_title} « ${search.trim()} »`
+              : t.pages.contacts.empty_title
           }
-          description={
-            q
-              ? 'Essaie un autre terme ou efface la recherche.'
-              : 'Importe un CSV ou crée ton premier contact pour démarrer ton réseau.'
-          }
+          description={q ? t.actions.no_results : t.pages.contacts.empty_description}
           action={
             !q ? (
               <div className="flex items-center gap-2">
                 <Button variant="outline" onClick={() => setCsvOpen(true)}>
                   <FileUp className="h-4 w-4" />
-                  Importer CSV
+                  {t.pages.contacts.import_csv}
                 </Button>
                 <Button onClick={openCreate}>
                   <Plus className="h-4 w-4" />
-                  Nouveau contact
+                  {t.pages.contacts.new}
                 </Button>
               </div>
             ) : undefined
@@ -326,13 +319,13 @@ export default function ContactsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Contact</TableHead>
-                <TableHead className="w-[110px]">Type</TableHead>
-                <TableHead>Entreprise / ESN</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead className="w-[140px]">Téléphone</TableHead>
-                <TableHead className="w-[140px]">Dernier contact</TableHead>
-                <TableHead className="text-right w-[180px]">Actions</TableHead>
+                <TableHead>{t.pages.contacts.table_contact}</TableHead>
+                <TableHead className="w-[110px]">{t.pages.contacts.table_type}</TableHead>
+                <TableHead>{t.pages.contacts.table_company}</TableHead>
+                <TableHead>{t.pages.contacts.table_email}</TableHead>
+                <TableHead className="w-[140px]">{t.pages.contacts.table_phone}</TableHead>
+                <TableHead className="w-[140px]">{t.pages.contacts.table_last_contact}</TableHead>
+                <TableHead className="text-right w-[180px]">{t.pages.contacts.table_actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -415,7 +408,7 @@ export default function ContactsPage() {
                           </span>
                         ) : (
                           <span className="text-muted-foreground/60 italic">
-                            Jamais contacté
+                            {t.pages.contacts.never_contacted}
                           </span>
                         )}
                       </TableCell>
@@ -423,7 +416,7 @@ export default function ContactsPage() {
                         <div className="flex items-center justify-end gap-0.5 whitespace-nowrap">
                           <IconButton
                             onClick={() => markContacted(c)}
-                            title="Marquer comme contacté à l'instant"
+                            title={t.pages.contacts.never_contacted}
                             colorClass="text-emerald-300 hover:bg-emerald-500/10"
                           >
                             <PhoneCall className="h-3.5 w-3.5" />
@@ -432,13 +425,11 @@ export default function ContactsPage() {
                             onClick={() => setReminderContact(c)}
                             title={
                               hasReminder
-                                ? `Rappel prévu : ${new Date(
-                                    c.next_call_reminder!,
-                                  ).toLocaleString('fr-FR', {
+                                ? new Date(c.next_call_reminder!).toLocaleString(undefined, {
                                     dateStyle: 'short',
                                     timeStyle: 'short',
-                                  })}`
-                                : 'Programmer un rappel'
+                                  })
+                                : t.actions.edit
                             }
                             colorClass={
                               hasReminder
@@ -450,14 +441,14 @@ export default function ContactsPage() {
                           </IconButton>
                           <IconButton
                             onClick={() => openEdit(c)}
-                            title="Éditer"
+                            title={t.actions.edit}
                             colorClass="text-violet-glow hover:bg-violet-glow/10"
                           >
                             <Pencil className="h-3.5 w-3.5" />
                           </IconButton>
                           <IconButton
                             onClick={() => deleteContact(c)}
-                            title="Supprimer"
+                            title={t.actions.delete}
                             colorClass="text-red-400 hover:bg-red-500/10"
                           >
                             <Trash2 className="h-3.5 w-3.5" />

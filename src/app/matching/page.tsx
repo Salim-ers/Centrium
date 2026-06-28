@@ -24,7 +24,8 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { matchingService, type MatchResult } from '@/lib/services/matching.service';
 import { JobOfferFormDialog } from '@/components/offers/JobOfferFormDialog';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
+import type { AppDict } from '@/lib/i18n/app';
 import { AssignMissionDialog } from '@/components/missions/AssignMissionDialog';
 import { useOrganization } from '@/lib/auth/context';
 import type { JobOffer, Consultant } from '@/types';
@@ -34,6 +35,7 @@ import { formatCurrency } from '@/lib/utils';
 function MatchingInner() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
+  const { locale } = useLocale();
   const searchParams = useSearchParams();
   const [offers, setOffers] = useState<JobOffer[]>([]);
   const [offerId, setOfferId] = useState<string>('');
@@ -84,7 +86,7 @@ function MatchingInner() {
 
   async function runMatching() {
     if (!offerId) {
-      toast.error('Sélectionne une offre');
+      toast.error(t.pages.matching.err_select_offer);
       return;
     }
     // Snapshot l'ID de cette run pour invalider les .then() de runs précédents
@@ -94,7 +96,7 @@ function MatchingInner() {
       const res = await matchingService.matchConsultantsToOffer(offerId);
       if (myRunId !== runIdRef.current) return; // une run plus récente est en cours
       if (res.error) {
-        toast.error('Matching impossible : ' + (res.error.message ?? 'inconnu'));
+        toast.error(t.pages.matching.err_matching_failed + (res.error.message ?? 'inconnu'));
         setResults([]);
         return;
       }
@@ -120,7 +122,7 @@ function MatchingInner() {
       }
     } catch (e) {
       if (myRunId !== runIdRef.current) return;
-      toast.error('Erreur inattendue : ' + ((e as Error).message ?? 'inconnu'));
+      toast.error(t.pages.matching.err_unexpected + ((e as Error).message ?? 'inconnu'));
       setResults([]);
     } finally {
       if (myRunId === runIdRef.current) setLoading(false);
@@ -159,7 +161,7 @@ function MatchingInner() {
             <Button variant="outline" asChild>
               <Link href="/offers" className="inline-flex items-center gap-1.5">
                 <Briefcase className="h-4 w-4" />
-                Gérer les offres
+                {t.pages.matching.manage_offers}
               </Link>
             </Button>
             <Button
@@ -169,7 +171,7 @@ function MatchingInner() {
               }}
             >
               <Plus className="h-4 w-4" />
-              Nouvelle offre
+              {t.pages.matching.new_offer}
             </Button>
           </>
         }
@@ -178,19 +180,19 @@ function MatchingInner() {
       <AppCard variant="luminous" tone="violet" className="mb-6">
         <AppCardBody size="md">
           <SectionHeader
-            eyebrow="Scoring"
-            title={
-              <>
-                Sélection de l’<span className="qc-italic-accent font-editorial italic">offre.</span>
-              </>
+            eyebrow={t.pages.matching.scoring_eyebrow}
+            title={t.pages.matching.pick_offer}
+            description={
+              locale === 'en'
+                ? 'The engine compares required skills with your consultants and weights by seniority and availability.'
+                : 'Le moteur compare les compétences requises avec celles de vos consultants et pondère par séniorité et disponibilité.'
             }
-            description="Le moteur compare les compétences requises avec celles de vos consultants et pondère par séniorité et disponibilité."
           />
           <div className="grid gap-4 md:grid-cols-[1fr_auto_auto] items-end">
             <div>
-              <Label>Offre</Label>
+              <Label>{t.pages.matching.offer_select}</Label>
               <Select value={offerId} onChange={(e) => setOfferId(e.target.value)}>
-                <option value="">— Choisir une offre —</option>
+                <option value="">{t.pages.matching.pick_offer_placeholder}</option>
                 {offers.map((o) => (
                   <option key={o.id} value={o.id}>
                     {o.title}
@@ -216,12 +218,12 @@ function MatchingInner() {
                 }}
               >
                 <Pencil className="h-4 w-4" />
-                Éditer
+                {t.pages.matching.edit_action}
               </Button>
             )}
             <Button onClick={runMatching} disabled={loading || !offerId}>
               <TrendingUp className="h-4 w-4" />
-              Lancer le matching
+              {t.pages.matching.run_match}
             </Button>
           </div>
         </AppCardBody>
@@ -230,25 +232,25 @@ function MatchingInner() {
       {results.length === 0 && !loading && offerId && (
         <EmptyState
           icon={Target}
-          title="Lance le matching pour voir les profils classés"
-          description="Choisis une offre puis clique sur « Lancer le matching » pour obtenir les meilleurs candidats."
+          title={t.pages.matching.empty_select_offer}
+          description={t.pages.matching.empty_select_description}
         />
       )}
 
       {results.length > 0 && (
         <div className="space-y-2">
           <SectionHeader
-            eyebrow="Résultats"
+            eyebrow={t.pages.matching.results_eyebrow}
             title={
               <>
-                {results.length} profils <span className="qc-italic-accent font-editorial italic">classés.</span>
+                {results.length} <span className="qc-italic-accent font-editorial italic">{t.pages.matching.results_classified}</span>
               </>
             }
             description={
               enriching
-                ? 'L’IA rédige les justifications du top 5…'
+                ? t.pages.matching.ai_enriching
                 : results.some((r) => r.justification)
-                  ? 'Top 5 enrichi par une justification IA (pitch + risques).'
+                  ? t.pages.matching.top5_enriched_hint
                   : undefined
             }
           />
@@ -266,7 +268,7 @@ function MatchingInner() {
             // Confiance affichée = LLM si dispo, sinon score local
             const conf = r.justification?.confidence ?? r.confidence;
             const confLabel =
-              conf === 'high' ? 'Confiance haute' : conf === 'medium' ? 'Confiance moyenne' : conf === 'low' ? 'Confiance faible' : null;
+              conf === 'high' ? t.pages.matching.confidence_high : conf === 'medium' ? t.pages.matching.confidence_medium : conf === 'low' ? t.pages.matching.confidence_low : null;
             const confClass =
               conf === 'high'
                 ? 'border-emerald-400/40 text-emerald-300'
@@ -307,13 +309,13 @@ function MatchingInner() {
                     {r.score ?? 0}
                   </div>
                   <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mt-1">
-                    score / 100
+                    {t.pages.matching.score_label}
                   </div>
                 </div>
 
                 <div className="shrink-0 min-w-[140px]">
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                    Matchées
+                    {t.pages.matching.matched_label}
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {matched.slice(0, 3).map((s) => (
@@ -322,13 +324,13 @@ function MatchingInner() {
                       </Badge>
                     ))}
                     {matched.length === 0 && (
-                      <span className="text-[10px] text-muted-foreground italic">aucune</span>
+                      <span className="text-[10px] text-muted-foreground italic">{t.pages.matching.none_label}</span>
                     )}
                   </div>
                   {missing.length > 0 && (
                     <>
                       <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-2 mb-1">
-                        Manquantes
+                        {t.pages.matching.missing_label}
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {missing.slice(0, 2).map((s) => (
@@ -357,11 +359,11 @@ function MatchingInner() {
                     }
                   >
                     <Target className="h-3.5 w-3.5" />
-                    Affecter
+                    {t.pages.matching.assign_action}
                   </Button>
                   <Button variant="outline" size="sm" asChild>
                     <Link href={`/cv-optimizer?consultantId=${c.id}&offerId=${offerId}`}>
-                      Générer CV
+                      {t.pages.matching.generate_cv_action}
                     </Link>
                   </Button>
                 </div>
@@ -372,7 +374,7 @@ function MatchingInner() {
                 <div className="rounded-md border border-white/10 bg-white/[0.02] px-3 py-2.5">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                      Détail du scoring
+                      {t.pages.matching.scoring_detail_title}
                     </span>
                     <div className="flex items-center gap-1.5">
                       {confLabel && (
@@ -385,21 +387,21 @@ function MatchingInner() {
                           key={g}
                           variant="outline"
                           className="text-[9px] border-rose-400/40 text-rose-300"
-                          title="Plafond appliqué par le moteur"
+                          title={t.pages.matching.scoring_ceiling}
                         >
-                          ⚠ {gateLabel(g)}
+                          ⚠ {gateLabel(g, t)}
                         </Badge>
                       ))}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    <ScoreBar label="Skills requis" points={breakdown.skillsRequired?.points ?? 0} max={50} tone="magenta" />
-                    <ScoreBar label="Nice to have" points={breakdown.skillsNice?.points ?? 0} max={10} tone="violet" />
-                    <ScoreBar label="Séniorité" points={breakdown.seniority?.points ?? 0} max={12} tone="blue" />
-                    <ScoreBar label="Disponibilité" points={breakdown.availability?.points ?? 0} max={12} tone="emerald" />
-                    <ScoreBar label="TJM" points={breakdown.dailyRate?.points ?? 0} max={8} tone="amber" />
-                    <ScoreBar label="Langues" points={breakdown.languages?.points ?? 0} max={5} tone="sky" />
-                    <ScoreBar label="Localisation" points={breakdown.location?.points ?? 0} max={3} tone="slate" />
+                    <ScoreBar label={t.pages.matching.scoring_skills_required} points={breakdown.skillsRequired?.points ?? 0} max={50} tone="magenta" />
+                    <ScoreBar label={t.pages.matching.scoring_skills_nice} points={breakdown.skillsNice?.points ?? 0} max={10} tone="violet" />
+                    <ScoreBar label={t.pages.matching.scoring_seniority} points={breakdown.seniority?.points ?? 0} max={12} tone="blue" />
+                    <ScoreBar label={t.pages.matching.scoring_availability} points={breakdown.availability?.points ?? 0} max={12} tone="emerald" />
+                    <ScoreBar label={t.pages.matching.scoring_tjm} points={breakdown.dailyRate?.points ?? 0} max={8} tone="amber" />
+                    <ScoreBar label={t.pages.matching.scoring_languages} points={breakdown.languages?.points ?? 0} max={5} tone="sky" />
+                    <ScoreBar label={t.pages.matching.scoring_location} points={breakdown.location?.points ?? 0} max={3} tone="slate" />
                   </div>
                 </div>
               )}
@@ -409,14 +411,14 @@ function MatchingInner() {
                   <div className="flex items-center gap-2 mb-1.5">
                     <Sparkles className="h-3 w-3 text-violet-300" />
                     <span className="text-[10px] uppercase tracking-[0.18em] text-violet-300/80">
-                      Pitch IA
+                      {t.pages.matching.pitch_ai_label}
                     </span>
                   </div>
                   <p className="text-foreground/90">{r.justification.pitch}</p>
                   {r.justification.risks.length > 0 && (
                     <div className="mt-2 flex gap-1.5 flex-wrap">
                       <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        Risques :
+                        {t.pages.matching.risks_label}
                       </span>
                       {r.justification.risks.map((risk, i) => (
                         <span key={i} className="text-[10px] text-amber-200/80">
@@ -489,14 +491,14 @@ function ScoreBar({
   );
 }
 
-function gateLabel(g: string): string {
+function gateLabel(g: string, t: AppDict): string {
   switch (g) {
     case 'unavailable':
-      return 'Indisponible';
+      return t.pages.matching.gate_unavailable;
     case 'seniority-mismatch':
-      return 'Écart séniorité';
+      return t.pages.matching.gate_seniority_mismatch;
     case 'skills-too-low':
-      return 'Skills trop bas';
+      return t.pages.matching.gate_skills_too_low;
     default:
       return g;
   }

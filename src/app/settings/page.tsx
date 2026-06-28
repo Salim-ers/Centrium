@@ -27,52 +27,19 @@ type IdentityRow = {
 
 type SectionTone = 'magenta' | 'violet' | 'emerald' | 'amber' | 'cyan' | 'rose';
 
+type SectionKey = 'profile' | 'branding' | 'team' | 'data' | 'appearance';
+
 const SECTIONS: Array<{
+  key: SectionKey;
   href: string;
-  title: string;
-  description: string;
   icon: typeof User;
   tone: SectionTone;
 }> = [
-  {
-    href: '/settings/profile',
-    title: 'Mon profil',
-    description:
-      "Vos infos personnelles (poste, contact, adresse, contact d'urgence) — visibles uniquement par vous.",
-    icon: User,
-    tone: 'magenta',
-  },
-  {
-    href: '/settings/branding',
-    title: 'Identité visuelle',
-    description:
-      'Logo, couleurs et nom de marque affichés sur les CV, contrats et factures générés.',
-    icon: Palette,
-    tone: 'violet',
-  },
-  {
-    href: '/settings/team',
-    title: 'Équipe',
-    description: "Membres, invitations et rôles de l'organisation.",
-    icon: Users,
-    tone: 'cyan',
-  },
-  {
-    href: '/settings/privacy',
-    title: 'Mes données & confidentialité',
-    description:
-      'Exportez vos données, gérez vos cookies, exercez vos droits RGPD.',
-    icon: ShieldCheck,
-    tone: 'emerald',
-  },
-  {
-    href: '/settings/appearance',
-    title: 'Apparence & design',
-    description:
-      "Thème sombre/clair, intensité du fond animé, densité de l'interface — personnalisez l'ambiance.",
-    icon: Sparkles,
-    tone: 'amber',
-  },
+  { key: 'profile', href: '/settings/profile', icon: User, tone: 'magenta' },
+  { key: 'branding', href: '/settings/branding', icon: Palette, tone: 'violet' },
+  { key: 'team', href: '/settings/team', icon: Users, tone: 'cyan' },
+  { key: 'data', href: '/settings/privacy', icon: ShieldCheck, tone: 'emerald' },
+  { key: 'appearance', href: '/settings/appearance', icon: Sparkles, tone: 'amber' },
 ];
 
 // Cache sessionStorage : la réponse /api/organizations/identity ne change
@@ -170,12 +137,26 @@ export default function SettingsPage() {
             <span className="qc-italic-accent font-editorial italic">{t.pages.settings.title_b}</span>
           </>
         }
-        description="Profil personnel, équipe, identité visuelle, conformité RGPD — pilotez votre espace Centrium."
+        description={t.pages.settings.description}
       />
 
       <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
         {SECTIONS.map((s) => {
           const Icon = s.icon;
+          const titleByKey: Record<SectionKey, string> = {
+            profile: t.pages.settings.card_profile_title,
+            branding: t.pages.settings.card_branding_title,
+            team: t.pages.settings.card_team_title,
+            data: t.pages.settings.card_data_title,
+            appearance: t.pages.settings.card_appearance_title,
+          };
+          const descByKey: Record<SectionKey, string> = {
+            profile: t.pages.settings.card_profile_description,
+            branding: t.pages.settings.card_branding_description,
+            team: t.pages.settings.card_team_description,
+            data: t.pages.settings.card_data_description,
+            appearance: t.pages.settings.card_appearance_description,
+          };
           return (
             <Link key={s.href} href={s.href} className="block group">
               <AppCard variant="default" tone={s.tone} interactive className="h-full">
@@ -185,10 +166,10 @@ export default function SettingsPage() {
                   </div>
                   <div className="min-w-0">
                     <div className="font-display font-light tracking-[-0.01em] text-lg text-foreground">
-                      {s.title}
+                      {titleByKey[s.key]}
                     </div>
                     <p className="mt-1 text-[13.5px] text-muted-foreground leading-relaxed">
-                      {s.description}
+                      {descByKey[s.key]}
                     </p>
                   </div>
                 </AppCardBody>
@@ -201,16 +182,16 @@ export default function SettingsPage() {
       <div className="mt-10 space-y-6">
         <section>
           <SectionHeader
-            eyebrow="Identité légale"
+            eyebrow={t.pages.settings.legal_section_eyebrow}
             title={
               <>
-                Votre{' '}
+                {t.pages.settings.legal_section_title_a}{' '}
                 <span className="qc-italic-accent font-editorial italic">
-                  organisation.
+                  {t.pages.settings.legal_section_title_b}
                 </span>
               </>
             }
-            description="Informations utilisées sur vos contrats et factures."
+            description={t.pages.settings.legal_section_description}
           />
           <AppCard variant="default" tone="magenta">
             <AppCardBody size="md" className="space-y-1.5 text-sm text-muted-foreground">
@@ -223,9 +204,6 @@ export default function SettingsPage() {
                   <span>— {displayed.footer_tagline}</span>
                 ) : null}
               </p>
-              {/* Adresse + SIREN : si on charge encore (pas de identity
-                  reçu mais fetch en cours), on affiche un skeleton subtle
-                  au lieu du tiret vide qui inquiétait. */}
               {identityLoading && !identity ? (
                 <div className="space-y-1.5 pt-1">
                   <div className="h-3 w-2/3 rounded bg-muted/50 animate-pulse" />
@@ -243,11 +221,9 @@ export default function SettingsPage() {
                   {identity?.siren && <p>SIREN : {identity.siren}</p>}
                   {!identity?.address && !identity?.siren && (
                     <p className="italic text-amber-300/80">
-                      Identité légale non renseignée. Allez dans{' '}
                       <Link href="/settings/branding" className="text-magenta underline">
-                        Identité visuelle
-                      </Link>{' '}
-                      pour la compléter — elle sera utilisée sur vos contrats et factures.
+                        {t.pages.settings.card_branding_title}
+                      </Link>
                     </p>
                   )}
                 </>
@@ -258,28 +234,23 @@ export default function SettingsPage() {
 
         <section>
           <SectionHeader
-            eyebrow="Compte"
+            eyebrow={t.pages.settings.account_section_eyebrow}
             title={
               <>
-                Session{' '}
+                {t.pages.settings.account_section_title_a}{' '}
                 <span className="qc-italic-accent font-editorial italic">
-                  active.
+                  {t.pages.settings.account_section_title_b}
                 </span>
               </>
             }
-            description="Déconnectez-vous de Centrium."
+            description={t.pages.settings.account_section_description}
           />
           <AppCard variant="subtle">
             <AppCardBody size="md">
-              {/*
-                Le logout passe par /api/auth/logout côté serveur pour nettoyer
-                tous les cookies (Supabase httpOnly + notre cache qc_profile)
-                avant de rediriger vers /login.
-              */}
               <form action="/api/auth/logout" method="POST">
                 <Button type="submit" variant="outline">
                   <LogOut className="h-4 w-4" />
-                  Se déconnecter
+                  {t.pages.settings.logout_button}
                 </Button>
               </form>
             </AppCardBody>

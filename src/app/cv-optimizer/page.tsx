@@ -557,11 +557,7 @@ function CVOptimizerPageInner() {
               <Button
                 onClick={() => setEditMode((v) => !v)}
                 disabled={!generated}
-                title={
-                  editMode
-                    ? 'Sortir du mode édition'
-                    : 'Modifie le CV directement sur l\'aperçu, comme dans Canva'
-                }
+                title={editMode ? t.pages.cv_optimizer.stop_editing : t.pages.cv_optimizer.edit_cv}
                 className={
                   editMode
                     ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-[0_0_20px_-6px_rgba(16,185,129,0.7)]'
@@ -569,16 +565,12 @@ function CVOptimizerPageInner() {
                 }
               >
                 <Pencil className="h-4 w-4" />
-                {editMode ? '✓ Édition active' : 'Modifier le CV'}
+                {editMode ? `✓ ${t.pages.cv_optimizer.stop_editing}` : t.pages.cv_optimizer.edit_cv}
               </Button>
               {hasOverrides && (
-                <Button
-                  variant="outline"
-                  onClick={resetOverrides}
-                  title="Annuler toutes les modifications manuelles"
-                >
+                <Button variant="outline" onClick={resetOverrides} title={t.actions.cancel}>
                   <RotateCcw className="h-4 w-4" />
-                  Réinitialiser
+                  {t.actions.cancel}
                 </Button>
               )}
               <Button
@@ -591,7 +583,7 @@ function CVOptimizerPageInner() {
                 ) : (
                   <FileDown className="h-4 w-4" />
                 )}
-                Word (.docx)
+                {t.pages.cv_optimizer.export_word}
               </Button>
               <Button onClick={handleDownloadPDF} disabled={!generated || exporting !== null}>
                 {exporting === 'pdf' ? (
@@ -599,7 +591,7 @@ function CVOptimizerPageInner() {
                 ) : (
                   <Download className="h-4 w-4" />
                 )}
-                PDF
+                {t.pages.cv_optimizer.export_pdf}
               </Button>
             </>
           }
@@ -627,27 +619,27 @@ function CVOptimizerPageInner() {
                 <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-magenta/20 text-magenta-neon text-xs font-bold">
                   1
                 </span>
-                Consultant
+                {t.pages.cv_optimizer.consultant_label}
               </div>
               <ConsultantCombobox
                 consultants={consultants}
                 value={selectedId}
                 onChange={setSelectedId}
-                placeholder="— Choisir ou taper un nom —"
-                ariaLabel="Choisir un consultant"
+                placeholder="— —"
+                ariaLabel={t.pages.cv_optimizer.consultant_label}
               />
 
               {loadingData && (
                 <p className="text-xs text-muted-foreground flex items-center gap-2">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Chargement…
+                  <Loader2 className="h-3 w-3 animate-spin" /> {t.actions.loading}
                 </p>
               )}
 
               {loaded && !loadingData && (
                 <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                   <Stat label="Skills" value={loaded.skills.length} />
-                  <Stat label="Expériences" value={loaded.experiences.length} />
-                  <Stat label="Formations" value={loaded.educations.length} />
+                  <Stat label="XP" value={loaded.experiences.length} />
+                  <Stat label="Education" value={loaded.educations.length} />
                 </div>
               )}
             </div>
@@ -659,7 +651,7 @@ function CVOptimizerPageInner() {
                 <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/5 text-muted-foreground text-xs font-bold">
                   2
                 </span>
-                Template
+                {t.pages.cv_optimizer.template_label}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -680,21 +672,21 @@ function CVOptimizerPageInner() {
                 <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/5 text-muted-foreground text-xs font-bold">
                   3
                 </span>
-                Offre client
+                {t.pages.cv_optimizer.offer_label}
               </CardTitle>
               <CardDescription className="text-xs">
-                Optionnel — active le scoring &amp; le surlignage des skills demandées
+                {t.pages.cv_optimizer.offer_hint}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <Label className="text-xs">Choisir une offre existante</Label>
+                <Label className="text-xs">{t.pages.cv_optimizer.pick_existing}</Label>
                 <Select
                   value={selectedOfferId}
                   onChange={(e) => pickOffer(e.target.value)}
                   className="mt-1 text-sm"
                 >
-                  <option value="">— Saisie manuelle —</option>
+                  <option value="">{t.pages.cv_optimizer.manual_entry}</option>
                   {offers.map((o) => (
                     <option key={o.id} value={o.id}>
                       {o.title}
@@ -704,15 +696,10 @@ function CVOptimizerPageInner() {
                     </option>
                   ))}
                 </Select>
-                {selectedOfferId && (
-                  <p className="text-[11px] text-violet-600 dark:text-violet-300/80 mt-1">
-                    Offre sélectionnée — les champs ci-dessous sont pré-remplis et restent éditables.
-                  </p>
-                )}
               </div>
 
               <div>
-                <Label className="text-xs">Intitulé</Label>
+                <Label className="text-xs">{t.pages.cv_optimizer.job_title}</Label>
                 <input
                   className="flex h-9 w-full rounded-md border border-hairline bg-white/[0.02] px-3 py-2 text-sm mt-1"
                   value={offerTitle}
@@ -721,7 +708,7 @@ function CVOptimizerPageInner() {
                 />
               </div>
               <div>
-                <Label className="text-xs">Compétences demandées (séparées par virgule)</Label>
+                <Label className="text-xs">{t.pages.cv_optimizer.required_skills}</Label>
                 <Textarea
                   className="mt-1 min-h-[70px] text-xs"
                   value={offerSkills}
@@ -731,13 +718,13 @@ function CVOptimizerPageInner() {
               </div>
               <details className="text-xs">
                 <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                  + Description complète
+                  + {t.pages.cv_optimizer.full_description}
                 </summary>
                 <Textarea
                   className="mt-2 min-h-[90px] text-xs"
                   value={offerDescription}
                   onChange={(e) => setOfferDescription(e.target.value)}
-                  placeholder="Contexte, mission, contraintes…"
+                  placeholder="…"
                 />
               </details>
             </CardContent>
@@ -1040,8 +1027,8 @@ function CVOptimizerPageInner() {
             <Card>
               <CardContent className="py-24 text-center text-muted-foreground">
                 <FileText className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                <p className="font-medium">Sélectionne un consultant pour commencer</p>
-                <p className="text-xs mt-1">Le CV s&apos;affichera automatiquement</p>
+                <p className="font-medium">{t.pages.cv_optimizer.empty_title}</p>
+                <p className="text-xs mt-1">{t.pages.cv_optimizer.empty_description}</p>
               </CardContent>
             </Card>
           ) : hasIncompleteData && generated ? (

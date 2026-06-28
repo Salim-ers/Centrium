@@ -107,7 +107,7 @@ export default function ContractsPage() {
   async function updateStatus(id: string, status: ContractStatus) {
     const res = await contractService.updateStatus(id, status);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error(t.toasts.error_generic + ': ' + res.error.message);
       return;
     }
     setContracts((prev) =>
@@ -119,31 +119,31 @@ export default function ContractsPage() {
   async function archive(id: string) {
     const res = await contractService.archive(id);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error(t.toasts.error_generic + ': ' + res.error.message);
       return;
     }
     setContracts((prev) => (prev ?? []).filter((c) => c.id !== id));
-    toast.success('Contrat archivé');
+    toast.success(t.forms.contract.archived);
   }
 
   async function unarchive(id: string) {
     const res = await contractService.unarchive(id);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error(t.toasts.error_generic + ': ' + res.error.message);
       return;
     }
     setContracts((prev) => (prev ?? []).filter((c) => c.id !== id));
-    toast.success('Contrat restauré');
+    toast.success(t.toasts.restored);
   }
 
   async function remove(c: Contract) {
     const ok = window.confirm(
-      `Supprimer définitivement le contrat ${c.contract_number} ?\n\nCette action est irréversible. Préfère "Archiver" si tu veux juste le masquer.`,
+      `${t.pages.todos.delete_confirm_prefix} ${c.contract_number} ?`,
     );
     if (!ok) return;
     const res = await contractService.delete(c.id);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error(t.toasts.error_generic + ': ' + res.error.message);
       return;
     }
     setContracts((prev) => (prev ?? []).filter((x) => x.id !== c.id));
@@ -193,13 +193,11 @@ export default function ContractsPage() {
             <span className="qc-italic-accent font-editorial italic">{t.pages.contracts.title_b}</span>
           </>
         }
-        description={`${contracts.length} contrat${contracts.length > 1 ? 's' : ''}${
-          view === 'archived' ? ' archivé' : ''
-        }${contracts.length > 1 && view === 'archived' ? 's' : ''} — assistance technique, sous-traitance, avenants.`}
+        description={t.pages.contracts.description_count.replace('{n}', String(contracts.length))}
         actions={
           <Button onClick={openCreate} disabled={!activeOrgId}>
             <Plus className="h-4 w-4" />
-            Nouveau contrat
+            {t.pages.contracts.new}
           </Button>
         }
       />
@@ -207,41 +205,41 @@ export default function ContractsPage() {
       {view === 'active' && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <KPICard
-            label="Signés ce mois"
+            label={t.pages.contracts.kpi_signed_month}
             value={signedThisMonth}
             icon={CheckCircle2}
             tone="emerald"
           />
           <KPICard
-            label="En attente signature"
+            label={t.pages.contracts.kpi_pending_signature}
             value={pendingSignature}
             icon={Hourglass}
             tone="amber"
           />
           <KPICard
-            label="Expirés"
+            label={t.pages.contracts.kpi_expired}
             value={expiredCount}
             icon={AlertCircle}
             tone="rose"
-            hint="à clôturer ou renouveler"
+            hint={t.pages.contracts.kpi_expired_hint}
           />
           <KPICard
-            label="TJM annuel cumulé"
+            label={t.pages.contracts.kpi_annual_tjm}
             value={totalAnnual}
             prefix="€"
             icon={Coins}
             tone="violet"
-            hint={`depuis le 1er janvier`}
+            hint={t.pages.contracts.kpi_annual_tjm_hint}
           />
         </div>
       )}
 
       <Tabs value={view} onValueChange={(v) => setView(v as View)} className="space-y-4">
         <TabsList>
-          <TabsTrigger value="active">Actifs</TabsTrigger>
+          <TabsTrigger value="active">{t.pages.contracts.tab_active}</TabsTrigger>
           <TabsTrigger value="archived">
             <Archive className="h-3.5 w-3.5 mr-1.5" />
-            Archivés
+            {t.pages.contracts.tab_archived}
           </TabsTrigger>
         </TabsList>
 
@@ -249,17 +247,13 @@ export default function ContractsPage() {
           {!loading && contracts.length === 0 ? (
             <EmptyState
               icon={FileSignature}
-              title={view === 'archived' ? 'Aucun contrat archivé' : 'Aucun contrat pour l’instant'}
-              description={
-                view === 'archived'
-                  ? 'Les contrats archivés apparaîtront ici.'
-                  : 'Crée ton premier contrat d’assistance technique pour démarrer le suivi.'
-              }
+              title={t.pages.contracts.empty_title}
+              description={t.pages.contracts.empty_description}
               action={
                 view === 'active' ? (
                   <Button onClick={openCreate}>
                     <Plus className="h-4 w-4" />
-                    Nouveau contrat
+                    {t.pages.contracts.new}
                   </Button>
                 ) : undefined
               }
@@ -270,13 +264,13 @@ export default function ContractsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Numéro</TableHead>
-                    <TableHead>Titre</TableHead>
-                    <TableHead>Fournisseur</TableHead>
-                    <TableHead>Période</TableHead>
-                    <TableHead>TJM</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t.forms.invoice.invoice_number}</TableHead>
+                    <TableHead>{t.forms.opportunity.title_field}</TableHead>
+                    <TableHead>{t.forms.contract.client}</TableHead>
+                    <TableHead>{t.forms.timesheet.period}</TableHead>
+                    <TableHead>{t.forms.contract.daily_rate}</TableHead>
+                    <TableHead>{t.forms.contract.status}</TableHead>
+                    <TableHead className="text-right">{t.pages.consultants.table_actions}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -294,7 +288,7 @@ export default function ContractsPage() {
                           <div className="truncate">{c.title}</div>
                           {c.client_name && (
                             <div className="text-xs text-muted-foreground">
-                              Client : {c.client_name}
+                              {t.forms.contract.client} : {c.client_name}
                             </div>
                           )}
                         </TableCell>

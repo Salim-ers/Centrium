@@ -25,80 +25,81 @@ type Priority = ComputedAlert['priority'];
 
 const PRIORITY_ORDER: Priority[] = ['critical', 'high', 'medium', 'low'];
 
-const PRIORITY_META: Record<
-  Priority,
-  {
-    label: string;
-    sectionTitle: string;
-    sectionHint: string;
-    Icon: typeof ShieldAlert;
-    cardBorder: string;
-    cardBg: string;
-    leftAccent: string;
-    iconBg: string;
-    iconText: string;
-    badgeBg: string;
-    badgeText: string;
-    sectionHeaderText: string;
-  }
-> = {
-  critical: {
-    label: 'Critique',
-    sectionTitle: 'Critique — à traiter immédiatement',
-    sectionHint: 'Bloquant ou échu, action requise aujourd\'hui',
-    Icon: ShieldAlert,
-    cardBorder: 'border-red-500/40 hover:border-red-500/70',
-    cardBg: 'bg-red-500/[0.05]',
-    leftAccent: 'bg-red-500',
-    iconBg: 'bg-red-500/15',
-    iconText: 'text-red-700 dark:text-red-300',
-    badgeBg: 'bg-red-500/15',
-    badgeText: 'text-red-700 dark:text-red-300',
-    sectionHeaderText: 'text-red-700 dark:text-red-300',
-  },
-  high: {
-    label: 'Important',
-    sectionTitle: 'Important — à traiter cette semaine',
-    sectionHint: 'Échéance proche ou risque significatif',
-    Icon: AlertTriangle,
-    cardBorder: 'border-amber-500/40 hover:border-amber-500/70',
-    cardBg: 'bg-amber-500/[0.05]',
-    leftAccent: 'bg-amber-500',
-    iconBg: 'bg-amber-500/15',
-    iconText: 'text-amber-700 dark:text-amber-300',
-    badgeBg: 'bg-amber-500/15',
-    badgeText: 'text-amber-700 dark:text-amber-300',
-    sectionHeaderText: 'text-amber-700 dark:text-amber-300',
-  },
-  medium: {
-    label: 'Modéré',
-    sectionTitle: 'Modéré — à planifier',
-    sectionHint: 'À traiter dans les prochaines semaines',
-    Icon: Clock,
-    cardBorder: 'border-blue-500/30 hover:border-blue-500/60',
-    cardBg: 'bg-blue-500/[0.04]',
-    leftAccent: 'bg-blue-500',
-    iconBg: 'bg-blue-500/15',
-    iconText: 'text-blue-700 dark:text-blue-300',
-    badgeBg: 'bg-blue-500/15',
-    badgeText: 'text-blue-700 dark:text-blue-300',
-    sectionHeaderText: 'text-blue-700 dark:text-blue-300',
-  },
-  low: {
-    label: 'Info',
-    sectionTitle: 'Info — bon à savoir',
-    sectionHint: 'Signaux faibles, pas d\'urgence',
-    Icon: Info,
-    cardBorder: 'border-slate-500/25 hover:border-slate-500/50',
-    cardBg: 'bg-slate-500/[0.04]',
-    leftAccent: 'bg-slate-500',
-    iconBg: 'bg-slate-500/15',
-    iconText: 'text-slate-700 dark:text-slate-300',
-    badgeBg: 'bg-slate-500/15',
-    badgeText: 'text-slate-700 dark:text-slate-300',
-    sectionHeaderText: 'text-slate-700 dark:text-slate-300',
-  },
+type PriorityMeta = {
+  label: string;
+  sectionTitle: string;
+  sectionHint: string;
+  Icon: typeof ShieldAlert;
+  cardBorder: string;
+  cardBg: string;
+  leftAccent: string;
+  iconBg: string;
+  iconText: string;
+  badgeBg: string;
+  badgeText: string;
+  sectionHeaderText: string;
 };
+
+function buildPriorityMeta(tt: ReturnType<typeof useAppT>): Record<Priority, PriorityMeta> {
+  return {
+    critical: {
+      label: tt.pages.alerts.chip_critical,
+      sectionTitle: tt.pages.alerts.section_critical_title,
+      sectionHint: tt.pages.alerts.section_critical_hint,
+      Icon: ShieldAlert,
+      cardBorder: 'border-red-500/40 hover:border-red-500/70',
+      cardBg: 'bg-red-500/[0.05]',
+      leftAccent: 'bg-red-500',
+      iconBg: 'bg-red-500/15',
+      iconText: 'text-red-700 dark:text-red-300',
+      badgeBg: 'bg-red-500/15',
+      badgeText: 'text-red-700 dark:text-red-300',
+      sectionHeaderText: 'text-red-700 dark:text-red-300',
+    },
+    high: {
+      label: tt.pages.alerts.chip_important,
+      sectionTitle: tt.pages.alerts.section_important_title,
+      sectionHint: tt.pages.alerts.section_important_hint,
+      Icon: AlertTriangle,
+      cardBorder: 'border-amber-500/40 hover:border-amber-500/70',
+      cardBg: 'bg-amber-500/[0.05]',
+      leftAccent: 'bg-amber-500',
+      iconBg: 'bg-amber-500/15',
+      iconText: 'text-amber-700 dark:text-amber-300',
+      badgeBg: 'bg-amber-500/15',
+      badgeText: 'text-amber-700 dark:text-amber-300',
+      sectionHeaderText: 'text-amber-700 dark:text-amber-300',
+    },
+    medium: {
+      label: tt.pages.alerts.chip_moderate,
+      sectionTitle: tt.pages.alerts.section_moderate_title,
+      sectionHint: tt.pages.alerts.section_moderate_hint,
+      Icon: Clock,
+      cardBorder: 'border-blue-500/30 hover:border-blue-500/60',
+      cardBg: 'bg-blue-500/[0.04]',
+      leftAccent: 'bg-blue-500',
+      iconBg: 'bg-blue-500/15',
+      iconText: 'text-blue-700 dark:text-blue-300',
+      badgeBg: 'bg-blue-500/15',
+      badgeText: 'text-blue-700 dark:text-blue-300',
+      sectionHeaderText: 'text-blue-700 dark:text-blue-300',
+    },
+    low: {
+      label: tt.pages.alerts.chip_info,
+      sectionTitle: tt.pages.alerts.section_info_title,
+      sectionHint: tt.pages.alerts.section_info_hint,
+      Icon: Info,
+      cardBorder: 'border-slate-500/25 hover:border-slate-500/50',
+      cardBg: 'bg-slate-500/[0.04]',
+      leftAccent: 'bg-slate-500',
+      iconBg: 'bg-slate-500/15',
+      iconText: 'text-slate-700 dark:text-slate-300',
+      badgeBg: 'bg-slate-500/15',
+      badgeText: 'text-slate-700 dark:text-slate-300',
+      sectionHeaderText: 'text-slate-700 dark:text-slate-300',
+    },
+  };
+}
 
 const PRIORITY_TONE: Record<Priority, StatusTone> = {
   critical: 'danger',
@@ -107,20 +108,23 @@ const PRIORITY_TONE: Record<Priority, StatusTone> = {
   low: 'neutral',
 };
 
-const KIND_LABEL_FR: Record<string, string> = {
-  invoice_overdue: 'Facturation',
-  timesheet_pending: 'CRA',
-  mission_ending: 'Mission',
-  consultant_available: 'Intercontrat',
-  client_follow_up: 'Relance client',
-  unanswered_message: 'Message',
-  offer_stale: 'Offre',
-  opportunity_cold: 'Opportunité',
-};
+function buildKindLabels(tt: ReturnType<typeof useAppT>): Record<string, string> {
+  return {
+    invoice_overdue: tt.pages.alerts.kind_invoice_overdue,
+    timesheet_pending: tt.pages.alerts.kind_timesheet_pending,
+    mission_ending: tt.pages.alerts.kind_mission_ending,
+    consultant_available: tt.pages.alerts.kind_consultant_available,
+    client_follow_up: tt.pages.alerts.kind_client_follow_up,
+    unanswered_message: tt.pages.alerts.kind_unanswered_message,
+    offer_stale: tt.pages.alerts.kind_offer_stale,
+    opportunity_cold: tt.pages.alerts.kind_opportunity_cold,
+  };
+}
 
 export default function AlertsPage() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
+  const PRIORITY_META = buildPriorityMeta(t);
 
   const {
     data: alertsData,
@@ -155,11 +159,11 @@ export default function AlertsPage() {
     const res = await alertService.dismissComputed(alert.id, activeOrgId);
     if (res.error) {
       setAlerts(previous);
-      notifyError('Impossible de masquer cette alerte — ' + res.error.message);
+      notifyError(t.pages.alerts.cannot_hide_prefix + res.error.message);
       return;
     }
-    notifyDestructive('Alerte masquée', {
-      description: 'Elle ne réapparaîtra plus tant que la situation reste identique.',
+    notifyDestructive(t.pages.alerts.hidden_title, {
+      description: t.pages.alerts.hidden_description,
     });
   }
 
@@ -220,8 +224,8 @@ export default function AlertsPage() {
       ) : totalCount === 0 ? (
         <EmptyState
           icon={CheckCircle2}
-          title="Tout est sous contrôle"
-          description="Aucune action urgente, aucune échéance dépassée. Bonne nouvelle."
+          title={t.pages.alerts.empty_title}
+          description={t.pages.alerts.empty_description}
         />
       ) : (
         <div className="space-y-8">
@@ -238,7 +242,7 @@ export default function AlertsPage() {
                     </h2>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {items.length} alerte{items.length > 1 ? 's' : ''} · {meta.sectionHint}
+                    {items.length} {items.length > 1 ? t.pages.alerts.alert_word_many : t.pages.alerts.alert_word_one} · {meta.sectionHint}
                   </span>
                 </header>
 
@@ -267,8 +271,10 @@ function AlertItem({
   alert: ComputedAlert;
   onDismiss: () => void;
 }) {
-  const meta = PRIORITY_META[alert.priority];
-  const kindLabel = KIND_LABEL_FR[alert.kind] ?? alert.kind.replace(/_/g, ' ');
+  const t = useAppT();
+  const meta = buildPriorityMeta(t)[alert.priority];
+  const kindLabels = buildKindLabels(t);
+  const kindLabel = kindLabels[alert.kind] ?? alert.kind.replace(/_/g, ' ');
 
   const body = (
     <div className="pl-5 pr-4 sm:pr-24 md:pr-32 py-3 flex items-start gap-3">
@@ -301,7 +307,7 @@ function AlertItem({
       >
         <div className={`absolute left-0 top-0 bottom-0 w-1 ${meta.leftAccent}`} />
         {alert.link ? (
-          <Link href={alert.link} className="block hover:brightness-110" title="Voir le détail">
+          <Link href={alert.link} className="block hover:brightness-110" title={t.pages.alerts.view_detail}>
             {body}
           </Link>
         ) : (
@@ -317,11 +323,11 @@ function AlertItem({
           <Link
             href={alert.link}
             className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[11px] font-medium border border-hairline bg-card/80 backdrop-blur hover:border-white/30 hover:text-foreground text-muted-foreground transition"
-            title="Voir le détail"
+            title={t.pages.alerts.view_detail}
             onClick={(e) => e.stopPropagation()}
           >
             <Check className="h-3 w-3" />
-            Voir
+            {t.pages.alerts.view}
           </Link>
         )}
         <button
@@ -332,11 +338,11 @@ function AlertItem({
             onDismiss();
           }}
           className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[11px] font-medium border border-hairline bg-card/80 backdrop-blur hover:border-white/30 hover:text-foreground text-muted-foreground transition"
-          title="Masquer cette alerte"
-          aria-label="Masquer cette alerte"
+          title={t.pages.alerts.hide_alert}
+          aria-label={t.pages.alerts.hide_alert}
         >
           <EyeOff className="h-3 w-3" />
-          Masquer
+          {t.pages.alerts.hide_button}
         </button>
       </div>
     </div>

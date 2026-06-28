@@ -117,12 +117,12 @@ function BillingPageInner() {
   const statusBadge = (() => {
     if (!sub) return null;
     const map: Record<string, { label: string; tone: StatusTone }> = {
-      trialing: { label: 'Essai', tone: 'violet' },
-      active: { label: 'Actif', tone: 'success' },
-      past_due: { label: 'Impayé', tone: 'warning' },
-      canceled: { label: 'Annulé', tone: 'neutral' },
-      incomplete: { label: 'Incomplet', tone: 'neutral' },
-      unpaid: { label: 'Impayé', tone: 'danger' },
+      trialing: { label: t.pages.billing.status_active, tone: 'violet' },
+      active: { label: t.pages.billing.status_active, tone: 'success' },
+      past_due: { label: t.pages.invoices.kpi_overdue, tone: 'warning' },
+      canceled: { label: t.actions.cancel, tone: 'neutral' },
+      incomplete: { label: t.actions.cancel, tone: 'neutral' },
+      unpaid: { label: t.pages.invoices.kpi_overdue, tone: 'danger' },
     };
     const m = map[sub.status] ?? { label: sub.status, tone: 'neutral' as StatusTone };
     return <StatusBadge tone={m.tone}>{m.label}</StatusBadge>;
@@ -197,19 +197,17 @@ function BillingPageInner() {
               </div>
               <div>
                 <div className="text-xs font-semibold tracking-widest text-magenta">
-                  COMPTE FONDATEUR
+                  {t.pages.billing.founder_account_title}
                 </div>
-                <h2 className="font-display text-2xl font-bold">Aucune facturation</h2>
+                <h2 className="font-display text-2xl font-bold">{t.pages.billing.no_billing}</h2>
               </div>
             </div>
             <p className="text-sm text-white/70 leading-relaxed max-w-xl">
-              Cette organisation est exemptée de facturation. Accès illimité à toutes les
-              fonctionnalités de la plateforme, sans limite de consultants ni d&apos;utilisateurs,
-              sans abonnement Stripe.
+              {t.pages.billing.founder_description}
             </p>
             <div className="inline-flex items-center gap-2 text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-3 py-1">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              Statut actif · permanent
+              {t.pages.billing.permanent_active_status}
             </div>
           </CardContent>
         </Card>

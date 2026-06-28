@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import {
   Table,
   TableBody,
@@ -82,6 +83,7 @@ const ROLE_TONE: Record<string, StatusTone> = {
 
 export default function TeamSettingsPage() {
   const { activeOrgId, role } = useOrganization();
+  const t = useAppT();
   const [members, setMembers] = useState<Member[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,7 +158,7 @@ export default function TeamSettingsPage() {
           setPlanLimit(body as PlanLimitPayload);
           return;
         }
-        toast.error(body.message ?? 'Invitation échouée');
+        toast.error(body.message ?? t.toasts.error_generic);
         return;
       }
       const { url, email_sent, email_error } = (await res.json()) as {
@@ -165,14 +167,10 @@ export default function TeamSettingsPage() {
         email_error: string | null;
       };
       if (email_sent) {
-        toast.success(`✉ Email envoyé à ${inviteEmail}`, { duration: 6000 });
+        toast.success(`✉ ${inviteEmail}`, { duration: 6000 });
       } else {
-        // Fallback : on n'a pas pu envoyer l'email, on copie le lien
         await navigator.clipboard.writeText(url);
-        toast.warning(
-          `Email non envoyé (${email_error ?? 'erreur SMTP'}) — lien copié dans le presse-papier, envoie-le manuellement à ${inviteEmail}.`,
-          { duration: 8000 },
-        );
+        toast.warning(`${t.toasts.error_network} (${email_error ?? ''}) — ${inviteEmail}`, { duration: 8000 });
       }
       setInviteEmail('');
       load();
@@ -184,24 +182,24 @@ export default function TeamSettingsPage() {
   async function copyLink(token: string) {
     const appUrl = window.location.origin;
     await navigator.clipboard.writeText(`${appUrl}/invite/accept?token=${token}`);
-    toast.success('Lien copié');
+    toast.success(t.toasts.copied);
   }
 
   async function revokeInvitation(id: string) {
-    if (!confirm('Révoquer cette invitation ?')) return;
+    if (!confirm(t.toasts.confirm_delete)) return;
     const supabase = createClient();
     const { error } = await supabase.from('organization_invitations').delete().eq('id', id);
     if (error) {
       toast.error(error.message);
       return;
     }
-    toast.success('Invitation révoquée');
+    toast.success(t.toasts.deleted);
     setInvitations((prev) => prev.filter((i) => i.id !== id));
   }
 
   async function removeMember(userId: string) {
     if (!activeOrgId) return;
-    if (!confirm("Retirer ce membre de l'organisation ?")) return;
+    if (!confirm(t.toasts.confirm_delete)) return;
     const supabase = createClient();
     const { error } = await supabase
       .from('organization_members')
@@ -212,7 +210,7 @@ export default function TeamSettingsPage() {
       toast.error(error.message);
       return;
     }
-    toast.success('Membre retiré');
+    toast.success(t.toasts.deleted);
     setMembers((prev) => prev.filter((m) => m.user_id !== userId));
   }
 
@@ -236,60 +234,60 @@ export default function TeamSettingsPage() {
       />
 
       <PageHeader
-        eyebrow="Organisation"
+        eyebrow={t.pages.team.eyebrow}
         title={
           <>
-            Équipe{' '}
-            <span className="qc-italic-accent font-editorial italic">Centrium.</span>
+            {t.pages.team.title_a}{' '}
+            <span className="qc-italic-accent font-editorial italic">{t.pages.team.title_b}</span>
           </>
         }
-        description="Membres, invitations et rôles de l'organisation."
+        description={t.pages.team.description}
       />
 
       <UsageBanner resource="members" />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
         <KPICard
-          label="Membres"
+          label={t.pages.team.kpi_members}
           value={kpis.total}
           icon={Users}
           tone="magenta"
-          hint="Compte actif"
+          hint={t.pages.team.kpi_members_hint}
         />
         <KPICard
-          label="Administrateurs"
+          label={t.pages.team.kpi_admins}
           value={kpis.admins}
           icon={Shield}
           tone="violet"
-          hint="Accès total"
+          hint={t.pages.team.kpi_admins_hint}
         />
         <KPICard
-          label="Invitations"
+          label={t.pages.team.kpi_invitations}
           value={kpis.pending}
           icon={Hourglass}
           tone="amber"
-          hint="En attente"
+          hint={t.pages.team.kpi_invitations_hint}
         />
         <KPICard
-          label="Sièges restants"
+          label={t.pages.team.kpi_seats_left}
           valueText="—"
           icon={Armchair}
           tone="emerald"
-          hint="Voir bannière plan"
+          hint={t.pages.team.kpi_seats_left_hint}
         />
       </div>
 
       {isAdmin && (
         <section className="mb-8">
           <SectionHeader
-            eyebrow="Invitation"
+            eyebrow={t.pages.team.invite_section_eyebrow}
             title={
               <>
-                Inviter un{' '}
-                <span className="qc-italic-accent font-editorial italic">membre.</span>
+                {t.pages.team.invite_section_title_a}{' '}
+                <span className="qc-italic-accent font-editorial italic">{t.pages.team.invite_section_title_b}</span>
               </>
             }
-            description="Un email Centrium sera envoyé automatiquement à l'invité avec un lien de connexion. Le lien expire après 7 jours."
+            description={t.pages.team.invite_section_description}
             actions={<UserPlus className="h-4 w-4 text-magenta" />}
           />
           <AppCard variant="default" tone="magenta">
@@ -297,12 +295,12 @@ export default function TeamSettingsPage() {
               <form onSubmit={sendInvite} className="flex items-end gap-2 flex-wrap sm:flex-nowrap">
                 <div className="flex-1 min-w-[180px] space-y-1.5">
                   <Label htmlFor="email" className="text-xs">
-                    Email
+                    {t.pages.team.email_label}
                   </Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="collegue@entreprise.fr"
+                    placeholder={t.pages.team.email_placeholder}
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
                     required
@@ -310,18 +308,18 @@ export default function TeamSettingsPage() {
                 </div>
                 <div className="w-44 space-y-1.5">
                   <Label htmlFor="role" className="text-xs">
-                    Rôle
+                    {t.pages.team.role_label}
                   </Label>
                   <Select
                     id="role"
                     value={inviteRole}
                     onChange={(e) => setInviteRole(e.target.value)}
                   >
-                    <option value="viewer">Viewer</option>
-                    <option value="recruiter">Recruteur</option>
+                    <option value="viewer">{t.pages.team.role_viewer}</option>
+                    <option value="recruiter">Recruiter</option>
                     <option value="business_manager">Business Manager</option>
-                    <option value="finance">Finance</option>
-                    <option value="admin">Admin</option>
+                    <option value="finance">{t.pages.team.role_finance}</option>
+                    <option value="admin">{t.pages.team.role_admin}</option>
                   </Select>
                 </div>
                 <Button
@@ -334,7 +332,7 @@ export default function TeamSettingsPage() {
                   ) : (
                     <Mail className="h-4 w-4" />
                   )}
-                  Inviter
+                  {t.pages.team.invite_button}
                 </Button>
               </form>
             </AppCardBody>
@@ -344,26 +342,26 @@ export default function TeamSettingsPage() {
 
       <section className="mb-8">
         <SectionHeader
-          eyebrow="Membres"
+          eyebrow={t.pages.team.members_section_eyebrow}
           title={
             <>
-              Équipe{' '}
+              {t.pages.team.members_section_title_a}{' '}
               <span className="qc-italic-accent font-editorial italic">
-                active ({members.length}).
+                {t.pages.team.members_section_title_b.replace('{n}', String(members.length))}
               </span>
             </>
           }
-          description="Tous les utilisateurs de votre organisation."
+          description={t.pages.team.members_section_description}
         />
         <AppCard variant="default">
           <AppCardBody size="sm" className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Rôle</TableHead>
-                  <TableHead>Rejoint le</TableHead>
+                  <TableHead>{t.pages.team.table_name}</TableHead>
+                  <TableHead>{t.pages.team.table_email}</TableHead>
+                  <TableHead>{t.pages.team.table_role}</TableHead>
+                  <TableHead>{t.pages.team.table_joined_at}</TableHead>
                   {isAdmin && <TableHead />}
                 </TableRow>
               </TableHeader>
@@ -379,7 +377,7 @@ export default function TeamSettingsPage() {
                     <TableCell colSpan={isAdmin ? 5 : 4} className="py-12">
                       <div className="flex flex-col items-center gap-2 text-center text-muted-foreground">
                         <Users className="h-6 w-6 text-magenta/70" />
-                        <span className="text-sm">Aucun membre pour l&apos;instant.</span>
+                        <span className="text-sm">{t.pages.team.empty_no_members}</span>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -393,7 +391,7 @@ export default function TeamSettingsPage() {
                           </span>
                           {m.is_founder && (
                             <StatusBadge tone="magenta" dot={false}>
-                              ★ Fondateur
+                              ★ Founder
                             </StatusBadge>
                           )}
                         </div>
@@ -407,7 +405,7 @@ export default function TeamSettingsPage() {
                         </StatusBadge>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {new Date(m.joined_at).toLocaleDateString('fr-FR')}
+                        {new Date(m.joined_at).toLocaleDateString()}
                       </TableCell>
                       {isAdmin && (
                         <TableCell className="text-right">
@@ -433,27 +431,27 @@ export default function TeamSettingsPage() {
       {isAdmin && invitations.length > 0 && (
         <section>
           <SectionHeader
-            eyebrow="Pipeline"
+            eyebrow={t.pages.team.kpi_invitations}
             title={
               <>
-                Invitations{' '}
+                {t.pages.team.kpi_invitations}{' '}
                 <span className="qc-italic-accent font-editorial italic">
-                  en cours ({invitations.length}).
+                  ({invitations.length}).
                 </span>
               </>
             }
-            description="Liens d'accès non encore acceptés."
+            description={t.pages.team.kpi_invitations_hint}
           />
           <AppCard variant="default" tone="amber">
             <AppCardBody size="sm" className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Rôle</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Expire</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t.pages.team.table_email}</TableHead>
+                    <TableHead>{t.pages.team.table_role}</TableHead>
+                    <TableHead>{t.forms.contract.status}</TableHead>
+                    <TableHead>{t.dashboard.pending}</TableHead>
+                    <TableHead className="text-right">{t.pages.consultants.table_actions}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -466,15 +464,15 @@ export default function TeamSettingsPage() {
                         </StatusBadge>
                       </TableCell>
                       <TableCell>
-                        <StatusBadge tone="pending">En attente</StatusBadge>
+                        <StatusBadge tone="pending">{t.dashboard.pending}</StatusBadge>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {new Date(i.expires_at).toLocaleDateString('fr-FR')}
+                        {new Date(i.expires_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" onClick={() => copyLink(i.token)}>
                           <Copy className="h-3 w-3" />
-                          Copier le lien
+                          {t.toasts.copied}
                         </Button>
                         <Button
                           variant="ghost"
@@ -498,8 +496,8 @@ export default function TeamSettingsPage() {
         <section>
           <EmptyState
             icon={Hourglass}
-            title="Aucune invitation en cours"
-            description="Toutes les invitations envoyées ont été acceptées (ou révoquées)."
+            title={t.pages.team.pending_invitations_title}
+            description={t.pages.team.all_invites_accepted}
           />
         </section>
       )}

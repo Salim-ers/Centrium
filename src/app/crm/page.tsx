@@ -148,7 +148,7 @@ export default function CRMPage() {
 
     const res = await opportunityService.updateStatus(id, newStatus);
     if (res.error) {
-      toast.error('Erreur lors de la mise à jour');
+      toast.error(t.pages.crm.err_update);
       setOpportunities(prev ?? []);
       return;
     }
@@ -166,10 +166,10 @@ export default function CRMPage() {
   }
 
   async function deleteOpportunity(id: string, title: string) {
-    if (!confirm(`Supprimer l'opportunité "${title}" ? Cette action est irréversible.`)) return;
+    if (!confirm(`${t.pages.crm.confirm_delete_prefix} "${title}" ?`)) return;
     const res = await opportunityService.delete(id);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error(t.toasts.error_generic + ': ' + res.error.message);
       return;
     }
     setOpportunities((prev) => (prev ?? []).filter((o) => o.id !== id));
@@ -255,14 +255,14 @@ export default function CRMPage() {
         }
         description={
           <>
-            Pipeline prévisionnel : <span className="text-foreground font-medium">{formatCurrency(totalPipeline)}</span>{' '}
-            · Glisse une carte d&apos;une colonne à l&apos;autre pour changer son statut.
+            {t.pages.crm.pipeline_value} : <span className="text-foreground font-medium">{formatCurrency(totalPipeline)}</span>{' '}
+            · {t.pages.crm.description}
           </>
         }
         actions={
           <Button onClick={openCreate}>
             <Plus className="h-4 w-4" />
-            Nouvelle opportunité
+            {t.pages.crm.new_opp}
           </Button>
         }
       />
@@ -279,7 +279,7 @@ export default function CRMPage() {
       />
 
       {loading ? (
-        <p className="text-muted-foreground">Chargement…</p>
+        <p className="text-muted-foreground">{t.pages.crm.loading}</p>
       ) : (
         <>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -323,7 +323,7 @@ export default function CRMPage() {
                     {col.items.length}
                   </span>
                   {peerHover && (
-                    <PeerBadge peer={peerHover} label="vise" />
+                    <PeerBadge peer={peerHover} label={t.pages.crm.peer_aim_label} />
                   )}
                 </div>
 
@@ -340,9 +340,9 @@ export default function CRMPage() {
                       )}
                     >
                       {isTarget
-                        ? 'Déposer ici'
+                        ? t.pages.crm.drop_here
                         : peerHover
-                          ? `${peerHover.user.displayName} dépose ici…`
+                          ? `${peerHover.user.displayName} ${t.pages.crm.drop_here_peer}`
                           : '—'}
                     </div>
                   ) : (
@@ -405,12 +405,12 @@ export default function CRMPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-foreground/70 font-semibold">
                 <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-                Opportunités terminées
+                {t.pages.crm.closed_opps}
                 <span className="text-muted-foreground font-mono tabular-nums">({closedTotal})</span>
               </div>
               <div className="mt-2 flex items-center gap-3 text-sm">
                 <ClosedStat
-                  label="Gagné"
+                  label={t.pages.crm.closed_won}
                   count={closedByStatus.won.length}
                   dotClass="bg-emerald-500"
                   onClick={() => {
@@ -419,7 +419,7 @@ export default function CRMPage() {
                   }}
                 />
                 <ClosedStat
-                  label="Perdu"
+                  label={t.pages.crm.closed_lost}
                   count={closedByStatus.lost.length}
                   dotClass="bg-red-500"
                   onClick={() => {
@@ -428,7 +428,7 @@ export default function CRMPage() {
                   }}
                 />
                 <ClosedStat
-                  label="En veille"
+                  label={t.pages.crm.closed_on_hold}
                   count={closedByStatus.on_hold.length}
                   dotClass="bg-slate-500"
                   onClick={() => {
@@ -447,11 +447,11 @@ export default function CRMPage() {
               }}
               disabled={closedTotal === 0}
             >
-              Voir la liste
+              {t.pages.crm.see_list}
             </Button>
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">
-            💡 Glisse une carte ici, on te demandera ensuite si elle est <strong>Gagnée</strong>, <strong>Perdue</strong> ou <strong>En veille</strong>.
+            {t.pages.crm.drop_hint}
           </p>
         </div>
 
@@ -464,11 +464,11 @@ export default function CRMPage() {
         >
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Marquer comme terminée</DialogTitle>
+              <DialogTitle>{t.pages.crm.closure_title}</DialogTitle>
               <DialogDescription>
                 {pendingClosure ? (
                   <>
-                    Quel est le statut final de <strong>« {pendingClosure.title} »</strong> ?
+                    {t.pages.crm.closure_question_prefix} <strong>« {pendingClosure.title} »</strong> ?
                   </>
                 ) : null}
               </DialogDescription>
@@ -488,8 +488,8 @@ export default function CRMPage() {
               >
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
                 <div className="flex-1">
-                  <div className="text-sm font-semibold text-foreground">Gagnée</div>
-                  <div className="text-xs text-muted-foreground">L'opportunité s'est conclue par un contrat signé.</div>
+                  <div className="text-sm font-semibold text-foreground">{t.pages.crm.closure_won_title}</div>
+                  <div className="text-xs text-muted-foreground">{t.pages.crm.closure_won_description}</div>
                 </div>
               </button>
               <button
@@ -505,8 +505,8 @@ export default function CRMPage() {
               >
                 <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
                 <div className="flex-1">
-                  <div className="text-sm font-semibold text-foreground">Perdue</div>
-                  <div className="text-xs text-muted-foreground">Le client a choisi un autre prestataire ou abandonné.</div>
+                  <div className="text-sm font-semibold text-foreground">{t.pages.crm.closure_lost_title}</div>
+                  <div className="text-xs text-muted-foreground">{t.pages.crm.closure_lost_description}</div>
                 </div>
               </button>
               <button
@@ -522,8 +522,8 @@ export default function CRMPage() {
               >
                 <span className="h-2.5 w-2.5 rounded-full bg-slate-500" />
                 <div className="flex-1">
-                  <div className="text-sm font-semibold text-foreground">En veille</div>
-                  <div className="text-xs text-muted-foreground">Mise en pause, à reprendre plus tard.</div>
+                  <div className="text-sm font-semibold text-foreground">{t.pages.crm.closure_on_hold_title}</div>
+                  <div className="text-xs text-muted-foreground">{t.pages.crm.closure_on_hold_description}</div>
                 </div>
               </button>
             </div>
@@ -534,7 +534,7 @@ export default function CRMPage() {
                 size="sm"
                 onClick={() => setPendingClosure(null)}
               >
-                Annuler
+                {t.pages.crm.closure_cancel}
               </Button>
             </div>
           </DialogContent>
@@ -606,6 +606,7 @@ function ClosedOpportunitiesDialogInline({
   onMove: (id: string, s: OpportunityStatus) => Promise<void>;
   onDelete: (id: string, title: string) => Promise<void>;
 }) {
+  const t = useAppT();
   const oppLabels = useOpportunityStatusLabels();
   const filtered =
     filter === 'all' ? opportunities : opportunities.filter((o) => o.status === filter);
@@ -614,9 +615,9 @@ function ClosedOpportunitiesDialogInline({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Opportunités terminées</DialogTitle>
+          <DialogTitle>{t.pages.crm.closed_dialog_title}</DialogTitle>
           <DialogDescription>
-            Filtre par sous-statut. Tu peux ré-ouvrir une opportunité en la déplaçant vers un statut actif depuis la fiche.
+            {t.pages.crm.closed_dialog_description}
           </DialogDescription>
         </DialogHeader>
 
@@ -633,7 +634,7 @@ function ClosedOpportunitiesDialogInline({
                   : 'border-hairline text-muted-foreground hover:text-foreground hover:bg-white/[0.03]',
               )}
             >
-              {f === 'all' ? 'Toutes' : (oppLabels[f as keyof typeof oppLabels] ?? OPPORTUNITY_STATUS_LABEL[f])}
+              {f === 'all' ? t.pages.crm.closed_filter_all : (oppLabels[f as keyof typeof oppLabels] ?? OPPORTUNITY_STATUS_LABEL[f])}
               <span className="ml-1.5 text-[10px] tabular-nums opacity-70">
                 ({f === 'all' ? opportunities.length : opportunities.filter((o) => o.status === f).length})
               </span>
@@ -644,7 +645,7 @@ function ClosedOpportunitiesDialogInline({
         <div className="mt-4 space-y-2">
           {filtered.length === 0 ? (
             <div className="rounded-md border border-dashed border-hairline py-8 text-center text-sm text-muted-foreground">
-              Aucune opportunité dans cette catégorie.
+              {t.pages.crm.closed_empty}
             </div>
           ) : (
             filtered.map((opp) => (
@@ -662,7 +663,7 @@ function ClosedOpportunitiesDialogInline({
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <Button size="sm" variant="outline" onClick={() => onEdit(opp)}>
-                    Ouvrir
+                    {t.pages.crm.closed_open}
                   </Button>
                   <Button
                     size="sm"
@@ -670,7 +671,7 @@ function ClosedOpportunitiesDialogInline({
                     onClick={() => void onMove(opp.id, 'negotiation')}
                     title="Réouvrir cette opportunité"
                   >
-                    Réouvrir
+                    {t.pages.crm.closed_reopen}
                   </Button>
                   <Button
                     size="sm"
@@ -726,6 +727,7 @@ function OpportunityCard({
   onDelete: () => void;
   onEdit: () => void;
 }) {
+  const t = useAppT();
   // Si un collègue est en train de glisser cette carte, on bloque le drag
   // local (sinon conflit de mises à jour) et on affiche son indicateur.
   const lockedByPeer = !!peer;
@@ -765,7 +767,7 @@ function OpportunityCard({
       <CardContent className="p-3 space-y-1.5">
         {peer && (
           <div className="flex items-center justify-end">
-            <PeerBadge peer={peer} label="déplace" />
+            <PeerBadge peer={peer} label={t.pages.crm.peer_move_label} />
           </div>
         )}
         <div className="flex items-start justify-between gap-1.5">
@@ -795,7 +797,7 @@ function OpportunityCard({
               onMouseDown={(e) => e.stopPropagation()}
               onClick={onEdit}
               className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 rounded hover:bg-violet-glow/15 flex items-center justify-center cursor-pointer"
-              title="Éditer l'opportunité"
+              title={t.pages.crm.card_edit_title}
               aria-label="Éditer"
             >
               <Pencil className="h-3.5 w-3.5 text-violet-glow" />
@@ -805,7 +807,7 @@ function OpportunityCard({
               onMouseDown={(e) => e.stopPropagation()}
               onClick={onDelete}
               className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 rounded hover:bg-red-500/15 flex items-center justify-center cursor-pointer"
-              title="Supprimer l'opportunité"
+              title={t.pages.crm.card_delete_title}
               aria-label="Supprimer"
             >
               <Trash2 className="h-3.5 w-3.5 text-red-400" />

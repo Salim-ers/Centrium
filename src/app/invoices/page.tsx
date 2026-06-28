@@ -95,53 +95,43 @@ function InvoicesPageInner() {
 
   async function markPaid(id: string) {
     const res = await invoiceService.markAsPaid(id);
-    if (res.error) return toast.error('Erreur : ' + res.error.message);
+    if (res.error) return toast.error(t.toasts.error_generic + ': ' + res.error.message);
     toast.success(t.forms.invoice.marked_paid);
     reload();
   }
 
   async function markSent(id: string) {
     const res = await invoiceService.markAsSent(id);
-    if (res.error) return toast.error('Erreur : ' + res.error.message);
+    if (res.error) return toast.error(t.toasts.error_generic + ': ' + res.error.message);
     toast.success(t.forms.invoice.marked_sent);
     reload();
   }
 
   async function markUnpaid(id: string) {
-    if (!confirm('Annuler le paiement et repasser la facture en "envoyée" ?')) return;
+    if (!confirm(t.toasts.confirm_archive)) return;
     const res = await invoiceService.markAsUnpaid(id);
-    if (res.error) return toast.error('Erreur : ' + res.error.message);
-    toast.success('Paiement annulé — facture repassée en envoyée');
+    if (res.error) return toast.error(t.toasts.error_generic + ': ' + res.error.message);
+    toast.success(t.toasts.saved);
     reload();
   }
 
   async function archive(inv: InvoiceListItem) {
-    if (
-      !confirm(
-        `Archiver la facture ${inv.invoice_number} ? Elle ne s'affichera plus dans la liste active mais reste conservée pour la compta.`,
-      )
-    )
-      return;
+    if (!confirm(`${t.toasts.confirm_archive} ${inv.invoice_number} ?`)) return;
     const res = await invoiceService.archive(inv.id);
-    if (res.error) return toast.error('Erreur : ' + res.error.message);
-    toast.success(`Facture ${inv.invoice_number} archivée`);
+    if (res.error) return toast.error(t.toasts.error_generic + ': ' + res.error.message);
+    toast.success(t.toasts.archived);
     reload();
   }
 
   async function unarchive(inv: InvoiceListItem) {
     const res = await invoiceService.unarchive(inv.id);
-    if (res.error) return toast.error('Erreur : ' + res.error.message);
-    toast.success(`Facture ${inv.invoice_number} désarchivée`);
+    if (res.error) return toast.error(t.toasts.error_generic + ': ' + res.error.message);
+    toast.success(t.toasts.restored);
     reload();
   }
 
   async function remove(inv: InvoiceListItem) {
-    if (
-      !confirm(
-        `Supprimer définitivement la facture ${inv.invoice_number} ? Cette action est irréversible. (Seules les factures en brouillon peuvent être supprimées — sinon archive plutôt.)`,
-      )
-    )
-      return;
+    if (!confirm(`${t.toasts.confirm_delete} ${inv.invoice_number}`)) return;
     const res = await invoiceService.remove(inv.id);
     if (res.error) return toast.error(res.error.message);
     toast.success(`${t.forms.invoice.deleted} — ${inv.invoice_number}`);
@@ -201,23 +191,23 @@ function InvoicesPageInner() {
             <Button
               variant="outline"
               onClick={() => setShowArchived((v) => !v)}
-              title={showArchived ? 'Revenir à la liste active' : 'Afficher les factures archivées'}
+              title={showArchived ? t.pages.invoices.see_active : t.pages.invoices.see_archived}
             >
               {showArchived ? (
                 <>
                   <ArchiveRestore className="h-4 w-4" />
-                  Voir actives
+                  {t.pages.invoices.see_active}
                 </>
               ) : (
                 <>
                   <Archive className="h-4 w-4" />
-                  Voir archivées
+                  {t.pages.invoices.see_archived}
                 </>
               )}
             </Button>
             <Button onClick={() => setDialogOpen(true)}>
               <Plus className="h-4 w-4" />
-              Nouvelle facture
+              {t.pages.invoices.new}
             </Button>
           </>
         }
@@ -226,25 +216,25 @@ function InvoicesPageInner() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <KPICard
           icon={FileText}
-          label="Émis ce mois"
+          label={t.pages.invoices.kpi_issued}
           valueText={formatCurrency(issuedThisMonth)}
           tone="magenta"
         />
         <KPICard
           icon={Banknote}
-          label="Encaissé"
+          label={t.pages.invoices.kpi_paid}
           valueText={formatCurrency(totalPaid)}
           tone="emerald"
         />
         <KPICard
           icon={Clock3}
-          label="En attente"
+          label={t.pages.invoices.kpi_pending}
           valueText={formatCurrency(totalPending)}
           tone="amber"
         />
         <KPICard
           icon={AlertTriangle}
-          label="En retard"
+          label={t.pages.invoices.kpi_overdue}
           valueText={formatCurrency(overdueAmount)}
           tone="rose"
         />
@@ -261,18 +251,13 @@ function InvoicesPageInner() {
       {hasUrlFilter && (
         <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-violet-glow/30 bg-violet-glow/[0.06] px-4 py-2.5">
           <div className="text-sm">
-            <span className="text-muted-foreground mr-1">Filtre actif :</span>
             <span className="font-medium">
-              {urlStatusFilter === 'sent' && 'Factures en attente'}
-              {urlStatusFilter === 'overdue' && 'Factures en retard'}
-              {urlStatusFilter === 'paid' && 'Factures payées'}
-              {urlStatusFilter === 'draft' && 'Brouillons'}
-              {!['sent', 'overdue', 'paid', 'draft'].includes(urlStatusFilter ?? '') && `Statut : ${urlStatusFilter}`}
+              {urlStatusFilter && (invoiceLabels[urlStatusFilter as keyof typeof invoiceLabels] ?? urlStatusFilter)}
             </span>
-            <span className="ml-2 text-xs text-muted-foreground">({invoices.length} factures)</span>
+            <span className="ml-2 text-xs text-muted-foreground">({invoices.length})</span>
           </div>
           <Button variant="ghost" size="sm" onClick={clearUrlFilter} className="h-7">
-            Retirer le filtre
+            {t.actions.remove_filter}
           </Button>
         </div>
       )}
@@ -280,23 +265,17 @@ function InvoicesPageInner() {
       {!loading && invoices.length === 0 ? (
         <EmptyState
           icon={Receipt}
-          title={showArchived ? 'Aucune facture archivée' : hasUrlFilter ? 'Aucune facture ne correspond au filtre' : 'Aucune facture'}
-          description={
-            showArchived
-              ? 'Les factures archivées apparaîtront ici.'
-              : hasUrlFilter
-                ? 'Aucune facture ne correspond aux critères. Retire le filtre pour voir toutes les factures.'
-                : 'Crée ta première facture pour démarrer la facturation client.'
-          }
+          title={showArchived ? t.pages.invoices.empty_title_archived : t.pages.invoices.empty_title}
+          description={t.pages.invoices.empty_description}
           action={
             hasUrlFilter ? (
               <Button variant="outline" onClick={clearUrlFilter}>
-                Retirer le filtre
+                {t.actions.remove_filter}
               </Button>
             ) : !showArchived ? (
               <Button onClick={() => setDialogOpen(true)}>
                 <Plus className="h-4 w-4" />
-                Nouvelle facture
+                {t.pages.invoices.new}
               </Button>
             ) : undefined
           }
@@ -307,15 +286,15 @@ function InvoicesPageInner() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>N° Facture</TableHead>
-                <TableHead>Consultant</TableHead>
-                <TableHead>Période</TableHead>
-                <TableHead>Émission</TableHead>
-                <TableHead>Échéance</TableHead>
-                <TableHead>Montant HT</TableHead>
+                <TableHead>{t.forms.invoice.invoice_number}</TableHead>
+                <TableHead>{t.forms.invoice.consultant}</TableHead>
+                <TableHead>{t.forms.timesheet.period}</TableHead>
+                <TableHead>{t.forms.invoice.issue_date}</TableHead>
+                <TableHead>{t.forms.invoice.due_date}</TableHead>
+                <TableHead>{t.forms.invoice.amount_ht}</TableHead>
                 <TableHead>TTC</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t.forms.contract.status}</TableHead>
+                <TableHead className="text-right">{t.pages.consultants.table_actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -364,13 +343,13 @@ function InvoicesPageInner() {
                           <Button size="sm" variant="ghost" asChild>
                             <Link href={`/invoices/${inv.id}`}>
                               <Eye className="h-3 w-3" />
-                              Voir
+                              {t.pages.alerts.view}
                             </Link>
                           </Button>
                           {inv.status === 'draft' && (
                             <Button size="sm" variant="outline" onClick={() => markSent(inv.id)}>
                               <Send className="h-3 w-3" />
-                              Envoyer
+                              {t.badges.invoice_status.sent}
                             </Button>
                           )}
                           {(inv.status === 'sent' || inv.status === 'overdue') && (
@@ -380,7 +359,7 @@ function InvoicesPageInner() {
                               className="bg-emerald-600 hover:bg-emerald-700 text-white"
                             >
                               <CheckCircle2 className="h-3 w-3" />
-                              Marquer payée
+                              {t.badges.invoice_status.paid}
                             </Button>
                           )}
                           {inv.status === 'paid' && (
@@ -388,10 +367,10 @@ function InvoicesPageInner() {
                               size="sm"
                               variant="ghost"
                               onClick={() => markUnpaid(inv.id)}
-                              title="Annuler le paiement et repasser en envoyée"
+                              title={t.actions.cancel}
                             >
                               <Undo2 className="h-3 w-3" />
-                              Annuler paiement
+                              {t.actions.cancel}
                             </Button>
                           )}
                           {inv.archived ? (
@@ -399,7 +378,7 @@ function InvoicesPageInner() {
                               size="sm"
                               variant="ghost"
                               onClick={() => unarchive(inv)}
-                              title="Désarchiver la facture"
+                              title={t.actions.unarchive}
                             >
                               <ArchiveRestore className="h-3 w-3" />
                             </Button>
@@ -408,7 +387,7 @@ function InvoicesPageInner() {
                               size="sm"
                               variant="ghost"
                               onClick={() => archive(inv)}
-                              title="Archiver la facture (conservée pour la compta)"
+                              title={t.actions.archive}
                             >
                               <Archive className="h-3 w-3" />
                             </Button>
@@ -418,7 +397,7 @@ function InvoicesPageInner() {
                               size="sm"
                               variant="ghost"
                               onClick={() => remove(inv)}
-                              title="Supprimer définitivement (brouillon uniquement)"
+                              title={t.actions.delete}
                               className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                             >
                               <Trash2 className="h-3 w-3" />

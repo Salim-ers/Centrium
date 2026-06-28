@@ -46,12 +46,11 @@ export default function AccountingAssistantPage() {
     setMessages([
       {
         role: 'assistant',
-        content:
-          "Bonjour. Je suis ton assistant comptable Centrium. Je peux répondre à tes questions sur la trésorerie, les factures, la TVA, les CRA… Choisis une question rapide ou pose la tienne.",
+        content: t.pages.accounting.greeting,
         timestamp: Date.now(),
       },
     ]);
-  }, []);
+  }, [t.pages.accounting.greeting]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -73,7 +72,7 @@ export default function AccountingAssistantPage() {
       ]);
     } catch (e) {
       console.error(e);
-      toast.error('Erreur de l\'assistant');
+      toast.error(t.toasts.error_generic);
     } finally {
       setThinking(false);
     }
@@ -81,8 +80,8 @@ export default function AccountingAssistantPage() {
 
   function copyBlock(text: string) {
     navigator.clipboard.writeText(text).then(
-      () => toast.success('Copié dans le presse-papier'),
-      () => toast.error('Copie impossible'),
+      () => toast.success(t.toasts.copied),
+      () => toast.error(t.toasts.error_generic),
     );
   }
 
@@ -100,7 +99,7 @@ export default function AccountingAssistantPage() {
         actions={
           <Badge variant="outline" className="bg-violet-500/10 text-violet-300 border-violet-500/20">
             <Sparkles className="h-3 w-3" />
-            IA · Mock
+            {t.pages.accounting.ai_mock_badge}
           </Badge>
         }
       />
@@ -120,7 +119,7 @@ export default function AccountingAssistantPage() {
                 <div className="flex items-center gap-2 text-muted-foreground text-sm">
                   <Bot className="h-4 w-4" />
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  Calcule…
+                  {t.actions.loading}
                 </div>
               )}
             </div>
@@ -135,7 +134,7 @@ export default function AccountingAssistantPage() {
               >
                 <input
                   className="flex h-10 flex-1 rounded-md border border-hairline bg-white/[0.02] px-3 py-2 text-sm focus:border-violet-glow/50 focus:outline-none"
-                  placeholder="Ex : quelles factures sont en retard ?"
+                  placeholder={t.pages.accounting.chat_placeholder}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   disabled={thinking}
@@ -152,33 +151,40 @@ export default function AccountingAssistantPage() {
         <aside className="space-y-3">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Questions rapides</CardTitle>
-              <CardDescription className="text-xs">Un clic pour interroger</CardDescription>
+              <CardTitle className="text-sm">{t.pages.accounting.quick_questions}</CardTitle>
+              <CardDescription className="text-xs">{t.pages.accounting.one_click_hint}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-1.5">
-              {QUICK_PROMPTS.map((p) => (
-                <Button
-                  key={p.label}
-                  variant="outline"
-                  className="w-full justify-start text-xs h-auto py-2"
-                  onClick={() => send(p.question)}
-                  disabled={thinking}
-                >
-                  <Sparkles className="h-3 w-3 shrink-0" style={{ color: '#e11d74' }} />
-                  <span className="text-left">{p.label}</span>
-                </Button>
-              ))}
+              {QUICK_PROMPTS.map((p) => {
+                const labelByKey: Record<string, string> = {
+                  overview: t.pages.accounting.q_overview,
+                  overdue_invoices: t.pages.accounting.q_overdue_invoices,
+                  treasury_30: t.pages.accounting.q_treasury_30,
+                  cra_to_validate: t.pages.accounting.q_cra_to_validate,
+                  cra_not_invoiced: t.pages.accounting.q_cra_not_invoiced,
+                  vat_quarter: t.pages.accounting.q_vat_quarter,
+                  draft_followup: t.pages.accounting.q_draft_followup,
+                };
+                return (
+                  <Button
+                    key={p.key}
+                    variant="outline"
+                    className="w-full justify-start text-xs h-auto py-2"
+                    onClick={() => send(p.question)}
+                    disabled={thinking}
+                  >
+                    <Sparkles className="h-3 w-3 shrink-0" style={{ color: '#e11d74' }} />
+                    <span className="text-left">{labelByKey[p.key] ?? p.label}</span>
+                  </Button>
+                );
+              })}
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-4 text-xs text-muted-foreground space-y-2">
-              <p className="font-semibold text-foreground">À savoir</p>
-              <p>
-                L&apos;assistant ne remplace pas un comptable. Il analyse les données saisies dans
-                Centrium. Pour la déclaration officielle (bilan, liasse fiscale), utilise ces
-                chiffres comme support pour ton expert-comptable.
-              </p>
+              <p className="font-semibold text-foreground">{t.pages.accounting.to_know_title}</p>
+              <p>{t.pages.accounting.to_know_body}</p>
             </CardContent>
           </Card>
         </aside>

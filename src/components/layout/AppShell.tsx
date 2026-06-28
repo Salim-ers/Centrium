@@ -11,6 +11,7 @@ import { OrgActivityListener } from '@/components/realtime/OrgActivityListener';
 import { ManageCookiesLink } from '@/components/marketing/CookieBanner';
 import { SessionPresenceGate } from '@/components/auth/SessionPresenceGate';
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 
 export function AppShell({
   children,
@@ -26,6 +27,7 @@ export function AppShell({
   wide?: boolean;
 }) {
   const [collapsed] = useSidebarCollapsed();
+  const t = useAppT();
   return (
     <div className="min-h-screen app-bg text-foreground flex flex-col relative">
       <BrandingStyles />
@@ -51,31 +53,31 @@ export function AppShell({
         </div>
         <footer className="md:pl-0 mt-8 border-t border-hairline">
           <div className="mx-auto max-w-7xl px-4 md:px-8 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-muted-foreground">
-            <div>© {new Date().getFullYear()} Centrium — édité par QuadCore SAS</div>
+            <div>© {new Date().getFullYear()} Centrium — {t.footer.edited_by}</div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
               <Link
                 href="/settings/privacy"
                 className="hover:text-foreground transition"
               >
-                Mes données
+                {t.footer.my_data}
               </Link>
               <Link
                 href="/legal/privacy"
                 className="hover:text-foreground transition"
               >
-                Confidentialité
+                {t.footer.privacy}
               </Link>
               <Link
                 href="/engagements"
                 className="hover:text-foreground transition"
               >
-                Engagements
+                {t.footer.engagements}
               </Link>
               <Link
                 href="/legal/cgu"
                 className="hover:text-foreground transition"
               >
-                CGU
+                {t.footer.terms}
               </Link>
               <ManageCookiesLink className="hover:text-foreground transition" />
             </div>
