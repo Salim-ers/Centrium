@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { useOrganization } from '@/lib/auth/context';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { cn } from '@/lib/utils';
 
 type EndingMission = {
@@ -32,6 +33,7 @@ type EndingMission = {
  */
 export function MissionsEndingSoonWidget() {
   const { activeOrgId } = useOrganization();
+  const t = useAppT();
 
   const { data, loading, reload } = useCachedQuery<EndingMission[]>(
     `missions-ending-soon:${activeOrgId ?? 'none'}`,
@@ -94,16 +96,16 @@ export function MissionsEndingSoonWidget() {
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Fins de mission
+                {t.dashboard.missions_ending_title}
               </div>
-              <div className="text-xs text-muted-foreground">prochains 30 jours</div>
+              <div className="text-xs text-muted-foreground">{t.dashboard.missions_ending_sub}</div>
             </div>
           </div>
           <Link
             href="/missions"
             className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
           >
-            Tout voir <ArrowUpRight className="h-3 w-3" />
+            {t.dashboard.see_all} <ArrowUpRight className="h-3 w-3" />
           </Link>
         </div>
 
@@ -115,7 +117,7 @@ export function MissionsEndingSoonWidget() {
           </div>
         ) : missions.length === 0 ? (
           <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground italic">
-            Aucune mission ne se termine bientôt ✓
+            {t.dashboard.no_mission_ending}
           </div>
         ) : (
           <ul className="space-y-1.5 flex-1">

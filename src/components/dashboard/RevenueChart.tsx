@@ -17,6 +17,7 @@ import { formatCurrency } from '@/lib/utils';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useOrganization } from '@/lib/auth/context';
 import { useTheme } from '@/hooks/useTheme';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 
 type RpcRow = {
   month: string;
@@ -62,6 +63,7 @@ function rowsToBuckets(rows: RpcRow[]): MonthlyPoint[] {
 export function RevenueChart() {
   const { activeOrgId } = useOrganization();
   const theme = useTheme();
+  const t = useAppT();
   // Palette du graphique adaptée au thème :
   //  - DARK : magenta + violet + amber (identité historique, lisible sur noir)
   //  - LIGHT : 3 nuances terracotta (cohérent avec la palette crème + terre,
@@ -123,28 +125,28 @@ export function RevenueChart() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" style={{ color: chartColors.ca }} />
-              Chiffre d&apos;affaires &amp; missions
+              {t.dashboard.revenue_chart_title}
             </CardTitle>
-            <CardDescription>12 derniers mois</CardDescription>
+            <CardDescription>{t.dashboard.last_12_months}</CardDescription>
           </div>
           <div className="flex gap-5 text-right">
             <div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                CA cumulé
+                {t.dashboard.ca_cumulative}
               </div>
               <div className="text-lg font-bold qc-gradient-text">
                 {formatCurrency(totalCA)}
               </div>
             </div>
-            <div title="Propositions envoyées en attente de validation client">
+            <div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                CV poussés en attente
+                {t.dashboard.cv_pushed_pending}
               </div>
               <div className="text-lg font-bold text-amber-300">{proposedCount}</div>
             </div>
-            <div title="Missions validées et facturables ce mois-ci">
+            <div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                Missions en cours
+                {t.dashboard.missions_active}
               </div>
               <div className="text-lg font-bold" style={{ color: chartColors.ca }}>
                 {activeCount}

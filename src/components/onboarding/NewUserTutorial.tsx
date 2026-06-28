@@ -24,6 +24,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { cn } from '@/lib/utils';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 
 const STORAGE_KEY = 'centrium_tutorial_seen_v1';
 
@@ -221,6 +222,7 @@ export function TutorialButton({
   /** cta = bouton coloré gradient, ghost = petit pill discret. */
   variant?: 'cta' | 'ghost';
 }) {
+  const t = useAppT();
   const [open, setOpen] = useState(false);
   const cls =
     variant === 'cta'
@@ -230,7 +232,7 @@ export function TutorialButton({
     <>
       <button type="button" onClick={() => setOpen(true)} className={cn(cls, className)}>
         <HelpCircle className={variant === 'cta' ? 'h-4 w-4' : 'h-3.5 w-3.5'} />
-        {variant === 'cta' ? 'Voir le tuto' : 'Tuto'}
+        {variant === 'cta' ? t.header.show_tuto : t.header.tuto_short}
       </button>
       <NewUserTutorial open={open} onOpenChange={setOpen} />
     </>

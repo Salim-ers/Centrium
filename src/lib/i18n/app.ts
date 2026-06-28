@@ -58,6 +58,7 @@ export type AppDict = {
     see_list: string;
     see_available_pool: string;
     commercial_pipeline: string;
+    revenue_chart_title: string;
     ca_cumulative: string;
     cv_pushed_pending: string;
     missions_active: string;
@@ -93,6 +94,7 @@ export type AppDict = {
   header: {
     search_placeholder: string;
     show_tuto: string;
+    tuto_short: string;
     notifications: string;
     profile: string;
     logout: string;
@@ -535,6 +537,7 @@ export const APP_DICT: Record<Locale, AppDict> = {
       see_list: 'voir la liste',
       see_available_pool: 'voir le vivier disponible',
       commercial_pipeline: 'pipeline commercial',
+      revenue_chart_title: "Chiffre d'affaires & missions",
       ca_cumulative: 'CA cumulé',
       cv_pushed_pending: 'CV poussés en attente',
       missions_active: 'Missions en cours',
@@ -569,6 +572,7 @@ export const APP_DICT: Record<Locale, AppDict> = {
     header: {
       search_placeholder: 'Rechercher un consultant, contact, opportunité…',
       show_tuto: 'Voir le tuto',
+    tuto_short: 'Tuto',
       notifications: 'Notifications',
       profile: 'Profil',
       logout: 'Se déconnecter',
@@ -1002,6 +1006,7 @@ export const APP_DICT: Record<Locale, AppDict> = {
       see_list: 'see list',
       see_available_pool: 'see available pool',
       commercial_pipeline: 'sales pipeline',
+      revenue_chart_title: 'Revenue & missions',
       ca_cumulative: 'Total revenue',
       cv_pushed_pending: 'CVs pushed (pending)',
       missions_active: 'Active missions',
@@ -1036,6 +1041,7 @@ export const APP_DICT: Record<Locale, AppDict> = {
     header: {
       search_placeholder: 'Search consultant, contact, opportunity…',
       show_tuto: 'Show tutorial',
+    tuto_short: 'Tutorial',
       notifications: 'Notifications',
       profile: 'Profile',
       logout: 'Log out',

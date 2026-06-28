@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { useOrganization } from '@/lib/auth/context';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 
 type InterContractStats = {
   total: number;
@@ -26,6 +27,7 @@ type InterContractStats = {
  */
 export function InterContractWidget() {
   const { activeOrgId } = useOrganization();
+  const t = useAppT();
 
   const { data, loading, reload } = useCachedQuery<InterContractStats>(
     `intercontract:${activeOrgId ?? 'none'}`,
@@ -78,9 +80,9 @@ export function InterContractWidget() {
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Intercontrat
+                {t.dashboard.intercontract_title}
               </div>
-              <div className="text-xs text-muted-foreground">consultants sur le banc</div>
+              <div className="text-xs text-muted-foreground">{t.dashboard.intercontract_sub}</div>
             </div>
           </div>
           <ArrowUpRight className="h-4 w-4 text-muted-foreground/60" />
@@ -97,14 +99,14 @@ export function InterContractWidget() {
         <div className="mt-4 space-y-1 text-xs text-muted-foreground">
           {stats.longTerm > 0 ? (
             <div className="text-amber-300/80 font-medium">
-              ⚠ {stats.longTerm} depuis &gt;30 jours
+              ⚠ {t.dashboard.bench_over_30.replace('{n}', String(stats.longTerm))}
             </div>
           ) : (
-            <div className="text-emerald-300/70">Bench récent ✓</div>
+            <div className="text-emerald-300/70">{t.dashboard.bench_recent}</div>
           )}
           {stats.avgDays !== null && (
             <div>
-              Ancienneté moyenne&nbsp;: <span className="text-foreground/80 font-medium">{stats.avgDays}j</span>
+              {t.dashboard.avg_bench}&nbsp;: <span className="text-foreground/80 font-medium">{stats.avgDays}j</span>
               {stats.maxDays !== null && stats.maxDays !== stats.avgDays && (
                 <span> · max {stats.maxDays}j</span>
               )}

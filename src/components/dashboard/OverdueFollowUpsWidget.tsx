@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { useOrganization } from '@/lib/auth/context';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { cn } from '@/lib/utils';
 
 type OverdueFollowUp = {
@@ -30,6 +31,7 @@ type OverdueFollowUp = {
  */
 export function OverdueFollowUpsWidget() {
   const { activeOrgId } = useOrganization();
+  const t = useAppT();
 
   const { data, loading, reload } = useCachedQuery<OverdueFollowUp[]>(
     `overdue-followups:${activeOrgId ?? 'none'}`,
@@ -82,16 +84,16 @@ export function OverdueFollowUpsWidget() {
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Relances en retard
+                {t.dashboard.overdue_followups_title}
               </div>
-              <div className="text-xs text-muted-foreground">opportunités à relancer</div>
+              <div className="text-xs text-muted-foreground">{t.dashboard.overdue_followups_sub}</div>
             </div>
           </div>
           <Link
             href="/crm"
             className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
           >
-            Pipeline <ArrowUpRight className="h-3 w-3" />
+            {t.nav.pipeline} <ArrowUpRight className="h-3 w-3" />
           </Link>
         </div>
 
@@ -103,7 +105,7 @@ export function OverdueFollowUpsWidget() {
           </div>
         ) : items.length === 0 ? (
           <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground italic">
-            Aucune relance en retard ✓
+            {t.dashboard.no_overdue}
           </div>
         ) : (
           <ul className="space-y-1.5 flex-1">
