@@ -75,6 +75,23 @@ export type AppDict = {
     overdue_followups_title: string;
     overdue_followups_sub: string;
     no_overdue: string;
+    // ---- New action widgets (replacing intercontract / missions ending / overdue) ----
+    top_consultants_title: string;
+    top_consultants_sub: string;
+    top_consultants_empty: string;
+    hot_opportunities_title: string;
+    hot_opportunities_sub: string;
+    hot_opportunities_empty: string;
+    invoices_to_collect_title: string;
+    invoices_to_collect_sub: string;
+    invoices_to_collect_empty: string;
+    per_day_short: string;        // "/j" or "/d"
+    weighted_value: string;       // "pondérée" or "weighted"
+    due_in: string;               // "échéance" or "due"
+    overdue_short: string;        // "en retard" or "overdue"
+    see_consultants: string;
+    see_invoices: string;
+    see_pipeline: string;
     priority_alerts: string;
     alerts_to_handle: string; // "{n} alertes à traiter"
     all_under_control: string;
@@ -908,6 +925,22 @@ export const APP_DICT: Record<Locale, AppDict> = {
       overdue_followups_title: 'Relances en retard',
       overdue_followups_sub: 'opportunités à relancer',
       no_overdue: 'Aucune relance en retard ✓',
+      top_consultants_title: 'Top consultants',
+      top_consultants_sub: 'en mission · classés par TJM',
+      top_consultants_empty: 'Aucun consultant en mission active',
+      hot_opportunities_title: 'Opportunités prioritaires',
+      hot_opportunities_sub: 'valeur pondérée par probabilité',
+      hot_opportunities_empty: 'Aucune opportunité chaude — go prospecter ✨',
+      invoices_to_collect_title: 'Factures à encaisser',
+      invoices_to_collect_sub: 'impayées triées par montant',
+      invoices_to_collect_empty: 'Tout est payé ✓',
+      per_day_short: '/j',
+      weighted_value: 'pondérée',
+      due_in: 'échéance',
+      overdue_short: 'en retard',
+      see_consultants: 'Consultants',
+      see_invoices: 'Factures',
+      see_pipeline: 'Pipeline',
       priority_alerts: 'Alertes prioritaires',
       alerts_to_handle: '{n} alerte{s} à traiter',
       all_under_control: 'Tout est sous contrôle',
@@ -1730,6 +1763,22 @@ export const APP_DICT: Record<Locale, AppDict> = {
       overdue_followups_title: 'Overdue follow-ups',
       overdue_followups_sub: 'opportunities to follow up',
       no_overdue: 'No overdue follow-up ✓',
+      top_consultants_title: 'Top consultants',
+      top_consultants_sub: 'on mission · ranked by day rate',
+      top_consultants_empty: 'No consultant on active mission',
+      hot_opportunities_title: 'Hot opportunities',
+      hot_opportunities_sub: 'value weighted by probability',
+      hot_opportunities_empty: 'No hot opportunity — go prospect ✨',
+      invoices_to_collect_title: 'Invoices to collect',
+      invoices_to_collect_sub: 'unpaid, sorted by amount',
+      invoices_to_collect_empty: 'All paid ✓',
+      per_day_short: '/d',
+      weighted_value: 'weighted',
+      due_in: 'due',
+      overdue_short: 'overdue',
+      see_consultants: 'Consultants',
+      see_invoices: 'Invoices',
+      see_pipeline: 'Pipeline',
       priority_alerts: 'Priority alerts',
       alerts_to_handle: '{n} alert{s} to handle',
       all_under_control: 'All under control',

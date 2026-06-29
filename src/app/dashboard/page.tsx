@@ -36,9 +36,9 @@ import { relativeDate } from '@/lib/utils';
 import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { ResetDashboardDialog } from '@/components/dashboard/ResetDashboardDialog';
-import { InterContractWidget } from '@/components/dashboard/InterContractWidget';
-import { MissionsEndingSoonWidget } from '@/components/dashboard/MissionsEndingSoonWidget';
-import { OverdueFollowUpsWidget } from '@/components/dashboard/OverdueFollowUpsWidget';
+import { TopConsultantsWidget } from '@/components/dashboard/TopConsultantsWidget';
+import { HotOpportunitiesWidget } from '@/components/dashboard/HotOpportunitiesWidget';
+import { InvoicesToCollectWidget } from '@/components/dashboard/InvoicesToCollectWidget';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import {
   PageHeader,
@@ -251,11 +251,11 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Action Row — 3 widgets opérationnels : ce que je dois faire aujourd'hui */}
+      {/* Action Row — 3 widgets actionnables : qui me rapporte, où pousser, qui me doit. */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <InterContractWidget />
-        <MissionsEndingSoonWidget />
-        <OverdueFollowUpsWidget />
+        <TopConsultantsWidget />
+        <HotOpportunitiesWidget />
+        <InvoicesToCollectWidget />
       </div>
 
       {/* Graph CA / Missions */}
