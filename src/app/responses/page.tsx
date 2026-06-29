@@ -47,7 +47,8 @@ import type {
   JobOffer,
 } from '@/types';
 import { CV_TEMPLATE_LABEL } from '@/constants';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 
 type LoadedConsultant = {
   consultant: Consultant;
@@ -63,6 +64,7 @@ type EmailDraft = {
 };
 
 export default function ResponsesPage() {
+  const { format: formatCurrency } = useCurrency();
   // === Step 1 : offres ===
   const [offers, setOffers] = useState<JobOffer[]>([]);
   const [loadingOffers, setLoadingOffers] = useState(true);

@@ -37,7 +37,7 @@ import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { usePagination } from '@/hooks/usePagination';
 import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import { SENIORITY_LABEL } from '@/constants';
-import { formatCurrency } from '@/lib/utils';
+import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 import { notifyDestructive, notifyError } from '@/lib/notify';
 
 /**
@@ -69,6 +69,7 @@ type OnMissionRow = {
 
 export default function EnMissionPage() {
   const { activeOrgId } = useOrganization();
+  const { format: formatCurrency } = useCurrency();
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);

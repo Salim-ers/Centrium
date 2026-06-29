@@ -6,6 +6,7 @@ import { OrganizationProvider } from '@/lib/auth/context';
 import { RouteThemeManager } from '@/components/theme/RouteThemeManager';
 import { CookieBanner } from '@/components/marketing/CookieBanner';
 import { LocaleProvider } from '@/lib/i18n/LocaleProvider';
+import { CurrencyProvider } from '@/lib/i18n/CurrencyProvider';
 import { SITE } from '@/lib/seo/config';
 import { JsonLd } from '@/components/seo/JsonLd';
 
@@ -187,8 +188,10 @@ export default function RootLayout({
       <body className="font-sans">
         <RouteThemeManager />
         <LocaleProvider>
-          <OrganizationProvider>{children}</OrganizationProvider>
-          <CookieBanner />
+          <CurrencyProvider>
+            <OrganizationProvider>{children}</OrganizationProvider>
+            <CookieBanner />
+          </CurrencyProvider>
         </LocaleProvider>
         <Toaster
           position="top-right"

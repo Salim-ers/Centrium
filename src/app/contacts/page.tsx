@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useContactTypeLabels } from '@/lib/i18n/useBadges';
 import {
   UserCircle,
   Plus,
@@ -73,6 +74,7 @@ import { relativeDate } from '@/lib/utils';
 export default function ContactsPage() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
+  const contactTypeLabels = useContactTypeLabels();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [csvOpen, setCsvOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
@@ -360,7 +362,7 @@ export default function ContactsPage() {
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         <Badge variant="outline" className="text-[10px]">
-                          {CONTACT_TYPE_LABEL[c.contact_type]}
+                          {contactTypeLabels[c.contact_type as keyof typeof contactTypeLabels] ?? CONTACT_TYPE_LABEL[c.contact_type]}
                         </Badge>
                       </TableCell>
                       <TableCell

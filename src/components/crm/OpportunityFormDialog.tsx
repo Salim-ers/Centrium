@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -60,6 +60,8 @@ export function OpportunityFormDialog({
   opportunity,
 }: Props) {
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [saving, setSaving] = useState(false);
   const isEdit = !!opportunity;
 
@@ -84,7 +86,7 @@ export function OpportunityFormDialog({
         ? await opportunityService.update(opportunity!.id, values)
         : await opportunityService.create(values, organizationId);
       if (res.error) {
-        toast.error('Erreur : ' + res.error.message);
+        toast.error((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
         return;
       }
       toast.success(isEdit ? t.forms.opportunity.updated : t.forms.opportunity.created);
@@ -105,8 +107,13 @@ export function OpportunityFormDialog({
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
           <div>
-            <Label>Titre *</Label>
-            <Input {...register('title')} placeholder="ex: BNP Paribas – QA Automation" />
+            <Label>{isEn ? 'Title *' : 'Titre *'}</Label>
+            <Input
+              {...register('title')}
+              placeholder={
+                isEn ? 'e.g. BNP Paribas – QA Automation' : 'ex: BNP Paribas – QA Automation'
+              }
+            />
             {errors.title && (
               <p className="text-xs text-red-400 mt-1">{errors.title.message}</p>
             )}
@@ -130,10 +137,10 @@ export function OpportunityFormDialog({
             <div>
               <Label>{t.forms.opportunity.priority}</Label>
               <Select {...register('priority')}>
-                <option value="low">Faible</option>
-                <option value="medium">Moyenne</option>
-                <option value="high">Haute</option>
-                <option value="critical">Critique</option>
+                <option value="low">{isEn ? 'Low' : 'Faible'}</option>
+                <option value="medium">{isEn ? 'Medium' : 'Moyenne'}</option>
+                <option value="high">{isEn ? 'High' : 'Haute'}</option>
+                <option value="critical">{isEn ? 'Critical' : 'Critique'}</option>
               </Select>
             </div>
           </div>

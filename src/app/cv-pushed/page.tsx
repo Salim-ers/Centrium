@@ -43,7 +43,8 @@ import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { usePagination } from '@/hooks/usePagination';
 import { PaginationFooter } from '@/components/ui/PaginationFooter';
-import { formatCurrency, relativeDate } from '@/lib/utils';
+import { relativeDate } from '@/lib/utils';
+import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 import { notifyDestructive, notifyError, notifyCreated } from '@/lib/notify';
 
 /**
@@ -86,6 +87,7 @@ type PushedRow = {
 
 export default function CvPushedPage() {
   const { activeOrgId } = useOrganization();
+  const { format: formatCurrency } = useCurrency();
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
   /** Mode "Voir les refusés" : on liste les status='rejected' au lieu
@@ -661,6 +663,7 @@ export default function CvPushedPage() {
  * Les codes couleur sont conservés (emerald = gain, rouge = perte).
  */
 function DualTjm({ client, consultant }: { client: number; consultant: number | null }) {
+  const { format: formatCurrency } = useCurrency();
   const hasConsultant = consultant != null && consultant > 0;
   const margin = hasConsultant ? client - (consultant as number) : null;
   const marginTone =

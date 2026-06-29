@@ -32,7 +32,8 @@ import { useBrandName } from '@/components/brand/BrandingStyles';
 import { NewUserTutorial } from '@/components/onboarding/NewUserTutorial';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useRealtimeReload } from '@/hooks/useRealtimeReload';
-import { formatCurrency, relativeDate } from '@/lib/utils';
+import { relativeDate } from '@/lib/utils';
+import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { ResetDashboardDialog } from '@/components/dashboard/ResetDashboardDialog';
 import { InterContractWidget } from '@/components/dashboard/InterContractWidget';
@@ -104,6 +105,7 @@ export default function DashboardPage() {
   const { activeOrgId, branding } = useOrganization();
   const brandName = useBrandName();
   const t = useAppT();
+  const { format: formatCurrency } = useCurrency();
   // "Branding non configuré" = pas de logo ET pas de couleur primaire perso.
   // Évite de hasseler les orgs qui ont décidé de garder le défaut.
   const brandingMissing =

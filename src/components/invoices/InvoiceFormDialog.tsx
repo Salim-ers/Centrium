@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Plus, X } from 'lucide-react';
 
@@ -56,6 +56,8 @@ function plus30DaysISO() {
 
 export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved }: Props) {
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [saving, setSaving] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [consultants, setConsultants] = useState<Consultant[]>([]);
@@ -159,7 +161,7 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
   async function createCompanyInline() {
     const name = newCompanyName.trim();
     if (!name) {
-      notifyError('Nom du client obligatoire');
+      notifyError(isEn ? 'Client name required' : 'Nom du client obligatoire');
       return;
     }
     setSavingCompany(true);
@@ -170,7 +172,10 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
         city: newCompanyCity.trim() || null,
       });
       if (res.error || !res.data) {
-        notifyError('Création impossible : ' + (res.error?.message ?? 'inconnue'));
+        notifyError(
+          (isEn ? 'Cannot create: ' : 'Création impossible : ') +
+            (res.error?.message ?? (isEn ? 'unknown' : 'inconnue')),
+        );
         return;
       }
       // Insère en haut de la liste, sélectionne, replie l'inline form.
@@ -179,7 +184,9 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
       setNewCompanyName('');
       setNewCompanyCity('');
       setCreatingCompany(false);
-      notifyCreated(`Client "${res.data.name}" créé`);
+      notifyCreated(
+        isEn ? `Client "${res.data.name}" created` : `Client "${res.data.name}" créé`,
+      );
     } finally {
       setSavingCompany(false);
     }
@@ -190,10 +197,14 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
     try {
       const res = await invoiceService.create(values, organizationId);
       if (res.error) {
-        notifyError('Erreur : ' + res.error.message);
+        notifyError((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
         return;
       }
-      notifyCreated(`Facture ${values.invoice_number} créée en brouillon`);
+      notifyCreated(
+        isEn
+          ? `Invoice ${values.invoice_number} created as draft`
+          : `Facture ${values.invoice_number} créée en brouillon`,
+      );
       onSaved?.(res.data);
       reset({
         invoice_number: suggestInvoiceNumber(),
@@ -225,7 +236,7 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
             </div>
             <div>
               <div className="flex items-center justify-between">
-                <Label>Client *</Label>
+                <Label>{isEn ? 'Client *' : 'Client *'}</Label>
                 <button
                   type="button"
                   onClick={() => setCreatingCompany((v) => !v)}
@@ -234,12 +245,12 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
                   {creatingCompany ? (
                     <>
                       <X className="h-3 w-3" />
-                      Annuler
+                      {isEn ? 'Cancel' : 'Annuler'}
                     </>
                   ) : (
                     <>
                       <Plus className="h-3 w-3" />
-                      Nouveau client
+                      {isEn ? 'New client' : 'Nouveau client'}
                     </>
                   )}
                 </button>
@@ -247,7 +258,7 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
               {!creatingCompany ? (
                 <>
                   <Select {...register('company_id')}>
-                    <option value="">— Choisir un client —</option>
+                    <option value="">{isEn ? '— Pick a client —' : '— Choisir un client —'}</option>
                     {companies.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
@@ -255,11 +266,15 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
                     ))}
                   </Select>
                   {errors.company_id && (
-                    <p className="text-xs text-red-400 mt-1">Client obligatoire</p>
+                    <p className="text-xs text-red-400 mt-1">
+                      {isEn ? 'Client required' : 'Client obligatoire'}
+                    </p>
                   )}
                   {companies.length === 0 && (
                     <p className="text-[11px] text-amber-300/80 mt-1">
-                      Aucun client en base — clique « Nouveau client » pour en créer un.
+                      {isEn
+                        ? 'No clients yet — click "New client" to add one.'
+                        : 'Aucun client en base — clique « Nouveau client » pour en créer un.'}
                     </p>
                   )}
                 </>
@@ -267,7 +282,11 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
                 <div className="space-y-2 rounded-md border border-violet-glow/30 bg-violet-glow/[0.04] p-2.5">
                   <Input
                     autoFocus
-                    placeholder="Raison sociale (ex: Renault, ENGIE…)"
+                    placeholder={
+                      isEn
+                        ? 'Legal name (e.g. Renault, ENGIE…)'
+                        : 'Raison sociale (ex: Renault, ENGIE…)'
+                    }
                     value={newCompanyName}
                     onChange={(e) => setNewCompanyName(e.target.value)}
                     onKeyDown={(e) => {
@@ -278,7 +297,7 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
                     }}
                   />
                   <Input
-                    placeholder="Ville (optionnel)"
+                    placeholder={isEn ? 'City (optional)' : 'Ville (optionnel)'}
                     value={newCompanyCity}
                     onChange={(e) => setNewCompanyCity(e.target.value)}
                   />
@@ -290,7 +309,7 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
                     className="w-full"
                   >
                     {savingCompany && <Loader2 className="h-3 w-3 animate-spin" />}
-                    Créer le client
+                    {isEn ? 'Create client' : 'Créer le client'}
                   </Button>
                 </div>
               )}
@@ -299,9 +318,11 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Consultant facturé</Label>
+              <Label>{isEn ? 'Billed consultant' : 'Consultant facturé'}</Label>
               <Select {...register('consultant_id')}>
-                <option value="">— Aucun (facture libre) —</option>
+                <option value="">
+                  {isEn ? '— None (free invoice) —' : '— Aucun (facture libre) —'}
+                </option>
                 {sortedConsultants.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.first_name} {c.last_name}
@@ -310,13 +331,15 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
                 ))}
               </Select>
               <p className="text-[10px] text-muted-foreground mt-1">
-                Optionnel — utile pour tracer la facturation par consultant
+                {isEn
+                  ? 'Optional — useful to track per-consultant billing'
+                  : 'Optionnel — utile pour tracer la facturation par consultant'}
               </p>
             </div>
             <div>
-              <Label>Appel d&apos;offre / Opportunité</Label>
+              <Label>{isEn ? 'RFP / Opportunity' : "Appel d'offre / Opportunité"}</Label>
               <Select {...register('job_offer_id')}>
-                <option value="">— Aucun —</option>
+                <option value="">{isEn ? '— None —' : '— Aucun —'}</option>
                 {offers.map((o) => (
                   <option key={o.id} value={o.id}>
                     {o.title}
@@ -325,23 +348,28 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
                 ))}
               </Select>
               <p className="text-[10px] text-muted-foreground mt-1">
-                Optionnel — pré-remplit le client si l&apos;AO en a un
+                {isEn
+                  ? 'Optional — pre-fills client if the RFP has one'
+                  : "Optionnel — pré-remplit le client si l'AO en a un"}
               </p>
             </div>
           </div>
 
           <div>
-            <Label>Période</Label>
-            <Input {...register('period_label')} placeholder="ex: Avril 2026" />
+            <Label>{t.forms.invoice.period}</Label>
+            <Input
+              {...register('period_label')}
+              placeholder={isEn ? 'e.g. April 2026' : 'ex: Avril 2026'}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Émission *</Label>
+              <Label>{t.forms.invoice.issue_date} *</Label>
               <Input type="date" {...register('issue_date')} />
             </div>
             <div>
-              <Label>Échéance *</Label>
+              <Label>{t.forms.invoice.due_date} *</Label>
               <Input type="date" {...register('due_date')} />
             </div>
           </div>
@@ -350,34 +378,34 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
               dessous). Le Montant HT reste éditable pour les forfaits. */}
           <div className="rounded-md border border-violet-glow/20 bg-violet-glow/[0.04] p-3 space-y-2">
             <div className="text-[10px] uppercase tracking-wider text-violet-300/80 font-semibold">
-              Calcul rapide TJM × jours
+              {isEn ? 'Quick compute day rate × days' : 'Calcul rapide TJM × jours'}
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <Label>TJM (€/j)</Label>
+                <Label>{isEn ? 'Day rate (€/day)' : 'TJM (€/j)'}</Label>
                 <Input
                   type="number"
                   min="0"
                   step="1"
-                  placeholder="ex: 520"
+                  placeholder={isEn ? 'e.g. 520' : 'ex: 520'}
                   value={tjm}
                   onChange={(e) => setTjm(e.target.value)}
                 />
               </div>
               <div>
-                <Label>Jours travaillés</Label>
+                <Label>{isEn ? 'Days worked' : 'Jours travaillés'}</Label>
                 <Input
                   type="number"
                   min="0"
                   step="0.5"
-                  placeholder="ex: 21"
+                  placeholder={isEn ? 'e.g. 21' : 'ex: 21'}
                   value={days}
                   onChange={(e) => setDays(e.target.value)}
                 />
               </div>
               <div>
                 <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  = Montant HT
+                  {isEn ? '= Excl. VAT amount' : '= Montant HT'}
                 </Label>
                 <Input
                   readOnly
@@ -391,7 +419,9 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Laisse vide pour un forfait — saisis directement le montant HT ci-dessous.
+              {isEn
+                ? 'Leave empty for a fixed-fee — enter the excl. VAT amount below.'
+                : 'Laisse vide pour un forfait — saisis directement le montant HT ci-dessous.'}
             </p>
           </div>
 
@@ -400,15 +430,17 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
               <Label>{t.forms.invoice.amount_ht} *</Label>
               <Input type="number" min="0" step="0.01" {...register('amount_ht')} />
               {errors.amount_ht && (
-                <p className="text-xs text-red-400 mt-1">Montant obligatoire</p>
+                <p className="text-xs text-red-400 mt-1">
+                  {isEn ? 'Amount required' : 'Montant obligatoire'}
+                </p>
               )}
             </div>
             <div>
-              <Label>TVA (%)</Label>
+              <Label>{t.forms.invoice.vat_rate}</Label>
               <Input type="number" min="0" max="100" step="0.1" {...register('vat_rate')} />
             </div>
             <div>
-              <Label>Total TTC</Label>
+              <Label>{isEn ? 'Total incl. VAT' : 'Total TTC'}</Label>
               <Input
                 readOnly
                 value={ttc ? ttc.toFixed(2) + ' €' : '—'}
@@ -418,8 +450,12 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
           </div>
 
           <div>
-            <Label>Notes</Label>
-            <Textarea {...register('notes')} rows={3} placeholder="Conditions, références de commande…" />
+            <Label>{isEn ? 'Notes' : 'Notes'}</Label>
+            <Textarea
+              {...register('notes')}
+              rows={3}
+              placeholder={isEn ? 'Terms, PO references…' : 'Conditions, références de commande…'}
+            />
           </div>
 
           <DialogFooter>

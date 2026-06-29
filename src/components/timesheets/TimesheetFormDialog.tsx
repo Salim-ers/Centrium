@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -40,7 +40,7 @@ type Props = {
   onSaved?: (ts: Timesheet) => void;
 };
 
-const MONTHS = [
+const MONTHS_FR = [
   'Janvier',
   'Février',
   'Mars',
@@ -55,8 +55,26 @@ const MONTHS = [
   'Décembre',
 ];
 
+const MONTHS_EN = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
 export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSaved }: Props) {
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
+  const months = isEn ? MONTHS_EN : MONTHS_FR;
   const [saving, setSaving] = useState(false);
   const [missions, setMissions] = useState<MissionRow[]>([]);
   const now = new Date();
@@ -94,10 +112,10 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
     try {
       const res = await timesheetService.create(values, organizationId);
       if (res.error) {
-        toast.error('Erreur : ' + res.error.message);
+        toast.error((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
         return;
       }
-      toast.success('CRA créé');
+      toast.success(t.forms.timesheet.created);
       onSaved?.(res.data);
       reset({
         period_month: now.getMonth() + 1,
@@ -134,20 +152,24 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
               ))}
             </Select>
             {errors.mission_id && (
-              <p className="text-xs text-red-400 mt-1">Mission obligatoire</p>
+              <p className="text-xs text-red-400 mt-1">
+                {isEn ? 'Mission required' : 'Mission obligatoire'}
+              </p>
             )}
             {missions.length === 0 && (
               <p className="text-xs text-amber-400 mt-1">
-                Aucune mission active. Crée une mission d&apos;abord.
+                {isEn
+                  ? 'No active mission. Create a mission first.'
+                  : "Aucune mission active. Crée une mission d'abord."}
               </p>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Mois *</Label>
+              <Label>{isEn ? 'Month *' : 'Mois *'}</Label>
               <Select {...register('period_month')}>
-                {MONTHS.map((m, i) => (
+                {months.map((m, i) => (
                   <option key={i} value={i + 1}>
                     {m}
                   </option>
@@ -155,7 +177,7 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
               </Select>
             </div>
             <div>
-              <Label>Année *</Label>
+              <Label>{isEn ? 'Year *' : 'Année *'}</Label>
               <Select {...register('period_year')}>
                 {years.map((y) => (
                   <option key={y} value={y}>
@@ -167,14 +189,18 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
           </div>
 
           <p className="text-[11px] text-violet-300/80 leading-relaxed">
-            Les jours ouvrés du mois sont pré-remplis automatiquement comme
-            travaillés. Tu pourras marquer les jours fériés et les absences
-            directement sur le calendrier après création.
+            {isEn
+              ? 'Business days of the month are pre-filled as worked. You can mark holidays and absences directly on the calendar after creation.'
+              : 'Les jours ouvrés du mois sont pré-remplis automatiquement comme travaillés. Tu pourras marquer les jours fériés et les absences directement sur le calendrier après création.'}
           </p>
 
           <div>
             <Label>Notes</Label>
-            <Textarea {...register('notes')} rows={3} placeholder="Contexte particulier…" />
+            <Textarea
+              {...register('notes')}
+              rows={3}
+              placeholder={isEn ? 'Specific context…' : 'Contexte particulier…'}
+            />
           </div>
 
           <DialogFooter>

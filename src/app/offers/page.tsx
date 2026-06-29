@@ -59,7 +59,8 @@ import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { usePagination } from '@/hooks/usePagination';
 import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import type { JobOffer } from '@/types';
-import { formatCurrency, relativeDate } from '@/lib/utils';
+import { relativeDate } from '@/lib/utils';
+import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 import { exportJobOfferPoster } from '@/lib/offers/export-poster';
 import { resolveBrand } from '@/lib/cv/branding';
 import {
@@ -87,6 +88,7 @@ function getSeniorityLabel(t: ReturnType<typeof useAppT>): Record<string, string
 export default function OffersPage() {
   const { activeOrgId, branding } = useOrganization();
   const t = useAppT();
+  const { format: formatCurrency } = useCurrency();
   const seniorityLabel = getSeniorityLabel(t);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<JobOffer | null>(null);

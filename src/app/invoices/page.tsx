@@ -49,11 +49,13 @@ import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { usePagination } from '@/hooks/usePagination';
 import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import { INVOICE_STATUS_LABEL } from '@/constants';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 
 function InvoicesPageInner() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
+  const { format: formatCurrency } = useCurrency();
   const invoiceLabels = useInvoiceStatusLabels();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);

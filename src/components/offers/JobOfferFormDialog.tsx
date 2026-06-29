@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import {
@@ -104,6 +104,8 @@ export function JobOfferFormDialog({
   offer,
 }: Props) {
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [saving, setSaving] = useState(false);
   const [requiredSkills, setRequiredSkills] = useState<string[]>([]);
   const [niceToHave, setNiceToHave] = useState<string[]>([]);
@@ -217,10 +219,15 @@ export function JobOfferFormDialog({
           conditions.length);
       if (hasFiche) setShowFiche(true);
 
-      toast.success('Annonce extraite — vérifie et valide pour créer.');
+      toast.success(
+        isEn
+          ? 'Listing extracted — review and confirm to create.'
+          : 'Annonce extraite — vérifie et valide pour créer.',
+      );
     } catch (e) {
+      const base = isEn ? 'Listing parse failed' : "Lecture de l'annonce échouée";
       toast.error(
-        `Lecture de l'annonce échouée${e instanceof Error ? ` : ${e.message}` : ''}.`,
+        `${base}${e instanceof Error ? ` : ${e.message}` : ''}.`,
       );
     } finally {
       setParsingImage(false);
@@ -235,7 +242,11 @@ export function JobOfferFormDialog({
   function handleParseText() {
     const trimmed = importText.trim();
     if (trimmed.length < 30) {
-      toast.error('Colle au moins quelques lignes de l\'annonce.');
+      toast.error(
+        isEn
+          ? 'Paste at least a few lines of the listing.'
+          : "Colle au moins quelques lignes de l'annonce.",
+      );
       return;
     }
     void runParse({ text: trimmed });
@@ -275,7 +286,11 @@ export function JobOfferFormDialog({
     // l'offre. On bloque la création silencieusement plutôt que de produire
     // des matches faussement à 50% pour tous les consultants.
     if (requiredSkills.length === 0) {
-      toast.error('Ajoute au moins 1 compétence requise — le matching IA en a besoin pour scorer les profils.');
+      toast.error(
+        isEn
+          ? 'Add at least 1 required skill — AI matching needs it to score profiles.'
+          : 'Ajoute au moins 1 compétence requise — le matching IA en a besoin pour scorer les profils.',
+      );
       return;
     }
     setSaving(true);
@@ -308,7 +323,11 @@ export function JobOfferFormDialog({
       reset();
       onOpenChange(false);
     } catch (err) {
-      toast.error('Erreur inattendue — regarde la console');
+      toast.error(
+        isEn
+          ? 'Unexpected error — check the console'
+          : 'Erreur inattendue — regarde la console',
+      );
       console.error('[JobOfferFormDialog] submit error', err);
     } finally {
       setSaving(false);
@@ -331,12 +350,22 @@ export function JobOfferFormDialog({
                 </div>
                 <div className="flex-1">
                   <div className="text-sm font-medium">
-                    Générer la fiche depuis une annonce
+                    {isEn ? 'Generate from a listing' : 'Générer la fiche depuis une annonce'}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    L&apos;IA extrait <strong>intitulé, skills, TJM, lieu, dates</strong> et
-                    reformule <strong>contexte, finalité, missions, stack, profil et
-                    conditions</strong> pour la fiche de poste PDF.
+                    {isEn ? (
+                      <>
+                        AI extracts <strong>title, skills, day rate, location, dates</strong> and
+                        rewrites <strong>context, purpose, missions, stack, profile and
+                        conditions</strong> for the PDF job poster.
+                      </>
+                    ) : (
+                      <>
+                        L&apos;IA extrait <strong>intitulé, skills, TJM, lieu, dates</strong> et
+                        reformule <strong>contexte, finalité, missions, stack, profil et
+                        conditions</strong> pour la fiche de poste PDF.
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -353,7 +382,7 @@ export function JobOfferFormDialog({
                   }`}
                 >
                   <ImageUp className="h-3.5 w-3.5" />
-                  Capture
+                  {isEn ? 'Screenshot' : 'Capture'}
                 </button>
                 <button
                   type="button"
@@ -365,7 +394,7 @@ export function JobOfferFormDialog({
                   }`}
                 >
                   <ClipboardPaste className="h-3.5 w-3.5" />
-                  Texte collé
+                  {isEn ? 'Pasted text' : 'Texte collé'}
                 </button>
               </div>
 
@@ -383,7 +412,9 @@ export function JobOfferFormDialog({
                     ) : (
                       <ImageUp className="h-4 w-4" />
                     )}
-                    {parsingImage ? 'Analyse en cours…' : 'Choisir une capture'}
+                    {parsingImage
+                      ? (isEn ? 'Analysing…' : 'Analyse en cours…')
+                      : (isEn ? 'Choose a screenshot' : 'Choisir une capture')}
                     <input
                       ref={imageRef}
                       type="file"
@@ -411,12 +442,15 @@ export function JobOfferFormDialog({
                     onChange={(e) => setImportText(e.target.value)}
                     disabled={parsingImage}
                     placeholder={
-                      'Colle ici l\'intégralité de l\'annonce de mission — descriptif, exigences, conditions…'
+                      isEn
+                        ? 'Paste the entire offer here — description, requirements, conditions…'
+                        : "Colle ici l'intégralité de l'annonce de mission — descriptif, exigences, conditions…"
                     }
                   />
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-muted-foreground">
-                      {importText.trim().length} caractère
+                      {importText.trim().length}{' '}
+                      {isEn ? 'character' : 'caractère'}
                       {importText.trim().length > 1 ? 's' : ''}
                     </span>
                     <Button
@@ -430,7 +464,7 @@ export function JobOfferFormDialog({
                       ) : (
                         <Wand2 className="h-3.5 w-3.5" />
                       )}
-                      Générer la fiche
+                      {isEn ? 'Generate' : 'Générer la fiche'}
                     </Button>
                   </div>
                 </div>
@@ -440,7 +474,14 @@ export function JobOfferFormDialog({
 
           <div>
             <Label>{t.forms.job_offer.title_field} *</Label>
-            <Input {...register('title')} placeholder="ex: Lead Dev Backend — Banque de détail" />
+            <Input
+              {...register('title')}
+              placeholder={
+                isEn
+                  ? 'e.g. Lead Backend Dev — Retail bank'
+                  : 'ex: Lead Dev Backend — Banque de détail'
+              }
+            />
             {errors.title && (
               <p className="text-xs text-red-400 mt-1">{errors.title.message}</p>
             )}
@@ -451,7 +492,11 @@ export function JobOfferFormDialog({
             <Textarea
               {...register('description')}
               rows={4}
-              placeholder="Contexte, stack, objectifs, équipe, méthodo…"
+              placeholder={
+                isEn
+                  ? 'Context, stack, goals, team, methodology…'
+                  : 'Contexte, stack, objectifs, équipe, méthodo…'
+              }
             />
           </div>
 
@@ -468,10 +513,14 @@ export function JobOfferFormDialog({
                     addSkill('required');
                   }
                 }}
-                placeholder="ex: React, PostgreSQL, AWS… (Entrée pour ajouter)"
+                placeholder={
+                  isEn
+                    ? 'e.g. React, PostgreSQL, AWS… (Enter to add)'
+                    : 'ex: React, PostgreSQL, AWS… (Entrée pour ajouter)'
+                }
               />
               <Button type="button" variant="outline" onClick={() => addSkill('required')}>
-                Ajouter
+                {isEn ? 'Add' : 'Ajouter'}
               </Button>
             </div>
             {requiredSkills.length > 0 && (
@@ -498,7 +547,7 @@ export function JobOfferFormDialog({
 
           {/* Compétences bonus */}
           <div>
-            <Label>Compétences bonus (nice-to-have)</Label>
+            <Label>{isEn ? 'Bonus skills (nice-to-have)' : 'Compétences bonus (nice-to-have)'}</Label>
             <div className="flex gap-2">
               <Input
                 value={niceInput}
@@ -509,10 +558,10 @@ export function JobOfferFormDialog({
                     addSkill('nice');
                   }
                 }}
-                placeholder="ex: Kubernetes, Terraform…"
+                placeholder={isEn ? 'e.g. Kubernetes, Terraform…' : 'ex: Kubernetes, Terraform…'}
               />
               <Button type="button" variant="outline" onClick={() => addSkill('nice')}>
-                Ajouter
+                {isEn ? 'Add' : 'Ajouter'}
               </Button>
             </div>
             {niceToHave.length > 0 && (
@@ -535,19 +584,19 @@ export function JobOfferFormDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Séniorité</Label>
+              <Label>{t.forms.job_offer.seniority}</Label>
               <Select {...register('seniority')} defaultValue="">
                 <option value="">—</option>
-                <option value="junior">Junior</option>
-                <option value="confirmed">Confirmé</option>
-                <option value="senior">Senior</option>
-                <option value="expert">Expert</option>
-                <option value="lead">Lead</option>
-                <option value="architect">Architecte</option>
+                <option value="junior">{t.seniority.junior}</option>
+                <option value="confirmed">{t.seniority.confirmed}</option>
+                <option value="senior">{t.seniority.senior}</option>
+                <option value="expert">{t.seniority.expert}</option>
+                <option value="lead">{t.seniority.lead}</option>
+                <option value="architect">{t.seniority.architect}</option>
               </Select>
             </div>
             <div>
-              <Label>TJM (€)</Label>
+              <Label>{isEn ? 'Day rate (€)' : 'TJM (€)'}</Label>
               <Input type="number" min="0" step="1" {...register('daily_rate_eur')} />
             </div>
           </div>
@@ -555,43 +604,47 @@ export function JobOfferFormDialog({
           {/* Source de l'offre — client final vs ESN partenaire qui sous-traite */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label>Type d&apos;origine</Label>
+              <Label>{isEn ? 'Source type' : "Type d'origine"}</Label>
               <Select {...register('source_kind')} defaultValue="client">
-                <option value="client">Client direct</option>
-                <option value="esn">ESN partenaire</option>
+                <option value="client">{isEn ? 'Direct client' : 'Client direct'}</option>
+                <option value="esn">{isEn ? 'Partner ESN' : 'ESN partenaire'}</option>
               </Select>
             </div>
             <div className="col-span-2">
-              <Label>Nom du client / ESN</Label>
+              <Label>{isEn ? 'Client / ESN name' : 'Nom du client / ESN'}</Label>
               <Input
                 {...register('source')}
-                placeholder="ex: Banque Postale, Hays, Open…"
+                placeholder={
+                  isEn
+                    ? 'e.g. Banque Postale, Hays, Open…'
+                    : 'ex: Banque Postale, Hays, Open…'
+                }
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Lieu</Label>
+              <Label>{isEn ? 'Location' : 'Lieu'}</Label>
               <Input {...register('location')} placeholder="Paris" />
             </div>
             <div>
-              <Label>Télétravail (jours/sem.)</Label>
+              <Label>{isEn ? 'Remote (days/wk)' : 'Télétravail (jours/sem.)'}</Label>
               <Input type="number" min="0" max="5" {...register('remote_days')} />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label>Début souhaité</Label>
+              <Label>{isEn ? 'Desired start' : 'Début souhaité'}</Label>
               <Input type="date" {...register('start_date')} />
             </div>
             <div>
-              <Label>Durée (mois)</Label>
+              <Label>{isEn ? 'Duration (months)' : 'Durée (mois)'}</Label>
               <Input type="number" min="0" max="60" {...register('duration_months')} />
             </div>
             <div>
-              <Label>Deadline candidature</Label>
+              <Label>{isEn ? 'Application deadline' : 'Deadline candidature'}</Label>
               <Input type="date" {...register('deadline')} />
             </div>
           </div>
@@ -606,15 +659,20 @@ export function JobOfferFormDialog({
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-violet-300" />
                 <div>
-                  <div className="text-sm font-medium">Fiche de poste (PDF)</div>
+                  <div className="text-sm font-medium">
+                    {isEn ? 'Job poster (PDF)' : 'Fiche de poste (PDF)'}
+                  </div>
                   <div className="text-[11px] text-muted-foreground mt-0.5">
-                    Champs détaillés pour le PDF envoyé aux consultants : contexte,
-                    finalité, missions, stack, conditions.
+                    {isEn
+                      ? 'Detailed fields for the PDF sent to consultants: context, purpose, missions, stack, conditions.'
+                      : 'Champs détaillés pour le PDF envoyé aux consultants : contexte, finalité, missions, stack, conditions.'}
                   </div>
                 </div>
               </div>
               <span className="text-xs text-muted-foreground">
-                {showFiche ? '— Replier' : '+ Déplier'}
+                {showFiche
+                  ? (isEn ? '— Collapse' : '— Replier')
+                  : (isEn ? '+ Expand' : '+ Déplier')}
               </span>
             </button>
 
@@ -622,44 +680,68 @@ export function JobOfferFormDialog({
               <div className="border-t border-violet-brand/15 p-4 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>Type de mission</Label>
+                    <Label>{isEn ? 'Mission type' : 'Type de mission'}</Label>
                     <Input
                       {...register('contract_kind')}
-                      placeholder="Mission Freelance, CDI, Portage…"
+                      placeholder={
+                        isEn
+                          ? 'Freelance, FTE, Umbrella…'
+                          : 'Mission Freelance, CDI, Portage…'
+                      }
                     />
                   </div>
                 </div>
 
                 <div>
-                  <Label>Contexte (section 01)</Label>
+                  <Label>{isEn ? 'Context (section 01)' : 'Contexte (section 01)'}</Label>
                   <Textarea
                     {...register('context')}
                     rows={4}
-                    placeholder="Présentation de l'entreprise, de la DSI, de l'équipe…"
+                    placeholder={
+                      isEn
+                        ? 'Company, IT dept, team description…'
+                        : "Présentation de l'entreprise, de la DSI, de l'équipe…"
+                    }
                   />
                 </div>
 
                 <div>
-                  <Label>Finalité de la mission (section 02)</Label>
+                  <Label>
+                    {isEn ? 'Mission purpose (section 02)' : 'Finalité de la mission (section 02)'}
+                  </Label>
                   <Textarea
                     {...register('mission_purpose')}
                     rows={2}
-                    placeholder="Objectif synthétique en 1-2 phrases — affiché dans le bloc accent."
+                    placeholder={
+                      isEn
+                        ? '1-2 sentence summary — shown in the accent block.'
+                        : 'Objectif synthétique en 1-2 phrases — affiché dans le bloc accent.'
+                    }
                   />
                 </div>
 
                 <div>
-                  <Label>Missions principales — 1 par ligne</Label>
+                  <Label>
+                    {isEn ? 'Main missions — 1 per line' : 'Missions principales — 1 par ligne'}
+                  </Label>
                   <Textarea
                     rows={6}
                     value={tasksText}
                     onChange={(e) => setTasksText(e.target.value)}
-                    placeholder={'Assurer le MCO des infrastructures réseaux N2\nTraiter et résoudre les incidents\nAdministrer les équipements LAN, WAN et Wifi'}
+                    placeholder={
+                      isEn
+                        ? 'Ensure level-2 network infra MCO\nTriage and resolve incidents\nAdminister LAN, WAN and Wifi equipment'
+                        : 'Assurer le MCO des infrastructures réseaux N2\nTraiter et résoudre les incidents\nAdministrer les équipements LAN, WAN et Wifi'
+                    }
                   />
                 </div>
 
                 <div>
-                  <Label>Environnement technique — 1 techno par ligne</Label>
+                  <Label>
+                    {isEn
+                      ? 'Tech environment — 1 per line'
+                      : 'Environnement technique — 1 techno par ligne'}
+                  </Label>
                   <Textarea
                     rows={3}
                     value={techStackText}
@@ -667,34 +749,50 @@ export function JobOfferFormDialog({
                     placeholder={'Cisco\nAruba\nPalo Alto\nFortinet'}
                   />
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    Affichées en tags violets sur la fiche. Si vide, on retombe sur les
-                    compétences requises.
+                    {isEn
+                      ? 'Shown as violet tags. If empty, falls back to required skills.'
+                      : 'Affichées en tags violets sur la fiche. Si vide, on retombe sur les compétences requises.'}
                   </p>
                 </div>
 
                 <div>
-                  <Label>Profil recherché — 1 exigence par ligne</Label>
+                  <Label>
+                    {isEn
+                      ? 'Profile — 1 requirement per line'
+                      : 'Profil recherché — 1 exigence par ligne'}
+                  </Label>
                   <Textarea
                     rows={4}
                     value={profileText}
                     onChange={(e) => setProfileText(e.target.value)}
                     placeholder={
-                      '8+ ans d\'expérience en infrastructure réseau\nCertification Cisco CCNP impérative\nAnglais courant (écrit + oral)\nExpérience banque/assurance'
+                      isEn
+                        ? '8+ years of network infrastructure experience\nCisco CCNP certification mandatory\nFluent English (written + spoken)\nBanking / insurance experience'
+                        : "8+ ans d'expérience en infrastructure réseau\nCertification Cisco CCNP impérative\nAnglais courant (écrit + oral)\nExpérience banque/assurance"
                     }
                   />
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    Exigences profil (séniorité, certifs, langues, soft skills) — distinct
-                    des technos. Affiché dans la colonne droite de la fiche.
+                    {isEn
+                      ? 'Profile requirements (seniority, certs, languages, soft skills) — distinct from techs. Shown in the right column.'
+                      : 'Exigences profil (séniorité, certifs, langues, soft skills) — distinct des technos. Affiché dans la colonne droite de la fiche.'}
                   </p>
                 </div>
 
                 <div>
-                  <Label>Conditions d&apos;exercice — 1 par ligne</Label>
+                  <Label>
+                    {isEn
+                      ? 'Working conditions — 1 per line'
+                      : "Conditions d'exercice — 1 par ligne"}
+                  </Label>
                   <Textarea
                     rows={3}
                     value={conditionsText}
                     onChange={(e) => setConditionsText(e.target.value)}
-                    placeholder={'Poste basé à Lyon — Télétravail 2j/sem.\nMission de 6 mois — Prestation\nInterventions ponctuelles en HNO'}
+                    placeholder={
+                      isEn
+                        ? 'Lyon-based — 2 days remote/week\n6-month mission — Contract\nOccasional out-of-hours interventions'
+                        : 'Poste basé à Lyon — Télétravail 2j/sem.\nMission de 6 mois — Prestation\nInterventions ponctuelles en HNO'
+                    }
                   />
                 </div>
               </div>

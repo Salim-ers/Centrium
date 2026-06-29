@@ -13,6 +13,7 @@ import { MobileNav } from '@/components/layout/MobileNav';
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
 import { LocaleToggle } from '@/components/i18n/LocaleToggle';
+import { CurrencyToggle } from '@/components/i18n/CurrencyToggle';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
 
 export function Header() {
@@ -112,6 +113,7 @@ export function Header() {
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <PresenceAvatars />
+          <CurrencyToggle variant="app" />
           <LocaleToggle variant="app" />
           <div className="hidden sm:block">
             <TutorialButton variant="cta" />
@@ -148,7 +150,7 @@ export function Header() {
               <div className="absolute right-0 mt-2 w-64 rounded-lg border border-hairline bg-card/95 backdrop-blur-xl shadow-xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-hairline">
                   <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Connecté en tant que
+                    {t.header.logged_in_as}
                   </div>
                   {(() => {
                     const fullName = `${org?.user?.firstName ?? ''} ${org?.user?.lastName ?? ''}`.trim();
@@ -176,7 +178,7 @@ export function Header() {
                   onClick={() => setMenuOpen(false)}
                   className="block px-4 py-2.5 text-sm hover-surface transition"
                 >
-                  Paramètres
+                  {t.nav.settings}
                 </Link>
                 <form action="/api/auth/logout" method="POST">
                   <button
@@ -184,7 +186,7 @@ export function Header() {
                     className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition border-t border-hairline"
                   >
                     <LogOut className="h-3.5 w-3.5" />
-                    Déconnexion
+                    {t.header.logout}
                   </button>
                 </form>
               </div>

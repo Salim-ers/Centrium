@@ -51,3 +51,8 @@ export function useSeniorityLabels() {
   const t = useAppT();
   return t.seniority;
 }
+
+export function useContactTypeLabels() {
+  const t = useAppT();
+  return t.badges.contact_type;
+}

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Loader2, Briefcase } from 'lucide-react';
@@ -74,6 +74,8 @@ export function ContractFormDialog({
   onSaved,
 }: Props) {
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [consultants, setConsultants] = useState<Consultant[]>([]);
   const [missions, setMissions] = useState<MissionOption[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
@@ -293,7 +295,7 @@ export function ContractFormDialog({
         : await contractService.create(values, organizationId);
 
       if (res.error) {
-        toast.error(`Erreur : ${res.error.message}`);
+        toast.error(`${isEn ? 'Error' : 'Erreur'} : ${res.error.message}`);
         return;
       }
       toast.success(isEdit ? t.forms.contract.updated : t.forms.contract.created);
@@ -317,27 +319,37 @@ export function ContractFormDialog({
           {/* Section 1 : Identification */}
           <section>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
-              Identification du contrat
+              {isEn ? 'Contract identification' : 'Identification du contrat'}
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Numéro (laissez vide pour auto)</Label>
+                <Label>
+                  {isEn ? 'Number (leave empty for auto)' : 'Numéro (laissez vide pour auto)'}
+                </Label>
                 <Input {...register('contract_number')} placeholder="CT-2026-0001" />
               </div>
               <div>
-                <Label>Type</Label>
+                <Label>{t.forms.contract.kind}</Label>
                 <Select {...register('kind')}>
-                  <option value="assistance_technique">Assistance technique</option>
-                  <option value="sous_traitance">Sous-traitance</option>
-                  <option value="apport_affaire">Apport d'affaire</option>
-                  <option value="freelance_mission">Ordre de mission freelance</option>
+                  <option value="assistance_technique">
+                    {isEn ? 'Service contract' : 'Assistance technique'}
+                  </option>
+                  <option value="sous_traitance">
+                    {isEn ? 'Subcontracting' : 'Sous-traitance'}
+                  </option>
+                  <option value="apport_affaire">
+                    {isEn ? 'Business introducer' : "Apport d'affaire"}
+                  </option>
+                  <option value="freelance_mission">
+                    {isEn ? 'Freelance mission order' : 'Ordre de mission freelance'}
+                  </option>
                   <option value="nda">NDA</option>
-                  <option value="amendment">Avenant</option>
+                  <option value="amendment">{isEn ? 'Amendment' : 'Avenant'}</option>
                 </Select>
               </div>
             </div>
             <div className="mt-3">
-              <Label>Titre du contrat *</Label>
+              <Label>{isEn ? 'Contract title *' : 'Titre du contrat *'}</Label>
               <Input {...register('title')} placeholder="Contrat AT – Alex S. – QA Automation" />
               {errors.title && (
                 <p className="text-xs text-red-400 mt-1">{errors.title.message}</p>
@@ -350,13 +362,17 @@ export function ContractFormDialog({
             <section className="rounded-lg border border-violet-brand/20 bg-violet-brand/5 p-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3 flex items-center gap-2">
                 <Briefcase className="h-3.5 w-3.5" />
-                Lier à une mission existante (optionnel)
+                {isEn
+                  ? 'Link to existing mission (optional)'
+                  : 'Lier à une mission existante (optionnel)'}
               </h3>
               <Select
                 value={selectedMissionId}
                 onChange={(e) => applyMission(e.target.value)}
               >
-                <option value="">— Aucune mission rattachée —</option>
+                <option value="">
+                  {isEn ? '— No mission linked —' : '— Aucune mission rattachée —'}
+                </option>
                 {missions.map((m) => {
                   const consultant = consultants.find((c) => c.id === m.consultant_id);
                   return (
@@ -368,7 +384,9 @@ export function ContractFormDialog({
                 })}
               </Select>
               <p className="text-[10px] text-muted-foreground mt-2">
-                Sélectionner une mission pré-remplit le consultant, le TJM et les dates ci-dessous.
+                {isEn
+                  ? 'Selecting a mission pre-fills consultant, day rate and dates below.'
+                  : 'Sélectionner une mission pré-remplit le consultant, le TJM et les dates ci-dessous.'}
               </p>
             </section>
           )}
@@ -376,11 +394,11 @@ export function ContractFormDialog({
           {/* Section 2 : Consultant */}
           <section>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
-              Consultant concerné
+              {isEn ? 'Consultant' : 'Consultant concerné'}
             </h3>
-            <Label>Consultant</Label>
+            <Label>{t.forms.contract.consultant}</Label>
             <Select {...register('consultant_id')}>
-              <option value="">— Aucun —</option>
+              <option value="">{isEn ? '— None —' : '— Aucun —'}</option>
               {consultants.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.first_name} {c.last_name} — {c.job_title}
@@ -392,14 +410,16 @@ export function ContractFormDialog({
           {/* Section 3 : Fournisseur */}
           <section>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
-              Fournisseur (société du consultant)
+              {isEn
+                ? "Supplier (consultant's company)"
+                : 'Fournisseur (société du consultant)'}
             </h3>
 
             {/* Dropdown : reprendre un fournisseur déjà saisi sur un précédent contrat */}
             {suppliers.length > 0 && (
               <div className="mb-4 rounded-md border border-magenta/25 bg-magenta/[0.04] p-3">
                 <Label className="text-magenta text-[10px] uppercase tracking-wider font-semibold">
-                  Reprendre un fournisseur existant
+                  {isEn ? 'Reuse an existing supplier' : 'Reprendre un fournisseur existant'}
                 </Label>
                 <Select
                   onChange={(e) => {
@@ -414,29 +434,41 @@ export function ContractFormDialog({
                     setValue('supplier_rcs', s.rcs ?? '');
                     setValue('supplier_representative', s.representative ?? '');
                     setValue('supplier_email', s.email ?? '');
-                    toast.success(`Fournisseur « ${s.company_name} » pré-rempli`);
+                    toast.success(
+                      isEn
+                        ? `Supplier "${s.company_name}" pre-filled`
+                        : `Fournisseur « ${s.company_name} » pré-rempli`,
+                    );
                     e.target.value = ''; // reset select pour pouvoir le re-sélectionner
                   }}
                   className="mt-1.5"
                 >
-                  <option value="">— Choisir un fournisseur déjà saisi —</option>
+                  <option value="">
+                    {isEn
+                      ? '— Choose an existing supplier —'
+                      : '— Choisir un fournisseur déjà saisi —'}
+                  </option>
                   {suppliers.map((s) => (
                     <option key={s.key} value={s.key}>
                       {s.company_name}
                       {s.city ? ` (${s.city})` : ''}
-                      {s.usageCount > 1 ? ` · ${s.usageCount} contrats` : ''}
+                      {s.usageCount > 1
+                        ? ` · ${s.usageCount} ${isEn ? 'contracts' : 'contrats'}`
+                        : ''}
                     </option>
                   ))}
                 </Select>
                 <p className="mt-2 text-[10.5px] text-muted-foreground">
-                  💡 Tu peux ensuite ajuster les champs ci-dessous au cas par cas.
+                  {isEn
+                    ? '💡 You can then adjust the fields below case by case.'
+                    : '💡 Tu peux ensuite ajuster les champs ci-dessous au cas par cas.'}
                 </p>
               </div>
             )}
 
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <Label>Raison sociale *</Label>
+                <Label>{isEn ? 'Company name *' : 'Raison sociale *'}</Label>
                 <Input {...register('supplier_company_name')} />
                 {errors.supplier_company_name && (
                   <p className="text-xs text-red-400 mt-1">
@@ -445,27 +477,30 @@ export function ContractFormDialog({
                 )}
               </div>
               <div className="col-span-2">
-                <Label>Adresse du siège</Label>
+                <Label>{isEn ? 'Head office address' : 'Adresse du siège'}</Label>
                 <Input {...register('supplier_address')} />
               </div>
               <div>
-                <Label>Code postal</Label>
+                <Label>{isEn ? 'Postal code' : 'Code postal'}</Label>
                 <Input {...register('supplier_postal_code')} />
               </div>
               <div>
-                <Label>Ville</Label>
+                <Label>{isEn ? 'City' : 'Ville'}</Label>
                 <Input {...register('supplier_city')} />
               </div>
               <div>
-                <Label>N° RCS</Label>
+                <Label>{isEn ? 'RCS number' : 'N° RCS'}</Label>
                 <Input {...register('supplier_rcs')} placeholder="XXX XXX XXX R.C.S. Ville" />
               </div>
               <div>
-                <Label>Représentant légal</Label>
-                <Input {...register('supplier_representative')} placeholder="Prénom Nom" />
+                <Label>{isEn ? 'Legal representative' : 'Représentant légal'}</Label>
+                <Input
+                  {...register('supplier_representative')}
+                  placeholder={isEn ? 'First name Last name' : 'Prénom Nom'}
+                />
               </div>
               <div className="col-span-2">
-                <Label>Email fournisseur</Label>
+                <Label>{isEn ? 'Supplier email' : 'Email fournisseur'}</Label>
                 <Input type="email" {...register('supplier_email')} />
               </div>
             </div>
@@ -474,24 +509,27 @@ export function ContractFormDialog({
           {/* Section 4 : Mission & Client */}
           <section>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
-              Mission &amp; Client final
+              {isEn ? 'Mission & End client' : 'Mission & Client final'}
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <Label>Intitulé de la mission</Label>
+                <Label>{isEn ? 'Mission title' : 'Intitulé de la mission'}</Label>
                 <Input {...register('mission_title')} placeholder="ex: QA Automation – Projet e-commerce" />
               </div>
               <div>
-                <Label>Client final</Label>
+                <Label>{isEn ? 'End client' : 'Client final'}</Label>
                 <Input {...register('client_name')} placeholder="ex: BNP Paribas" />
               </div>
               <div>
-                <Label>Jours remote / semaine</Label>
+                <Label>{isEn ? 'Remote days / week' : 'Jours remote / semaine'}</Label>
                 <Input type="number" min="0" max="5" {...register('remote_days_per_week')} />
               </div>
               <div className="col-span-2">
-                <Label>Lieu d'exécution</Label>
-                <Input {...register('work_location')} placeholder="Adresse complète des locaux" />
+                <Label>{isEn ? 'Execution location' : "Lieu d'exécution"}</Label>
+                <Input
+                  {...register('work_location')}
+                  placeholder={isEn ? 'Full address' : 'Adresse complète des locaux'}
+                />
               </div>
             </div>
           </section>
@@ -499,18 +537,18 @@ export function ContractFormDialog({
           {/* Section 5 : Période */}
           <section>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
-              Période
+              {isEn ? 'Period' : 'Période'}
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Date de début *</Label>
+                <Label>{isEn ? 'Start date *' : 'Date de début *'}</Label>
                 <Input type="date" {...register('start_date')} />
                 {errors.start_date && (
                   <p className="text-xs text-red-400 mt-1">{errors.start_date.message}</p>
                 )}
               </div>
               <div>
-                <Label>Durée (mois)</Label>
+                <Label>{isEn ? 'Duration (months)' : 'Durée (mois)'}</Label>
                 <Input type="number" min="1" max="60" {...register('duration_months')} />
               </div>
             </div>
@@ -519,19 +557,19 @@ export function ContractFormDialog({
           {/* Section 6 : Conditions financières */}
           <section>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
-              Conditions financières
+              {isEn ? 'Financial terms' : 'Conditions financières'}
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>TJM HT (€)</Label>
+                <Label>{isEn ? 'Day rate excl. tax (€)' : 'TJM HT (€)'}</Label>
                 <Input type="number" min="0" step="1" {...register('daily_rate_eur')} />
               </div>
               <div>
-                <Label>Délai de paiement (jours)</Label>
+                <Label>{isEn ? 'Payment terms (days)' : 'Délai de paiement (jours)'}</Label>
                 <Input type="number" min="0" max="120" {...register('payment_terms_days')} />
               </div>
               <div className="col-span-2">
-                <Label>Email de facturation</Label>
+                <Label>{isEn ? 'Billing email' : 'Email de facturation'}</Label>
                 <Input type="email" {...register('billing_email')} placeholder="facturation@centrium-platform.com" />
               </div>
             </div>
@@ -540,32 +578,38 @@ export function ContractFormDialog({
           {/* Section 7 : Clauses */}
           <section>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
-              Clauses particulières
+              {isEn ? 'Specific clauses' : 'Clauses particulières'}
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Non-concurrence (mois)</Label>
+                <Label>{isEn ? 'Non-compete (months)' : 'Non-concurrence (mois)'}</Label>
                 <Input type="number" min="0" max="36" {...register('non_compete_months')} />
               </div>
               <div>
-                <Label>Tribunal compétent</Label>
+                <Label>{isEn ? 'Competent court' : 'Tribunal compétent'}</Label>
                 <Input {...register('jurisdiction_city')} />
               </div>
             </div>
           </section>
 
           <div>
-            <Label>Notes internes</Label>
+            <Label>{isEn ? 'Internal notes' : 'Notes internes'}</Label>
             <Textarea {...register('notes')} rows={2} />
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Annuler
+              {t.actions.cancel}
             </Button>
             <Button type="submit" disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isEdit ? 'Mettre à jour' : 'Créer le contrat'}
+              {isEdit
+                ? isEn
+                  ? 'Update'
+                  : 'Mettre à jour'
+                : isEn
+                  ? 'Create contract'
+                  : 'Créer le contrat'}
             </Button>
           </DialogFooter>
         </form>

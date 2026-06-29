@@ -98,6 +98,7 @@ export type AppDict = {
     notifications: string;
     profile: string;
     logout: string;
+    logged_in_as: string;
   };
   // ---------- Actions communes ----------
   actions: {
@@ -300,6 +301,17 @@ export type AppDict = {
       active: string;
       ended: string;
       cancelled: string;
+    };
+    contact_type: {
+      recruiter: string;
+      sales: string;
+      manager: string;
+      client_final: string;
+      esn_partner: string;
+      buyer: string;
+      hr: string;
+      consultant: string;
+      other: string;
     };
   };
   // ---------- Pages secondaires (PageHeader + KPIs + EmptyStates) ----------
@@ -917,7 +929,8 @@ export const APP_DICT: Record<Locale, AppDict> = {
     tuto_short: 'Tuto',
       notifications: 'Notifications',
       profile: 'Profil',
-      logout: 'Se déconnecter',
+      logout: 'Déconnexion',
+      logged_in_as: 'Connecté en tant que',
     },
     actions: {
       save: 'Enregistrer',
@@ -1121,6 +1134,17 @@ export const APP_DICT: Record<Locale, AppDict> = {
         active: 'Actif',
         ended: 'Terminé',
         cancelled: 'Annulé',
+      },
+      contact_type: {
+        recruiter: 'Recruteur',
+        sales: 'Commercial',
+        manager: 'Manager',
+        client_final: 'Client final',
+        esn_partner: 'ESN partenaire',
+        buyer: 'Acheteur',
+        hr: 'RH',
+        consultant: 'Consultant',
+        other: 'Autre',
       },
     },
     pages: {
@@ -1728,6 +1752,7 @@ export const APP_DICT: Record<Locale, AppDict> = {
       notifications: 'Notifications',
       profile: 'Profile',
       logout: 'Log out',
+      logged_in_as: 'Logged in as',
     },
     actions: {
       save: 'Save',
@@ -1931,6 +1956,17 @@ export const APP_DICT: Record<Locale, AppDict> = {
         active: 'Active',
         ended: 'Ended',
         cancelled: 'Cancelled',
+      },
+      contact_type: {
+        recruiter: 'Recruiter',
+        sales: 'Sales',
+        manager: 'Manager',
+        client_final: 'End client',
+        esn_partner: 'Partner ESN',
+        buyer: 'Buyer',
+        hr: 'HR',
+        consultant: 'Consultant',
+        other: 'Other',
       },
     },
     pages: {

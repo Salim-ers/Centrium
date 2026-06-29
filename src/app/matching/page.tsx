@@ -30,12 +30,13 @@ import { AssignMissionDialog } from '@/components/missions/AssignMissionDialog';
 import { useOrganization } from '@/lib/auth/context';
 import type { JobOffer, Consultant } from '@/types';
 import { CONSULTANT_STATUS_LABEL, CONSULTANT_STATUS_STYLE } from '@/constants';
-import { formatCurrency } from '@/lib/utils';
+import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 
 function MatchingInner() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
   const { locale } = useLocale();
+  const { format: formatCurrency } = useCurrency();
   const searchParams = useSearchParams();
   const [offers, setOffers] = useState<JobOffer[]>([]);
   const [offerId, setOfferId] = useState<string>('');

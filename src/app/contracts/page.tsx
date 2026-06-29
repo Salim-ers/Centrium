@@ -48,7 +48,8 @@ import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { usePagination } from '@/hooks/usePagination';
 import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import type { Contract, ContractStatus } from '@/types';
-import { formatDate, formatCurrency } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 
 const STATUS_LABEL: Record<ContractStatus, string> = {
   draft: 'Brouillon',
@@ -77,6 +78,7 @@ type View = 'active' | 'archived';
 export default function ContractsPage() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
+  const { format: formatCurrency } = useCurrency();
   const ctLabels = useContractStatusLabels();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Contract | undefined>(undefined);

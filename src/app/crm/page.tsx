@@ -26,7 +26,8 @@ import { useCrmRealtime, type PeerDrag } from '@/hooks/useCrmRealtime';
 import { broadcastOrgActivity } from '@/lib/realtime/org-activity';
 import type { Opportunity, OpportunityStatus } from '@/types';
 import { OPPORTUNITY_STATUS_LABEL } from '@/constants';
-import { formatCurrency, relativeDate, cn } from '@/lib/utils';
+import { relativeDate, cn } from '@/lib/utils';
+import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 
 // Colonnes du Kanban : uniquement les statuts du pipeline actif.
 // won / lost / on_hold sont des statuts TERMINAUX → regroupés dans
@@ -61,6 +62,7 @@ const DRAG_MIME = 'application/x-opportunity-id';
 export default function CRMPage() {
   const { activeOrgId, user } = useOrganization();
   const t = useAppT();
+  const { format: formatCurrency } = useCurrency();
   const oppLabels = useOpportunityStatusLabels();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingOpp, setEditingOpp] = useState<Opportunity | null>(null);
@@ -607,6 +609,7 @@ function ClosedOpportunitiesDialogInline({
   onDelete: (id: string, title: string) => Promise<void>;
 }) {
   const t = useAppT();
+  const { format: formatCurrency } = useCurrency();
   const oppLabels = useOpportunityStatusLabels();
   const filtered =
     filter === 'all' ? opportunities : opportunities.filter((o) => o.status === filter);
@@ -728,6 +731,7 @@ function OpportunityCard({
   onEdit: () => void;
 }) {
   const t = useAppT();
+  const { format: formatCurrency } = useCurrency();
   // Si un collègue est en train de glisser cette carte, on bloque le drag
   // local (sinon conflit de mises à jour) et on affiche son indicateur.
   const lockedByPeer = !!peer;

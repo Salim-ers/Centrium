@@ -13,11 +13,11 @@ import { TrendingUp } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { createClient } from '@/lib/supabase/client';
-import { formatCurrency } from '@/lib/utils';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useOrganization } from '@/lib/auth/context';
 import { useTheme } from '@/hooks/useTheme';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 
 type RpcRow = {
   month: string;
@@ -64,6 +64,7 @@ export function RevenueChart() {
   const { activeOrgId } = useOrganization();
   const theme = useTheme();
   const t = useAppT();
+  const { format: formatCurrency } = useCurrency();
   // Palette du graphique adaptée au thème :
   //  - DARK : magenta + violet + amber (identité historique, lisible sur noir)
   //  - LIGHT : 3 nuances terracotta (cohérent avec la palette crème + terre,

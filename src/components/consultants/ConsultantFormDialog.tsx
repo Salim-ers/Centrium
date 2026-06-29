@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { notifyCreated, notifyUpdated, notifyError } from '@/lib/notify';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { Loader2, UserPlus, Mail, FileUp, Sparkles, CheckCircle2 } from 'lucide-react';
 
 import {
@@ -102,6 +102,8 @@ export function ConsultantFormDialog({
   isProspect = false,
 }: Props) {
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [saving, setSaving] = useState(false);
   const [planLimit, setPlanLimit] = useState<PlanLimitPayload | null>(null);
   const org = useOrganizationSafe();
@@ -150,12 +152,14 @@ export function ConsultantFormDialog({
     if (file.size > MAX_CV_BYTES) {
       const sizeMb = (file.size / 1024 / 1024).toFixed(1);
       toast.error(
-        `Fichier trop volumineux (${sizeMb} Mo). La limite est de 10 Mo. Compresse-le ou exporte en PDF moins lourd.`,
+        isEn
+          ? `File too large (${sizeMb} MB). The limit is 10 MB. Compress it or export as a lighter PDF.`
+          : `Fichier trop volumineux (${sizeMb} Mo). La limite est de 10 Mo. Compresse-le ou exporte en PDF moins lourd.`,
       );
       return;
     }
     if (file.size === 0) {
-      toast.error('Fichier vide.');
+      toast.error(isEn ? 'Empty file.' : 'Fichier vide.');
       return;
     }
 
@@ -171,14 +175,16 @@ export function ConsultantFormDialog({
     } catch (e) {
       console.error('[handleCVFile] extractTextSmart failed', e);
       toast.error(
-        `Lecture du fichier impossible : ${e instanceof Error ? e.message : 'format non supporté'}`,
+        isEn
+          ? `Unable to read file: ${e instanceof Error ? e.message : 'unsupported format'}`
+          : `Lecture du fichier impossible : ${e instanceof Error ? e.message : 'format non supporté'}`,
       );
       setParsingCV(false);
       return;
     }
 
     if (!text || text.trim().length < 100) {
-      toast.error('CV trop court ou illisible. Vérifie le fichier.');
+      toast.error(isEn ? 'CV too short or unreadable. Check the file.' : 'CV trop court ou illisible. Vérifie le fichier.');
       setParsingCV(false);
       return;
     }
@@ -192,7 +198,7 @@ export function ConsultantFormDialog({
       warnings = result.warnings ?? [];
     } catch (e) {
       console.error('[handleCVFile] parseCVSmart failed', e);
-      warnings = [`Parse échoué : ${e instanceof Error ? e.message : 'erreur'}`];
+      warnings = [isEn ? `Parse failed: ${e instanceof Error ? e.message : 'error'}` : `Parse échoué : ${e instanceof Error ? e.message : 'erreur'}`];
     }
 
     // Étape 3 : identité — on prend celle du LLM en priorité, on complète
@@ -252,7 +258,9 @@ export function ConsultantFormDialog({
 
     warnings.forEach((w) => toast.warning(w, { duration: 6000 }));
     notifyCreated(
-      `CV importé — ${safeParsed.skills.length} compétences, ${safeParsed.experiences.length} expériences détectées. Vérifie et valide.`,
+      isEn
+        ? `CV imported — ${safeParsed.skills.length} skills, ${safeParsed.experiences.length} experiences detected. Review and confirm.`
+        : `CV importé — ${safeParsed.skills.length} compétences, ${safeParsed.experiences.length} expériences détectées. Vérifie et valide.`,
     );
     setParsingCV(false);
   }
@@ -261,7 +269,7 @@ export function ConsultantFormDialog({
     // Validation accès portail (créé only)
     if (!isEdit && createPortal) {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(portalEmail)) {
-        notifyError('Email du portail invalide');
+        notifyError(isEn ? 'Invalid portal email' : 'Email du portail invalide');
         return;
       }
     }
@@ -292,9 +300,9 @@ export function ConsultantFormDialog({
           });
         } catch (e) {
           if ((e as Error).name === 'AbortError') {
-            notifyError('Délai dépassé — réessaie dans un instant');
+            notifyError(isEn ? 'Timeout — please try again' : 'Délai dépassé — réessaie dans un instant');
           } else {
-            notifyError('Erreur réseau : ' + (e as Error).message);
+            notifyError((isEn ? 'Network error: ' : 'Erreur réseau : ') + (e as Error).message);
           }
           return;
         } finally {
@@ -302,10 +310,10 @@ export function ConsultantFormDialog({
         }
         const payload = await res.json().catch(() => ({}));
         if (!res.ok) {
-          notifyError(payload.message ?? payload.error ?? 'Mise à jour impossible');
+          notifyError(payload.message ?? payload.error ?? (isEn ? 'Update failed' : 'Mise à jour impossible'));
           return;
         }
-        notifyUpdated(`${values.first_name} ${values.last_name} mis à jour`);
+        notifyUpdated(isEn ? `${values.first_name} ${values.last_name} updated` : `${values.first_name} ${values.last_name} mis à jour`);
         void broadcastOrgActivity(
           org?.activeOrgId,
           org?.user?.id,
@@ -334,7 +342,7 @@ export function ConsultantFormDialog({
           return;
         }
         if (!res.ok) {
-          notifyError(payload.message ?? payload.error ?? 'Création impossible');
+          notifyError(payload.message ?? payload.error ?? (isEn ? 'Creation failed' : 'Création impossible'));
           return;
         }
         // Si un CV a été pré-parsé, on applique skills / expériences / formations
@@ -352,19 +360,26 @@ export function ConsultantFormDialog({
             }
           } catch (e) {
             toast.warning(
-              `Fiche créée mais l'import CV a partiellement échoué : ${e instanceof Error ? e.message : 'erreur'}.`,
+              isEn
+                ? `Profile created but CV import partially failed: ${e instanceof Error ? e.message : 'error'}.`
+                : `Fiche créée mais l'import CV a partiellement échoué : ${e instanceof Error ? e.message : 'erreur'}.`,
               { duration: 6000 },
             );
           }
         }
 
+        const fullName = `${values.first_name} ${values.last_name}`;
         const baseMsg = createPortal
-          ? `${values.first_name} ${values.last_name} ajouté — un email d'accès portail vient d'être envoyé à ${portalEmail}`
+          ? (isEn
+              ? `${fullName} added — a portal access email has just been sent to ${portalEmail}`
+              : `${fullName} ajouté — un email d'accès portail vient d'être envoyé à ${portalEmail}`)
           : isProspect
-            ? `${values.first_name} ${values.last_name} ajouté au vivier`
-            : `${values.first_name} ${values.last_name} ajouté à la bibliothèque`;
+            ? (isEn ? `${fullName} added to talent pool` : `${fullName} ajouté au vivier`)
+            : (isEn ? `${fullName} added to the library` : `${fullName} ajouté à la bibliothèque`);
         const cvMsg = applied
-          ? ` · ${applied.skillsAdded} compétences + ${applied.experiencesAdded} expériences importées`
+          ? (isEn
+              ? ` · ${applied.skillsAdded} skills + ${applied.experiencesAdded} experiences imported`
+              : ` · ${applied.skillsAdded} compétences + ${applied.experiencesAdded} expériences importées`)
           : '';
         notifyCreated(baseMsg + cvMsg);
         void broadcastOrgActivity(
@@ -379,7 +394,7 @@ export function ConsultantFormDialog({
       reset();
       onOpenChange(false);
     } catch {
-      notifyError('Erreur réseau');
+      notifyError(isEn ? 'Network error' : 'Erreur réseau');
     } finally {
       setSaving(false);
     }
@@ -409,7 +424,7 @@ export function ConsultantFormDialog({
         <form
           onSubmit={handleSubmit(onSubmit, (errs) => {
             const first = Object.values(errs)[0] as { message?: string } | undefined;
-            toast.error(first?.message ?? 'Formulaire invalide — vérifie les champs');
+            toast.error(first?.message ?? (isEn ? 'Invalid form — check the fields' : 'Formulaire invalide — vérifie les champs'));
           })}
           className="space-y-4 pt-2"
         >
@@ -421,9 +436,11 @@ export function ConsultantFormDialog({
                   <Sparkles className="h-4 w-4 text-violet-300" />
                 </div>
                 <div className="flex-1">
-                  <div className="text-sm font-medium">Importer un CV pour pré-remplir</div>
+                  <div className="text-sm font-medium">{isEn ? 'Import a CV to pre-fill' : 'Importer un CV pour pré-remplir'}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    PDF, DOCX ou TXT. L&apos;IA extrait identité, compétences, expériences, formations et langues.
+                    {isEn
+                      ? 'PDF, DOCX or TXT. AI extracts identity, skills, experiences, education and languages.'
+                      : "PDF, DOCX ou TXT. L'IA extrait identité, compétences, expériences, formations et langues."}
                   </div>
                 </div>
               </div>
@@ -441,7 +458,7 @@ export function ConsultantFormDialog({
                   ) : (
                     <FileUp className="h-4 w-4" />
                   )}
-                  {parsingCV ? 'Analyse en cours…' : 'Choisir un CV'}
+                  {parsingCV ? (isEn ? 'Analyzing…' : 'Analyse en cours…') : (isEn ? 'Choose a CV' : 'Choisir un CV')}
                   <input
                     type="file"
                     accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
@@ -465,18 +482,18 @@ export function ConsultantFormDialog({
               {parsedPreview && (
                 <div className="text-[11px] text-white/60 flex flex-wrap gap-x-4 gap-y-1 pt-1">
                   <span>
-                    Compétences : <strong className="text-white/90">{parsedPreview.skills}</strong>
+                    {isEn ? 'Skills' : 'Compétences'} : <strong className="text-white/90">{parsedPreview.skills}</strong>
                   </span>
                   <span>
-                    Expériences :{' '}
+                    {isEn ? 'Experiences' : 'Expériences'} :{' '}
                     <strong className="text-white/90">{parsedPreview.experiences}</strong>
                   </span>
                   <span>
-                    Formations :{' '}
+                    {isEn ? 'Education' : 'Formations'} :{' '}
                     <strong className="text-white/90">{parsedPreview.educations}</strong>
                   </span>
                   <span className="text-white/40">
-                    · appliquées à la fiche après création
+                    {isEn ? '· applied to the profile after creation' : '· appliquées à la fiche après création'}
                   </span>
                 </div>
               )}
@@ -502,7 +519,7 @@ export function ConsultantFormDialog({
 
           <div>
             <Label>{t.forms.consultant.job_title} *</Label>
-            <Input {...register('job_title')} placeholder="ex: QA Automation Confirmé" />
+            <Input {...register('job_title')} placeholder={isEn ? 'e.g. QA Automation Engineer' : 'ex: QA Automation Confirmé'} />
           </div>
 
           <div>
@@ -573,32 +590,36 @@ export function ConsultantFormDialog({
                 <div>
                   <div className="text-sm font-medium inline-flex items-center gap-1.5">
                     <UserPlus className="h-4 w-4 text-violet-300" />
-                    Créer un accès portail consultant
+                    {isEn ? 'Create a consultant portal access' : 'Créer un accès portail consultant'}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    Le consultant pourra se connecter à <code className="text-violet-300">/login</code> avec ces identifiants pour accéder à son portail (CRA, profil, documents).
+                    {isEn ? (
+                      <>The consultant will be able to log in at <code className="text-violet-300">/login</code> with these credentials to access their portal (timesheets, profile, documents).</>
+                    ) : (
+                      <>Le consultant pourra se connecter à <code className="text-violet-300">/login</code> avec ces identifiants pour accéder à son portail (CRA, profil, documents).</>
+                    )}
                   </div>
                 </div>
               </label>
 
               {createPortal && (
                 <div className="pt-2 border-t border-hairline space-y-1.5">
-                  <Label>Email du portail *</Label>
+                  <Label>{isEn ? 'Portal email' : 'Email du portail'} *</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />
                     <Input
                       type="email"
                       value={portalEmail}
                       onChange={(e) => setPortalEmail(e.target.value)}
-                      placeholder="prenom.nom@example.com"
+                      placeholder={isEn ? 'firstname.lastname@example.com' : 'prenom.nom@example.com'}
                       className="pl-9"
                       autoComplete="off"
                     />
                   </div>
                   <p className="text-[11px] text-violet-300/80">
-                    Un email Centrium sera envoyé à cette adresse avec un lien
-                    pour que le consultant définisse son propre mot de passe.
-                    Aucun secret n&apos;est stocké côté admin.
+                    {isEn
+                      ? "A Centrium email will be sent to this address with a link for the consultant to set their own password. No secret is stored on the admin side."
+                      : "Un email Centrium sera envoyé à cette adresse avec un lien pour que le consultant définisse son propre mot de passe. Aucun secret n'est stocké côté admin."}
                   </p>
                 </div>
               )}

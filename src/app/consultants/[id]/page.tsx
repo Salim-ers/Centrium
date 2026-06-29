@@ -49,7 +49,8 @@ import {
   CONSULTANT_STATUS_STYLE,
   SENIORITY_LABEL,
 } from '@/constants';
-import { formatCurrency, formatDate, formatMonthYear } from '@/lib/utils';
+import { formatDate, formatMonthYear } from '@/lib/utils';
+import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 
 type Detail = {
   consultant: Consultant;
@@ -61,6 +62,7 @@ type Detail = {
 export default function ConsultantDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { format: formatCurrency } = useCurrency();
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);

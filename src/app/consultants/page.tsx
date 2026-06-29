@@ -79,7 +79,7 @@ import {
   CONSULTANT_STATUS_STYLE,
   SENIORITY_LABEL,
 } from '@/constants';
-import { formatCurrency } from '@/lib/utils';
+import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 
 /**
  * Onglet "Consultants" — toutes les fiches sans distinction
@@ -94,6 +94,7 @@ import { formatCurrency } from '@/lib/utils';
 function ConsultantsPageInner() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
+  const { format: formatCurrency } = useCurrency();
   const consultantStatusI18n = useConsultantStatusLabels();
   const seniorityI18n = useSeniorityLabels();
   const [search, setSearch] = useState('');
