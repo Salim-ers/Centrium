@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { TrendingUp, AlertTriangle, ShieldAlert, Sparkles } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { useAppT } from '@/lib/i18n/LocaleProvider';
 
 type Usage = {
   planId: string;
@@ -53,6 +54,7 @@ function writeCachedUsage(u: Usage) {
 }
 
 export function UsageBanner({ resource, hideUntilWarn = false }: Props) {
+  const t = useAppT();
   // Hydratation synchrone depuis sessionStorage : le banner apparaît
   // instantanément après le 1er fetch, plus de flash blanc.
   const [usage, setUsage] = useState<Usage | null>(readCachedUsage);
@@ -77,7 +79,7 @@ export function UsageBanner({ resource, hideUntilWarn = false }: Props) {
   if (!usage) return null;
 
   const { used, max } = usage[resource];
-  const label = resource === 'consultants' ? 'consultants' : 'utilisateurs internes';
+  const label = resource === 'consultants' ? t.usage.consultants_label : t.usage.members_label;
 
   // Cas "exempté" : on AFFICHE le compteur avec "illimité", pas
   // d'avertissement, pas d'upgrade. C'est l'info utile pour les
@@ -89,10 +91,10 @@ export function UsageBanner({ resource, hideUntilWarn = false }: Props) {
           <div className="flex items-center gap-2 text-sm">
             <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-300" />
             <span className="font-semibold text-amber-700 dark:text-amber-200">
-              {used} / illimité {label}
+              {used} / {t.usage.unlimited_word} {label}
             </span>
             <span className="text-muted-foreground text-xs">
-              · Compte Fondateur — aucune limite
+              · {t.usage.founder_suffix}
             </span>
           </div>
         </div>
@@ -145,17 +147,17 @@ export function UsageBanner({ resource, hideUntilWarn = false }: Props) {
             {used} / {max} {label}
           </span>
           <span className="text-muted-foreground text-xs">
-            sur le plan {usage.planName}
+            {t.usage.on_plan_prefix} {usage.planName}
             {isFull
-              ? ' — limite atteinte, upgrade requis'
+              ? t.usage.limit_reached_suffix
               : isWarn
-                ? ' — bientôt à la limite'
+                ? t.usage.almost_at_limit_suffix
                 : ''}
           </span>
         </div>
         {isWarn && (
           <Button size="sm" variant="outline" asChild>
-            <Link href="/billing">{isFull ? 'Mettre à niveau' : 'Voir les plans'}</Link>
+            <Link href="/billing">{isFull ? t.usage.upgrade_button : t.usage.see_plans_button}</Link>
           </Button>
         )}
       </div>

@@ -120,7 +120,7 @@ export function InvoicesToCollectWidget() {
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-xs text-emerald-300/80 italic text-center px-3">
+          <div className="flex-1 flex items-center justify-center text-xs italic text-center px-3 text-emerald-700 dark:text-emerald-300 font-medium">
             {t.dashboard.invoices_to_collect_empty}
           </div>
         ) : (

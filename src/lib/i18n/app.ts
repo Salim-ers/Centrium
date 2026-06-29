@@ -340,6 +340,18 @@ export type AppDict = {
     engagements: string;
     terms: string;
   };
+  // ---------- Bandeau usage / quota (UsageBanner) ----------
+  usage: {
+    consultants_label: string;
+    members_label: string;
+    unlimited_word: string;
+    founder_suffix: string;     // "Compte Fondateur — aucune limite"
+    on_plan_prefix: string;     // "sur le plan"
+    limit_reached_suffix: string;
+    almost_at_limit_suffix: string;
+    upgrade_button: string;
+    see_plans_button: string;
+  };
   pages: {
     consultants: {
       eyebrow: string;
@@ -1128,6 +1140,17 @@ export const APP_DICT: Record<Locale, AppDict> = {
       privacy: 'Confidentialité',
       engagements: 'Engagements',
       terms: 'CGU',
+    },
+    usage: {
+      consultants_label: 'consultants',
+      members_label: 'utilisateurs internes',
+      unlimited_word: 'illimité',
+      founder_suffix: 'Compte Fondateur — aucune limite',
+      on_plan_prefix: 'sur le plan',
+      limit_reached_suffix: ' — limite atteinte, upgrade requis',
+      almost_at_limit_suffix: ' — bientôt à la limite',
+      upgrade_button: 'Mettre à niveau',
+      see_plans_button: 'Voir les plans',
     },
     badges: {
       opportunity_status: {
@@ -1966,6 +1989,17 @@ export const APP_DICT: Record<Locale, AppDict> = {
       privacy: 'Privacy',
       engagements: 'Engagements',
       terms: 'Terms',
+    },
+    usage: {
+      consultants_label: 'consultants',
+      members_label: 'internal users',
+      unlimited_word: 'unlimited',
+      founder_suffix: 'Founder account — no limit',
+      on_plan_prefix: 'on plan',
+      limit_reached_suffix: ' — limit reached, upgrade required',
+      almost_at_limit_suffix: ' — close to limit',
+      upgrade_button: 'Upgrade',
+      see_plans_button: 'See plans',
     },
     badges: {
       opportunity_status: {
