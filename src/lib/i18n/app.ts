@@ -675,6 +675,13 @@ export type AppDict = {
       q_cra_not_invoiced: string;
       q_vat_quarter: string;
       q_draft_followup: string;
+      q_top_clients: string;
+      q_top_consultants: string;
+      q_dso: string;
+      q_aging: string;
+      q_forecast_90: string;
+      q_win_rate: string;
+      q_pipeline_value: string;
       to_know_title: string;
       to_know_body: string;
       chat_placeholder: string;
@@ -1526,6 +1533,13 @@ export const APP_DICT: Record<Locale, AppDict> = {
         q_cra_not_invoiced: 'CRA non facturés',
         q_vat_quarter: 'TVA du trimestre',
         q_draft_followup: 'Rédige une relance',
+        q_top_clients: 'Top clients',
+        q_top_consultants: 'Top consultants',
+        q_dso: 'DSO',
+        q_aging: 'Balance âgée',
+        q_forecast_90: 'Prévi 90 jours',
+        q_win_rate: 'Taux de gain',
+        q_pipeline_value: 'Valeur pipeline',
         to_know_title: 'À savoir',
         to_know_body: "L'assistant ne remplace pas un comptable. Il analyse les données saisies dans Centrium. Pour la déclaration officielle (bilan, liasse fiscale), utilise ces chiffres comme support pour ton expert-comptable.",
         chat_placeholder: 'Ex : quelles factures sont en retard ?',
@@ -2375,6 +2389,13 @@ export const APP_DICT: Record<Locale, AppDict> = {
         q_cra_not_invoiced: 'Timesheets not invoiced',
         q_vat_quarter: 'Quarterly VAT',
         q_draft_followup: 'Draft a follow-up',
+        q_top_clients: 'Top clients',
+        q_top_consultants: 'Top consultants',
+        q_dso: 'DSO',
+        q_aging: 'Aging report',
+        q_forecast_90: 'Forecast 90 days',
+        q_win_rate: 'Win rate',
+        q_pipeline_value: 'Pipeline value',
         to_know_title: 'Good to know',
         to_know_body: 'The assistant does not replace an accountant. It analyses the data entered in Centrium. For the official filing (balance sheet, tax return), use these numbers as supporting material for your accountant.',
         chat_placeholder: 'Ex: which invoices are overdue?',

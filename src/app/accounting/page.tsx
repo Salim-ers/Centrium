@@ -15,7 +15,8 @@ import {
 import { toast } from 'sonner';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
+import { useOrganization } from '@/lib/auth/context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +37,9 @@ const TONE_STYLES: Record<string, string> = {
 
 export default function AccountingAssistantPage() {
   const t = useAppT();
+  const { locale } = useLocale();
+  const { branding } = useOrganization();
+  const orgBrand = branding?.brandName ?? branding?.name ?? 'Centrium';
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
@@ -65,7 +69,7 @@ export default function AccountingAssistantPage() {
     setThinking(true);
 
     try {
-      const result = await askAssistant(q);
+      const result = await askAssistant(q, { locale, orgBrand });
       setMessages((m) => [
         ...m,
         { role: 'assistant', content: result.text, blocks: result.blocks, timestamp: Date.now() },
@@ -164,6 +168,13 @@ export default function AccountingAssistantPage() {
                   cra_not_invoiced: t.pages.accounting.q_cra_not_invoiced,
                   vat_quarter: t.pages.accounting.q_vat_quarter,
                   draft_followup: t.pages.accounting.q_draft_followup,
+                  top_clients: t.pages.accounting.q_top_clients,
+                  top_consultants: t.pages.accounting.q_top_consultants,
+                  dso: t.pages.accounting.q_dso,
+                  aging: t.pages.accounting.q_aging,
+                  forecast_90: t.pages.accounting.q_forecast_90,
+                  win_rate: t.pages.accounting.q_win_rate,
+                  pipeline_value: t.pages.accounting.q_pipeline_value,
                 };
                 return (
                   <Button
