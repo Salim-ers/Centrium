@@ -113,6 +113,19 @@ export default async function InviteAcceptPage({ searchParams }: Props) {
     .update({ organization_id: invite.organization_id, role: invite.role })
     .eq('id', user.id);
 
+  // Premier sign-in via invite → on FORCE le passage par set-password.
+  // Détection : user créé via Supabase inviteUserByEmail n'a pas de
+  // last_sign_in_at, OU a un last_sign_in_at < 5s (le verify vient de
+  // logger). Dans ce cas on l'envoie poser un mdp avant /dashboard pour
+  // qu'il puisse se reconnecter sans nouveau magic link.
+  const justFirstSignIn =
+    !user.last_sign_in_at ||
+    Date.now() - new Date(user.last_sign_in_at).getTime() < 5_000;
+  if (justFirstSignIn) {
+    redirect(
+      `/auth/set-password?welcome=invited&org=${encodeURIComponent(orgName)}`,
+    );
+  }
   redirect('/dashboard?invited=' + encodeURIComponent(orgName));
 }
 

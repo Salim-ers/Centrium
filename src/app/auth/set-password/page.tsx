@@ -29,7 +29,8 @@ export default function SetPasswordPage() {
 function SetPasswordInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const welcome = params?.get('welcome'); // 'portal' = consultant invité
+  const welcome = params?.get('welcome'); // 'portal' = consultant invité, 'invited' = membre org
+  const orgName = params?.get('org');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
@@ -55,7 +56,13 @@ function SetPasswordInner() {
     notifyCreated('Mot de passe défini — bienvenue sur Centrium');
     // Le serveur connaît son rôle ; on laisse le middleware router au bon
     // dashboard (consultant → /portal/dashboard, autre → /dashboard).
-    router.push(welcome === 'portal' ? '/portal/dashboard' : '/dashboard');
+    if (welcome === 'portal') {
+      router.push('/portal/dashboard');
+    } else if (welcome === 'invited' && orgName) {
+      router.push(`/dashboard?invited=${encodeURIComponent(orgName)}`);
+    } else {
+      router.push('/dashboard');
+    }
   }
 
   return (
@@ -76,7 +83,9 @@ function SetPasswordInner() {
           <CardDescription>
             {welcome === 'portal'
               ? 'Tu as été ajouté en tant que consultant. Définis le mot de passe que tu utiliseras pour accéder à ton portail.'
-              : 'Définis le mot de passe qui te servira à te connecter à Centrium.'}
+              : welcome === 'invited' && orgName
+                ? `Bienvenue dans ${orgName}. Définis le mot de passe que tu utiliseras pour te reconnecter.`
+                : 'Définis le mot de passe qui te servira à te connecter à Centrium.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
