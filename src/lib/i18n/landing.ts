@@ -313,10 +313,22 @@ export type LandingDict = {
     submitting: string;
     noAccount: string;
     createAccount: string;
+    forgotPassword: string;
     errors: {
       generic: string;
       invalid: string;
     };
+  };
+  forgotPassword: {
+    title: string;
+    subtitle: string;
+    email: string;
+    submit: string;
+    submitting: string;
+    successTitle: string;
+    successBody: string;
+    backToLogin: string;
+    errors: { generic: string };
   };
   productShowcase: {
     eyebrow: string;
@@ -706,10 +718,22 @@ export const DICT: Record<Locale, LandingDict> = {
       submitting: 'Connexion…',
       noAccount: 'Pas encore de compte ?',
       createAccount: 'Créer une organisation',
+      forgotPassword: 'Mot de passe oublié ?',
       errors: {
         generic: 'Connexion impossible. Réessaie.',
         invalid: 'Email ou mot de passe incorrect.',
       },
+    },
+    forgotPassword: {
+      title: 'Mot de passe oublié',
+      subtitle: 'On t\'envoie un lien pour en choisir un nouveau',
+      email: 'Email',
+      submit: 'Envoyer le lien',
+      submitting: 'Envoi…',
+      successTitle: 'Lien envoyé',
+      successBody: 'Si un compte existe avec cette adresse, tu vas recevoir un email pour réinitialiser ton mot de passe.',
+      backToLogin: 'Retour à la connexion',
+      errors: { generic: 'Impossible d\'envoyer le lien. Réessaie.' },
     },
     productShowcase: {
       eyebrow: 'Aperçu produit',
@@ -1097,10 +1121,22 @@ export const DICT: Record<Locale, LandingDict> = {
       submitting: 'Signing in…',
       noAccount: 'No account yet?',
       createAccount: 'Create an organization',
+      forgotPassword: 'Forgot password?',
       errors: {
         generic: 'Cannot sign in. Try again.',
         invalid: 'Wrong email or password.',
       },
+    },
+    forgotPassword: {
+      title: 'Forgot password',
+      subtitle: 'We\'ll send you a link to pick a new one',
+      email: 'Email',
+      submit: 'Send link',
+      submitting: 'Sending…',
+      successTitle: 'Link sent',
+      successBody: 'If an account exists for this address, you\'ll receive an email to reset your password.',
+      backToLogin: 'Back to sign in',
+      errors: { generic: 'Could not send the link. Try again.' },
     },
     productShowcase: {
       eyebrow: 'Product preview',

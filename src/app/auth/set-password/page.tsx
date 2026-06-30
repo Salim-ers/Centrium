@@ -85,7 +85,9 @@ function SetPasswordInner() {
               ? 'Tu as été ajouté en tant que consultant. Définis le mot de passe que tu utiliseras pour accéder à ton portail.'
               : welcome === 'invited' && orgName
                 ? `Bienvenue dans ${orgName}. Définis le mot de passe que tu utiliseras pour te reconnecter.`
-                : 'Définis le mot de passe qui te servira à te connecter à Centrium.'}
+                : welcome === 'recovery'
+                  ? 'Choisis un nouveau mot de passe pour ton compte Centrium.'
+                  : 'Définis le mot de passe qui te servira à te connecter à Centrium.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
