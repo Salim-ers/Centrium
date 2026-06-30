@@ -6,7 +6,6 @@ import Link from 'next/link';
 import {
   notifyDestructive,
   notifyError,
-  notifyCreated,
 } from '@/lib/notify';
 import {
   ArrowLeft,
@@ -126,7 +125,6 @@ export default function ConsultantDetailPage() {
       notifyError('Erreur : ' + res.error.message);
       return;
     }
-    notifyCreated(`${c.first_name} ${c.last_name} restauré`);
     reload();
   }
 

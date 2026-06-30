@@ -20,11 +20,7 @@ import {
   Network,
 } from 'lucide-react';
 
-import {
-  notifyDestructive,
-  notifyError,
-  notifyUpdated,
-} from '@/lib/notify';
+import { notifyError } from '@/lib/notify';
 import { ContactCsvImportDialog } from '@/components/crm/ContactCsvImportDialog';
 import { ContactReminderDialog } from '@/components/crm/ContactReminderDialog';
 import { contactInteractionService } from '@/lib/services';
@@ -163,7 +159,6 @@ export default function ContactsPage() {
       notifyError(t.toasts.error_generic + ': ' + res.error.message);
       return;
     }
-    notifyDestructive(`${contact.first_name} ${contact.last_name}${t.pages.todos.toast_deleted_suffix}`);
     setContacts((prev) => (prev ?? []).filter((c) => c.id !== contact.id));
   }
 
@@ -175,9 +170,6 @@ export default function ContactsPage() {
     }
     setContacts((prev) =>
       (prev ?? []).map((c) => (c.id === contact.id ? res.data! : c)),
-    );
-    notifyUpdated(
-      `${contact.first_name} ${contact.last_name}`,
     );
   }
 

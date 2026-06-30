@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Download, Edit, ArrowLeft, Send, CheckCircle2 } from 'lucide-react';
@@ -41,56 +41,37 @@ const STATUS_LABEL: Record<ContractStatus, string> = {
   cancelled: 'Annulé',
 };
 
-type IdentityRow = {
-  id: string;
-  name: string;
-  logo_url: string | null;
-  brand_name: string | null;
-  footer_tagline: string | null;
-  address: string | null;
-  city: string | null;
-  postal_code: string | null;
-  country: string | null;
-  siren: string | null;
-  siret: string | null;
-  vat_number: string | null;
-  rcs: string | null;
-  capital_eur: number | string | null;
-  legal_form: string | null;
-  representative_name: string | null;
-  representative_title: string | null;
-  signature_url: string | null;
-};
-
-function toIssuer(row: IdentityRow): ContractIssuer {
-  return {
-    brandName: row.brand_name ?? row.name,
-    legalName: row.name,
-    legalForm: row.legal_form,
-    capitalEur: row.capital_eur == null ? null : Number(row.capital_eur),
-    address: row.address,
-    city: row.city,
-    postalCode: row.postal_code,
-    country: row.country,
-    rcs: row.rcs,
-    representativeName: row.representative_name,
-    representativeTitle: row.representative_title,
-    logoUrl: row.logo_url,
-    footerTagline: row.footer_tagline,
-    signatureUrl: row.signature_url,
-  };
-}
-
 export default function ContractDetailPage() {
-  const { activeOrgId } = useOrganization();
+  const { activeOrgId, branding } = useOrganization();
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;
   const [contract, setContract] = useState<Contract | null>(null);
-  const [issuer, setIssuer] = useState<ContractIssuer | null>(null);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const docRef = useRef<HTMLDivElement | null>(null);
+
+  // Issuer dérivé directement du branding context (Phase 3).
+  const issuer: ContractIssuer | null = useMemo(() => {
+    if (!branding) return null;
+    return {
+      brandName: branding.brandName ?? branding.name,
+      legalName: branding.name,
+      legalForm: branding.legalForm,
+      capitalEur: branding.capitalEur,
+      address: branding.address,
+      city: branding.city,
+      postalCode: branding.postalCode,
+      country: branding.country,
+      rcs: branding.rcs,
+      representativeName: branding.representativeName,
+      representativeTitle: branding.representativeTitle,
+      logoUrl: branding.logoUrl,
+      footerTagline: branding.footerTagline,
+      signatureUrl: branding.signatureUrl,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branding, branding?.version]);
 
   useEffect(() => {
     if (!id) return;
@@ -99,22 +80,6 @@ export default function ContractDetailPage() {
       setLoading(false);
     });
   }, [id]);
-
-  useEffect(() => {
-    if (!activeOrgId) return;
-    let cancelled = false;
-    fetch('/api/organizations/identity', { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((body: { data: IdentityRow } | null) => {
-        if (!cancelled && body?.data) setIssuer(toIssuer(body.data));
-      })
-      .catch(() => {
-        // fallback = issuer QuadCore par défaut (géré côté composant)
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeOrgId]);
 
   async function updateStatus(status: ContractStatus) {
     if (!contract) return;

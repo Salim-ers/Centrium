@@ -39,7 +39,7 @@ import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { cn } from '@/lib/utils';
-import { notifyDestructive, notifyError, notifyUpdated, notifyCreated } from '@/lib/notify';
+import { notifyError } from '@/lib/notify';
 import {
   presenceColor,
   presenceDisplayName,
@@ -303,7 +303,6 @@ export default function TodosPage() {
       setTodos(prev ?? []);
       return;
     }
-    notifyDestructive(`"${todo.title}"${t.pages.todos.toast_deleted_suffix}`);
   }
 
   /**
@@ -343,7 +342,6 @@ export default function TodosPage() {
       return;
     }
     if (nextShared) {
-      notifyCreated(`"${todo.title}"${t.pages.todos.toast_shared_suffix}`);
       void broadcastOrgActivity(
         activeOrgId,
         user.id,
@@ -351,8 +349,6 @@ export default function TodosPage() {
         todo.title,
         '/todos',
       );
-    } else {
-      notifyUpdated(`"${todo.title}"${t.pages.todos.toast_back_private_suffix}`);
     }
   }
 
@@ -1165,7 +1161,6 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
             notifyError(t.pages.todos.err_save_failed_prefix + (error?.message ?? 'unknown'));
             return;
           }
-          notifyUpdated(`"${data.title}"${t.pages.todos.toast_updated_suffix}`);
           onSaved(data as Todo);
         } else {
           const { data, error } = await supabase
@@ -1177,7 +1172,6 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
             notifyError(t.pages.todos.err_create_failed_prefix + (error?.message ?? 'unknown'));
             return;
           }
-          notifyUpdated(`"${data.title}"${t.pages.todos.toast_added_suffix}`);
           onSaved(data as Todo);
         }
       } finally {

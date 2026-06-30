@@ -20,9 +20,19 @@ export type Membership = {
 
 export type CVTemplatePref = 'standard' | 'dense' | 'executive';
 
+/**
+ * Branding + identité légale + coordonnées bancaires consolidés.
+ * Source de vérité unique pour TOUTES les surfaces (CV / Facture / Contrat /
+ * Timesheet / Sidebar / Header / Footer). Quand un de ces champs change dans
+ * /settings/branding ou /settings/identity, `brandingVersion` est bumped →
+ * tous les `useMemo([branding, brandingVersion])` se réévaluent et les docs
+ * se régénèrent avec les nouvelles valeurs.
+ */
 export type OrgBranding = {
   id: string;
+  /** Raison sociale légale (Centrium, QuadCore SAS, etc.) */
   name: string;
+  // === Visuel ===
   logoUrl: string | null;
   brandName: string | null;
   footerTagline: string | null;
@@ -30,7 +40,74 @@ export type OrgBranding = {
   accentColor: string | null;
   defaultCvTemplate: CVTemplatePref | null;
   signatureUrl: string | null;
+  // === Identité légale ===
+  legalForm: string | null;
+  capitalEur: number | null;
+  address: string | null;
+  city: string | null;
+  postalCode: string | null;
+  country: string | null;
+  siren: string | null;
+  siret: string | null;
+  vatNumber: string | null;
+  rcs: string | null;
+  representativeName: string | null;
+  representativeTitle: string | null;
+  // === Banking ===
+  iban: string | null;
+  bic: string | null;
+  bankName: string | null;
+  // === Terms ===
+  paymentTermsDays: number | null;
+  lateFeeRatePct: number | null;
+  /** Compteur incrémenté à chaque reloadBranding/load — sert de dep pour
+   *  les useMemo des consumers de docs PDF afin qu'ils se régénèrent
+   *  immédiatement après une modif. */
+  version: number;
 };
+
+/** Construit un OrgBranding à partir d'une ligne brute organizations. */
+function buildBranding(
+  row: Record<string, unknown> | null,
+  version: number,
+): OrgBranding | null {
+  if (!row) return null;
+  return {
+    id: row.id as string,
+    name: (row.name as string) ?? '',
+    logoUrl: (row.logo_url as string | null) ?? null,
+    brandName: (row.brand_name as string | null) ?? null,
+    footerTagline: (row.footer_tagline as string | null) ?? null,
+    primaryColor: (row.brand_primary_color as string | null) ?? null,
+    accentColor: (row.brand_accent_color as string | null) ?? null,
+    defaultCvTemplate: (row.default_cv_template as CVTemplatePref | null) ?? null,
+    signatureUrl: (row.signature_url as string | null) ?? null,
+    legalForm: (row.legal_form as string | null) ?? null,
+    capitalEur: row.capital_eur != null ? Number(row.capital_eur) : null,
+    address: (row.address as string | null) ?? null,
+    city: (row.city as string | null) ?? null,
+    postalCode: (row.postal_code as string | null) ?? null,
+    country: (row.country as string | null) ?? null,
+    siren: (row.siren as string | null) ?? null,
+    siret: (row.siret as string | null) ?? null,
+    vatNumber: (row.vat_number as string | null) ?? null,
+    rcs: (row.rcs as string | null) ?? null,
+    representativeName: (row.representative_name as string | null) ?? null,
+    representativeTitle: (row.representative_title as string | null) ?? null,
+    iban: (row.iban as string | null) ?? null,
+    bic: (row.bic as string | null) ?? null,
+    bankName: (row.bank_name as string | null) ?? null,
+    paymentTermsDays:
+      row.payment_terms_days != null ? Number(row.payment_terms_days) : null,
+    lateFeeRatePct:
+      row.late_fee_rate_pct != null ? Number(row.late_fee_rate_pct) : null,
+    version,
+  };
+}
+
+/** Liste exhaustive des colonnes à SELECT pour construire un OrgBranding. */
+const BRANDING_COLUMNS =
+  'id, name, logo_url, brand_name, footer_tagline, brand_primary_color, brand_accent_color, default_cv_template, signature_url, legal_form, capital_eur, address, city, postal_code, country, siren, siret, vat_number, rcs, representative_name, representative_title, iban, bic, bank_name, payment_terms_days, late_fee_rate_pct';
 
 type State = {
   user: {
@@ -182,23 +259,12 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
           last_name: string | null;
         } | null;
       }>;
-      // my_organizations expose aussi les colonnes de branding depuis 020.
-      type MembershipRow = Membership & {
-        logo_url: string | null;
-        brand_name: string | null;
-        footer_tagline: string | null;
-        brand_primary_color: string | null;
-        brand_accent_color: string | null;
-        default_cv_template: CVTemplatePref | null;
-        signature_url: string | null;
-      };
+      // my_organizations donne juste la liste membership (rapide). Le
+      // branding complet (visuel + identité légale + banking) vient
+      // d'un select séparé sur organizations pour l'org active.
       const memberQ = Promise.resolve(
-        supabase
-          .from('my_organizations')
-          .select(
-            'id, name, slug, role, logo_url, brand_name, footer_tagline, brand_primary_color, brand_accent_color, default_cv_template, signature_url',
-          ),
-      ) as Promise<{ data: MembershipRow[] | null }>;
+        supabase.from('my_organizations').select('id, name, slug, role'),
+      ) as Promise<{ data: Membership[] | null }>;
 
       let profileRes: {
         data: {
@@ -207,7 +273,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
           last_name: string | null;
         } | null;
       };
-      let memberRes: { data: MembershipRow[] | null };
+      let memberRes: { data: Membership[] | null };
       try {
         [profileRes, memberRes] = await Promise.all([
           withTimeout(profileQ, 12000),
@@ -222,30 +288,27 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         return;
       }
 
-      const rows = (memberRes.data ?? []) as MembershipRow[];
-      const memberships: Membership[] = rows.map(({ id, name, slug, role }) => ({
-        id,
-        name,
-        slug,
-        role,
-      }));
+      const memberships: Membership[] = memberRes.data ?? [];
       const profileOrg = profileRes.data?.organization_id as string | null | undefined;
       const activeOrgId = profileOrg ?? memberships[0]?.id ?? null;
       const activeRole = memberships.find((m) => m.id === activeOrgId)?.role ?? null;
-      const activeRow = rows.find((m) => m.id === activeOrgId) ?? null;
-      const branding: OrgBranding | null = activeRow
-        ? {
-            id: activeRow.id,
-            name: activeRow.name,
-            logoUrl: activeRow.logo_url,
-            brandName: activeRow.brand_name,
-            footerTagline: activeRow.footer_tagline,
-            primaryColor: activeRow.brand_primary_color,
-            accentColor: activeRow.brand_accent_color,
-            defaultCvTemplate: activeRow.default_cv_template,
-            signatureUrl: activeRow.signature_url,
-          }
-        : null;
+
+      // === Fetch branding COMPLET (visuel + identité légale + banking) ===
+      let branding: OrgBranding | null = null;
+      if (activeOrgId) {
+        try {
+          const { data: brandRow } = await withTimeout(
+            Promise.resolve(
+              supabase.from('organizations').select(BRANDING_COLUMNS).eq('id', activeOrgId).single(),
+            ) as Promise<{ data: Record<string, unknown> | null }>,
+            12000,
+          );
+          // version : on prend l'horloge UTC en secondes — chaque load() bumpé.
+          branding = buildBranding(brandRow, Math.floor(Date.now() / 1000));
+        } catch {
+          // Branding non critique, on laisse à null
+        }
+      }
 
       const next = {
         user: {
@@ -351,32 +414,20 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
   const reloadBranding = useCallback(async () => {
     if (!state.activeOrgId) return;
     try {
-      const res = await fetch('/api/organizations/branding', { cache: 'no-store' });
-      if (!res.ok) return;
-      const { data } = (await res.json()) as {
-        data: {
-          id: string;
-          name: string;
-          logo_url: string | null;
-          brand_name: string | null;
-          footer_tagline: string | null;
-          brand_primary_color: string | null;
-          brand_accent_color: string | null;
-          default_cv_template: CVTemplatePref | null;
-          signature_url: string | null;
-        };
-      };
-      const branding: OrgBranding = {
-        id: data.id,
-        name: data.name,
-        logoUrl: data.logo_url,
-        brandName: data.brand_name,
-        footerTagline: data.footer_tagline,
-        primaryColor: data.brand_primary_color,
-        accentColor: data.brand_accent_color,
-        defaultCvTemplate: data.default_cv_template,
-        signatureUrl: data.signature_url,
-      };
+      // Récupère directement depuis Supabase pour avoir TOUS les champs
+      // (visuel + identité légale + banking). Aucun cache HTTP — on veut
+      // les valeurs fraîches après un save dans /settings/branding ou
+      // /settings/identity.
+      const { data: brandRow } = await supabase
+        .from('organizations')
+        .select(BRANDING_COLUMNS)
+        .eq('id', state.activeOrgId)
+        .single();
+      const branding = buildBranding(
+        brandRow as Record<string, unknown> | null,
+        Math.floor(Date.now() / 1000),
+      );
+      if (!branding) return;
       setState((s) => {
         const next = { ...s, branding };
         if (typeof window !== 'undefined') {
@@ -395,7 +446,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
     } catch {
       // silent — branding est non critique
     }
-  }, [state.activeOrgId]);
+  }, [state.activeOrgId, supabase]);
 
   const value = useMemo(
     () => ({ ...state, switchOrg, reload, reloadBranding }),

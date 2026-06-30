@@ -38,7 +38,7 @@ import { usePagination } from '@/hooks/usePagination';
 import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import { SENIORITY_LABEL } from '@/constants';
 import { useCurrency } from '@/lib/i18n/CurrencyProvider';
-import { notifyDestructive, notifyError } from '@/lib/notify';
+import { notifyError, notifyMilestone } from '@/lib/notify';
 
 /**
  * Onglet "En Mission" — une ligne = une mission active.
@@ -170,7 +170,9 @@ export default function EnMissionPage() {
         notifyError(body.message ?? 'Impossible de terminer la mission');
         return;
       }
-      notifyDestructive(`Mission terminée — ${row.first_name} ${row.last_name} revient dans Consultants`);
+      notifyMilestone(
+        `Mission terminée — ${row.first_name} ${row.last_name} revient dans Consultants`,
+      );
       setData((prev) => (prev ?? []).filter((r) => r.mission_id !== row.mission_id));
     } finally {
       setBusyId(null);
@@ -197,7 +199,6 @@ export default function EnMissionPage() {
         notifyError(body.message ?? 'Archivage impossible');
         return;
       }
-      notifyDestructive(`Mission archivée — "${row.mission_title}"`);
       setData((prev) => (prev ?? []).filter((r) => r.mission_id !== row.mission_id));
     } finally {
       setBusyId(null);
@@ -217,7 +218,10 @@ export default function EnMissionPage() {
         notifyError(body.message ?? 'Restauration impossible');
         return;
       }
-      notifyDestructive(`Mission restaurée — "${row.mission_title}"`);
+      notifyMilestone(
+        `Mission restaurée — "${row.mission_title}"`,
+        { description: 'De retour dans "En Mission"' },
+      );
       setData((prev) => (prev ?? []).filter((r) => r.mission_id !== row.mission_id));
     } finally {
       setBusyId(null);
@@ -240,7 +244,6 @@ export default function EnMissionPage() {
         notifyError(body.message ?? 'Suppression impossible');
         return;
       }
-      notifyDestructive(`Mission supprimée`);
       setData((prev) => (prev ?? []).filter((r) => r.mission_id !== row.mission_id));
     } finally {
       setBusyId(null);

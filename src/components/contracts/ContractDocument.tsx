@@ -4,17 +4,66 @@ import { QuadCoreSignature } from '@/components/brand/QuadCoreSignature';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 const KIND_LABEL: Record<Contract['kind'], string> = {
-  assistance_technique: 'Contrat d\'assistance technique',
-  apport_affaire: 'Contrat d\'apport d\'affaires',
+  assistance_technique: "Contrat d'assistance technique",
+  apport_affaire: "Contrat d'apport d'affaires",
   sous_traitance: 'Contrat de sous-traitance',
   freelance_mission: 'Contrat de mission freelance',
   nda: 'Accord de confidentialité (NDA)',
   amendment: 'Avenant',
 };
 
-export function ContractDocument({ contract }: { contract: Contract }) {
+export type ContractDocIssuer = {
+  brandName: string;
+  legalName: string;
+  address: string | null;
+  city: string | null;
+  postalCode: string | null;
+  siren: string | null;
+  footerTagline: string | null;
+  logoUrl: string | null;
+  signatureUrl: string | null;
+  primaryColor: string | null;
+  accentColor: string | null;
+  representativeName: string | null;
+  representativeTitle: string | null;
+  /** Pour cache-buster du logo après upload. */
+  version?: string | number | null;
+};
+
+/**
+ * Fallback NEUTRE pour le 1er render avant que le branding context arrive
+ * (pas de "QuadCore" hardcodé qui s'afficherait brièvement sur un compte
+ * tenant). Tous les champs sont soit vides soit génériques.
+ */
+const FALLBACK_ISSUER: ContractDocIssuer = {
+  brandName: '—',
+  legalName: '—',
+  address: null,
+  city: null,
+  postalCode: null,
+  siren: null,
+  footerTagline: null,
+  logoUrl: null,
+  signatureUrl: null,
+  primaryColor: null,
+  accentColor: null,
+  representativeName: null,
+  representativeTitle: null,
+  version: null,
+};
+
+type Props = {
+  contract: Contract;
+  /** Émetteur du contrat (depuis branding context unifié). */
+  issuer?: ContractDocIssuer | null;
+};
+
+export function ContractDocument({ contract, issuer }: Props) {
   const c = contract;
+  const iss = issuer ?? FALLBACK_ISSUER;
   const isSigned = !!c.signed_at;
+  const primary = iss.primaryColor || '#6d28d9';
+  const accent = iss.accentColor || '#e11d74';
 
   return (
     <div
@@ -23,7 +72,14 @@ export function ContractDocument({ contract }: { contract: Contract }) {
     >
       <header className="px-12 pt-10 pb-6">
         <div className="flex items-start justify-between gap-6">
-          <QuadCoreLogo size="md" />
+          <QuadCoreLogo
+            size="md"
+            src={iss.logoUrl}
+            alt={iss.brandName}
+            brandName={iss.brandName}
+            primaryColor={iss.primaryColor}
+            cacheKey={iss.version}
+          />
           <div className="text-right">
             <div className="text-[10px] uppercase tracking-[0.2em] text-neutral-400">
               {KIND_LABEL[c.kind]}
@@ -34,8 +90,7 @@ export function ContractDocument({ contract }: { contract: Contract }) {
         <div
           className="mt-5 h-[2px] w-full"
           style={{
-            background:
-              'linear-gradient(90deg, #6d28d9 0%, #e11d74 55%, transparent 100%)',
+            background: `linear-gradient(90deg, ${primary} 0%, ${accent} 55%, transparent 100%)`,
           }}
         />
       </header>
@@ -54,13 +109,21 @@ export function ContractDocument({ contract }: { contract: Contract }) {
           <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
             Donneur d&apos;ordre
           </div>
-          <div className="text-sm font-semibold">QuadCore SAS</div>
+          <div className="text-sm font-semibold">{iss.brandName}</div>
           <div className="text-xs text-neutral-600 leading-relaxed mt-1">
-            5 Rue du Docteur Roux
-            <br />
-            60180 Nogent Sur Oise
-            <br />
-            SIREN 101 694 016
+            {iss.address && (
+              <>
+                {iss.address}
+                <br />
+              </>
+            )}
+            {(iss.postalCode || iss.city) && (
+              <>
+                {[iss.postalCode, iss.city].filter(Boolean).join(' ')}
+                <br />
+              </>
+            )}
+            {iss.siren && <>SIREN {iss.siren}</>}
           </div>
         </div>
 
@@ -156,8 +219,13 @@ export function ContractDocument({ contract }: { contract: Contract }) {
           </div>
           <div className="flex justify-end">
             <QuadCoreSignature
-              signerName="QuadCore SAS"
-              signerRole="Direction commerciale"
+              signerName={iss.representativeName ?? iss.brandName}
+              signerRole={iss.representativeTitle ?? 'Signataire'}
+              brandName={iss.brandName}
+              logoUrl={iss.logoUrl}
+              imageUrl={iss.signatureUrl}
+              primaryColor={iss.primaryColor}
+              cacheKey={iss.version}
               date={isSigned ? formatDate(c.signed_at) : formatDate(new Date().toISOString())}
             />
           </div>
@@ -168,12 +236,12 @@ export function ContractDocument({ contract }: { contract: Contract }) {
         <div
           className="h-[2px] w-full mb-3"
           style={{
-            background:
-              'linear-gradient(90deg, transparent 0%, #e11d74 45%, #6d28d9 100%)',
+            background: `linear-gradient(90deg, transparent 0%, ${accent} 45%, ${primary} 100%)`,
           }}
         />
         <div className="text-[9px] text-neutral-400 tracking-wider">
-          QuadCore · IT Services &amp; Consulting · {c.contract_number}
+          {iss.brandName}
+          {iss.footerTagline ? ` · ${iss.footerTagline}` : ''} · {c.contract_number}
           {isSigned ? ` · Signé le ${formatDate(c.signed_at)}` : ' · Document à signer'}
         </div>
       </footer>

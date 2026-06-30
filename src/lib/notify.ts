@@ -70,6 +70,21 @@ export function notifyInfo(message: string, opts?: Opts) {
 }
 
 /**
+ * Pipeline state change qui déplace une ligne d'une vue à une autre
+ * (ex: Mission terminée → consultant revient dans /consultants, Proposition
+ * acceptée → CV passe en mission). Discret mais visible — l'utilisateur a
+ * besoin de savoir OÙ la ligne est partie. Icône ArrowRight, cyan, 3s.
+ *
+ * Différence avec notifyCreated/notifyUpdated : ces derniers sont RESERVED
+ * aux events sans changement de vue (et la plupart ont été retirés — le
+ * dialog qui se ferme / la ligne qui disparaît est un signal de succès
+ * suffisant en soi).
+ */
+export function notifyMilestone(message: string, opts?: Opts) {
+  return showBrandToast('milestone', message, pack(opts));
+}
+
+/**
  * Echappatoire : permet aux call-sites externes de fermer un toast par
  * ID. Identique à sonner.toast.dismiss.
  */

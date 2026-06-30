@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -21,16 +21,6 @@ import { timesheetService } from '@/lib/services';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import type { Timesheet, Mission, Consultant, Company } from '@/types';
-
-type IdentityRow = {
-  name: string;
-  brand_name: string | null;
-  footer_tagline: string | null;
-  logo_url: string | null;
-  signature_url: string | null;
-  representative_name: string | null;
-  representative_title: string | null;
-};
 
 type TimesheetDay = {
   id: string;
@@ -70,9 +60,25 @@ export default function TimesheetDetailPage() {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [issuer, setIssuer] = useState<TimesheetIssuer | null>(null);
   const [linkedInvoiceId, setLinkedInvoiceId] = useState<string | null>(null);
   const docRef = useRef<HTMLDivElement | null>(null);
+
+  // Issuer dérivé du branding unifié (Phase 3) — plus de fetch identity séparé.
+  // version dependency = régen instantanée après save dans /settings/branding.
+  const issuer: TimesheetIssuer | null = useMemo(() => {
+    if (!branding) return null;
+    return {
+      brandName: branding.brandName ?? branding.name,
+      logoUrl: branding.logoUrl,
+      footerTagline: branding.footerTagline,
+      signatureUrl: branding.signatureUrl,
+      primaryColor: branding.primaryColor,
+      accentColor: branding.accentColor,
+      representativeName: branding.representativeName,
+      representativeTitle: branding.representativeTitle,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branding, branding?.version]);
 
   async function reload() {
     if (!params?.id) return;
@@ -96,36 +102,6 @@ export default function TimesheetDetailPage() {
   useEffect(() => {
     reload();
   }, [params?.id]);
-
-  useEffect(() => {
-    if (!activeOrgId) {
-      setIssuer(null);
-      return;
-    }
-    let cancelled = false;
-    fetch('/api/organizations/identity', { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((body: { data: IdentityRow } | null) => {
-        if (cancelled || !body?.data) return;
-        const row = body.data;
-        setIssuer({
-          brandName: row.brand_name ?? row.name,
-          logoUrl: row.logo_url,
-          footerTagline: row.footer_tagline,
-          signatureUrl: row.signature_url,
-          primaryColor: branding?.primaryColor ?? null,
-          accentColor: branding?.accentColor ?? null,
-          representativeName: row.representative_name,
-          representativeTitle: row.representative_title,
-        });
-      })
-      .catch(() => {
-        // fallback = issuer QuadCore par défaut
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeOrgId, branding?.primaryColor, branding?.accentColor]);
 
   async function validateAndInvoice() {
     if (!detail) return;

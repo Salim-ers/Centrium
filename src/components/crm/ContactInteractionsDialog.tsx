@@ -27,7 +27,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { contactInteractionService } from '@/lib/services';
-import { notifyCreated, notifyDestructive, notifyError } from '@/lib/notify';
+import { notifyError } from '@/lib/notify';
 import type { Contact, ContactInteraction, ContactInteractionKind } from '@/types';
 
 type Props = {
@@ -105,7 +105,6 @@ export function ContactInteractionsDialog({
     }
     setItems((prev) => [res.data!, ...prev]);
     setNote('');
-    notifyCreated(`Interaction ajoutée — ${KIND_META[kind].label}`);
     onChanged?.();
   }
 
@@ -117,7 +116,6 @@ export function ContactInteractionsDialog({
       return;
     }
     setItems((prev) => prev.filter((it) => it.id !== interaction.id));
-    notifyDestructive('Interaction supprimée');
     onChanged?.();
   }
 

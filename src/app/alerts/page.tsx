@@ -18,7 +18,7 @@ import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { relativeDate } from '@/lib/utils';
-import { notifyDestructive, notifyError } from '@/lib/notify';
+import { notifyError } from '@/lib/notify';
 import { PageHeader, EmptyState, StatusBadge, type StatusTone } from '@/components/app';
 
 type Priority = ComputedAlert['priority'];
@@ -162,9 +162,6 @@ export default function AlertsPage() {
       notifyError(t.pages.alerts.cannot_hide_prefix + res.error.message);
       return;
     }
-    notifyDestructive(t.pages.alerts.hidden_title, {
-      description: t.pages.alerts.hidden_description,
-    });
   }
 
   const grouped = PRIORITY_ORDER.map((p) => ({

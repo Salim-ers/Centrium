@@ -45,7 +45,7 @@ import { usePagination } from '@/hooks/usePagination';
 import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import { relativeDate } from '@/lib/utils';
 import { useCurrency } from '@/lib/i18n/CurrencyProvider';
-import { notifyDestructive, notifyError, notifyCreated } from '@/lib/notify';
+import { notifyError, notifyMilestone } from '@/lib/notify';
 
 /**
  * Onglet "CV poussés" — une ligne = une mission en statut `proposed`.
@@ -217,7 +217,7 @@ export default function CvPushedPage() {
         notifyError(body.message ?? 'Validation impossible');
         return;
       }
-      notifyCreated(
+      notifyMilestone(
         `Mission validée pour ${row.first_name} ${row.last_name} — visible dans "En Mission"`,
       );
       setData((prev) => (prev ?? []).filter((r) => r.mission_id !== row.mission_id));
@@ -241,7 +241,10 @@ export default function CvPushedPage() {
         notifyError(body.message ?? 'Refus impossible');
         return;
       }
-      notifyDestructive(`Proposition refusée pour ${row.first_name} ${row.last_name}`);
+      notifyMilestone(
+        `Proposition refusée pour ${row.first_name} ${row.last_name}`,
+        { description: 'Retrouvable dans "Voir les refusés"' },
+      );
       setData((prev) => (prev ?? []).filter((r) => r.mission_id !== row.mission_id));
     } finally {
       setBusyId(null);
@@ -261,7 +264,10 @@ export default function CvPushedPage() {
         notifyError(body.message ?? 'Restauration impossible');
         return;
       }
-      notifyCreated(`Proposition restaurée — ${row.first_name} ${row.last_name}`);
+      notifyMilestone(
+        `Proposition restaurée — ${row.first_name} ${row.last_name}`,
+        { description: 'De retour dans "CV poussés"' },
+      );
       setData((prev) => (prev ?? []).filter((r) => r.mission_id !== row.mission_id));
     } finally {
       setBusyId(null);
@@ -286,7 +292,6 @@ export default function CvPushedPage() {
         notifyError(body.message ?? 'Suppression impossible');
         return;
       }
-      notifyDestructive(`Proposition supprimée`);
       setData((prev) => (prev ?? []).filter((r) => r.mission_id !== row.mission_id));
     } finally {
       setBusyId(null);

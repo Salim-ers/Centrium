@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 
 import { toast } from 'sonner';
-import { notifyCreated, notifyUpdated, notifyError } from '@/lib/notify';
+import { notifyError } from '@/lib/notify';
 
 import {
   Dialog,
@@ -118,11 +118,6 @@ export function ContactFormDialog({
         return;
       }
       const fullName = `${values.first_name} ${values.last_name}`;
-      if (isEdit) {
-        notifyUpdated(isEn ? `${fullName} updated` : `${fullName} mis à jour`);
-      } else {
-        notifyCreated(isEn ? `${fullName} added to book` : `${fullName} ajouté au carnet`);
-      }
       // Diffuse aux collègues — toast non bloquant chez eux.
       void broadcastOrgActivity(
         org?.activeOrgId,

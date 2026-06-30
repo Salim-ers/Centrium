@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { notifyCreated, notifyUpdated, notifyError } from '@/lib/notify';
+import { notifyCreated, notifyError } from '@/lib/notify';
 import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { Loader2, UserPlus, Mail, FileUp, Sparkles, CheckCircle2 } from 'lucide-react';
 
@@ -313,7 +313,6 @@ export function ConsultantFormDialog({
           notifyError(payload.message ?? payload.error ?? (isEn ? 'Update failed' : 'Mise à jour impossible'));
           return;
         }
-        notifyUpdated(isEn ? `${values.first_name} ${values.last_name} updated` : `${values.first_name} ${values.last_name} mis à jour`);
         void broadcastOrgActivity(
           org?.activeOrgId,
           org?.user?.id,
@@ -346,15 +345,9 @@ export function ConsultantFormDialog({
           return;
         }
         // Si un CV a été pré-parsé, on applique skills / expériences / formations
-        let applied: { skillsAdded: number; experiencesAdded: number; educationsAdded: number } | null = null;
         if (parsedRef.current && payload.data?.id) {
           try {
             const r = await applyParsedCV(payload.data.id, parsedRef.current);
-            applied = {
-              skillsAdded: r.skillsAdded,
-              experiencesAdded: r.experiencesAdded,
-              educationsAdded: r.educationsAdded,
-            };
             for (const w of r.warnings) {
               toast.warning(w, { duration: 8000 });
             }
@@ -413,20 +406,6 @@ export function ConsultantFormDialog({
                 : `${fullName} créé, mais l'email d'invitation portail n'a pas pu être envoyé (${errLabel}) et aucun lien de secours n'a été généré. Réessaie depuis la fiche consultant.`,
             { duration: 12000 },
           );
-        } else {
-          const baseMsg = createPortal
-            ? (isEn
-                ? `${fullName} added — a portal access email has just been sent to ${portalEmail}`
-                : `${fullName} ajouté — un email d'accès portail vient d'être envoyé à ${portalEmail}`)
-            : isProspect
-              ? (isEn ? `${fullName} added to talent pool` : `${fullName} ajouté au vivier`)
-              : (isEn ? `${fullName} added to the library` : `${fullName} ajouté à la bibliothèque`);
-          const cvMsg = applied
-            ? (isEn
-                ? ` · ${applied.skillsAdded} skills + ${applied.experiencesAdded} experiences imported`
-                : ` · ${applied.skillsAdded} compétences + ${applied.experiencesAdded} expériences importées`)
-            : '';
-          notifyCreated(baseMsg + cvMsg);
         }
         void broadcastOrgActivity(
           org?.activeOrgId,

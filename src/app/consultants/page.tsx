@@ -320,18 +320,15 @@ function ConsultantsPageInner() {
       notifyError('Erreur : ' + res.error.message);
       return;
     }
-    notifyDestructive(`${displayName} archivé`);
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
   }
 
   async function unarchiveConsultant(consultant: Consultant) {
-    const displayName = `${consultant.first_name ?? ''} ${consultant.last_name ?? ''}`.trim() || 'ce consultant';
     const res = await consultantService.unarchive(consultant.id);
     if (res.error) {
       notifyError('Erreur : ' + res.error.message);
       return;
     }
-    notifyCreated(`${displayName} restauré`);
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
   }
 

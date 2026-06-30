@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -26,33 +26,43 @@ type Detail = {
   timesheet: Timesheet | null;
 };
 
-type IdentityRow = {
-  name: string;
-  brand_name: string | null;
-  footer_tagline: string | null;
-  logo_url: string | null;
-  signature_url: string | null;
-  address: string | null;
-  city: string | null;
-  postal_code: string | null;
-  siren: string | null;
-  vat_number: string | null;
-  representative_name: string | null;
-  representative_title: string | null;
-  iban: string | null;
-  bic: string | null;
-  bank_name: string | null;
-};
-
 export default function InvoiceDetailPage() {
-  const { activeOrgId, branding } = useOrganization();
+  const { branding } = useOrganization();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [issuer, setIssuer] = useState<InvoiceIssuer | null>(null);
   const docRef = useRef<HTMLDivElement | null>(null);
+
+  // Issuer dérivé DIRECTEMENT du branding context unifié (Phase 3).
+  // Plus de fetch séparé sur /api/organizations/identity — branding contient
+  // déjà tous les champs (visuel + identité légale + banking). La dépendance
+  // sur `branding.version` garantit qu'un save dans /settings/branding ou
+  // /settings/identity régénère immédiatement le doc sans F5.
+  const issuer: InvoiceIssuer | null = useMemo(() => {
+    if (!branding) return null;
+    return {
+      brandName: branding.brandName ?? branding.name,
+      legalName: branding.name,
+      address: branding.address,
+      city: branding.city,
+      postalCode: branding.postalCode,
+      siren: branding.siren,
+      vatNumber: branding.vatNumber,
+      footerTagline: branding.footerTagline,
+      logoUrl: branding.logoUrl,
+      signatureUrl: branding.signatureUrl,
+      primaryColor: branding.primaryColor,
+      accentColor: branding.accentColor,
+      representativeName: branding.representativeName,
+      representativeTitle: branding.representativeTitle,
+      iban: branding.iban,
+      bic: branding.bic,
+      bankName: branding.bankName,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branding, branding?.version]);
 
   async function reload() {
     if (!params?.id) return;
@@ -65,43 +75,6 @@ export default function InvoiceDetailPage() {
   useEffect(() => {
     reload();
   }, [params?.id]);
-
-  useEffect(() => {
-    if (!activeOrgId) {
-      setIssuer(null);
-      return;
-    }
-    let cancelled = false;
-    fetch('/api/organizations/identity', { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((body: { data: IdentityRow } | null) => {
-        if (cancelled || !body?.data) return;
-        const row = body.data;
-        setIssuer({
-          brandName: row.brand_name ?? row.name,
-          legalName: row.name,
-          address: row.address,
-          city: row.city,
-          postalCode: row.postal_code,
-          siren: row.siren,
-          vatNumber: row.vat_number,
-          footerTagline: row.footer_tagline,
-          logoUrl: row.logo_url,
-          signatureUrl: row.signature_url,
-          primaryColor: branding?.primaryColor ?? null,
-          accentColor: branding?.accentColor ?? null,
-          representativeName: row.representative_name,
-          representativeTitle: row.representative_title,
-          iban: row.iban,
-          bic: row.bic,
-          bankName: row.bank_name,
-        });
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [activeOrgId, branding?.primaryColor, branding?.accentColor]);
 
   async function markSent() {
     if (!detail) return;

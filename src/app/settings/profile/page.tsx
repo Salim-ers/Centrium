@@ -14,6 +14,7 @@ import {
   Loader2,
   Lock,
   Save,
+  Check,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -23,7 +24,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
-import { notifyError, notifyUpdated } from '@/lib/notify';
+import { notifyError } from '@/lib/notify';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import {
   PageHeader,
   AppCard,
@@ -85,12 +87,22 @@ const EMPTY_PERSONAL: PersonalRow = {
 
 export default function MyProfilePage() {
   const { user, reload } = useOrganization();
+  const { locale } = useLocale();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Affiche un badge "Enregistré ✓" inline 2 s à côté du bouton Enregistrer
+  // (remplace l'ancien toast notifyUpdated, jugé bruyant).
+  const [justSaved, setJustSaved] = useState(false);
   const [identity, setIdentity] = useState<IdentityRow>({ first_name: '', last_name: '' });
   const [personal, setPersonal] = useState<PersonalRow>(EMPTY_PERSONAL);
   // Saisie séparée pour le champ "langues" (CSV → tableau).
   const [languagesInput, setLanguagesInput] = useState('');
+
+  useEffect(() => {
+    if (!justSaved) return;
+    const id = window.setTimeout(() => setJustSaved(false), 2000);
+    return () => window.clearTimeout(id);
+  }, [justSaved]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -205,7 +217,8 @@ export default function MyProfilePage() {
         return;
       }
 
-      notifyUpdated('Profil mis à jour');
+      // Plus de toast : on déclenche le badge inline "Enregistré ✓".
+      setJustSaved(true);
       // reload() rafraîchit le contexte d'auth pour propager le first_name
       // dans le header / présence.
       void reload();
@@ -509,7 +522,17 @@ export default function MyProfilePage() {
             </AppCard>
           </section>
 
-          <div className="sticky bottom-0 -mx-4 md:-mx-8 px-4 md:px-8 py-3 bg-background/80 backdrop-blur-xl border-t border-hairline flex items-center justify-end gap-2">
+          <div className="sticky bottom-0 -mx-4 md:-mx-8 px-4 md:px-8 py-3 bg-background/80 backdrop-blur-xl border-t border-hairline flex items-center justify-end gap-3">
+            {justSaved && (
+              <span
+                className="inline-flex items-center gap-1 text-xs text-emerald-400 transition-opacity duration-300"
+                role="status"
+                aria-live="polite"
+              >
+                <Check className="h-3.5 w-3.5" />
+                {locale === 'en' ? 'Saved' : 'Enregistré'}
+              </span>
+            )}
             <Button type="button" variant="outline" asChild>
               <Link href="/settings">Annuler</Link>
             </Button>

@@ -27,7 +27,7 @@ import {
   jobOfferService,
 } from '@/lib/services';
 import { consultantService } from '@/lib/services/consultant.service';
-import { notifyCreated, notifyError } from '@/lib/notify';
+import { notifyError } from '@/lib/notify';
 import type { Company, Consultant, Invoice, JobOffer } from '@/types';
 
 type Props = {
@@ -184,9 +184,6 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
       setNewCompanyName('');
       setNewCompanyCity('');
       setCreatingCompany(false);
-      notifyCreated(
-        isEn ? `Client "${res.data.name}" created` : `Client "${res.data.name}" créé`,
-      );
     } finally {
       setSavingCompany(false);
     }
@@ -200,11 +197,6 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
         notifyError((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
         return;
       }
-      notifyCreated(
-        isEn
-          ? `Invoice ${values.invoice_number} created as draft`
-          : `Facture ${values.invoice_number} créée en brouillon`,
-      );
       onSaved?.(res.data);
       reset({
         invoice_number: suggestInvoiceNumber(),

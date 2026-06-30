@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { contactService } from '@/lib/services';
-import { notifyCreated, notifyDestructive, notifyError } from '@/lib/notify';
+import { notifyError } from '@/lib/notify';
 import type { Contact } from '@/types';
 
 type Props = {
@@ -96,15 +96,6 @@ export function ContactReminderDialog({
       notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
       return;
     }
-    notifyCreated(
-      `Rappel programmé pour ${contact.first_name} ${contact.last_name}`,
-      {
-        description: new Date(iso).toLocaleString('fr-FR', {
-          dateStyle: 'medium',
-          timeStyle: 'short',
-        }),
-      },
-    );
     onSaved?.(res.data);
     onOpenChange(false);
   }
@@ -118,9 +109,6 @@ export function ContactReminderDialog({
       notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
       return;
     }
-    notifyDestructive(
-      `Rappel supprimé pour ${contact.first_name} ${contact.last_name}`,
-    );
     onSaved?.(res.data);
     onOpenChange(false);
   }
