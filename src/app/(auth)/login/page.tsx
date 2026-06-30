@@ -165,7 +165,7 @@ export default function LoginPage() {
               {t.login.password}
             </Label>
             <Link
-              href="/auth/forgot-password"
+              href="/forgot-password"
               className="text-xs text-white/55 hover:text-magenta-neon transition"
             >
               {t.login.forgotPassword}
