@@ -176,12 +176,51 @@ export default function AccountingAssistantPage() {
                   win_rate: t.pages.accounting.q_win_rate,
                   pipeline_value: t.pages.accounting.q_pipeline_value,
                 };
+                // Question envoyée au chat — affichée dans la bulle utilisateur,
+                // donc DOIT être dans la locale active (sinon une bulle EN affiche
+                // du FR). Le detectIntent comprend les 2 langues, donc on peut
+                // localement choisir la formulation la plus naturelle dans chaque
+                // langue ; la sémantique est préservée.
+                const questionsFr: Record<string, string> = {
+                  overview: "Donne-moi une vue d'ensemble comptable",
+                  overdue_invoices: 'Quelles factures sont en retard ?',
+                  treasury_30: 'Fais-moi une prévi de trésorerie sur 30 jours',
+                  cra_to_validate: 'Quels CRA sont à valider ?',
+                  cra_not_invoiced: 'Quels CRA validés ne sont pas encore facturés ?',
+                  vat_quarter: 'Calcule la TVA du trimestre',
+                  draft_followup: 'Rédige un email de relance pour la facture la plus en retard',
+                  top_clients: 'Qui sont mes top clients ?',
+                  top_consultants: 'Quels sont mes top consultants ?',
+                  dso: 'Calcule mon DSO',
+                  aging: 'Montre-moi la balance âgée',
+                  forecast_90: 'Prévi de CA sur les 90 prochains jours',
+                  win_rate: 'Quel est mon taux de gain commercial ?',
+                  pipeline_value: 'Quelle est la valeur de mon pipeline ?',
+                };
+                const questionsEn: Record<string, string> = {
+                  overview: 'Give me an accounting overview',
+                  overdue_invoices: 'Which invoices are overdue?',
+                  treasury_30: 'Cash flow forecast for the next 30 days',
+                  cra_to_validate: 'Which timesheets need to be validated?',
+                  cra_not_invoiced: 'Which validated timesheets are not yet invoiced?',
+                  vat_quarter: 'Compute the quarterly VAT',
+                  draft_followup: 'Draft a follow-up email for the most overdue invoice',
+                  top_clients: 'Who are my top clients?',
+                  top_consultants: 'Who are my top consultants?',
+                  dso: 'Compute my DSO',
+                  aging: 'Show me the aging report',
+                  forecast_90: 'Revenue forecast for the next 90 days',
+                  win_rate: 'What is my sales win rate?',
+                  pipeline_value: 'What is my pipeline value?',
+                };
+                const localizedQuestion =
+                  (locale === 'en' ? questionsEn : questionsFr)[p.key] ?? p.question;
                 return (
                   <Button
                     key={p.key}
                     variant="outline"
                     className="w-full justify-start text-xs h-auto py-2"
-                    onClick={() => send(p.question)}
+                    onClick={() => send(localizedQuestion)}
                     disabled={thinking}
                   >
                     <Sparkles className="h-3 w-3 shrink-0" style={{ color: '#e11d74' }} />
