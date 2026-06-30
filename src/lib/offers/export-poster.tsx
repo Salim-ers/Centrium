@@ -10,8 +10,8 @@ type ExportOptions = {
   brand?: CVBrand;
   logoSrc?: string;
   contactEmail?: string;
-  contactWebsite?: string;
-  tagline?: string;
+  /** Locale d'affichage pour les libellés statiques (FICHE DE POSTE etc.). */
+  locale?: 'fr' | 'en';
 };
 
 /**
@@ -21,14 +21,7 @@ type ExportOptions = {
  */
 export async function exportJobOfferPoster(
   offer: JobOffer,
-  {
-    filename,
-    brand,
-    logoSrc,
-    contactEmail,
-    contactWebsite,
-    tagline,
-  }: ExportOptions,
+  { filename, brand, logoSrc, contactEmail, locale }: ExportOptions,
 ): Promise<void> {
   const [{ pdf }, mod] = await Promise.all([
     import('@react-pdf/renderer'),
@@ -49,8 +42,7 @@ export async function exportJobOfferPoster(
       brand={resolved}
       logoSrc={effectiveLogo}
       contactEmail={contactEmail}
-      contactWebsite={contactWebsite}
-      tagline={tagline}
+      locale={locale}
     />
   );
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import {
@@ -86,9 +86,10 @@ function getSeniorityLabel(t: ReturnType<typeof useAppT>): Record<string, string
  * pousse un consultant via matching, on archive quand c'est terminé.
  */
 export default function OffersPage() {
-  const { activeOrgId, branding } = useOrganization();
+  const { activeOrgId, branding, user } = useOrganization();
   const t = useAppT();
   const { format: formatCurrency } = useCurrency();
+  const { locale } = useLocale();
   const seniorityLabel = getSeniorityLabel(t);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<JobOffer | null>(null);
@@ -311,6 +312,8 @@ export default function OffersPage() {
       await exportJobOfferPoster(o, {
         filename: `Fiche_Poste_${safeTitle}_${brandSlug}`,
         brand,
+        contactEmail: user?.email,
+        locale,
       });
       toast.success(t.pages.offers.toast_poster_downloaded);
     } catch (e) {

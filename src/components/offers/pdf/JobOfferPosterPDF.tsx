@@ -12,285 +12,300 @@ import type { CVBrand } from '@/lib/cv/branding';
 import { resolveBrand } from '@/lib/cv/branding';
 
 // =========================================================================
-// Fiche de poste — React-PDF
+// Fiche de poste — porte exactement le design du repo
+// `Fiche-de-poste-QuadCore` (Puppeteer HTML/CSS) vers React-PDF.
 //
-// Match exact du design référence :
-//   - Header violet sombre INSET (rounded), logo + kicker + titre + meta
-//   - Quick row à 4 cellules avec borders magenta haut+bas et dividers
-//   - Sections numerotees : pip + titre en MAGENTA (l'accent)
-//   - Bloc 02 Finalite : violet plein, texte blanc
-//   - Bloc 03 : carte gris violet clair avec 2 colonnes ; headers
-//     "MISSIONS" / "PROFIL RECHERCHE" en violet plein
-//   - Tech stack 04 : grille de tags violet plein equireparties
-//   - Section 05 conditions : puces magenta
-//   - CTA bas : violet sombre arrondi
-//   - Footer : ligne fine magenta + 3 colonnes brand / email / page N/T
+// Le repo source utilise des couleurs FIXES (charcoal + cuivre + sable).
+// Ici on remplace les 2 couleurs identitaires par les couleurs du
+// BRANDING utilisateur (cf. /settings/branding) :
+//   - branding.primary  → blocs sombres (hero, callout, tech badges)
+//   - branding.accent   → accent (ligne verticale, top-border banner,
+//                          col-header missions/profil, footer rule)
+// Les neutres (sable F3ECE2, taupe 9A8A78, brun-noir 2A2520) restent fixes.
 //
-// Cible : tenir sur 1 page A4 avec un volume de contenu raisonnable.
+// Layout : 1 page A4 portrait. mm originaux convertis en pt (1mm ≈ 2.835pt).
 // =========================================================================
 
+// === NEUTRES FIXES (charte nude / éditoriale du template original) ===
 const N = {
   white: '#ffffff',
-  ink: '#0f1119',
-  text: '#1f2030',
-  muted: '#6b6e80',
-  ruler: '#e5e5ec',
-  cardBg: '#f6f4f9',
-  cellDivider: '#e8e6ee',
+  sand: '#f3ece2',      // lightGray — fond des cellules info + col-body
+  taupe: '#9a8a78',     // midGray — texte secondaire footer
+  inkText: '#2a2520',   // textDark — texte principal
+  accentSoftOnDark: 'rgba(255,255,255,0.65)', // sub-texte sur fond sombre
 };
 
-// Le violet sombre du header / finalité / col headers / tech tags / CTA.
-const HEADER_VIOLET = '#3a2466';
+// 1 mm ≈ 2.8346 pt — converti une fois ici pour la lisibilité du code.
+const mm = (n: number) => n * 2.8346;
 
-function buildStyles(_primary: string, accent: string) {
+function buildStyles(primary: string, accent: string) {
   return StyleSheet.create({
     page: {
       backgroundColor: N.white,
-      color: N.text,
+      color: N.inkText,
       fontFamily: 'Helvetica',
-      paddingTop: 24,
-      paddingBottom: 36,
-      paddingHorizontal: 28,
-      fontSize: 9,
+      paddingTop: mm(10),
+      paddingBottom: mm(20), // place pour le footer fixé
+      paddingHorizontal: mm(10),
+      fontSize: 9.5,
       lineHeight: 1.4,
     },
 
-    // === HEADER ===
-    headerBox: {
-      backgroundColor: HEADER_VIOLET,
-      borderRadius: 8,
-      paddingHorizontal: 22,
-      paddingTop: 18,
-      paddingBottom: 18,
+    // ============ HERO (logo panel + title panel) ============
+    hero: {
       flexDirection: 'row',
+      height: mm(32),
+      marginBottom: mm(6),
+    },
+    heroLogo: {
+      backgroundColor: primary,
+      width: mm(32),
       alignItems: 'center',
-      gap: 16,
+      justifyContent: 'center',
+      padding: mm(4),
     },
-    logo: { width: 56, height: 56, objectFit: 'contain', borderRadius: 6 },
-    headerTextWrap: { flex: 1 },
-    headerKicker: {
-      fontSize: 8,
-      letterSpacing: 3,
-      color: '#cdc4ff',
+    heroLogoImg: {
+      maxWidth: '100%',
+      maxHeight: mm(22),
+      objectFit: 'contain',
+    },
+    heroBody: {
+      backgroundColor: primary,
+      flex: 1,
+      paddingTop: mm(5.5),
+      paddingBottom: mm(5.5),
+      paddingHorizontal: mm(9),
+      justifyContent: 'center',
+    },
+    heroTag: {
+      fontSize: 7.5,
       fontFamily: 'Helvetica-Bold',
-      marginBottom: 4,
-    },
-    headerTitle: {
-      fontSize: 22,
+      letterSpacing: 3.8,
       color: N.white,
-      fontFamily: 'Helvetica-Bold',
-      letterSpacing: -0.4,
+      marginBottom: mm(1.8),
     },
-    headerMeta: {
+    heroTitle: {
+      fontSize: 20,
+      fontFamily: 'Helvetica-Bold',
+      color: N.white,
+      lineHeight: 1.1,
+      marginBottom: mm(1.5),
+    },
+    heroSubtitle: {
       fontSize: 9.5,
-      color: '#cdc4ff',
-      marginTop: 4,
+      color: N.accentSoftOnDark,
+      marginBottom: mm(2.5),
+    },
+    heroMeta: {
+      fontSize: 9.5,
+      color: N.accentSoftOnDark,
     },
 
-    // === QUICK ROW ===
-    quickRow: {
+    // ============ INFO BANNER (4 cells avec top-border accent) ============
+    infoBanner: {
       flexDirection: 'row',
-      borderTop: `0.6pt solid ${accent}`,
-      borderBottom: `0.6pt solid ${accent}`,
-      marginTop: 14,
-      paddingTop: 8,
-      paddingBottom: 8,
+      marginBottom: mm(6.5),
     },
-    quickCell: {
+    bannerCell: {
+      backgroundColor: N.sand,
       flex: 1,
-      borderRight: `0.5pt solid ${N.cellDivider}`,
-      paddingHorizontal: 10,
+      paddingTop: mm(3.3),
+      paddingBottom: mm(3.3),
+      paddingHorizontal: mm(5),
+      borderTopWidth: mm(1.1),
+      borderTopColor: accent,
+      borderTopStyle: 'solid',
+      marginRight: mm(1.3),
     },
-    quickCellLast: {
+    bannerCellLast: {
+      backgroundColor: N.sand,
       flex: 1,
-      paddingHorizontal: 10,
+      paddingTop: mm(3.3),
+      paddingBottom: mm(3.3),
+      paddingHorizontal: mm(5),
+      borderTopWidth: mm(1.1),
+      borderTopColor: accent,
+      borderTopStyle: 'solid',
     },
-    quickLabel: {
-      fontSize: 7,
-      letterSpacing: 1.6,
-      color: N.muted,
+    bannerLabel: {
+      fontSize: 6.5,
+      color: accent,
       fontFamily: 'Helvetica-Bold',
+      letterSpacing: 2,
+      marginBottom: mm(1.1),
       textTransform: 'uppercase',
-      marginBottom: 2,
     },
-    quickValue: {
-      fontSize: 10,
-      color: N.ink,
+    bannerValue: {
+      fontSize: 9.5,
+      color: N.inkText,
       fontFamily: 'Helvetica-Bold',
     },
 
-    // === SECTION ===
-    section: {
-      paddingTop: 12,
+    // ============ SECTION TITLE (accent | num | label) ============
+    sectionTitle: {
+      flexDirection: 'row',
+      alignItems: 'stretch',
+      marginTop: mm(5.5),
+      marginBottom: mm(2.2),
+      height: mm(5.5),
     },
-    sectionHeader: {
+    sectionAccent: {
+      width: mm(1.3),
+      backgroundColor: accent,
+    },
+    sectionLabel: {
+      paddingHorizontal: mm(3.3),
+      fontSize: 10,
+      fontFamily: 'Helvetica-Bold',
+      letterSpacing: 1.1,
+      textTransform: 'uppercase',
+      color: primary,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
-      marginBottom: 6,
-    },
-    sectionPip: {
-      width: 4,
-      height: 14,
-      backgroundColor: accent,
-      marginRight: 4,
     },
     sectionNum: {
-      fontSize: 9,
+      fontSize: 10,
       color: accent,
       fontFamily: 'Helvetica-Bold',
-      letterSpacing: 1,
+      letterSpacing: 1.1,
+      marginRight: mm(2.8),
     },
-    sectionTitle: {
-      fontSize: 9,
-      color: accent,
+
+    // ============ 01 CONTEXTE ============
+    contexte: {
+      fontSize: 9.5,
+      lineHeight: 1.5,
+      color: N.inkText,
+      textAlign: 'justify',
+      marginBottom: mm(1),
+    },
+
+    // ============ 02 FINALITÉ (callout dark + left border accent) ============
+    callout: {
+      backgroundColor: primary,
+      paddingTop: mm(4),
+      paddingBottom: mm(4),
+      paddingHorizontal: mm(5.5),
+      borderLeftWidth: mm(2.2),
+      borderLeftColor: accent,
+      borderLeftStyle: 'solid',
+    },
+    calloutLabel: {
+      fontSize: 7,
+      fontFamily: 'Helvetica-Bold',
+      letterSpacing: 2.4,
+      color: N.accentSoftOnDark,
+      marginBottom: mm(1.7),
+      textTransform: 'uppercase',
+    },
+    calloutText: {
+      fontSize: 9.5,
+      color: N.white,
+      lineHeight: 1.5,
+    },
+
+    // ============ 03 TWO COLUMNS (Missions / Profil) ============
+    twoColGrid: {
+      flexDirection: 'row',
+    },
+    col: {
+      flex: 1,
+      marginRight: mm(1.3),
+    },
+    colLast: {
+      flex: 1,
+    },
+    colHeader: {
+      backgroundColor: accent,
+      color: N.white,
+      paddingTop: mm(2.8),
+      paddingBottom: mm(2.8),
+      paddingHorizontal: mm(5),
+      fontSize: 8.5,
       fontFamily: 'Helvetica-Bold',
       letterSpacing: 2.4,
       textTransform: 'uppercase',
     },
-    sectionBody: {
-      fontSize: 9,
-      color: N.text,
-      lineHeight: 1.5,
-    },
-
-    // === FINALITÉ BOX (02) ===
-    purposeBox: {
-      backgroundColor: HEADER_VIOLET,
-      borderRadius: 4,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-    },
-    purposeLabel: {
-      fontSize: 7,
-      color: '#cdc4ff',
-      letterSpacing: 2,
-      fontFamily: 'Helvetica-Bold',
-      textTransform: 'uppercase',
-      marginBottom: 5,
-    },
-    purposeText: {
-      fontSize: 9.5,
-      color: N.white,
-      lineHeight: 1.5,
-    },
-
-    // === SECTION 03 (Missions & Profil) ===
-    sectionCard: {
-      backgroundColor: N.cardBg,
-      borderRadius: 4,
-      padding: 0,
-      overflow: 'hidden',
-    },
-    twoCol: { flexDirection: 'row' },
-    col: { flex: 1 },
-    colHeader: {
-      fontSize: 7.5,
-      color: N.white,
-      backgroundColor: HEADER_VIOLET,
-      paddingHorizontal: 10,
-      paddingVertical: 5,
-      letterSpacing: 1.6,
-      fontFamily: 'Helvetica-Bold',
-      textTransform: 'uppercase',
-    },
     colBody: {
-      paddingTop: 6,
-      paddingHorizontal: 12,
-      paddingBottom: 8,
+      backgroundColor: N.sand,
+      paddingTop: mm(4),
+      paddingBottom: mm(4.5),
+      paddingHorizontal: mm(5),
     },
 
-    // === BULLETS ===
+    // ============ BULLETS ============
     bulletItem: {
       flexDirection: 'row',
-      gap: 5,
-      paddingTop: 2,
+      alignItems: 'flex-start',
+      paddingTop: mm(0.6),
+      paddingBottom: mm(0.6),
     },
-    bulletDot: {
-      width: 3,
-      height: 3,
-      borderRadius: 1.5,
-      backgroundColor: accent,
-      marginTop: 5,
+    bullet: {
+      color: accent,
+      fontFamily: 'Helvetica-Bold',
+      fontSize: 9,
+      marginRight: mm(2),
+      lineHeight: 1.3,
     },
     bulletText: {
       flex: 1,
       fontSize: 9,
-      color: N.text,
-      lineHeight: 1.45,
+      color: N.inkText,
+      lineHeight: 1.4,
     },
 
-    // === TECH STACK (04) ===
+    // ============ 04 TECH BADGES ============
     techRow: {
       flexDirection: 'row',
-      gap: 4,
     },
-    techTag: {
-      flex: 1,
-      backgroundColor: HEADER_VIOLET,
+    techBadge: {
+      backgroundColor: primary,
       color: N.white,
-      paddingVertical: 6,
-      borderRadius: 3,
+      paddingTop: mm(2.8),
+      paddingBottom: mm(2.8),
+      paddingHorizontal: mm(1.7),
       fontSize: 8.5,
       fontFamily: 'Helvetica-Bold',
       textAlign: 'center',
+      flex: 1,
+      marginRight: mm(1.3),
     },
-
-    // === CTA (Intéressé) ===
-    cta: {
-      marginTop: 14,
-      backgroundColor: HEADER_VIOLET,
-      paddingHorizontal: 24,
-      paddingVertical: 16,
-      borderRadius: 6,
-      alignItems: 'center',
-    },
-    ctaTitle: {
-      fontSize: 11,
+    techBadgeLast: {
+      backgroundColor: primary,
       color: N.white,
-      letterSpacing: 3,
+      paddingTop: mm(2.8),
+      paddingBottom: mm(2.8),
+      paddingHorizontal: mm(1.7),
+      fontSize: 8.5,
       fontFamily: 'Helvetica-Bold',
-    },
-    ctaContact: {
-      marginTop: 7,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-    },
-    ctaEmail: {
-      fontSize: 11,
-      color: accent,
-      fontFamily: 'Helvetica-Bold',
-    },
-    ctaSep: { fontSize: 10, color: '#9b88ff' },
-    ctaSite: { fontSize: 10.5, color: '#cdc4ff' },
-    ctaTagline: {
-      marginTop: 6,
-      fontSize: 8,
-      color: '#9b88ff',
-      letterSpacing: 5,
+      textAlign: 'center',
+      flex: 1,
     },
 
-    // === FOOTER ===
+    // ============ FOOTER ============
     footerWrap: {
       position: 'absolute',
-      left: 28,
-      right: 28,
-      bottom: 16,
+      left: mm(10),
+      right: mm(10),
+      bottom: mm(8),
     },
     footerRule: {
-      height: 0.6,
+      height: 0.85,
       backgroundColor: accent,
-      marginBottom: 8,
+      marginBottom: mm(2),
     },
     footerRow: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
-      fontSize: 7.5,
-      color: N.muted,
+      alignItems: 'center',
+      fontSize: 7,
+      color: N.taupe,
     },
-    footerBrand: { fontFamily: 'Helvetica-Bold', color: HEADER_VIOLET },
-    footerEmail: { color: accent, fontFamily: 'Helvetica-Bold' },
+    footerLeft: { flex: 1, textAlign: 'left' },
+    footerCenter: { flex: 1, textAlign: 'center', color: accent },
+    footerRight: { flex: 1, textAlign: 'right' },
+    footerBrand: { color: primary, fontFamily: 'Helvetica-Bold' },
+    footerMuted: { color: N.taupe },
+    footerPageBrand: { color: primary, fontFamily: 'Helvetica-Bold' },
   });
 }
 
@@ -299,8 +314,8 @@ type Props = {
   brand?: CVBrand;
   logoSrc?: string;
   contactEmail?: string;
-  contactWebsite?: string;
-  tagline?: string;
+  /** Locale d'affichage pour les libellés statiques (FICHE DE POSTE, etc.) */
+  locale?: 'fr' | 'en';
 };
 
 const SENIORITY_YEARS_MIN: Record<string, string> = {
@@ -312,200 +327,266 @@ const SENIORITY_YEARS_MIN: Record<string, string> = {
   architect: '10+',
 };
 
-function senorityToExperience(seniority: string | null): string {
+function seniorityToExperience(seniority: string | null, isEn: boolean): string {
   if (!seniority) return '—';
   const yrs = SENIORITY_YEARS_MIN[seniority];
-  return yrs ? `${yrs} ans` : '—';
+  if (!yrs) return '—';
+  return isEn ? `${yrs} yrs` : `${yrs} ans`;
+}
+
+/** Labels statiques bilingues — tout le texte fixe du gabarit. */
+function getLabels(isEn: boolean) {
+  return isEn
+    ? {
+        kicker: 'JOB POSTING',
+        bannerLocation: 'LOCATION',
+        bannerRemote: 'REMOTE',
+        bannerStart: 'START',
+        bannerExperience: 'EXPERIENCE',
+        remoteOnSite: 'On-site',
+        remotePerWeek: (d: number) => `${d} d/wk`,
+        startAsap: 'ASAP',
+        defaultContract: 'Mission',
+        defaultGenre: 'M/F',
+        hybridSuffix: '(hybrid)',
+        durationMonths: (m: number) => `${m} months`,
+        sec01: 'Context',
+        sec02: 'Mission purpose',
+        sec02Label: 'MISSION PURPOSE',
+        sec03Both: 'Main missions & profile',
+        sec03MissionsOnly: 'Main missions',
+        sec03ProfileOnly: 'Profile required',
+        sec03ColMissions: 'Missions',
+        sec03ColProfile: 'Profile required',
+        sec04: 'Tech environment',
+        sec05: 'Working conditions',
+        pageOf: (a: number, b: number) => `Page ${a} / ${b}`,
+      }
+    : {
+        kicker: 'FICHE DE POSTE',
+        bannerLocation: 'LOCALISATION',
+        bannerRemote: 'TÉLÉTRAVAIL',
+        bannerStart: 'DÉMARRAGE',
+        bannerExperience: 'EXPÉRIENCE',
+        remoteOnSite: 'Sur site',
+        remotePerWeek: (d: number) => `${d}j / sem.`,
+        startAsap: 'ASAP',
+        defaultContract: 'Mission',
+        defaultGenre: 'F/H',
+        hybridSuffix: '(hybride)',
+        durationMonths: (m: number) => `${m} mois`,
+        sec01: 'Contexte',
+        sec02: 'Finalité du poste',
+        sec02Label: 'FINALITÉ DE LA MISSION',
+        sec03Both: 'Missions principales & Profil',
+        sec03MissionsOnly: 'Missions principales',
+        sec03ProfileOnly: 'Profil recherché',
+        sec03ColMissions: 'Missions',
+        sec03ColProfile: 'Profil recherché',
+        sec04: 'Environnement technique',
+        sec05: "Conditions d'exercice",
+        pageOf: (a: number, b: number) => `Page ${a} / ${b}`,
+      };
 }
 
 export function JobOfferPosterPDF({
   offer,
   brand,
   logoSrc,
-  contactEmail = 'contact@centrium-platform.com',
-  contactWebsite = 'centrium-platform.com',
-  tagline = 'Réactif. Fiable. Proche.',
+  contactEmail,
+  locale = 'fr',
 }: Props) {
   const b = brand ?? resolveBrand(null);
+  const isEn = locale === 'en';
+  const L = getLabels(isEn);
   const styles = buildStyles(b.primary, b.accent);
 
+  // Email de contact : prop > none. Le caller fournit normalement.
+  const email = contactEmail ?? 'contact@centrium-platform.com';
+
+  // === Hero meta (genre · type · lieu · durée) ===
   const remoteLabel =
     offer.remote_days && offer.remote_days > 0
-      ? `${offer.remote_days}j / sem.`
-      : 'Sur site';
+      ? L.remotePerWeek(offer.remote_days)
+      : L.remoteOnSite;
   const startLabel = offer.start_date
-    ? new Date(offer.start_date).toLocaleDateString('fr-FR')
-    : 'ASAP';
+    ? new Date(offer.start_date).toLocaleDateString(isEn ? 'en-US' : 'fr-FR')
+    : L.startAsap;
   const durationLabel = offer.duration_months
-    ? `${offer.duration_months} mois`
+    ? L.durationMonths(offer.duration_months)
     : null;
-  const contractLabel = offer.contract_kind ?? 'Mission';
-
+  const contractLabel = offer.contract_kind ?? L.defaultContract;
   const metaParts = [
-    'F/H',
+    L.defaultGenre,
     contractLabel,
     offer.location
       ? offer.remote_days
-        ? `${offer.location} (hybride)`
+        ? `${offer.location} ${L.hybridSuffix}`
         : offer.location
       : null,
     durationLabel,
   ].filter(Boolean);
 
+  // === Sections data ===
   const tasks = offer.tasks?.length ? offer.tasks : [];
-  // Profil recherché : on privilégie profile_requirements (exigences profil,
-  // séniorité, certifs, langues) — sémantiquement distinct des techs. Fallback
-  // sur required_skills pour les AO créés avant l'introduction du champ.
+  // profile_requirements > required_skills (fallback pour les vieux AO)
   const profile = offer.profile_requirements?.length
     ? offer.profile_requirements
     : offer.required_skills?.length
       ? offer.required_skills
       : [];
-  const conditions = offer.working_conditions?.length
-    ? offer.working_conditions
-    : [];
-  const tech = offer.tech_stack?.length ? offer.tech_stack : offer.required_skills;
+  const conditions = offer.working_conditions?.length ? offer.working_conditions : [];
+  const tech = offer.tech_stack?.length ? offer.tech_stack : offer.required_skills ?? [];
 
-  // Quick cells (4 colonnes : Localisation / Télétravail / Démarrage / Expérience)
-  const quickCells: { label: string; value: string }[] = [
-    { label: 'Localisation', value: offer.location ?? '—' },
-    { label: 'Télétravail', value: remoteLabel },
-    { label: 'Démarrage', value: startLabel },
-    { label: 'Expérience', value: senorityToExperience(offer.seniority) },
+  // === Info banner (4 cellules) ===
+  const banner: { label: string; value: string }[] = [
+    { label: L.bannerLocation, value: offer.location ?? '—' },
+    { label: L.bannerRemote, value: remoteLabel },
+    { label: L.bannerStart, value: startLabel },
+    { label: L.bannerExperience, value: seniorityToExperience(offer.seniority, isEn) },
   ];
+
+  // === Section 03 dynamic title ===
+  const showBoth = tasks.length > 0 && profile.length > 0;
+  const sec03Title = showBoth
+    ? L.sec03Both
+    : tasks.length > 0
+      ? L.sec03MissionsOnly
+      : L.sec03ProfileOnly;
 
   return (
     <Document
       author={b.brandName}
-      title={`Fiche de poste — ${offer.title}`}
-      subject={`Fiche de poste ${offer.title}`}
+      title={`${L.kicker} — ${offer.title}`}
+      subject={`${L.kicker} ${offer.title}`}
       creator={`${b.brandName} Platform`}
     >
       <Page size="A4" style={styles.page}>
-        {/* ============ HEADER ============ */}
-        <View style={styles.headerBox}>
-          {logoSrc ? <Image src={logoSrc} style={styles.logo} /> : <View />}
-          <View style={styles.headerTextWrap}>
-            <Text style={styles.headerKicker}>FICHE DE POSTE</Text>
-            <Text style={styles.headerTitle}>{offer.title}</Text>
-            <Text style={styles.headerMeta}>{metaParts.join(' • ')}</Text>
+        {/* ============ HERO ============ */}
+        <View style={styles.hero}>
+          <View style={styles.heroLogo}>
+            {logoSrc ? <Image src={logoSrc} style={styles.heroLogoImg} /> : <View />}
+          </View>
+          <View style={styles.heroBody}>
+            <Text style={styles.heroTag}>{L.kicker}</Text>
+            <Text style={styles.heroTitle}>{offer.title}</Text>
+            <Text style={styles.heroMeta}>{metaParts.join('  •  ')}</Text>
           </View>
         </View>
 
-        {/* ============ QUICK ROW ============ */}
-        <View style={styles.quickRow}>
-          {quickCells.map((c, i) => (
+        {/* ============ INFO BANNER ============ */}
+        <View style={styles.infoBanner}>
+          {banner.map((c, i) => (
             <View
               key={c.label}
-              style={i === quickCells.length - 1 ? styles.quickCellLast : styles.quickCell}
+              style={i === banner.length - 1 ? styles.bannerCellLast : styles.bannerCell}
             >
-              <Text style={styles.quickLabel}>{c.label}</Text>
-              <Text style={styles.quickValue}>{c.value}</Text>
+              <Text style={styles.bannerLabel}>{c.label}</Text>
+              <Text style={styles.bannerValue}>{c.value}</Text>
             </View>
           ))}
         </View>
 
         {/* ============ 01 CONTEXTE ============ */}
         {(offer.context || offer.description) && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionPip} />
-              <Text style={styles.sectionNum}>01</Text>
-              <Text style={styles.sectionTitle}>Contexte</Text>
+          <>
+            <View style={styles.sectionTitle}>
+              <View style={styles.sectionAccent} />
+              <View style={styles.sectionLabel}>
+                <Text style={styles.sectionNum}>01</Text>
+                <Text>{L.sec01}</Text>
+              </View>
             </View>
-            <Text style={styles.sectionBody}>
-              {offer.context || offer.description}
-            </Text>
-          </View>
+            <Text style={styles.contexte}>{offer.context || offer.description}</Text>
+          </>
         )}
 
         {/* ============ 02 FINALITÉ ============ */}
         {offer.mission_purpose && (
-          <View style={styles.section} wrap={false}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionPip} />
-              <Text style={styles.sectionNum}>02</Text>
-              <Text style={styles.sectionTitle}>Finalité du poste</Text>
+          <View wrap={false}>
+            <View style={styles.sectionTitle}>
+              <View style={styles.sectionAccent} />
+              <View style={styles.sectionLabel}>
+                <Text style={styles.sectionNum}>02</Text>
+                <Text>{L.sec02}</Text>
+              </View>
             </View>
-            <View style={styles.purposeBox}>
-              <Text style={styles.purposeLabel}>Finalité de la mission</Text>
-              <Text style={styles.purposeText}>{offer.mission_purpose}</Text>
+            <View style={styles.callout}>
+              <Text style={styles.calloutLabel}>{L.sec02Label}</Text>
+              <Text style={styles.calloutText}>{offer.mission_purpose}</Text>
             </View>
           </View>
         )}
 
         {/* ============ 03 MISSIONS & PROFIL ============ */}
-        {(tasks.length > 0 || profile.length > 0) && (() => {
-          const showBoth = tasks.length > 0 && profile.length > 0;
-          const titleText = showBoth
-            ? 'Missions principales & profil'
-            : tasks.length > 0
-              ? 'Missions principales'
-              : 'Profil recherché';
-          return (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader} wrap={false} minPresenceAhead={50}>
-                <View style={styles.sectionPip} />
+        {(tasks.length > 0 || profile.length > 0) && (
+          <View>
+            <View style={styles.sectionTitle} wrap={false} minPresenceAhead={50}>
+              <View style={styles.sectionAccent} />
+              <View style={styles.sectionLabel}>
                 <Text style={styles.sectionNum}>03</Text>
-                <Text style={styles.sectionTitle}>{titleText}</Text>
-              </View>
-              <View style={styles.sectionCard}>
-                {showBoth ? (
-                  <View style={styles.twoCol}>
-                    <View style={styles.col}>
-                      <Text style={styles.colHeader}>Missions</Text>
-                      <View style={styles.colBody}>
-                        {tasks.map((t, i) => (
-                          <View key={i} style={styles.bulletItem}>
-                            <View style={styles.bulletDot} />
-                            <Text style={styles.bulletText}>{t}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                    <View style={styles.col}>
-                      <Text style={styles.colHeader}>Profil recherché</Text>
-                      <View style={styles.colBody}>
-                        {profile.map((p, i) => (
-                          <View key={i} style={styles.bulletItem}>
-                            <View style={styles.bulletDot} />
-                            <Text style={styles.bulletText}>{p}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                  </View>
-                ) : (
-                  <View>
-                    <Text style={styles.colHeader}>
-                      {tasks.length > 0 ? 'Missions' : 'Profil recherché'}
-                    </Text>
-                    <View style={styles.colBody}>
-                      {(tasks.length > 0 ? tasks : profile).map((t, i) => (
-                        <View key={i} style={styles.bulletItem}>
-                          <View style={styles.bulletDot} />
-                          <Text style={styles.bulletText}>{t}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                )}
+                <Text>{sec03Title}</Text>
               </View>
             </View>
-          );
-        })()}
+            {showBoth ? (
+              <View style={styles.twoColGrid}>
+                <View style={styles.col}>
+                  <Text style={styles.colHeader}>{L.sec03ColMissions}</Text>
+                  <View style={styles.colBody}>
+                    {tasks.map((t, i) => (
+                      <View key={i} style={styles.bulletItem}>
+                        <Text style={styles.bullet}>▪</Text>
+                        <Text style={styles.bulletText}>{t}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+                <View style={styles.colLast}>
+                  <Text style={styles.colHeader}>{L.sec03ColProfile}</Text>
+                  <View style={styles.colBody}>
+                    {profile.map((p, i) => (
+                      <View key={i} style={styles.bulletItem}>
+                        <Text style={styles.bullet}>▪</Text>
+                        <Text style={styles.bulletText}>{p}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </View>
+            ) : (
+              <View>
+                <Text style={styles.colHeader}>
+                  {tasks.length > 0 ? L.sec03ColMissions : L.sec03ColProfile}
+                </Text>
+                <View style={styles.colBody}>
+                  {(tasks.length > 0 ? tasks : profile).map((it, i) => (
+                    <View key={i} style={styles.bulletItem}>
+                      <Text style={styles.bullet}>▪</Text>
+                      <Text style={styles.bulletText}>{it}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* ============ 04 ENVIRONNEMENT TECHNIQUE ============ */}
         {tech.length > 0 && (
-          <View style={styles.section} wrap={false}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionPip} />
-              <Text style={styles.sectionNum}>04</Text>
-              <Text style={styles.sectionTitle}>Environnement technique</Text>
+          <View wrap={false}>
+            <View style={styles.sectionTitle}>
+              <View style={styles.sectionAccent} />
+              <View style={styles.sectionLabel}>
+                <Text style={styles.sectionNum}>04</Text>
+                <Text>{L.sec04}</Text>
+              </View>
             </View>
             <View style={styles.techRow}>
-              {tech.slice(0, 8).map((t) => (
-                <Text key={t} style={styles.techTag}>
+              {tech.slice(0, 8).map((t, i, arr) => (
+                <Text
+                  key={t}
+                  style={i === arr.length - 1 ? styles.techBadgeLast : styles.techBadge}
+                >
                   {t}
                 </Text>
               ))}
@@ -515,44 +596,35 @@ export function JobOfferPosterPDF({
 
         {/* ============ 05 CONDITIONS ============ */}
         {conditions.length > 0 && (
-          <View style={styles.section} wrap={false}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionPip} />
-              <Text style={styles.sectionNum}>05</Text>
-              <Text style={styles.sectionTitle}>Conditions d&apos;exercice</Text>
+          <View wrap={false}>
+            <View style={styles.sectionTitle}>
+              <View style={styles.sectionAccent} />
+              <View style={styles.sectionLabel}>
+                <Text style={styles.sectionNum}>05</Text>
+                <Text>{L.sec05}</Text>
+              </View>
             </View>
             {conditions.map((c, i) => (
               <View key={i} style={styles.bulletItem}>
-                <View style={styles.bulletDot} />
+                <Text style={styles.bullet}>▪</Text>
                 <Text style={styles.bulletText}>{c}</Text>
               </View>
             ))}
           </View>
         )}
 
-        {/* ============ CTA ============ */}
-        <View style={styles.cta} wrap={false}>
-          <Text style={styles.ctaTitle}>INTÉRESSÉ(E) PAR CETTE MISSION ?</Text>
-          <View style={styles.ctaContact}>
-            <Text style={styles.ctaEmail}>✉ {contactEmail}</Text>
-            <Text style={styles.ctaSep}>•</Text>
-            <Text style={styles.ctaSite}>{contactWebsite}</Text>
-          </View>
-          <Text style={styles.ctaTagline}>{tagline}</Text>
-        </View>
-
-        {/* ============ FOOTER ============ */}
+        {/* ============ FOOTER (brand · email · page) ============ */}
         <View style={styles.footerWrap} fixed>
           <View style={styles.footerRule} />
           <View style={styles.footerRow}>
-            <Text style={styles.footerBrand}>
-              {b.brandName} <Text style={{ color: N.muted, fontFamily: 'Helvetica' }}>— {b.footerTagline}</Text>
+            <Text style={styles.footerLeft}>
+              <Text style={styles.footerBrand}>{b.brandName}</Text>
+              <Text style={styles.footerMuted}> — {b.footerTagline}</Text>
             </Text>
-            <Text style={styles.footerEmail}>{contactEmail}</Text>
+            <Text style={styles.footerCenter}>{email}</Text>
             <Text
-              render={({ pageNumber, totalPages }) =>
-                `Page ${pageNumber} / ${totalPages}`
-              }
+              style={styles.footerRight}
+              render={({ pageNumber, totalPages }) => L.pageOf(pageNumber, totalPages)}
             />
           </View>
         </View>
