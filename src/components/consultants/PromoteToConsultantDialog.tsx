@@ -101,6 +101,24 @@ export function PromoteToConsultantDialog({
             `Promu en consultant, mais envoi de l'invitation portail échoué : ${body.message ?? body.error ?? 'erreur'}. Tu peux réessayer depuis sa fiche.`,
             { duration: 8000 },
           );
+        } else if (body?.data?.invitation_sent === false) {
+          // Email pas parti (SMTP) — l'invite_url est optionnel.
+          const inviteUrl: string | null =
+            typeof body?.data?.invite_url === 'string' ? body.data.invite_url : null;
+          if (inviteUrl) {
+            try {
+              await navigator.clipboard.writeText(inviteUrl);
+            } catch {
+              /* clipboard refused */
+            }
+          }
+          const errCode = body?.data?.email_error_code ?? 'smtp_failed';
+          notifyWarning(
+            inviteUrl
+              ? `${consultant.first_name} ${consultant.last_name} promu, mais l'email d'invitation n'a pas pu être envoyé (${errCode}). Lien copié dans le presse-papier — envoie-le manuellement à ${email}.`
+              : `${consultant.first_name} ${consultant.last_name} promu, mais l'email d'invitation n'a pas pu être envoyé (${errCode}) et aucun lien de secours n'a été généré. Réessaie depuis la fiche.`,
+            { duration: 12000 },
+          );
         } else {
           notifyPromoted(
             `${consultant.first_name} ${consultant.last_name} promu — email d'accès envoyé à ${email}`,

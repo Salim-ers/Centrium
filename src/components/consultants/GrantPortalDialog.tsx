@@ -60,10 +60,34 @@ export function GrantPortalDialog({
         notifyError(body.message ?? body.error ?? `Erreur (${res.status})`);
         return;
       }
-      notifyCreated(
-        `Email d'accès envoyé à ${consultant.first_name} ${consultant.last_name} (${email}). Le lien expire après 7 jours.`,
-        { duration: 8000 },
-      );
+      // Si l'email d'invitation n'a pas pu partir (rate-limit SMTP, etc.),
+      // le backend renvoie invitation_sent=false + (éventuellement) une
+      // invite_url copiable. On déclenche le warning même sans URL.
+      const inviteFailed = body?.data?.invitation_sent === false;
+      if (inviteFailed) {
+        const inviteUrl: string | null =
+          typeof body?.data?.invite_url === 'string' ? body.data.invite_url : null;
+        if (inviteUrl) {
+          try {
+            await navigator.clipboard.writeText(inviteUrl);
+          } catch {
+            /* clipboard refused */
+          }
+        }
+        const { toast } = await import('sonner');
+        const errCode = body?.data?.email_error_code ?? 'smtp_failed';
+        toast.warning(
+          inviteUrl
+            ? `Accès portail créé, mais l'email n'a pas pu être envoyé (${errCode}). Lien d'invitation copié dans le presse-papier — envoie-le manuellement à ${email}.`
+            : `Accès portail créé, mais l'email n'a pas pu être envoyé (${errCode}) et aucun lien de secours n'a été généré. Réessaie depuis la fiche.`,
+          { duration: 12000 },
+        );
+      } else {
+        notifyCreated(
+          `Email d'accès envoyé à ${consultant.first_name} ${consultant.last_name} (${email}). Le lien expire après 7 jours.`,
+          { duration: 8000 },
+        );
+      }
       onGranted?.(consultant.id, email);
       onOpenChange(false);
     } catch (e) {

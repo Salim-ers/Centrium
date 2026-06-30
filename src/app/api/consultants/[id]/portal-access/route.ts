@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireOrg } from '@/lib/auth/guards';
+import { sendPortalInvite, buildRedirectTo } from '@/lib/auth/sendInvite';
 
 // =========================================================================
 // POST /api/consultants/:id/portal-access
@@ -82,12 +83,28 @@ export async function POST(
     );
   }
 
-  // 3) Email déjà utilisé par un autre user ?
-  const listRes = await admin.auth.admin.listUsers();
-  const emailExists = listRes.data.users.find(
-    (u) => u.email?.toLowerCase() === parsed.data.email.toLowerCase(),
+  // 3 + 4) Invite via helper centralisé. Le helper détecte already_registered
+  // (via inviteUserByEmail error). On garde la même politique que /create :
+  // refuser si l'email existe déjà dans auth (potentiellement dans une autre org).
+  // Le helper fournit aussi une invite_url de secours si le SMTP a planté,
+  // que l'UI copiera dans le presse-papier.
+  const redirectTo = buildRedirectTo(
+    new URL(req.url),
+    '/auth/set-password?welcome=portal',
   );
-  if (emailExists) {
+  const invite = await sendPortalInvite({
+    email: parsed.data.email,
+    redirectTo,
+    data: {
+      first_name: consultant.first_name,
+      last_name: consultant.last_name,
+      portal_consultant_id: consultant.id,
+    },
+    admin,
+    reason: 'invitation',
+  });
+
+  if (invite.already_registered) {
     return NextResponse.json(
       {
         error: 'email_already_used',
@@ -98,32 +115,21 @@ export async function POST(
     );
   }
 
-  // 4) Invite le consultant : Supabase crée le user (email pas encore
-  //    confirmé) et envoie le mail "invite" Centrium avec un lien qui le
-  //    fait atterrir sur le set-password. Aucun mot de passe côté admin.
-  const reqUrl = new URL(req.url);
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ?? `${reqUrl.protocol}//${reqUrl.host}`;
-  // /auth/callback gère l'échange du code PKCE puis redirige sur set-password
-  const redirectTo = `${appUrl}/auth/callback?next=${encodeURIComponent('/auth/set-password?welcome=portal')}`;
-  const { data: invited, error: authErr } = await admin.auth.admin.inviteUserByEmail(
-    parsed.data.email,
-    {
-      data: {
-        first_name: consultant.first_name,
-        last_name: consultant.last_name,
-        portal_consultant_id: consultant.id,
-      },
-      redirectTo,
-    },
-  );
-  if (authErr || !invited.user) {
+  if (!invite.user_id) {
+    console.error('[consultants/portal-access] sendPortalInvite total failure', {
+      email: parsed.data.email,
+      code: invite.email_error_code,
+      raw: invite.email_error_raw,
+    });
     return NextResponse.json(
-      { error: 'auth_invite_failed', message: authErr?.message ?? 'Auth error' },
+      {
+        error: 'auth_invite_failed',
+        email_error_code: invite.email_error_code ?? 'auth_failed',
+      },
       { status: 500 },
     );
   }
-  const userId = invited.user.id;
+  const userId = invite.user_id;
 
   // 5) Membership organization_members + profile lié au consultant
   const { error: memberErr } = await admin.from('organization_members').upsert(
@@ -138,7 +144,9 @@ export async function POST(
     );
   }
 
-  const { error: profileErr } = await admin
+  // Garde-fou cross-org ATOMIQUE : UPDATE ne mute que si org_id NULL ou
+  // == org courante. Si 0 row matché → rollback membership + user + 409.
+  const { data: updatedRows, error: profileErr } = await admin
     .from('profiles')
     .update({
       role: 'consultant',
@@ -147,12 +155,37 @@ export async function POST(
       first_name: consultant.first_name,
       last_name: consultant.last_name,
     })
-    .eq('id', userId);
+    .eq('id', userId)
+    .or(`organization_id.is.null,organization_id.eq.${ctx.organizationId}`)
+    .select('id');
+
+  async function rollbackPortal(deleteUser = true) {
+    await admin
+      .from('organization_members')
+      .delete()
+      .eq('user_id', userId)
+      .eq('organization_id', ctx.organizationId);
+    if (deleteUser) await admin.auth.admin.deleteUser(userId);
+  }
+
   if (profileErr) {
-    await admin.auth.admin.deleteUser(userId);
+    await rollbackPortal();
     return NextResponse.json(
       { error: 'profile_failed', message: profileErr.message },
       { status: 500 },
+    );
+  }
+  if (!updatedRows || updatedRows.length === 0) {
+    // Profile existe mais appartient à une autre org → on garde le user
+    // auth (il est à eux !) mais on retire la membership qu'on a posée.
+    await rollbackPortal(false);
+    return NextResponse.json(
+      {
+        error: 'cross_org_profile_conflict',
+        message:
+          "Cet email a déjà un profil dans une autre organisation. Choisis un autre email.",
+      },
+      { status: 409 },
     );
   }
 
@@ -168,7 +201,11 @@ export async function POST(
       data: {
         user_id: userId,
         email: parsed.data.email,
-        invitation_sent: true,
+        invitation_sent: invite.email_sent,
+        // Présent UNIQUEMENT si l'email n'a pas pu être envoyé — l'UI le
+        // copie dans le presse-papier et affiche un toast warning.
+        invite_url: invite.email_sent ? null : invite.invite_url,
+        email_error_code: invite.email_error_code,
       },
     },
     { status: 201 },

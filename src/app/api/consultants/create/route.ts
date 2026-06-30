@@ -9,6 +9,7 @@ import {
   PlanLimitError,
   planLimitResponse,
 } from '@/lib/billing/enforce';
+import { sendPortalInvite, buildRedirectTo } from '@/lib/auth/sendInvite';
 
 // =========================================================================
 // POST /api/consultants/create
@@ -122,50 +123,60 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ data: consultant }, { status: 201 });
   }
 
-  // 3) Crée (ou réutilise) le user auth avec email déjà confirmé
-  const listRes = await admin.auth.admin.listUsers();
-  const existing = listRes.data.users.find(
-    (u) => u.email?.toLowerCase() === portal_access.email.toLowerCase(),
+  // 3) Crée (ou réutilise) le user auth via le helper centralisé. Le helper
+  // cascade : inviteUserByEmail → magiclink si déjà registered → generateLink
+  // invite si SMTP en rade. On ne refuse PLUS catégoriquement si l'email
+  // existe déjà : on le détecte (already_registered) et l'admin décide. Le
+  // helper renvoie une invite_url copiable si l'email n'a pas pu partir.
+  const redirectTo = buildRedirectTo(
+    new URL(req.url),
+    '/auth/set-password?welcome=portal',
   );
+  const invite = await sendPortalInvite({
+    email: portal_access.email,
+    redirectTo,
+    data: {
+      first_name: consultantData.first_name,
+      last_name: consultantData.last_name,
+      portal_consultant_id: consultant.id,
+    },
+    admin,
+    reason: 'invitation',
+  });
 
-  if (existing) {
-    // User déjà existant : on refuse pour éviter d'écraser un profile
-    // appartenant potentiellement à une autre org.
+  // Politique de sécurité : on refuse explicitement d'attacher un user
+  // qui existe déjà dans Supabase Auth (potentiellement dans une autre org).
+  // L'admin doit choisir un autre email ou utiliser /settings/team.
+  if (invite.already_registered) {
     await admin.from('consultants').delete().eq('id', consultant.id);
     return NextResponse.json(
       {
         error: 'email_already_used',
-        message: 'Cet email a déjà un compte. Choisis un autre email ou invite-le via /settings/team.',
+        message:
+          "Cet email a déjà un compte. Choisis un autre email ou invite-le via /settings/team.",
       },
       { status: 409 },
     );
   }
 
-  // Invite par email — le consultant choisit son propre mot de passe via
-  // le lien Centrium. Pas de password généré côté admin.
-  const reqUrl = new URL(req.url);
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ?? `${reqUrl.protocol}//${reqUrl.host}`;
-  const redirectTo = `${appUrl}/auth/callback?next=${encodeURIComponent('/auth/set-password?welcome=portal')}`;
-  const { data: invited, error: authErr } = await admin.auth.admin.inviteUserByEmail(
-    portal_access.email,
-    {
-      data: {
-        first_name: consultantData.first_name,
-        last_name: consultantData.last_name,
-        portal_consultant_id: consultant.id,
-      },
-      redirectTo,
-    },
-  );
-  if (authErr || !invited.user) {
+  if (!invite.user_id) {
+    // Échec total — ni invite, ni link de secours. On rollback.
+    // Log le message brut côté serveur, ne le renvoie PAS à l'UI.
+    console.error('[consultants/create] sendPortalInvite total failure', {
+      email: portal_access.email,
+      code: invite.email_error_code,
+      raw: invite.email_error_raw,
+    });
     await admin.from('consultants').delete().eq('id', consultant.id);
     return NextResponse.json(
-      { error: 'auth_invite_failed', message: authErr?.message ?? 'Auth error' },
+      {
+        error: 'auth_invite_failed',
+        email_error_code: invite.email_error_code ?? 'auth_failed',
+      },
       { status: 500 },
     );
   }
-  const userId: string = invited.user.id;
+  const userId: string = invite.user_id;
 
   // 4) Membership + profile consultant
   const { error: memberErr } = await admin.from('organization_members').upsert(
@@ -181,7 +192,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { error: profileErr } = await admin
+  // Garde-fou cross-org ATOMIQUE : l'UPDATE ne mute le row QUE si org_id
+  // est NULL ou == org courante. On vérifie via RETURNING : si 0 row touché,
+  // c'est qu'un autre org owns déjà ce profile → on rollback (member + user
+  // + consultant). Cette form atomique évite la TOCTOU window d'un SELECT
+  // suivi d'un UPDATE.
+  const { data: updatedRows, error: profileErr } = await admin
     .from('profiles')
     .update({
       role: 'consultant',
@@ -190,13 +206,38 @@ export async function POST(req: NextRequest) {
       first_name: consultantData.first_name,
       last_name: consultantData.last_name,
     })
-    .eq('id', userId);
-  if (profileErr) {
-    await admin.auth.admin.deleteUser(userId);
+    .eq('id', userId)
+    .or(`organization_id.is.null,organization_id.eq.${ctx.organizationId}`)
+    .select('id');
+
+  async function rollbackAll(deleteUser = true) {
+    await admin
+      .from('organization_members')
+      .delete()
+      .eq('user_id', userId)
+      .eq('organization_id', ctx.organizationId);
+    if (deleteUser) await admin.auth.admin.deleteUser(userId);
     await admin.from('consultants').delete().eq('id', consultant.id);
+  }
+
+  if (profileErr) {
+    await rollbackAll();
     return NextResponse.json(
       { error: 'profile_failed', message: profileErr.message },
       { status: 500 },
+    );
+  }
+  if (!updatedRows || updatedRows.length === 0) {
+    // Aucun row matché → le profile existe mais appartient à une autre org.
+    // On ne supprime PAS le user auth (il appartient à l'autre org !)
+    await rollbackAll(false);
+    return NextResponse.json(
+      {
+        error: 'cross_org_profile_conflict',
+        message:
+          "Cet email a déjà un profil dans une autre organisation. Choisis un autre email.",
+      },
+      { status: 409 },
     );
   }
 
@@ -206,7 +247,13 @@ export async function POST(req: NextRequest) {
       portal: {
         email: portal_access.email,
         user_id: userId,
-        invitation_sent: true,
+        invitation_sent: invite.email_sent,
+        // Présent UNIQUEMENT si email n'a pas pu être envoyé — l'UI le
+        // copie dans le presse-papier et affiche un toast warning.
+        invite_url: invite.email_sent ? null : invite.invite_url,
+        // Code coarse (rate_limited/smtp_failed/...) — JAMAIS le message
+        // brut Supabase qui leak des détails infra à l'UI.
+        email_error_code: invite.email_error_code,
       },
     },
     { status: 201 },

@@ -369,19 +369,65 @@ export function ConsultantFormDialog({
         }
 
         const fullName = `${values.first_name} ${values.last_name}`;
-        const baseMsg = createPortal
-          ? (isEn
-              ? `${fullName} added — a portal access email has just been sent to ${portalEmail}`
-              : `${fullName} ajouté — un email d'accès portail vient d'être envoyé à ${portalEmail}`)
-          : isProspect
-            ? (isEn ? `${fullName} added to talent pool` : `${fullName} ajouté au vivier`)
-            : (isEn ? `${fullName} added to the library` : `${fullName} ajouté à la bibliothèque`);
-        const cvMsg = applied
-          ? (isEn
-              ? ` · ${applied.skillsAdded} skills + ${applied.experiencesAdded} experiences imported`
-              : ` · ${applied.skillsAdded} compétences + ${applied.experiencesAdded} expériences importées`)
-          : '';
-        notifyCreated(baseMsg + cvMsg);
+        // Cas spécifique : accès portail demandé MAIS l'email d'invitation
+        // n'a pas pu être envoyé (rate-limit SMTP, redirect non whitelisté,
+        // etc.). On déclenche le warning UNIQUEMENT sur invitation_sent===false
+        // (la présence d'invite_url est optionnelle — sinon on demande à
+        // l'admin de retry depuis la fiche).
+        const portalEmailFailed =
+          createPortal &&
+          payload.portal &&
+          payload.portal.invitation_sent === false;
+        if (portalEmailFailed) {
+          const inviteUrl: string | null =
+            typeof payload.portal.invite_url === 'string'
+              ? payload.portal.invite_url
+              : null;
+          if (inviteUrl) {
+            try {
+              await navigator.clipboard.writeText(inviteUrl);
+            } catch {
+              /* clipboard refused */
+            }
+          }
+          // Code coarse renvoyé par le backend — on l'humanise pour l'UI.
+          const errCode = payload.portal.email_error_code ?? 'smtp_failed';
+          const errLabel = (() => {
+            const map: Record<string, { fr: string; en: string }> = {
+              rate_limited: { fr: 'limite SMTP atteinte', en: 'SMTP rate limit reached' },
+              smtp_failed: { fr: 'erreur SMTP', en: 'SMTP error' },
+              recipient_invalid: { fr: 'email destinataire invalide', en: 'invalid recipient email' },
+              redirect_not_allowed: { fr: 'URL redirect non autorisée Supabase', en: 'redirect URL not allow-listed in Supabase' },
+              auth_failed: { fr: 'erreur Supabase Auth', en: 'Supabase Auth error' },
+              unknown: { fr: 'erreur inconnue', en: 'unknown error' },
+            };
+            return (map[errCode] ?? map.unknown)[isEn ? 'en' : 'fr'];
+          })();
+          toast.warning(
+            inviteUrl
+              ? isEn
+                ? `${fullName} created, but the portal invite email could not be sent (${errLabel}). Invite link copied to clipboard — send it manually to ${portalEmail}.`
+                : `${fullName} créé, mais l'email d'invitation portail n'a pas pu être envoyé (${errLabel}). Lien d'invitation copié dans le presse-papier — envoie-le manuellement à ${portalEmail}.`
+              : isEn
+                ? `${fullName} created, but the portal invite email could not be sent (${errLabel}) and no fallback link could be generated. Try again from the consultant card.`
+                : `${fullName} créé, mais l'email d'invitation portail n'a pas pu être envoyé (${errLabel}) et aucun lien de secours n'a été généré. Réessaie depuis la fiche consultant.`,
+            { duration: 12000 },
+          );
+        } else {
+          const baseMsg = createPortal
+            ? (isEn
+                ? `${fullName} added — a portal access email has just been sent to ${portalEmail}`
+                : `${fullName} ajouté — un email d'accès portail vient d'être envoyé à ${portalEmail}`)
+            : isProspect
+              ? (isEn ? `${fullName} added to talent pool` : `${fullName} ajouté au vivier`)
+              : (isEn ? `${fullName} added to the library` : `${fullName} ajouté à la bibliothèque`);
+          const cvMsg = applied
+            ? (isEn
+                ? ` · ${applied.skillsAdded} skills + ${applied.experiencesAdded} experiences imported`
+                : ` · ${applied.skillsAdded} compétences + ${applied.experiencesAdded} expériences importées`)
+            : '';
+          notifyCreated(baseMsg + cvMsg);
+        }
         void broadcastOrgActivity(
           org?.activeOrgId,
           org?.user?.id,
