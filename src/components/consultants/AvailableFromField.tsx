@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Calendar, HelpCircle, Zap } from 'lucide-react';
 
 import { Label } from '@/components/ui/label';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 type Mode = 'now' | 'date' | 'unknown';
 
@@ -24,6 +25,8 @@ type Props = {
  * "on ne sait pas" pour ne pas mentir.
  */
 export function AvailableFromField({ value, onChange }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const initialMode: Mode = useMemo(() => {
     if (!value) return 'unknown';
     if (value === 'unknown') return 'unknown';
@@ -52,26 +55,26 @@ export function AvailableFromField({ value, onChange }: Props) {
   return (
     <div className="space-y-1.5">
       <Label>
-        Disponible à partir <span className="text-red-400">*</span>
+        {isEn ? 'Available from' : 'Disponible à partir'} <span className="text-red-400">*</span>
       </Label>
       <div className="flex flex-wrap gap-1.5">
         <ModeButton
           active={mode === 'now'}
           onClick={() => pick('now')}
           icon={<Zap className="h-3.5 w-3.5" />}
-          label="Tout de suite"
+          label={isEn ? 'Right away' : 'Tout de suite'}
         />
         <ModeButton
           active={mode === 'date'}
           onClick={() => pick('date')}
           icon={<Calendar className="h-3.5 w-3.5" />}
-          label="À une date"
+          label={isEn ? 'On a date' : 'À une date'}
         />
         <ModeButton
           active={mode === 'unknown'}
           onClick={() => pick('unknown')}
           icon={<HelpCircle className="h-3.5 w-3.5" />}
-          label="On ne sait pas"
+          label={isEn ? 'Unknown' : 'On ne sait pas'}
         />
         {mode === 'date' && (
           <input
