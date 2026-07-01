@@ -176,42 +176,84 @@ export async function updateSession(request: NextRequest) {
   }
 
   // -----------------------------------------------------------------------
-  // Trial expiration : org en statut 'trialing' avec trial_end dépassé.
-  // On force le passage par /billing pour prendre un plan payant.
+  // Access-control abonnement — source unique de vérité pour "cet org
+  // peut-il utiliser l'app maintenant ?".
   //
-  // Whitelist (pour éviter la boucle) :
-  //   - /billing et /api/billing/* (checkout, portal)
-  //   - /auth/*                     (recovery, callback, set-password)
-  //   - /portal/*                   (consultants gardent l'accès, ils ne
-  //                                  paient pas le plan de l'org)
-  //   - /admin/*                    (super_admin, déjà retourné plus haut)
-  //   - /settings/*                 (accès à profil / RGPD même en trial expiré)
+  // MATRICE (source : Stripe subscription status + notre trial_end)
   //
-  // Fondateurs (is_exempt_from_billing=true) et admins bypass total.
+  //   is_exempt_from_billing = true         → ACCESS
+  //   status = 'active'                     → ACCESS
+  //   status = 'trialing' AND trial_end>now → ACCESS
+  //   status = 'trialing' AND trial_end<now → DENY (trial_expired)
+  //   status = 'canceled' AND period_end>now → ACCESS (grace jusqu'à la fin
+  //                                                    de la période payée)
+  //   status = 'canceled' AND period_end<now → DENY (subscription_expired)
+  //   status = 'past_due'                   → DENY (payment_failed)
+  //   status = 'unpaid'                     → DENY (payment_failed)
+  //   status = 'incomplete'                 → DENY (checkout_incomplete)
+  //   status = 'incomplete_expired'         → DENY (checkout_incomplete)
+  //   status = 'paused'                     → DENY (paused)
+  //   no subscription row                   → DENY (no_subscription)
+  //
+  // Whitelist (accès garanti même en denied) — /billing (pour resubscribe),
+  // /settings (mes données, logout, profil), /auth/*, /logout.
+  //
+  // Consultants (role='consultant') : bypass total — ils ne paient pas le
+  // plan de l'org.
   // -----------------------------------------------------------------------
   if (hasOrg && !isConsultant) {
-    const trialAllowed =
+    const billingAllowed =
       pathname.startsWith('/billing') ||
       pathname.startsWith('/settings') ||
       pathname === '/logout';
-    if (!trialAllowed) {
-      // Un query DB en plus par navigation admin — négligeable, 1 row scannée.
+    if (!billingAllowed) {
+      // 1 row DB par navigation admin — négligeable.
       const { data: sub } = await supabase
         .from('subscriptions')
-        .select('status, trial_end, is_exempt_from_billing')
+        .select('status, trial_end, current_period_end, is_exempt_from_billing')
         .eq('organization_id', orgId!)
         .maybeSingle();
-      if (
-        sub &&
-        !sub.is_exempt_from_billing &&
-        sub.status === 'trialing' &&
-        sub.trial_end &&
-        new Date(sub.trial_end) < new Date()
-      ) {
-        const url = request.nextUrl.clone();
-        url.pathname = '/billing';
-        url.search = '?error=trial_expired';
-        return NextResponse.redirect(url);
+
+      // Bypass fondateurs / partenaires
+      if (sub?.is_exempt_from_billing) {
+        // fall-through, laisse passer
+      } else {
+        const now = new Date();
+        const trialEnd = sub?.trial_end ? new Date(sub.trial_end) : null;
+        const periodEnd = sub?.current_period_end
+          ? new Date(sub.current_period_end)
+          : null;
+
+        let denyReason: string | null = null;
+        if (!sub) {
+          denyReason = 'no_subscription';
+        } else if (sub.status === 'active') {
+          // grant
+        } else if (sub.status === 'trialing') {
+          if (trialEnd && trialEnd < now) denyReason = 'trial_expired';
+        } else if (sub.status === 'canceled') {
+          if (!periodEnd || periodEnd < now) denyReason = 'subscription_expired';
+          // sinon grant : grace period jusqu'à periodEnd
+        } else if (sub.status === 'past_due' || sub.status === 'unpaid') {
+          denyReason = 'payment_failed';
+        } else if (
+          sub.status === 'incomplete' ||
+          sub.status === 'incomplete_expired'
+        ) {
+          denyReason = 'checkout_incomplete';
+        } else if (sub.status === 'paused') {
+          denyReason = 'paused';
+        } else {
+          // Statut inconnu Stripe → fail-safe deny
+          denyReason = 'unknown_status';
+        }
+
+        if (denyReason) {
+          const url = request.nextUrl.clone();
+          url.pathname = '/billing';
+          url.search = `?error=${encodeURIComponent(denyReason)}`;
+          return NextResponse.redirect(url);
+        }
       }
     }
   }

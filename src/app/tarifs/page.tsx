@@ -8,7 +8,7 @@ import { BreadcrumbJsonLd } from '@/components/seo/BreadcrumbJsonLd';
 export const metadata: Metadata = {
   title: 'Tarifs Centrium — 3 plans transparents pour ESN',
   description:
-    "Tarifs publics Centrium : Starter 890 €/mois, Growth 1 690 €/mois, Enterprise sur devis. 20 consultants inclus, prix unitaire au-delà. 30-40 % moins cher que Boondmanager.",
+    "Tarifs publics Centrium : Starter 75 €/mois, Medium 149 €/mois, Enterprise sur devis. Souscription self-service en 2 minutes, annulation à tout moment.",
   keywords: [
     'tarif centrium',
     'prix logiciel ESN',
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Tarifs Centrium — 3 plans publics',
     description:
-      'Pricing transparent par paliers, 30-40 % moins cher que Boondmanager. Démo + devis 48h sans engagement.',
+      'Pricing transparent par paliers. Souscription et annulation self-service. Démo + devis 48h sans engagement.',
     url: '/tarifs',
     type: 'website',
   },
@@ -32,8 +32,8 @@ type Plan = {
   tagline: string;
   monthly: number | null; // null = sur devis
   annual: number | null;
-  consultantsIncluded: number;
-  perExtraConsultant: number | null;
+  maxUsers: number | null;
+  maxConsultants: number | null;
   highlight?: boolean;
   cta: { label: string; href: string };
   features: string[];
@@ -43,46 +43,49 @@ const PLANS: Plan[] = [
   {
     id: 'starter',
     name: 'Starter',
-    tagline: 'Pour ESN 10 à 30 consultants',
-    monthly: 890,
-    annual: 12_000,
-    consultantsIncluded: 20,
-    perExtraConsultant: 39,
-    cta: { label: 'Commencer', href: '/devis?plan=starter' },
+    tagline: 'Pour petite ESN jusqu\'à 20 consultants',
+    monthly: 75,
+    annual: 720, // 75 * 12 * 0.8
+    maxUsers: 3,
+    maxConsultants: 20,
+    cta: { label: 'Souscrire', href: '/billing' },
     features: [
-      '20 consultants inclus',
       '3 utilisateurs administrateurs',
-      'Bibliothèque consultants illimitée',
+      'Jusqu\'à 20 consultants',
+      '100 opportunités CRM ouvertes',
+      '500 contacts',
+      '30 missions actives',
       'CV Optimizer (Claude API)',
-      'Matching IA + extraction AO depuis screenshot',
-      'CRM kanban realtime',
-      'CRA + facturation PDF auto',
-      'Dashboard pilotage (intercontrat, CA M+1, TJM)',
-      'Branding (logo + couleurs auto)',
+      'Matching IA',
+      'CRM Kanban + relances',
+      'CRA + facturation PDF',
+      'Dashboard pilotage',
       'Hébergement EU + RGPD',
-      'Support email (réponse 24h ouvrées)',
+      'Support email (24h ouvrées)',
     ],
   },
   {
-    id: 'growth',
-    name: 'Growth',
-    tagline: 'Pour ESN 30 à 100 consultants',
-    monthly: 1_690,
-    annual: 20_000,
-    consultantsIncluded: 20,
-    perExtraConsultant: 29,
+    id: 'growth', // ← id interne conservé, nom d'affichage = "Medium"
+    name: 'Medium',
+    tagline: 'Pour ESN active jusqu\'à 100 consultants',
+    monthly: 149,
+    annual: 1430, // 149 * 12 * 0.8
+    maxUsers: 10,
+    maxConsultants: 100,
     highlight: true,
-    cta: { label: 'Demander une démo', href: '/devis?plan=growth' },
+    cta: { label: 'Souscrire', href: '/billing' },
     features: [
-      'Tout Starter inclus',
       '10 utilisateurs administrateurs',
-      'Portail consultant dédié (CRA mobile-friendly)',
-      'Intégration Pennylane (export factures, à venir Q3 2026)',
-      'Signature électronique Yousign (à venir Q4 2026)',
-      'API publique REST + Webhooks (à venir Q1 2027)',
-      'MFA TOTP + politique mot de passe configurable',
+      'Jusqu\'à 100 consultants',
+      '500 opportunités CRM ouvertes',
+      '2 000 contacts',
+      '100 missions actives',
+      'Tout Starter inclus',
+      'Portail consultant dédié',
+      'Signature électronique',
+      'MFA TOTP configurable',
       'Audit log cross-tenant + export RGPD',
-      'Support email prioritaire (réponse 8h ouvrées)',
+      'Support prioritaire (8h ouvrées)',
       'Onboarding accompagné J0 → J+30',
     ],
   },
@@ -92,53 +95,53 @@ const PLANS: Plan[] = [
     tagline: 'Pour ESN 100+ consultants ou groupes',
     monthly: null,
     annual: null,
-    consultantsIncluded: 0,
-    perExtraConsultant: null,
+    maxUsers: null,
+    maxConsultants: null,
     cta: { label: 'Contacter les ventes', href: '/devis?plan=enterprise' },
     features: [
-      'Tout Growth inclus',
-      'Utilisateurs admin illimités',
-      'SSO SAML/OIDC (à venir Q3 2026)',
-      'SLA 99,95 % contractuel + crédits SLA',
-      'Multi-organisations (groupes, holdings, filiales)',
-      'Intégrations sur mesure (Sage, Cegid, LinkedIn Recruiter, etc.)',
+      'Tout Medium inclus',
+      'Utilisateurs & consultants illimités',
+      'SSO SAML/OIDC',
+      'SLA 99,95 % contractuel',
+      'Multi-organisations (groupes, holdings)',
+      'API publique REST + Webhooks',
+      'Intégrations sur mesure (Sage, Cegid, LinkedIn Recruiter)',
       'Account Manager dédié',
-      'Hotline support 24/7 (à venir Q3 2026)',
+      'Support 24/7',
       'Audit de sécurité personnalisé',
       'Migration de données accompagnée',
-      'Roadmap produit co-construite',
     ],
   },
 ];
 
 const FAQ = [
   {
-    q: "Pourquoi un palier de 20 consultants inclus ?",
-    a: "Notre logique : la plupart des ESN dépensent du temps fixe sur les 20 premiers consultants (setup, branding, formation BMs). Au-delà, le coût marginal par consultant est faible. On packagé cette logique pour que vous payiez la valeur réelle, pas une licence par poste.",
+    q: "Comment se passe la souscription ?",
+    a: "En 2 minutes depuis la page /billing. Choisissez votre plan, réglez avec CB (Stripe), l'accès est débloqué immédiatement. Le renouvellement est automatique chaque mois à la même date de calendrier. Pas d'engagement, annulation à tout moment self-service.",
   },
   {
-    q: "Comment se passe la facturation des consultants additionnels (au-delà de 20) ?",
-    a: "Facturation à la fin de chaque mois sur le compte consultants ACTIF (ni archivés, ni en intercontrat depuis plus de 60 jours). Pas de facturation pendant l'intercontrat court. Vous voyez le compteur live dans votre dashboard admin.",
+    q: "Comment annuler mon abonnement ?",
+    a: "Depuis /billing → bouton \"Annuler l'abonnement\". La résiliation est effective à la fin de la période déjà payée : vous gardez l'accès complet jusque-là. Aucun frais de résiliation, aucun préavis. Vous pouvez réactiver à tout moment avant la fin de période.",
   },
   {
-    q: "Y a-t-il un engagement minimum ?",
-    a: "Engagement annuel sur la 1ère année (paiement mensuel ou annuel au choix). Renouvellement automatique mois par mois après. Résiliation libre avec préavis 30 jours. Vous gardez vos données exportées en JSON/CSV sous 7 jours.",
+    q: "Que se passe-t-il si le renouvellement échoue ?",
+    a: "Stripe retente automatiquement plusieurs fois. Pendant ce temps votre accès est suspendu temporairement (vous êtes redirigé vers /billing pour mettre à jour votre CB). Dès que le paiement passe, l'accès est rétabli automatiquement.",
   },
   {
     q: "Comment savoir quel plan choisir ?",
-    a: "Si vous gérez moins de 30 consultants : Starter. Entre 30 et 100 : Growth (sweet spot pour la plupart des ESN). Au-dessus de 100 ou groupe multi-orgs : Enterprise. Demandez-nous une simulation par email contact@centrium-platform.com, on vous aide à choisir sans engagement.",
+    a: "Moins de 20 consultants : Starter. Entre 20 et 100 : Medium (le plus populaire). Au-dessus de 100 ou groupe multi-orgs : Enterprise. Vous pouvez changer de plan à tout moment depuis /billing, la différence de prix est calculée au prorata automatiquement.",
   },
   {
-    q: "Centrium est-il moins cher que Boondmanager ?",
-    a: "Pour 30 consultants, Centrium revient à ~14-20 k€/an (Starter ou Growth selon engagement annuel). Boondmanager (selon retours utilisateurs publics) facture 25-50 k€/an pour le même périmètre. Centrium = 30-40 % moins cher en moyenne, à scope fonctionnel équivalent (et UI plus moderne).",
+    q: "Puis-je essayer avant de payer ?",
+    a: "Oui, à la création de votre organisation vous bénéficiez de 14 jours d'essai gratuit sans CB requise. À la fin de l'essai, vous choisissez un plan pour continuer, ou l'accès est suspendu.",
   },
   {
-    q: "Le tarif inclut-il l'IA générative (CV Optimizer, matching) ?",
-    a: "Oui, l'IA est incluse dans tous les plans avec un quota mensuel (1000 générations CV/mois sur Starter, 3000 sur Growth, illimité sur Enterprise). Au-delà, surcharge à 0,15 € par génération supplémentaire.",
+    q: "Comment sont facturées les factures Stripe ?",
+    a: "Facture PDF envoyée par email automatiquement à chaque prélèvement. Historique complet accessible via le portail Stripe (bouton depuis /billing). Paiement par CB uniquement pour l'instant, virement SEPA sur demande pour Enterprise.",
   },
   {
-    q: "Période d'essai ou démo ?",
-    a: "Nous offrons une démo personnalisée de 30 minutes avec vos vraies données. Si le fit est bon, devis chiffré sous 48h. Aucune carte de crédit demandée tant que vous n'avez pas signé. Réservez votre créneau via /devis.",
+    q: "Le tarif inclut-il l'IA générative ?",
+    a: "Oui, l'IA (CV Optimizer, matching) est incluse dans tous les plans. Fair-use : usage raisonnable dans le cadre d'une activité ESN normale. Aucune surcharge cachée.",
   },
 ];
 
@@ -160,12 +163,12 @@ function PriceDisplay({ plan }: { plan: Plan }) {
         <span className="text-white/55 text-sm">€ HT / mois</span>
       </div>
       <div className="mt-1 text-xs text-white/55">
-        soit {plan.annual!.toLocaleString('fr-FR')} € HT/an (paiement annuel : -10%)
+        soit {plan.annual!.toLocaleString('fr-FR')} € HT/an (paiement annuel : -20%)
       </div>
-      {plan.perExtraConsultant && (
+      {plan.maxUsers !== null && plan.maxConsultants !== null && (
         <div className="mt-3 inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] text-white/70">
           <Sparkles className="h-3 w-3 text-magenta" />
-          {plan.consultantsIncluded} consultants inclus · puis {plan.perExtraConsultant} €/consultant additionnel
+          {plan.maxUsers} utilisateur{plan.maxUsers > 1 ? 's' : ''} · {plan.maxConsultants} consultants
         </div>
       )}
     </div>
@@ -191,13 +194,12 @@ export default function TarifsPage() {
               </span>
             </h1>
             <p className="mt-5 text-lg text-white/65 leading-relaxed">
-              Centrium publie ses tarifs. Pour 30 consultants, comptez{' '}
-              <strong className="text-white">~14-20 k€/an</strong> — soit{' '}
-              <strong className="text-white">30-40 % moins cher</strong> que Boondmanager
-              à scope équivalent.
+              Souscription self-service en 2 minutes. Paiement mensuel sécurisé
+              par Stripe. Annulation à tout moment, accès conservé jusqu'à la
+              fin de la période payée.
             </p>
             <p className="mt-3 text-sm text-white/45">
-              Démo 30 min · Devis sous 48h · Aucun engagement avant signature
+              Essai gratuit 14 jours · Sans CB · Annulation self-service
             </p>
           </div>
 
@@ -262,19 +264,19 @@ export default function TarifsPage() {
                   Comparaison rapide avec Boondmanager
                 </h2>
                 <p className="mt-2 text-sm text-white/65 leading-relaxed">
-                  Pour 30 consultants gérés sur 12 mois, retours utilisateurs publics et
-                  fourchettes éditeurs :
+                  Pour une ESN gérant jusqu'à 100 consultants sur 12 mois,
+                  retours utilisateurs publics et fourchettes éditeurs :
                 </p>
                 <div className="mt-5 grid grid-cols-2 gap-4 text-sm">
                   <div className="rounded-lg border border-magenta/30 bg-magenta/[0.06] p-4">
                     <div className="text-[10px] font-semibold uppercase tracking-wider text-magenta">
-                      Centrium Growth
+                      Centrium Medium
                     </div>
                     <div className="mt-2 text-white text-lg font-display font-semibold">
-                      14-20 k€/an
+                      1 800 € HT/an
                     </div>
                     <div className="mt-1 text-xs text-white/55">
-                      Tout inclus · pricing public
+                      Tout inclus · pricing public · self-service
                     </div>
                   </div>
                   <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4">

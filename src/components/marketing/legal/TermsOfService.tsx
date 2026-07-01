@@ -37,7 +37,7 @@ export function TermsOfService() {
 
       <h2>3. Abonnement et plans tarifaires</h2>
       <p>
-        Les abonnements sont souscrits selon les plans proposés (Starter, Growth, Scale, Enterprise). Les tarifs,
+        Les abonnements sont souscrits selon les plans proposés (Starter, Medium, Enterprise). Les tarifs,
         limites (nombre de consultants, utilisateurs internes) et fonctionnalités incluses sont décrits sur la page
         tarifs et rappelés sur la facture.
       </p>

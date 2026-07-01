@@ -24,7 +24,10 @@ type AdminReason =
   | 'invitation' // création membership cross-org
   | 'onboarding' // création initiale org + first member
   | 'system-cron' // jobs planifiés
-  | 'data-migration'; // migration de données one-shot
+  | 'data-migration' // migration de données one-shot
+  | 'billing-cancel' // POST /api/billing/cancel
+  | 'billing-reactivate' // POST /api/billing/reactivate
+  | 'billing-subscription'; // GET /api/billing/subscription state snapshot
 
 export function createAdminClient(reason: AdminReason): SupabaseClient {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;

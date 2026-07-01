@@ -158,7 +158,7 @@ export function PlanLimitDialog({ payload, onOpenChange }: Props) {
         <div className="rounded-lg border border-violet-500/30 bg-violet-500/[0.06] p-4 space-y-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-violet-200">
             <Sparkles className="h-4 w-4" />
-            {isTopOfLadder ? 'Contacter les ventes' : `Passer à ${nextPlan?.name ?? 'Growth'}`}
+            {isTopOfLadder ? 'Contacter les ventes' : `Passer à ${nextPlan?.name ?? 'Medium'}`}
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
             {isTopOfLadder
