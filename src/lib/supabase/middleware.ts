@@ -175,6 +175,47 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // -----------------------------------------------------------------------
+  // Trial expiration : org en statut 'trialing' avec trial_end dépassé.
+  // On force le passage par /billing pour prendre un plan payant.
+  //
+  // Whitelist (pour éviter la boucle) :
+  //   - /billing et /api/billing/* (checkout, portal)
+  //   - /auth/*                     (recovery, callback, set-password)
+  //   - /portal/*                   (consultants gardent l'accès, ils ne
+  //                                  paient pas le plan de l'org)
+  //   - /admin/*                    (super_admin, déjà retourné plus haut)
+  //   - /settings/*                 (accès à profil / RGPD même en trial expiré)
+  //
+  // Fondateurs (is_exempt_from_billing=true) et admins bypass total.
+  // -----------------------------------------------------------------------
+  if (hasOrg && !isConsultant) {
+    const trialAllowed =
+      pathname.startsWith('/billing') ||
+      pathname.startsWith('/settings') ||
+      pathname === '/logout';
+    if (!trialAllowed) {
+      // Un query DB en plus par navigation admin — négligeable, 1 row scannée.
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('status, trial_end, is_exempt_from_billing')
+        .eq('organization_id', orgId!)
+        .maybeSingle();
+      if (
+        sub &&
+        !sub.is_exempt_from_billing &&
+        sub.status === 'trialing' &&
+        sub.trial_end &&
+        new Date(sub.trial_end) < new Date()
+      ) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/billing';
+        url.search = '?error=trial_expired';
+        return NextResponse.redirect(url);
+      }
+    }
+  }
+
   // Consultant tentant d'accéder à une route admin → renvoyer vers son portail
   if (isConsultant && !isPortal) {
     const url = request.nextUrl.clone();

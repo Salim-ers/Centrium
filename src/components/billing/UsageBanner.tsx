@@ -7,17 +7,23 @@ import { TrendingUp, AlertTriangle, ShieldAlert, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
 
+type Quota = { used: number; max: number | null };
 type Usage = {
   planId: string;
   planName: string;
   exempt?: boolean;
-  consultants: { used: number; max: number | null };
-  members: { used: number; max: number | null };
+  consultants: Quota;
+  members: Quota;
+  opportunities?: Quota;
+  contacts?: Quota;
+  missions?: Quota;
 };
+
+type ResourceKey = 'consultants' | 'members' | 'opportunities' | 'contacts' | 'missions';
 
 type Props = {
   /** Quelle ressource est mise en avant sur cette page. */
-  resource: 'consultants' | 'members';
+  resource: ResourceKey;
   /** Si true, on cache totalement quand il reste de la marge (<60%). */
   hideUntilWarn?: boolean;
 };
@@ -78,8 +84,19 @@ export function UsageBanner({ resource, hideUntilWarn = false }: Props) {
 
   if (!usage) return null;
 
-  const { used, max } = usage[resource];
-  const label = resource === 'consultants' ? t.usage.consultants_label : t.usage.members_label;
+  const quota = usage[resource];
+  if (!quota) return null; // ressource pas encore renvoyée par l'API (compat mixed deploy)
+  const { used, max } = quota;
+  const label =
+    resource === 'consultants'
+      ? t.usage.consultants_label
+      : resource === 'members'
+        ? t.usage.members_label
+        : resource === 'opportunities'
+          ? t.usage.opportunities_label
+          : resource === 'contacts'
+            ? t.usage.contacts_label
+            : t.usage.missions_label;
 
   // Cas "exempté" : on AFFICHE le compteur avec "illimité", pas
   // d'avertissement, pas d'upgrade. C'est l'info utile pour les

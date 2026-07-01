@@ -344,6 +344,9 @@ export type AppDict = {
   usage: {
     consultants_label: string;
     members_label: string;
+    opportunities_label: string;
+    contacts_label: string;
+    missions_label: string;
     unlimited_word: string;
     founder_suffix: string;     // "Compte Fondateur — aucune limite"
     on_plan_prefix: string;     // "sur le plan"
@@ -351,6 +354,8 @@ export type AppDict = {
     almost_at_limit_suffix: string;
     upgrade_button: string;
     see_plans_button: string;
+    trial_expired_banner: string;
+    trial_days_left: string;
   };
   pages: {
     consultants: {
@@ -1151,6 +1156,9 @@ export const APP_DICT: Record<Locale, AppDict> = {
     usage: {
       consultants_label: 'consultants',
       members_label: 'utilisateurs internes',
+      opportunities_label: 'opportunités ouvertes',
+      contacts_label: 'contacts',
+      missions_label: 'missions actives',
       unlimited_word: 'illimité',
       founder_suffix: 'Compte Fondateur — aucune limite',
       on_plan_prefix: 'sur le plan',
@@ -1158,6 +1166,8 @@ export const APP_DICT: Record<Locale, AppDict> = {
       almost_at_limit_suffix: ' — bientôt à la limite',
       upgrade_button: 'Mettre à niveau',
       see_plans_button: 'Voir les plans',
+      trial_expired_banner: 'Ta période d\'essai est terminée. Choisis un plan pour continuer.',
+      trial_days_left: 'Essai gratuit : {days} jours restants',
     },
     badges: {
       opportunity_status: {
@@ -2007,6 +2017,9 @@ export const APP_DICT: Record<Locale, AppDict> = {
     usage: {
       consultants_label: 'consultants',
       members_label: 'internal users',
+      opportunities_label: 'open opportunities',
+      contacts_label: 'contacts',
+      missions_label: 'active missions',
       unlimited_word: 'unlimited',
       founder_suffix: 'Founder account — no limit',
       on_plan_prefix: 'on plan',
@@ -2014,6 +2027,8 @@ export const APP_DICT: Record<Locale, AppDict> = {
       almost_at_limit_suffix: ' — close to limit',
       upgrade_button: 'Upgrade',
       see_plans_button: 'See plans',
+      trial_expired_banner: 'Your free trial has ended. Pick a plan to keep using Centrium.',
+      trial_days_left: 'Free trial: {days} days left',
     },
     badges: {
       opportunity_status: {
