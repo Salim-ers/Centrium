@@ -173,18 +173,51 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 3) Si le profile existe déjà (cas user déjà créé via une autre org), on
-  //    le lie quand même à l'org courante en tant qu'admin.
+  // 3) Lie l'invité à l'org : profile + organization_members.
+  //
+  // BUG HISTORIQUE : le code initial faisait un UPDATE sur profiles qui
+  // pouvait affecter 0 rows (si le trigger on_auth_user_created n'avait
+  // pas encore créé le profile row au moment du call). Et il ne créait
+  // JAMAIS de row dans organization_members. Résultat : le nouvel admin
+  // se retrouvait sans org côté middleware (profile.organization_id NULL),
+  // sans row dans organization_members (RLS bloquait la lecture des
+  // subscriptions), et le flow set-password → dashboard se cassait en
+  // redirect loop vers /onboarding.
+  //
+  // Fix : upsert du profile + insert idempotent du membership.
   if (invite?.user?.id) {
-    await admin
-      .from('profiles')
-      .update({
+    // Upsert profile — gère les 2 cas : profile déjà créé (trigger)
+    // ou pas encore. On.conflict(id) DO UPDATE écrase les champs.
+    await admin.from('profiles').upsert(
+      {
+        id: invite.user.id,
         organization_id: org.id,
         role: 'admin',
         first_name: data.admin_first_name ?? null,
         last_name: data.admin_last_name ?? null,
+      },
+      { onConflict: 'id' },
+    );
+
+    // Insert membership (RLS lit ça pour scoper les queries de l'user).
+    // ON CONFLICT DO NOTHING pour idempotence si retry.
+    await admin
+      .from('organization_members')
+      .insert({
+        organization_id: org.id,
+        user_id: invite.user.id,
+        role: 'admin',
+        invited_by: null,
       })
-      .eq('id', invite.user.id);
+      .then(({ error }) => {
+        // 23505 = unique_violation → déjà membre, safe à ignorer
+        if (error && error.code !== '23505') {
+          console.error(
+            '[admin/organizations] failed to insert organization_members',
+            { organizationId: org.id, userId: invite.user.id, error: error.message },
+          );
+        }
+      });
   }
 
   // 4) Marque le quote_request d'origine comme converti (si fourni)
