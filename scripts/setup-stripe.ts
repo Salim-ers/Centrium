@@ -348,10 +348,33 @@ async function main() {
     })),
   );
 
-  console.log('\n🎯 Prochaine étape :');
-  console.log('   1. Lance : stripe listen --forward-to localhost:3000/api/billing/webhook');
-  console.log('   2. Copie whsec_... dans STRIPE_WEBHOOK_SECRET');
-  console.log('   3. npm run dev, va sur /billing, teste avec 4242 4242 4242 4242\n');
+  // ------ Env vars à copier ------------------------------------------------
+  // Le code lit les Price IDs depuis les env vars (source de vérité) et fait
+  // un fallback sur plans.stripe_price_id pour les Prices legacy d'abonnés
+  // historiques. Sortie exploitable en copy-paste dans .env.local.
+  const starter = (plans ?? []).find((p) => p.id === 'starter');
+  const medium = (plans ?? []).find((p) => p.id === 'growth');
+
+  console.log('\n📋 Copie ces lignes dans .env.local :\n');
+  console.log('# ---- Stripe Price IDs (générés par ce script) ----');
+  if (starter?.stripe_price_id) {
+    console.log(`STRIPE_STARTER_PRICE_ID=${starter.stripe_price_id}`);
+  } else {
+    console.log('# ⚠  Starter n\'a pas de Price ID — relance le script.');
+  }
+  if (medium?.stripe_price_id) {
+    console.log(`STRIPE_MEDIUM_PRICE_ID=${medium.stripe_price_id}`);
+  } else {
+    console.log('# ⚠  Medium n\'a pas de Price ID — relance le script.');
+  }
+  console.log('');
+
+  console.log('\n🎯 Prochaines étapes :');
+  console.log('   1. Copie les 2 lignes ci-dessus dans .env.local');
+  console.log('   2. Vérifie aussi que STRIPE_SECRET_KEY et NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY sont déjà présents');
+  console.log('   3. Lance : stripe listen --forward-to localhost:3000/api/billing/webhook');
+  console.log('   4. Copie whsec_... dans STRIPE_WEBHOOK_SECRET');
+  console.log('   5. npm run dev, va sur /billing, teste avec 4242 4242 4242 4242\n');
 }
 
 main().catch((err) => {

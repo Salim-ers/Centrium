@@ -1,18 +1,21 @@
 import 'server-only';
 import Stripe from 'stripe';
 
+import { requireStripeSecretKey } from './config';
+
 let _stripe: Stripe | null = null;
 
+/**
+ * Singleton client Stripe côté serveur. Instanciation lazy — pas de crash
+ * au module load si la clé est absente. Config centralisée dans
+ * src/lib/billing/config.ts, avec validation de format + jamais de log
+ * des valeurs.
+ */
 export function getStripe(): Stripe {
   if (!_stripe) {
-    const key = process.env.STRIPE_SECRET_KEY;
-    if (!key) {
-      throw new Error('STRIPE_SECRET_KEY manquante dans .env.local');
-    }
-    _stripe = new Stripe(key, {
-      // On laisse Stripe choisir la version d'API par défaut (celle du SDK installé).
-      // Si tu veux pin une version précise, consulte
-      // https://docs.stripe.com/api/versioning.
+    _stripe = new Stripe(requireStripeSecretKey(), {
+      // Version d'API par défaut du SDK.
+      // https://docs.stripe.com/api/versioning
       typescript: true,
     });
   }

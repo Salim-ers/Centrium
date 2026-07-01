@@ -1,37 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/billing/stripe';
+import {
+  requireStripePriceId,
+  StripeConfigError,
+  type StripePlanId,
+} from '@/lib/billing/config';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireOrg } from '@/lib/auth/guards';
 
 // =========================================================================
 // POST /api/billing/checkout — Crée une Stripe Checkout Session
 // -------------------------------------------------------------------------
-// Body : { planId: 'starter' | 'pro' }
-// - Vérifie que le plan existe et a un stripe_price_id
-// - Récupère ou crée le customer Stripe pour l'org
-// - Retourne { url } (redirect vers Stripe Checkout)
+// Body : { planId: 'starter' | 'growth' }
+//
+// Plans acceptés pour checkout self-service :
+//   'starter'  → STRIPE_STARTER_PRICE_ID  (75 EUR HT/mois)
+//   'growth'   → STRIPE_MEDIUM_PRICE_ID   (149 EUR HT/mois, display "Medium")
+//
+// Plans REFUSÉS :
+//   'enterprise' → 400 avec message explicite (sur devis, contact commercial)
+//   autres       → 400 unknown_plan
+//   déjà exempt  → 403 exempt
+//   non-admin    → 403 forbidden
+//
+// Les Price IDs sont lus depuis les env vars via requireStripePriceId(),
+// avec validation de format. Erreur claire si manquant ou mal formé.
 // =========================================================================
 
 export const runtime = 'nodejs';
 
+const CHECKOUTABLE_PLANS = new Set<StripePlanId>(['starter', 'growth']);
+
 export async function POST(req: NextRequest) {
   const ctx = await requireOrg();
   if (ctx.role !== 'admin') {
-    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+    return NextResponse.json(
+      { error: 'forbidden', message: 'Seul un admin peut souscrire.' },
+      { status: 403 },
+    );
   }
 
-  const { planId, cycle } = (await req.json().catch(() => ({}))) as {
+  const { planId } = (await req.json().catch(() => ({}))) as {
     planId?: string;
-    cycle?: 'monthly' | 'yearly';
   };
 
   if (!planId) {
     return NextResponse.json({ error: 'missing_plan' }, { status: 400 });
   }
 
+  // 1) Enterprise = sur devis, jamais de Checkout self-service.
+  if (planId === 'enterprise') {
+    return NextResponse.json(
+      {
+        error: 'enterprise_quote_only',
+        message:
+          'Le plan Enterprise se souscrit sur devis. Écris à contact@centrium-platform.com pour lancer la conversation commerciale.',
+      },
+      { status: 400 },
+    );
+  }
+
+  // 2) Plans supportés pour checkout self-service ?
+  if (!CHECKOUTABLE_PLANS.has(planId as StripePlanId)) {
+    return NextResponse.json(
+      {
+        error: 'unknown_plan',
+        message: `Plan "${planId}" non éligible au checkout self-service.`,
+      },
+      { status: 400 },
+    );
+  }
+
   const admin = createAdminClient('cross-org-query');
 
-  // Les orgs fondateurs / partenaires sont exemptées — aucun checkout possible.
+  // 3) Orgs exemptes (fondateurs/partenaires) : jamais de checkout.
   const { data: exemptCheck } = await admin
     .from('subscriptions')
     .select('is_exempt_from_billing')
@@ -39,34 +81,39 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
   if (exemptCheck?.is_exempt_from_billing) {
     return NextResponse.json(
-      { error: 'exempt', message: 'Cette organisation n\'est pas soumise à facturation.' },
+      {
+        error: 'exempt',
+        message: 'Cette organisation n\'est pas soumise à facturation.',
+      },
       { status: 403 },
     );
   }
 
-  // Récupère le plan + price_id
-  const { data: plan } = await admin
-    .from('plans')
-    .select('id, name, stripe_price_id, stripe_price_yearly_id')
-    .eq('id', planId)
-    .single();
-
-  if (!plan) {
-    return NextResponse.json({ error: 'plan_not_found' }, { status: 404 });
+  // 4) Résout le Price ID depuis env vars. Erreur claire si absent/mal formé.
+  let priceId: string;
+  try {
+    priceId = requireStripePriceId(planId as StripePlanId);
+  } catch (e) {
+    if (e instanceof StripeConfigError) {
+      // Log côté serveur pour l'ops, réponse générique côté client
+      // (on ne fuit pas le nom d'env manquante à l'utilisateur final,
+      // mais on la garde dans les logs Vercel).
+      console.error(
+        `[billing/checkout] ${e.envVar} ${e.kind} — plan=${planId}`,
+      );
+      return NextResponse.json(
+        {
+          error: 'stripe_not_configured',
+          message:
+            'Le paiement n\'est pas encore configuré côté serveur. Écris à contact@centrium-platform.com — on te débloque en quelques minutes.',
+        },
+        { status: 503 },
+      );
+    }
+    throw e;
   }
 
-  const priceId = cycle === 'yearly' ? plan.stripe_price_yearly_id : plan.stripe_price_id;
-  if (!priceId) {
-    return NextResponse.json(
-      {
-        error: 'plan_not_configured',
-        message: `Plan "${plan.name}" non lié à Stripe. Ajoute stripe_price_id dans la table plans.`,
-      },
-      { status: 400 },
-    );
-  }
-
-  // Récupère / crée le customer Stripe de l'org
+  // 5) Récupère / crée le customer Stripe.
   const { data: sub } = await admin
     .from('subscriptions')
     .select('stripe_customer_id')
@@ -82,17 +129,15 @@ export async function POST(req: NextRequest) {
       metadata: { organization_id: ctx.organizationId },
     });
     customerId = customer.id;
-    await admin
-      .from('subscriptions')
-      .upsert(
-        {
-          organization_id: ctx.organizationId,
-          plan_id: 'free',
-          status: 'incomplete',
-          stripe_customer_id: customerId,
-        },
-        { onConflict: 'organization_id' },
-      );
+    await admin.from('subscriptions').upsert(
+      {
+        organization_id: ctx.organizationId,
+        plan_id: 'free',
+        status: 'incomplete',
+        stripe_customer_id: customerId,
+      },
+      { onConflict: 'organization_id' },
+    );
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
@@ -103,9 +148,8 @@ export async function POST(req: NextRequest) {
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${appUrl}/billing?success=1`,
     cancel_url: `${appUrl}/billing?canceled=1`,
-    // metadata sur la subscription → retrouvé dans le webhook
     subscription_data: {
-      metadata: { organization_id: ctx.organizationId, plan_id: plan.id },
+      metadata: { organization_id: ctx.organizationId, plan_id: planId },
     },
     allow_promotion_codes: true,
     billing_address_collection: 'auto',

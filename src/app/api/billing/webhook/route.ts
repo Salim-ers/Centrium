@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Stripe from 'stripe';
 import { getStripe } from '@/lib/billing/stripe';
+import {
+  priceIdToPlanId,
+  requireStripeWebhookSecret,
+  StripeConfigError,
+} from '@/lib/billing/config';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 // =========================================================================
@@ -44,12 +49,18 @@ export async function POST(req: NextRequest) {
   }
 
   const stripe = getStripe();
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!webhookSecret) {
-    return NextResponse.json(
-      { error: 'webhook_secret_missing', message: 'STRIPE_WEBHOOK_SECRET non configuré.' },
-      { status: 500 },
-    );
+  let webhookSecret: string;
+  try {
+    webhookSecret = requireStripeWebhookSecret();
+  } catch (e) {
+    if (e instanceof StripeConfigError) {
+      console.error(`[stripe/webhook] ${e.envVar} ${e.kind}`);
+      return NextResponse.json(
+        { error: 'webhook_secret_missing', message: 'Webhook non configuré.' },
+        { status: 500 },
+      );
+    }
+    throw e;
   }
 
   const rawBody = await req.text();
@@ -210,16 +221,28 @@ async function upsertSubscription(admin: AdminClient, sub: Stripe.Subscription) 
     return;
   }
 
-  // Résout notre plan_id local depuis le Price Stripe.
+  // Résout notre plan_id local depuis le Price Stripe. 3 sources en ordre
+  // de priorité :
+  //   1. Env var mapping (STRIPE_STARTER_PRICE_ID / STRIPE_MEDIUM_PRICE_ID)
+  //      — source de vérité pour les Prices courants.
+  //   2. plans.stripe_price_id / plans.stripe_price_yearly_id — fallback
+  //      pour les Prices legacy (anciens tarifs d'abonnés historiques).
+  //   3. sub.metadata.plan_id — dernier fallback ; défini à la création
+  //      via checkout.session.create.
   const priceId = sub.items.data[0]?.price.id;
   let planId = sub.metadata?.plan_id ?? 'free';
   if (priceId) {
-    const { data: plan } = await admin
-      .from('plans')
-      .select('id')
-      .or(`stripe_price_id.eq.${priceId},stripe_price_yearly_id.eq.${priceId}`)
-      .maybeSingle();
-    if (plan) planId = plan.id;
+    const envMapped = priceIdToPlanId(priceId);
+    if (envMapped) {
+      planId = envMapped;
+    } else {
+      const { data: plan } = await admin
+        .from('plans')
+        .select('id')
+        .or(`stripe_price_id.eq.${priceId},stripe_price_yearly_id.eq.${priceId}`)
+        .maybeSingle();
+      if (plan) planId = plan.id;
+    }
   }
 
   // Cast safe pour les timestamps (SDK types drift entre versions).
