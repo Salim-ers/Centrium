@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Lock, ShieldCheck } from 'lucide-react';
 
@@ -29,11 +29,27 @@ export default function SetPasswordPage() {
 function SetPasswordInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const welcome = params?.get('welcome'); // 'portal' = consultant invité, 'invited' = membre org
+  const welcome = params?.get('welcome'); // 'portal' = consultant invité, 'invited' = membre org, 'recovery' = reset mdp
   const orgName = params?.get('org');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  // Vérifie la session au mount. Sans session (verifyOtp/exchangeCodeForSession
+  // ont échoué avant le redirect), updateUser retournerait "Auth session
+  // missing!" ce qui laisse l'user perplexe sur une page vide. On redirige
+  // proprement vers /login avec un code d'erreur explicite.
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) {
+        router.replace('/login?error=session_expired');
+        return;
+      }
+      setCheckingSession(false);
+    });
+  }, [router]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -63,6 +79,14 @@ function SetPasswordInner() {
     } else {
       router.push('/dashboard');
     }
+  }
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-white/40" />
+      </div>
+    );
   }
 
   return (

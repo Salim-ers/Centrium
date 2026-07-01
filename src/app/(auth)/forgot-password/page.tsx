@@ -60,6 +60,8 @@ export default function ForgotPasswordPage() {
       toast.error(t.forgotPassword.errors.generic, { duration: 6000 });
       return;
     }
+    // Double feedback : toast + switch d'écran. Le user ne peut pas rater.
+    toast.success(t.forgotPassword.successTitle, { duration: 5000 });
     setSent(true);
   }
 
