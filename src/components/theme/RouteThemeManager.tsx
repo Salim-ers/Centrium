@@ -15,12 +15,15 @@ const FORCED_DARK_PATHS = [
   '/login',
   '/signup',
   '/register',
+  '/forgot-password',
   '/devis',
   '/pricing',
+  '/tarifs',
   '/plateforme',
   '/engagements',
   '/security',
   '/manifesto',
+  '/centrium-vs-boondmanager',
 ];
 const FORCED_DARK_PREFIXES = ['/auth/', '/invite/', '/legal/', '/trust'];
 
