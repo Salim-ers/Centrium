@@ -610,6 +610,7 @@ export type AppDict = {
       badge_recruiter: string;
       badge_direct_client: string;
       never_contacted: string;
+      action_mark_contacted: string;
     };
     contracts: {
       eyebrow: string;
@@ -1481,6 +1482,7 @@ export const APP_DICT: Record<Locale, AppDict> = {
         badge_recruiter: 'Recruteur',
         badge_direct_client: 'Client direct',
         never_contacted: 'Jamais contacté',
+        action_mark_contacted: "Marquer contacté aujourd'hui",
       },
       contracts: {
         eyebrow: 'Facturation',
@@ -2350,6 +2352,7 @@ export const APP_DICT: Record<Locale, AppDict> = {
         badge_recruiter: 'Recruiter',
         badge_direct_client: 'Direct client',
         never_contacted: 'Never contacted',
+        action_mark_contacted: 'Mark as contacted today',
       },
       contracts: {
         eyebrow: 'Billing',

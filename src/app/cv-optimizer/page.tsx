@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
   Download,
@@ -28,6 +29,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PageHeader, AppCard } from '@/components/app';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
@@ -612,7 +614,12 @@ function CVOptimizerPageInner() {
 
       <div className="no-print grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-6">
         {/* Sidebar config */}
-        <aside className="space-y-4">
+        <motion.aside
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className="space-y-4"
+        >
           <AppCard variant="luminous" tone="magenta">
             <div className="p-5 space-y-3">
               <div className="text-base font-display tracking-tight flex items-center gap-2">
@@ -645,10 +652,10 @@ function CVOptimizerPageInner() {
             </div>
           </AppCard>
 
-          <Card>
+          <Card className="qc-premium rounded-2xl">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/5 text-muted-foreground text-xs font-bold">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-violet-glow/30 bg-violet-glow/15 text-violet-glow text-xs font-bold">
                   2
                 </span>
                 {t.pages.cv_optimizer.template_label}
@@ -666,10 +673,10 @@ function CVOptimizerPageInner() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="qc-premium rounded-2xl">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/5 text-muted-foreground text-xs font-bold">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-violet-glow/30 bg-violet-glow/15 text-violet-glow text-xs font-bold">
                   3
                 </span>
                 {t.pages.cv_optimizer.offer_label}
@@ -701,7 +708,7 @@ function CVOptimizerPageInner() {
               <div>
                 <Label className="text-xs">{t.pages.cv_optimizer.job_title}</Label>
                 <input
-                  className="flex h-9 w-full rounded-md border border-hairline bg-white/[0.02] px-3 py-2 text-sm mt-1"
+                  className="flex h-9 w-full rounded-md border border-hairline surface-1 px-3 py-2 text-sm mt-1"
                   value={offerTitle}
                   onChange={(e) => setOfferTitle(e.target.value)}
                   placeholder="ex: QA Automation Senior"
@@ -731,18 +738,30 @@ function CVOptimizerPageInner() {
           </Card>
 
           {matching && parsedOffer && (
-            <Card>
+            <Card className="qc-premium rounded-2xl">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Target className="h-4 w-4" /> Matching
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-magenta/30 bg-magenta/10 text-magenta-neon">
+                    <Target className="h-3.5 w-3.5" />
+                  </span>
+                  Matching
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl font-bold font-display qc-gradient-text">
-                    {matching.score}
+                    <AnimatedNumber value={matching.score} />
                   </span>
                   <span className="text-muted-foreground">/ 100</span>
+                </div>
+                {/* Jauge de score animée — lecture immédiate du niveau de match. */}
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-foreground/[0.07]">
+                  <motion.div
+                    className="h-full rounded-full bg-magenta dark:bg-gradient-to-r dark:from-violet-glow dark:to-magenta-neon"
+                    initial={false}
+                    animate={{ width: `${matching.score}%` }}
+                    transition={{ type: 'spring', stiffness: 90, damping: 20 }}
+                  />
                 </div>
                 {matching.matchedSkills.length > 0 && (
                   <div className="mt-3">
@@ -965,10 +984,12 @@ function CVOptimizerPageInner() {
                         <span>{d.label}</span>
                         <span className="font-mono">{d.value}%</span>
                       </div>
-                      <div className="h-1 rounded-full bg-white/5 overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-violet-glow to-magenta transition-all duration-700"
-                          style={{ width: `${d.value}%` }}
+                      <div className="h-1 rounded-full bg-foreground/[0.07] overflow-hidden">
+                        <motion.div
+                          className="h-full bg-gradient-to-r from-violet-glow to-magenta"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${d.value}%` }}
+                          transition={{ duration: 0.7, ease: 'easeOut' }}
                         />
                       </div>
                     </div>
@@ -1019,10 +1040,14 @@ function CVOptimizerPageInner() {
               </CardContent>
             </Card>
           )}
-        </aside>
+        </motion.aside>
 
         {/* Preview CV */}
-        <section>
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.08, ease: 'easeOut' }}
+        >
           {!loaded ? (
             <Card>
               <CardContent className="py-24 text-center text-muted-foreground">
@@ -1048,7 +1073,7 @@ function CVOptimizerPageInner() {
                 </CardContent>
               </Card>
               <EditModeBanner editMode={editMode} setEditMode={setEditMode} />
-              <div className="overflow-auto bg-neutral-200 dark:bg-neutral-800 p-6 rounded-xl">
+              <div className="overflow-auto bg-neutral-200 dark:bg-neutral-800 p-6 rounded-2xl border border-hairline">
                 <CVPreviewBoundary onReset={resetOverrides}>
                   <CVRenderer
                     content={displayed ?? generated}
@@ -1063,7 +1088,7 @@ function CVOptimizerPageInner() {
           ) : generated ? (
             <>
               <EditModeBanner editMode={editMode} setEditMode={setEditMode} />
-              <div className="overflow-auto bg-neutral-200 dark:bg-neutral-800 p-6 rounded-xl">
+              <div className="overflow-auto bg-neutral-200 dark:bg-neutral-800 p-6 rounded-2xl border border-hairline">
                 <CVPreviewBoundary onReset={resetOverrides}>
                   <CVRenderer
                     content={displayed ?? generated}
@@ -1082,7 +1107,7 @@ function CVOptimizerPageInner() {
               </CardContent>
             </Card>
           )}
-        </section>
+        </motion.section>
       </div>
 
       {/* Version imprimable plein écran (Ctrl+P natif, export via React-PDF). */}
@@ -1098,11 +1123,13 @@ function CVOptimizerPageInner() {
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div
-      className={`rounded-lg border border-hairline bg-white/[0.02] px-2 py-1.5 ${
+      className={`rounded-lg border border-hairline surface-1 px-2 py-1.5 ${
         value === 0 ? 'border-amber-500/30' : ''
       }`}
     >
-      <div className="text-base font-bold">{value}</div>
+      <div className="text-base font-display font-semibold">
+        <AnimatedNumber value={value} />
+      </div>
       <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</div>
     </div>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { useContactTypeLabels } from '@/lib/i18n/useBadges';
 import {
@@ -26,9 +27,7 @@ import { ContactReminderDialog } from '@/components/crm/ContactReminderDialog';
 import { contactInteractionService } from '@/lib/services';
 import type { ContactInteraction } from '@/types';
 import { AppShell } from '@/components/layout/AppShell';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -44,7 +43,11 @@ import {
   KPICard,
   AppCard,
   EmptyState,
+  StatusBadge,
+  type StatusTone,
 } from '@/components/app';
+import { presenceColor, presenceInitials } from '@/lib/realtime/presence-utils';
+import { cn } from '@/lib/utils';
 import { contactService } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
@@ -211,7 +214,7 @@ export default function ContactsPage() {
         }
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <Reveal className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KPICard
           label={t.pages.contacts.kpi_total}
           value={allContacts.length}
@@ -236,7 +239,7 @@ export default function ContactsPage() {
           icon={Network}
           tone="amber"
         />
-      </div>
+      </Reveal>
 
       <ContactCsvImportDialog
         open={csvOpen}
@@ -268,8 +271,8 @@ export default function ContactsPage() {
         onSaved={() => reload()}
       />
 
-      <Card className="mb-4">
-        <CardContent className="p-3">
+      <Reveal delay={0.05}>
+        <div className="qc-premium relative mb-4 rounded-2xl border p-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -280,8 +283,8 @@ export default function ContactsPage() {
               className="pl-9"
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </Reveal>
 
       {!loading && contacts.length === 0 ? (
         <EmptyState
@@ -308,6 +311,7 @@ export default function ContactsPage() {
           }
         />
       ) : (
+      <Reveal delay={0.1}>
       <AppCard>
         <div className="p-0">
           <Table>
@@ -328,34 +332,64 @@ export default function ContactsPage() {
                 // qui se remplit (avant : 1 seule ligne qui faisait coller
                 // l'œil au vide). Hauteur 10 ~= ligne réelle.
                 <>
-                  {[0, 1, 2].map((i) => (
+                  {[0, 1, 2, 3, 4].map((i) => (
                     <TableRow key={i}>
                       <TableCell colSpan={7}>
-                        <div className="h-8 bg-foreground/[0.04] animate-pulse rounded" />
+                        <div
+                          className="h-8 surface-1 animate-pulse rounded-lg"
+                          style={{ animationDelay: `${i * 120}ms` }}
+                        />
                       </TableCell>
                     </TableRow>
                   ))}
                 </>
               ) : (
-                paginatedContacts.map((c) => {
+                paginatedContacts.map((c, rowIdx) => {
                   const latest = latestByContact.get(c.id) ?? null;
                   const lastDate = latest?.created_at ?? c.last_interaction ?? null;
                   const hasReminder = !!c.next_call_reminder;
+                  const avatarColor = presenceColor(c.id);
+                  const initials = presenceInitials(c.first_name, c.last_name, c.email ?? '');
                   return (
-                    <TableRow key={c.id} className="h-12">
+                    <motion.tr
+                      key={c.id}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        duration: 0.25,
+                        delay: Math.min(rowIdx, 10) * 0.03,
+                        ease: 'easeOut',
+                      }}
+                      className="group h-12 border-b border-hairline transition-colors hover-surface"
+                    >
                       <TableCell className="whitespace-nowrap">
                         <span
-                          className="font-medium"
+                          className="inline-flex items-center gap-2.5 font-medium"
                           title={`${c.last_name} ${c.first_name}`}
                         >
-                          <span className="uppercase">{c.last_name}</span>{' '}
-                          {c.first_name}
+                          <span
+                            className={cn(
+                              'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ring-1 ring-foreground/10 transition-transform duration-200 group-hover:scale-105',
+                              avatarColor.bg,
+                              avatarColor.text,
+                            )}
+                          >
+                            {initials}
+                          </span>
+                          <span>
+                            <span className="uppercase">{c.last_name}</span>{' '}
+                            {c.first_name}
+                          </span>
                         </span>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        <Badge variant="outline" className="text-[10px]">
+                        <StatusBadge
+                          tone={CONTACT_TYPE_TONE[c.contact_type] ?? 'neutral'}
+                          dot={false}
+                          className="px-2 py-0.5 text-[10px]"
+                        >
                           {contactTypeLabels[c.contact_type as keyof typeof contactTypeLabels] ?? CONTACT_TYPE_LABEL[c.contact_type]}
-                        </Badge>
+                        </StatusBadge>
                       </TableCell>
                       <TableCell
                         className="text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[240px]"
@@ -410,7 +444,7 @@ export default function ContactsPage() {
                         <div className="flex items-center justify-end gap-0.5 whitespace-nowrap">
                           <IconButton
                             onClick={() => markContacted(c)}
-                            title={t.pages.contacts.never_contacted}
+                            title={t.pages.contacts.action_mark_contacted}
                             colorClass="text-emerald-300 hover:bg-emerald-500/10"
                           >
                             <PhoneCall className="h-3.5 w-3.5" />
@@ -449,7 +483,7 @@ export default function ContactsPage() {
                           </IconButton>
                         </div>
                       </TableCell>
-                    </TableRow>
+                    </motion.tr>
                   );
                 })
               )}
@@ -457,6 +491,7 @@ export default function ContactsPage() {
           </Table>
         </div>
       </AppCard>
+      </Reveal>
       )}
 
       <PaginationFooter
@@ -465,6 +500,35 @@ export default function ContactsPage() {
         itemLabel="contact"
       />
     </AppShell>
+  );
+}
+
+/** Tone du badge type — aligné sur les couleurs des KPI (cyan/violet/amber). */
+const CONTACT_TYPE_TONE: Record<string, StatusTone> = {
+  recruiter: 'info',
+  client_final: 'violet',
+  esn_partner: 'warning',
+};
+
+/** Entrée en cascade des sections de la page (fondu + translation). */
+function Reveal({
+  delay = 0,
+  className,
+  children,
+}: {
+  delay?: number;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay, ease: 'easeOut' }}
+      className={className}
+    >
+      {children}
+    </motion.div>
   );
 }
 

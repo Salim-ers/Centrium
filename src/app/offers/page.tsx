@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -26,7 +27,6 @@ import {
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -34,7 +34,6 @@ import {
   PageHeader,
   KPICard,
   AppCard,
-  AppCardBody,
   EmptyState,
   BulkActionBar,
 } from '@/components/app';
@@ -67,6 +66,28 @@ import {
   classifyJobFamily,
   type JobFamilyId,
 } from '@/lib/consultants/job-family';
+
+/** Entrée en cascade des sections de la page (fondu + translation). */
+function Reveal({
+  delay = 0,
+  className,
+  children,
+}: {
+  delay?: number;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay, ease: 'easeOut' }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 function getSeniorityLabel(t: ReturnType<typeof useAppT>): Record<string, string> {
   return {
@@ -419,7 +440,7 @@ export default function OffersPage() {
       />
 
       {!showArchived && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Reveal className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <KPICard
             label={t.pages.offers.kpi_open}
             value={openCount}
@@ -448,7 +469,7 @@ export default function OffersPage() {
             tone="emerald"
             hint={tjmValues.length > 0 ? t.pages.offers.kpi_avg_tjm_hint.replace('{n}', tjmValues.length.toString()) : t.pages.offers.kpi_avg_tjm_hint_zero}
           />
-        </div>
+        </Reveal>
       )}
 
       <JobOfferFormDialog
@@ -466,71 +487,100 @@ export default function OffersPage() {
       />
 
       {/* Switcher pipeline : Disponibles (offres pas encore pushées)
-          / Avec CV poussé (offres déjà engagées). Caché en vue archivée. */}
+          / Avec CV poussé (offres déjà engagées). Pilule active qui glisse
+          d'un onglet à l'autre. Caché en vue archivée. */}
       {!showArchived && (
-        <div className="mb-4 flex items-center gap-1 rounded-lg border border-hairline bg-foreground/[0.03] p-1 w-fit">
-          <button
-            type="button"
-            onClick={() => setPipelineTab('available')}
-            className={cn(
-              'inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm transition',
-              pipelineTab === 'available'
-                ? 'bg-violet-glow/15 text-violet-glow border border-violet-glow/30 shadow-[0_0_30px_-12px_rgba(139,92,246,0.5)]'
-                : 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04] border border-transparent',
-            )}
-            title={t.pages.offers.tab_available_tooltip}
-          >
-            <Briefcase className="h-4 w-4 shrink-0" />
-            <span className="font-medium">{t.pages.offers.tab_available}</span>
-            <span
-              className={cn(
-                'text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
-                pipelineTab === 'available'
-                  ? 'bg-violet-glow/25 text-violet-50 dark:text-violet-50'
-                  : 'bg-foreground/[0.06] text-muted-foreground',
-              )}
-            >
-              {availableCount}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setPipelineTab('pushed')}
-            className={cn(
-              'inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm transition',
-              pipelineTab === 'pushed'
-                ? 'bg-magenta-neon/15 text-magenta-neon border border-magenta-neon/30 shadow-[0_0_30px_-12px_rgba(236,72,153,0.5)]'
-                : 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04] border border-transparent',
-            )}
-            title={t.pages.offers.tab_pushed_tooltip}
-          >
-            <Target className="h-4 w-4 shrink-0" />
-            <span className="font-medium">{t.pages.offers.tab_pushed}</span>
-            <span
-              className={cn(
-                'text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
-                pipelineTab === 'pushed'
-                  ? 'bg-magenta-neon/25 text-magenta-50 dark:text-magenta-50'
-                  : 'bg-foreground/[0.06] text-muted-foreground',
-              )}
-            >
-              {pushedCount}
-            </span>
-          </button>
-        </div>
+        <Reveal delay={0.05} className="mb-4 flex w-fit items-center gap-1 rounded-xl border border-hairline surface-1 p-1">
+          {(
+            [
+              {
+                key: 'available' as const,
+                label: t.pages.offers.tab_available,
+                tooltip: t.pages.offers.tab_available_tooltip,
+                Icon: Briefcase,
+                count: availableCount,
+                activeText: 'text-violet-glow',
+                pill: 'border-violet-glow/30 bg-violet-glow/15',
+                countActive: 'bg-violet-glow/15 text-violet-glow',
+              },
+              {
+                key: 'pushed' as const,
+                label: t.pages.offers.tab_pushed,
+                tooltip: t.pages.offers.tab_pushed_tooltip,
+                Icon: Target,
+                count: pushedCount,
+                activeText: 'text-magenta-neon',
+                pill: 'border-magenta-neon/30 bg-magenta-neon/15',
+                countActive: 'bg-magenta-neon/15 text-magenta-neon',
+              },
+            ]
+          ).map((tab) => {
+            const active = pipelineTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setPipelineTab(tab.key)}
+                title={tab.tooltip}
+                className={cn(
+                  'relative rounded-lg px-3 py-2 text-sm transition-colors',
+                  active ? tab.activeText : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {active && (
+                  <motion.span
+                    layoutId="offers-pipeline-pill"
+                    transition={{ type: 'spring', stiffness: 400, damping: 34 }}
+                    className={cn('absolute inset-0 rounded-lg border', tab.pill)}
+                  />
+                )}
+                <span className="relative z-10 inline-flex items-center gap-2">
+                  <tab.Icon className="h-4 w-4 shrink-0" />
+                  <span className="font-medium">{tab.label}</span>
+                  <span
+                    className={cn(
+                      'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+                      active ? tab.countActive : 'surface-2 text-muted-foreground',
+                    )}
+                  >
+                    {tab.count}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </Reveal>
       )}
 
-      <Card className="mb-4">
-        <CardContent className="p-3 space-y-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder={t.pages.offers.search_placeholder}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
+      {/* Barre d'outils unifiée : recherche + filtres métier + ville. PAS
+          d'overflow-hidden — le popover du CityFilter doit pouvoir déborder. */}
+      <Reveal delay={0.08}>
+        <div className="qc-premium relative mb-4 rounded-2xl border p-4 space-y-3.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder={t.pages.offers.search_placeholder}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <CityFilter
+              cities={cityCounts}
+              selected={cityFilter}
+              onChange={setCityFilter}
             />
+            {cityFilter.size > 0 && (
+              <button
+                type="button"
+                onClick={() => setCityFilter(new Set())}
+                className="text-[11px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+              >
+                {t.pages.offers.clear_city_filter}
+              </button>
+            )}
           </div>
           <JobFamilyFilter
             counts={familyCounts}
@@ -538,25 +588,8 @@ export default function OffersPage() {
             active={familyFilter}
             onChange={setFamilyFilter}
           />
-        </CardContent>
-      </Card>
-
-      <div className="mb-4 flex items-center gap-2 flex-wrap">
-        <CityFilter
-          cities={cityCounts}
-          selected={cityFilter}
-          onChange={setCityFilter}
-        />
-        {cityFilter.size > 0 && (
-          <button
-            type="button"
-            onClick={() => setCityFilter(new Set())}
-            className="text-[11px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
-          >
-            {t.pages.offers.clear_city_filter}
-          </button>
-        )}
-      </div>
+        </div>
+      </Reveal>
 
       {!loading && offers.length === 0 ? (
         <EmptyState
@@ -577,6 +610,7 @@ export default function OffersPage() {
           }
         />
       ) : (
+      <Reveal delay={0.12}>
       <AppCard>
         <div className="p-0">
           <Table>
@@ -608,19 +642,34 @@ export default function OffersPage() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow>
-                  <TableCell colSpan={9}>
-                    <div className="h-10 bg-white/[0.02] animate-pulse rounded" />
-                  </TableCell>
-                </TableRow>
+                Array.from({ length: 4 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell colSpan={9}>
+                      <div
+                        className="h-10 surface-1 animate-pulse rounded-lg"
+                        style={{ animationDelay: `${i * 120}ms` }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))
               ) : (
-                paginatedOffers.map((o) => {
+                paginatedOffers.map((o, rowIdx) => {
                   // TJM unique : on lit max en priorité, fallback min.
                   const tjm = o.daily_rate_max ?? o.daily_rate_min ?? null;
                   return (
-                    <TableRow
+                    <motion.tr
                       key={o.id}
-                      className={offerBulk.isSelected(o.id) ? 'bg-magenta/[0.04]' : undefined}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        duration: 0.25,
+                        delay: Math.min(rowIdx, 10) * 0.03,
+                        ease: 'easeOut',
+                      }}
+                      className={cn(
+                        'group border-b border-hairline transition-colors hover-surface',
+                        offerBulk.isSelected(o.id) && 'bg-magenta/[0.04]',
+                      )}
                     >
                       <TableCell className="w-10 align-top py-3">
                         <input
@@ -730,7 +779,14 @@ export default function OffersPage() {
                         {relativeDate(o.updated_at)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
+                        <div
+                          className={cn(
+                            'flex items-center justify-end gap-1 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100',
+                            // Pendant un export PDF, on garde les actions visibles
+                            // même si le curseur quitte la ligne (feedback du spinner).
+                            exportingOfferId === o.id && 'md:opacity-100',
+                          )}
+                        >
                           {showArchived ? (
                             <>
                               <Button
@@ -807,7 +863,7 @@ export default function OffersPage() {
                           )}
                         </div>
                       </TableCell>
-                    </TableRow>
+                    </motion.tr>
                   );
                 })
               )}
@@ -815,6 +871,7 @@ export default function OffersPage() {
           </Table>
         </div>
       </AppCard>
+      </Reveal>
       )}
 
       <PaginationFooter
