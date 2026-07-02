@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import {
   Users,
   TrendingUp,
@@ -17,6 +18,12 @@ import {
   Info,
   ArrowUpRight,
   RotateCcw,
+  UserPlus,
+  Wand2,
+  Target,
+  Receipt,
+  Zap,
+  type LucideIcon,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -208,7 +215,7 @@ export default function DashboardPage() {
       )}
 
       {/* KPIs — chaque carte est cliquable et drille vers la page concernée */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
+      <Reveal className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
         <KPICard
           icon={Users}
           label={t.dashboard.consultants_on_mission}
@@ -249,38 +256,40 @@ export default function DashboardPage() {
               : undefined
           }
         />
-      </div>
+      </Reveal>
 
       {/* Action Row — 3 widgets actionnables : qui me rapporte, où pousser, qui me doit. */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <Reveal delay={0.05} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <TopConsultantsWidget />
         <HotOpportunitiesWidget />
         <InvoicesToCollectWidget />
-      </div>
+      </Reveal>
 
       {/* Graph CA / Missions */}
-      <div className="mb-6">
+      <Reveal delay={0.1} className="mb-6">
         <RevenueChart />
-      </div>
+      </Reveal>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <Reveal delay={0.15} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Alertes prioritaires */}
         <AppCard variant="default" tone="amber" className="lg:col-span-2">
           <AppCardBody size="md">
             <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2 text-foreground font-medium">
-                  <AlertTriangle className="h-4 w-4 text-amber-400" />
-                  {t.dashboard.priority_alerts}
+              <div className="flex items-center gap-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400">
+                  <AlertTriangle className="h-4 w-4" />
+                </span>
+                <div>
+                  <div className="text-foreground font-medium">{t.dashboard.priority_alerts}</div>
+                  <p className="text-[12px] text-muted-foreground">
+                    {t.dashboard.alerts_to_handle
+                      .replace('{n}', String(alertsTotal))
+                      .replace('{s}', alertsTotal > 1 ? 's' : '')}
+                    {alertsTotal > alerts.length && (
+                      <span className="text-foreground/60"> — top {alerts.length}</span>
+                    )}
+                  </p>
                 </div>
-                <p className="text-[12.5px] text-muted-foreground mt-1">
-                  {t.dashboard.alerts_to_handle
-                    .replace('{n}', String(alertsTotal))
-                    .replace('{s}', alertsTotal > 1 ? 's' : '')}
-                  {alertsTotal > alerts.length && (
-                    <span className="text-foreground/60"> — top {alerts.length}</span>
-                  )}
-                </p>
               </div>
               <Button variant="outline" size="sm" asChild>
                 <Link href="/alerts">{t.dashboard.see_all}</Link>
@@ -296,7 +305,9 @@ export default function DashboardPage() {
                   description={t.dashboard.all_under_control}
                 />
               ) : (
-                alerts.map((alert) => <DashboardAlertItem key={alert.id} alert={alert} />)
+                alerts.map((alert, i) => (
+                  <DashboardAlertItem key={alert.id} alert={alert} index={i} />
+                ))
               )}
             </div>
           </AppCardBody>
@@ -305,12 +316,14 @@ export default function DashboardPage() {
         {/* État facturation */}
         <AppCard variant="default" tone="violet">
           <AppCardBody size="md">
-            <div className="mb-4">
-              <div className="flex items-center gap-2 text-foreground font-medium">
-                <FileText className="h-4 w-4 text-violet-400" />
-                {t.dashboard.invoicing}
+            <div className="mb-4 flex items-center gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-violet-glow/30 bg-violet-glow/15 text-violet-glow">
+                <FileText className="h-4 w-4" />
+              </span>
+              <div>
+                <div className="text-foreground font-medium">{t.dashboard.invoicing}</div>
+                <p className="text-[12px] text-muted-foreground">{t.dashboard.invoices_state}</p>
               </div>
-              <p className="text-[12.5px] text-muted-foreground mt-1">{t.dashboard.invoices_state}</p>
             </div>
             <div className="space-y-3">
               <StatRow
@@ -338,21 +351,50 @@ export default function DashboardPage() {
             </div>
           </AppCardBody>
         </AppCard>
-      </div>
+      </Reveal>
 
       {/* Raccourcis */}
-      <AppCard variant="default" className="mt-6">
-        <AppCardBody size="md">
-          <div className="mb-4 text-foreground font-medium">{t.dashboard.quick_actions}</div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <QuickAction href="/consultants" label={t.dashboard.add_consultant} />
-            <QuickAction href="/cv-optimizer" label={t.dashboard.generate_cv} />
-            <QuickAction href="/crm" label={t.dashboard.new_opportunity} />
-            <QuickAction href="/invoices" label={t.dashboard.new_invoice} />
-          </div>
-        </AppCardBody>
-      </AppCard>
+      <Reveal delay={0.2} className="mt-6">
+        <AppCard variant="default">
+          <AppCardBody size="md">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-magenta/30 bg-magenta/10 text-magenta-neon">
+                <Zap className="h-4 w-4" />
+              </span>
+              <div className="text-foreground font-medium">{t.dashboard.quick_actions}</div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <QuickAction href="/consultants" label={t.dashboard.add_consultant} icon={UserPlus} />
+              <QuickAction href="/cv-optimizer" label={t.dashboard.generate_cv} icon={Wand2} />
+              <QuickAction href="/crm" label={t.dashboard.new_opportunity} icon={Target} />
+              <QuickAction href="/invoices" label={t.dashboard.new_invoice} icon={Receipt} />
+            </div>
+          </AppCardBody>
+        </AppCard>
+      </Reveal>
     </AppShell>
+  );
+}
+
+/** Entrée en cascade des sections du dashboard (fondu + translation). */
+function Reveal({
+  delay = 0,
+  className,
+  children,
+}: {
+  delay?: number;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay, ease: 'easeOut' }}
+      className={className}
+    >
+      {children}
+    </motion.div>
   );
 }
 
@@ -370,15 +412,18 @@ function StatRow({
   href?: string;
 }) {
   const inner = (
-    <div className="flex items-center justify-between gap-2 px-2 py-1.5 -mx-2 rounded-md hover:bg-white/[0.04] transition group">
+    <div className="flex items-center justify-between gap-2 px-2 py-1.5 -mx-2 rounded-lg hover-surface transition group">
       <div className="flex items-center gap-2 text-sm">
         {icon}
         <span className="text-muted-foreground group-hover:text-foreground transition">{label}</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <span className={`font-semibold ${highlight ? 'text-red-400' : ''}`}>{value}</span>
+        {highlight && (
+          <span className="h-1.5 w-1.5 rounded-full bg-rose-400 text-rose-400 animate-pulse shadow-[0_0_8px_currentColor]" />
+        )}
+        <span className={`font-semibold ${highlight ? 'text-rose-400' : ''}`}>{value}</span>
         {href && (
-          <ArrowUpRight className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground transition" />
+          <ArrowUpRight className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         )}
       </div>
     </div>
@@ -386,19 +431,26 @@ function StatRow({
   return href ? <Link href={href}>{inner}</Link> : inner;
 }
 
-function QuickAction({ href, label }: { href: string; label: string }) {
+function QuickAction({ href, label, icon: Icon }: { href: string; label: string; icon: LucideIcon }) {
   return (
-    <Button variant="outline" asChild className="h-auto py-3 justify-start">
-      <Link href={href}>{label}</Link>
-    </Button>
+    <Link
+      href={href}
+      className="group flex items-center gap-3 rounded-xl border border-hairline surface-1 px-4 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-magenta/30 hover-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
+    >
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-magenta/30 bg-magenta/10 text-magenta-neon transition-transform duration-200 group-hover:scale-110">
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="text-sm font-medium">{label}</span>
+      <ArrowUpRight className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground/40 opacity-0 transition-all duration-200 group-hover:translate-x-0.5 group-hover:opacity-100" />
+    </Link>
   );
 }
 
-function DashboardAlertItem({ alert }: { alert: ComputedAlert }) {
+function DashboardAlertItem({ alert, index = 0 }: { alert: ComputedAlert; index?: number }) {
   const tone = ALERT_TONE[alert.priority];
   const inner = (
     <div
-      className={`relative overflow-hidden rounded-lg border ${tone.border} ${tone.bg} transition hover:brightness-110`}
+      className={`relative overflow-hidden rounded-lg border ${tone.border} ${tone.bg} transition-all hover:translate-x-0.5 dark:hover:brightness-110`}
     >
       <div className={`absolute left-0 top-0 bottom-0 w-1 ${tone.accent}`} />
       <div className="pl-4 pr-3 py-2.5 flex items-start gap-2.5">
@@ -424,12 +476,20 @@ function DashboardAlertItem({ alert }: { alert: ComputedAlert }) {
       </div>
     </div>
   );
-  return alert.link ? (
-    <Link href={alert.link} className="block">
-      {inner}
-    </Link>
-  ) : (
-    inner
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: index * 0.06, ease: 'easeOut' }}
+    >
+      {alert.link ? (
+        <Link href={alert.link} className="block">
+          {inner}
+        </Link>
+      ) : (
+        inner
+      )}
+    </motion.div>
   );
 }
 

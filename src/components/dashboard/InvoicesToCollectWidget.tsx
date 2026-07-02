@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Banknote, ArrowUpRight } from 'lucide-react';
 
 import { AppCard } from '@/components/app';
@@ -107,16 +108,17 @@ export function InvoicesToCollectWidget() {
           </div>
           <Link
             href="/invoices?status=sent"
-            className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+            className="group text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition"
           >
-            {t.dashboard.see_invoices} <ArrowUpRight className="h-3 w-3" />
+            {t.dashboard.see_invoices}
+            <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </Link>
         </div>
 
         {loading ? (
           <div className="space-y-2">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-10 rounded bg-foreground/[0.04] animate-pulse" />
+              <div key={i} className="h-10 rounded-lg surface-1 animate-pulse" />
             ))}
           </div>
         ) : items.length === 0 ? (
@@ -126,13 +128,18 @@ export function InvoicesToCollectWidget() {
         ) : (
           <>
             <ul className="space-y-1.5 flex-1">
-              {items.map((inv) => {
+              {items.map((inv, i) => {
                 const isOverdue = inv.days_overdue > 0;
                 return (
-                  <li key={inv.id}>
+                  <motion.li
+                    key={inv.id}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: i * 0.06, ease: 'easeOut' }}
+                  >
                     <Link
                       href={`/invoices/${inv.id}`}
-                      className="flex items-center justify-between gap-2 rounded-md border border-white/[0.06] hover:bg-white/[0.04] px-2.5 py-1.5 text-xs transition"
+                      className="flex items-center justify-between gap-2 rounded-lg border border-hairline hover-surface px-2.5 py-2 text-xs transition-all hover:translate-x-0.5"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="font-medium text-foreground/90 truncate">
@@ -169,11 +176,11 @@ export function InvoicesToCollectWidget() {
                         ) : null}
                       </div>
                     </Link>
-                  </li>
+                  </motion.li>
                 );
               })}
             </ul>
-            <div className="mt-2 pt-2 border-t border-white/[0.06] text-[10px] text-muted-foreground flex justify-end">
+            <div className="mt-2 pt-2 border-t border-hairline text-[10px] text-muted-foreground flex justify-end">
               Total : <span className="ml-1 font-semibold text-foreground/80">{formatCurrency(totalOutstanding)}</span>
             </div>
           </>

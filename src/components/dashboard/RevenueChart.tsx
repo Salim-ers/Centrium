@@ -11,7 +11,7 @@ import {
 } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { createClient } from '@/lib/supabase/client';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useOrganization } from '@/lib/auth/context';
@@ -60,17 +60,28 @@ function rowsToBuckets(rows: RpcRow[]): MonthlyPoint[] {
   });
 }
 
+/** Pastille de légende — trait plein ou pointillé selon la série. */
+function LegendItem({ color, label, dashed }: { color: string; label: string; dashed?: boolean }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {dashed ? (
+        <span
+          className="inline-block w-3.5 border-t-2 border-dashed"
+          style={{ borderColor: color }}
+        />
+      ) : (
+        <span className="inline-block h-2 w-2 rounded-full" style={{ background: color }} />
+      )}
+      {label}
+    </span>
+  );
+}
+
 export function RevenueChart() {
   const { activeOrgId } = useOrganization();
   const theme = useTheme();
   const t = useAppT();
   const { format: formatCurrency } = useCurrency();
-  // Palette du graphique adaptée au thème :
-  //  - DARK : magenta + violet + amber (identité historique, lisible sur noir)
-  //  - LIGHT : 3 nuances terracotta (cohérent avec la palette crème + terre,
-  //    zéro jaune, zéro violet — demande utilisateur). Les 3 courbes restent
-  //    distinguables : sang foncé pour CA, terracotta principal pour missions,
-  //    terracotta orangé pour CV poussés.
   // Palette adaptée au thème — 3 tons distincts pour lisibilité maximale :
   //   - DARK : magenta (CA) + violet (missions) + ambre (CV poussés)
   //   - LIGHT : terracotta sang (CA) + olive (missions) + ocre brûlé (CV poussés)
@@ -120,45 +131,65 @@ export function RevenueChart() {
   const proposedCount = last?.missionsProposed ?? 0;
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader>
-        <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="qc-premium relative overflow-hidden rounded-2xl border">
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline px-5 py-4">
+        <div className="flex items-center gap-3">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-magenta/30 bg-magenta/10">
+            <TrendingUp className="h-4 w-4" style={{ color: chartColors.ca }} />
+          </span>
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" style={{ color: chartColors.ca }} />
+            <h2 className="text-sm font-semibold tracking-tight">
               {t.dashboard.revenue_chart_title}
-            </CardTitle>
-            <CardDescription>{t.dashboard.last_12_months}</CardDescription>
+            </h2>
+            <p className="text-[11px] text-muted-foreground">{t.dashboard.last_12_months}</p>
           </div>
-          <div className="flex gap-5 text-right">
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                {t.dashboard.ca_cumulative}
-              </div>
-              <div className="text-lg font-bold qc-gradient-text">
-                {formatCurrency(totalCA)}
-              </div>
+        </div>
+        <div className="flex gap-6 text-right">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              {t.dashboard.ca_cumulative}
             </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                {t.dashboard.cv_pushed_pending}
-              </div>
-              <div className="text-lg font-bold text-amber-300">{proposedCount}</div>
+            <div className="font-display text-xl font-light tracking-[-0.02em] qc-gradient-text">
+              <AnimatedNumber
+                value={loading ? null : totalCA}
+                format={(n) => formatCurrency(n)}
+              />
             </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                {t.dashboard.missions_active}
-              </div>
-              <div className="text-lg font-bold" style={{ color: chartColors.ca }}>
-                {activeCount}
-              </div>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              {t.dashboard.cv_pushed_pending}
+            </div>
+            <div
+              className="font-display text-xl font-light tracking-[-0.02em]"
+              style={{ color: chartColors.proposed }}
+            >
+              <AnimatedNumber value={loading ? null : proposedCount} />
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              {t.dashboard.missions_active}
+            </div>
+            <div
+              className="font-display text-xl font-light tracking-[-0.02em]"
+              style={{ color: chartColors.ca }}
+            >
+              <AnimatedNumber value={loading ? null : activeCount} />
             </div>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
+      </header>
+
+      <div className="p-5">
+        <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+          <LegendItem color={chartColors.ca} label="CA" />
+          <LegendItem color={chartColors.missions} label={t.dashboard.missions_active} />
+          <LegendItem color={chartColors.proposed} label={t.dashboard.cv_pushed_pending} dashed />
+        </div>
+
         {loading ? (
-          <div className="h-64 rounded-lg bg-foreground/[0.04] animate-pulse" />
+          <div className="h-64 rounded-xl surface-1 animate-pulse" />
         ) : (
           <div className="h-64 -mx-2">
             <ResponsiveContainer width="100%" height="100%">
@@ -230,6 +261,7 @@ export function RevenueChart() {
                   strokeWidth={1.5}
                   fill="url(#proposed-amber)"
                   strokeDasharray="4 4"
+                  animationDuration={800}
                 />
                 <Area
                   yAxisId="missions"
@@ -239,6 +271,7 @@ export function RevenueChart() {
                   stroke={chartColors.missions}
                   strokeWidth={1.5}
                   fill="url(#missions-violet)"
+                  animationDuration={800}
                 />
                 <Area
                   yAxisId="ca"
@@ -248,12 +281,14 @@ export function RevenueChart() {
                   stroke={chartColors.ca}
                   strokeWidth={2.5}
                   fill="url(#ca-pink)"
+                  activeDot={{ r: 4, strokeWidth: 0 }}
+                  animationDuration={900}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

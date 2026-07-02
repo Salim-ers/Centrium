@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Trophy, ArrowUpRight } from 'lucide-react';
 
 import { AppCard } from '@/components/app';
@@ -99,16 +100,17 @@ export function TopConsultantsWidget() {
           </div>
           <Link
             href="/en-mission"
-            className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+            className="group text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition"
           >
-            {t.dashboard.see_consultants} <ArrowUpRight className="h-3 w-3" />
+            {t.dashboard.see_consultants}
+            <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </Link>
         </div>
 
         {loading ? (
           <div className="space-y-2">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-10 rounded bg-foreground/[0.04] animate-pulse" />
+              <div key={i} className="h-10 rounded-lg surface-1 animate-pulse" />
             ))}
           </div>
         ) : items.length === 0 ? (
@@ -117,17 +119,30 @@ export function TopConsultantsWidget() {
           </div>
         ) : (
           <ul className="space-y-1.5 flex-1">
-            {items.map((c) => {
+            {items.map((c, i) => {
               const initials = presenceInitials(c.first_name, c.last_name, '');
               const color = presenceColor(c.consultant_id);
               const name = `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() || '—';
               return (
-                <li key={c.consultant_id + c.mission_title}>
+                <motion.li
+                  key={c.consultant_id + c.mission_title}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.06, ease: 'easeOut' }}
+                >
                   <Link
                     href={`/consultants/${c.consultant_id}`}
-                    className="flex items-center justify-between gap-2 rounded-md border border-white/[0.06] hover:bg-white/[0.04] px-2.5 py-1.5 text-xs transition"
+                    className="flex items-center justify-between gap-2 rounded-lg border border-hairline hover-surface px-2.5 py-2 text-xs transition-all hover:translate-x-0.5"
                   >
                     <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span
+                        className={cn(
+                          'w-3.5 shrink-0 text-center font-mono text-[10px] font-semibold',
+                          i === 0 ? 'text-amber-400' : 'text-muted-foreground/50',
+                        )}
+                      >
+                        {i + 1}
+                      </span>
                       <span
                         className={cn(
                           'inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold shrink-0',
@@ -152,7 +167,7 @@ export function TopConsultantsWidget() {
                       </span>
                     </span>
                   </Link>
-                </li>
+                </motion.li>
               );
             })}
           </ul>

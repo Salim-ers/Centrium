@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Flame, ArrowUpRight } from 'lucide-react';
 
 import { AppCard } from '@/components/app';
@@ -104,16 +105,17 @@ export function HotOpportunitiesWidget() {
           </div>
           <Link
             href="/crm"
-            className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+            className="group text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition"
           >
-            {t.dashboard.see_pipeline} <ArrowUpRight className="h-3 w-3" />
+            {t.dashboard.see_pipeline}
+            <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </Link>
         </div>
 
         {loading ? (
           <div className="space-y-2">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-10 rounded bg-foreground/[0.04] animate-pulse" />
+              <div key={i} className="h-10 rounded-lg surface-1 animate-pulse" />
             ))}
           </div>
         ) : items.length === 0 ? (
@@ -122,46 +124,63 @@ export function HotOpportunitiesWidget() {
           </div>
         ) : (
           <ul className="space-y-1.5 flex-1">
-            {items.map((opp) => {
+            {items.map((opp, i) => {
               const statusLabel =
                 oppLabels[opp.status as keyof typeof oppLabels] ??
                 OPPORTUNITY_STATUS_LABEL[opp.status as keyof typeof OPPORTUNITY_STATUS_LABEL] ??
                 opp.status;
               return (
-                <li key={opp.id}>
+                <motion.li
+                  key={opp.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.06, ease: 'easeOut' }}
+                >
                   <Link
                     href={`/crm`}
-                    className="flex items-center justify-between gap-2 rounded-md border border-white/[0.06] hover:bg-white/[0.04] px-2.5 py-1.5 text-xs transition"
+                    className="block rounded-lg border border-hairline hover-surface px-2.5 py-1.5 text-xs transition-all hover:translate-x-0.5"
                   >
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium text-foreground/90 truncate">{opp.title}</div>
-                      <div className="text-[10px] text-muted-foreground truncate flex items-center gap-1.5">
-                        <span className="truncate">{opp.company_name ?? '—'}</span>
-                        <span className="opacity-60">·</span>
-                        <span
-                          className={cn(
-                            'shrink-0 px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-semibold',
-                            opp.status === 'negotiation'
-                              ? 'bg-amber-500/15 text-amber-300'
-                              : opp.status === 'client_interview'
-                                ? 'bg-fuchsia-500/15 text-fuchsia-300'
-                                : 'bg-violet-500/15 text-violet-300',
-                          )}
-                        >
-                          {statusLabel}
-                        </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-foreground/90 truncate">{opp.title}</div>
+                        <div className="text-[10px] text-muted-foreground truncate flex items-center gap-1.5">
+                          <span className="truncate">{opp.company_name ?? '—'}</span>
+                          <span className="opacity-60">·</span>
+                          <span
+                            className={cn(
+                              'shrink-0 px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-semibold',
+                              opp.status === 'negotiation'
+                                ? 'bg-amber-500/15 text-amber-300'
+                                : opp.status === 'client_interview'
+                                  ? 'bg-fuchsia-500/15 text-fuchsia-300'
+                                  : 'bg-violet-500/15 text-violet-300',
+                            )}
+                          >
+                            {statusLabel}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <div className="text-xs font-semibold text-magenta-neon">
+                          {formatCurrency(opp.weighted_value)}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {opp.probability}% · {formatCurrency(opp.expected_revenue)}
+                        </div>
                       </div>
                     </div>
-                    <div className="shrink-0 text-right">
-                      <div className="text-xs font-semibold text-magenta-neon">
-                        {formatCurrency(opp.weighted_value)}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground">
-                        {opp.probability}% · {formatCurrency(opp.expected_revenue)}
-                      </div>
+                    {/* Jauge de probabilité — lecture instantanée du "à quel
+                        point c'est chaud", animée à l'entrée. */}
+                    <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-foreground/[0.06]">
+                      <motion.div
+                        className="h-full rounded-full bg-magenta"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${opp.probability}%` }}
+                        transition={{ duration: 0.6, delay: 0.15 + i * 0.06, ease: 'easeOut' }}
+                      />
                     </div>
                   </Link>
-                </li>
+                </motion.li>
               );
             })}
           </ul>
