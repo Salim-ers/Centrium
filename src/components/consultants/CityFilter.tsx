@@ -51,10 +51,10 @@ export function CityFilter({ cities, selected, onChange }: Props) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs border transition ${
+        className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs border transition ${
           isFiltering
-            ? 'border-violet-glow/60 bg-violet-glow/15 text-violet-100'
-            : 'border-hairline bg-white/[0.02] text-muted-foreground hover:border-white/20 hover:text-white'
+            ? 'border-violet-glow/60 bg-violet-glow/15 text-violet-glow'
+            : 'border-hairline surface-1 text-muted-foreground hover:border-foreground/25 hover:text-foreground'
         }`}
       >
         <MapPin className="h-3.5 w-3.5" />
@@ -97,8 +97,8 @@ export function CityFilter({ cities, selected, onChange }: Props) {
                     <button
                       type="button"
                       onClick={() => toggle(c.name)}
-                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-white/[0.04] ${
-                        isSel ? 'text-violet-200' : 'text-foreground'
+                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs hover-surface ${
+                        isSel ? 'text-violet-glow' : 'text-foreground'
                       }`}
                     >
                       <input

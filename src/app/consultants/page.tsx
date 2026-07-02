@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { useConsultantStatusLabels, useSeniorityLabels } from '@/lib/i18n/useBadges';
@@ -29,7 +30,6 @@ import {
 
 import { AppShell } from '@/components/layout/AppShell';
 import { TalentTabs } from '@/components/consultants/TalentTabs';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -428,7 +428,7 @@ function ConsultantsPageInner() {
       />
 
       {!showArchived && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <Reveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <KPICard
             icon={Users}
             label={t.pages.consultants.kpi_library}
@@ -456,7 +456,7 @@ function ConsultantsPageInner() {
             tone="amber"
             hint={`${interContractCount} ${t.pages.consultants.kpi_intercontract_sub}`}
           />
-        </div>
+        </Reveal>
       )}
 
       <ConsultantFormDialog
@@ -508,15 +508,25 @@ function ConsultantsPageInner() {
 
       <UsageBanner resource="consultants" />
 
-      <Card className="mb-3">
-        <CardContent className="p-4 space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={t.pages.consultants.search_placeholder}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
+      {/* Barre d'outils unifiée : recherche + filtres métier + ville dans
+          un seul bloc premium. PAS d'overflow-hidden ici — le popover du
+          CityFilter (position absolute) doit pouvoir déborder du bloc. */}
+      <Reveal delay={0.05}>
+        <div className="qc-premium relative mb-6 rounded-2xl border p-4 space-y-3.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={t.pages.consultants.search_placeholder}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <CityFilter
+              cities={cityCounts}
+              selected={cityFilter}
+              onChange={setCityFilter}
             />
           </div>
 
@@ -526,24 +536,17 @@ function ConsultantsPageInner() {
             active={familyFilter}
             onChange={setFamilyFilter}
           />
-        </CardContent>
-      </Card>
-
-      {/* Filtre ville posé en dessous du carré principal : le popover
-          a ainsi toute la place pour s'ouvrir sans recouvrir le tableau. */}
-      <div className="mb-6 flex items-center gap-2 flex-wrap">
-        <CityFilter
-          cities={cityCounts}
-          selected={cityFilter}
-          onChange={setCityFilter}
-        />
-      </div>
+        </div>
+      </Reveal>
 
       {/* Bandeau filtre URL actif (drill-down depuis dashboard/widget) */}
       {hasUrlFilter && (
-        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-violet-glow/30 bg-violet-glow/[0.06] px-4 py-2.5">
-          <div className="text-sm">
-            <span className="text-muted-foreground mr-1">Filtre actif :</span>
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-violet-glow/30 bg-violet-glow/[0.06] px-4 py-2.5">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-violet-glow/15 text-violet-glow">
+              <Search className="h-3 w-3" />
+            </span>
+            <span className="text-muted-foreground">Filtre actif :</span>
             <span className="font-medium">
               {urlStatusFilter === 'available' && 'Disponibles'}
               {urlStatusFilter === 'on_mission' && 'En mission'}
@@ -551,7 +554,7 @@ function ConsultantsPageInner() {
               {urlStatusFilter === 'unavailable' && 'Indisponibles'}
               {urlEndedBefore === 'today' && ' · mission terminée'}
             </span>
-            <span className="ml-2 text-xs text-muted-foreground">({totalCount} profils)</span>
+            <span className="text-xs text-muted-foreground">({totalCount} profils)</span>
           </div>
           <Button variant="ghost" size="sm" onClick={clearUrlFilter} className="h-7">
             Retirer le filtre
@@ -584,6 +587,7 @@ function ConsultantsPageInner() {
           }
         />
       ) : (
+      <Reveal delay={0.1}>
       <AppCard>
         <div className="overflow-hidden rounded-2xl">
           <Table>
@@ -614,18 +618,31 @@ function ConsultantsPageInner() {
                   On affiche le skeleton plutôt qu'un "Aucun profil disponible"
                   trompeur le temps que l'auth se réhydrate au F5. */}
               {loading || consultantsData === null ? (
-                Array.from({ length: 3 }).map((_, i) => (
+                Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
                     <TableCell colSpan={7}>
-                      <div className="h-10 rounded-md bg-white/[0.02] animate-pulse" />
+                      <div
+                        className="h-10 rounded-lg surface-1 animate-pulse"
+                        style={{ animationDelay: `${i * 120}ms` }}
+                      />
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
-                paginated.map((c) => (
-                  <TableRow
+                paginated.map((c, rowIdx) => (
+                  <motion.tr
                     key={c.id}
-                    className={bulkSel.isSelected(c.id) ? 'bg-magenta/[0.04]' : undefined}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.25,
+                      delay: Math.min(rowIdx, 10) * 0.03,
+                      ease: 'easeOut',
+                    }}
+                    className={cn(
+                      'group border-b border-hairline transition-colors hover-surface',
+                      bulkSel.isSelected(c.id) && 'bg-magenta/[0.04]',
+                    )}
                   >
                     <TableCell className="w-10">
                       <input
@@ -638,7 +655,7 @@ function ConsultantsPageInner() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 shrink-0 rounded-full bg-qc-gradient flex items-center justify-center text-white text-xs font-semibold">
+                        <div className="h-9 w-9 shrink-0 rounded-full bg-qc-gradient ring-1 ring-foreground/10 flex items-center justify-center text-white text-xs font-semibold transition-transform duration-200 group-hover:scale-105">
                           {(c.first_name?.[0] ?? '?').toUpperCase()}
                           {(c.last_name?.[0] ?? '').toUpperCase()}
                         </div>
@@ -703,7 +720,7 @@ function ConsultantsPageInner() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-1 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
                         <Button variant="ghost" size="sm" asChild title={t.pages.consultants.action_view}>
                           <Link href={`/consultants/${c.id}`}>
                             <Eye className="h-3.5 w-3.5" />
@@ -776,13 +793,14 @@ function ConsultantsPageInner() {
                         )}
                       </div>
                     </TableCell>
-                  </TableRow>
+                  </motion.tr>
                 ))
               )}
             </TableBody>
           </Table>
         </div>
       </AppCard>
+      </Reveal>
       )}
 
       <PaginationFooter
@@ -823,6 +841,28 @@ function ConsultantsPageInner() {
         }
       />
     </AppShell>
+  );
+}
+
+/** Entrée en cascade des sections de la page (fondu + translation). */
+function Reveal({
+  delay = 0,
+  className,
+  children,
+}: {
+  delay?: number;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay, ease: 'easeOut' }}
+      className={className}
+    >
+      {children}
+    </motion.div>
   );
 }
 
