@@ -702,6 +702,7 @@ export type AppDict = {
       chip_important: string;
       chip_moderate: string;
       chip_info: string;
+      filter_all: string;
       section_critical_title: string;
       section_critical_hint: string;
       section_important_title: string;
@@ -1572,6 +1573,7 @@ export const APP_DICT: Record<Locale, AppDict> = {
         chip_important: 'Important',
         chip_moderate: 'Modéré',
         chip_info: 'Info',
+        filter_all: 'Toutes',
         section_critical_title: 'Critique — à traiter immédiatement',
         section_critical_hint: "Bloquant ou échu, action requise aujourd'hui",
         section_important_title: 'Important — à traiter cette semaine',
@@ -2440,6 +2442,7 @@ export const APP_DICT: Record<Locale, AppDict> = {
         chip_important: 'Important',
         chip_moderate: 'Moderate',
         chip_info: 'Info',
+        filter_all: 'All',
         section_critical_title: 'Critical — handle immediately',
         section_critical_hint: 'Blocking or overdue, action required today',
         section_important_title: 'Important — handle this week',
