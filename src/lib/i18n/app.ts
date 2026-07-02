@@ -741,6 +741,13 @@ export type AppDict = {
       tab_all: string;
       card_my_title: string;
       card_team_title: string;
+      stat_pending: string;
+      stat_overdue: string;
+      stat_done: string;
+      stat_progress: string;
+      due_today: string;
+      due_overdue: string;
+      form_dialog_hint: string;
       prio_high: string;
       prio_medium: string;
       prio_low: string;
@@ -1604,6 +1611,13 @@ export const APP_DICT: Record<Locale, AppDict> = {
         tab_all: 'Toutes',
         card_my_title: 'Mes tâches',
         card_team_title: 'Tâches équipe',
+        stat_pending: 'En cours',
+        stat_overdue: 'En retard',
+        stat_done: 'Terminées',
+        stat_progress: 'Progression',
+        due_today: "Aujourd'hui",
+        due_overdue: 'En retard',
+        form_dialog_hint: 'Une tâche claire = une tâche faite. Ajoute une échéance pour la voir remonter au bon moment.',
         prio_high: 'Haute',
         prio_medium: 'Moyenne',
         prio_low: 'Basse',
@@ -2465,6 +2479,13 @@ export const APP_DICT: Record<Locale, AppDict> = {
         tab_all: 'All',
         card_my_title: 'My tasks',
         card_team_title: 'Team tasks',
+        stat_pending: 'In progress',
+        stat_overdue: 'Overdue',
+        stat_done: 'Done',
+        stat_progress: 'Progress',
+        due_today: 'Today',
+        due_overdue: 'Overdue',
+        form_dialog_hint: 'A clear task is a done task. Add a due date to surface it at the right time.',
         prio_high: 'High',
         prio_medium: 'Medium',
         prio_low: 'Low',

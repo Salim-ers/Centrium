@@ -3,22 +3,27 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import {
+  Check,
+  CheckCheck,
   CheckSquare,
-  Plus,
   Square,
+  Plus,
   Trash2,
   Pencil,
   Calendar,
+  CalendarClock,
   Lock,
   Loader2,
-  X,
   Users,
   Globe,
+  ListTodo,
+  Sparkles,
+  TrendingUp,
+  type LucideIcon,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PageHeader, StatusBadge, type StatusTone } from '@/components/app';
 import {
@@ -34,6 +39,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
@@ -77,11 +83,13 @@ type OrgMember = OwnerProfile & {
   role: string | null;
 };
 
+type AppT = ReturnType<typeof useAppT>;
+
 /**
  * Construit le mapping priority → label depuis le dictionnaire i18n.
  * Doit être appelé depuis un composant React qui a accès au hook `useAppT`.
  */
-function buildPriorityLabel(t: ReturnType<typeof useAppT>): Record<Todo['priority'], string> {
+function buildPriorityLabel(t: AppT): Record<Todo['priority'], string> {
   return {
     high: t.pages.todos.prio_high,
     medium: t.pages.todos.prio_medium,
@@ -97,8 +105,59 @@ const PRIORITY_TONE: Record<Todo['priority'], StatusTone> = {
 
 const PRIORITY_RANK: Record<Todo['priority'], number> = { high: 0, medium: 1, low: 2 };
 
+/** Liseré vertical à gauche de chaque ligne — encode la priorité sans chip. */
+const PRIORITY_STRIPE: Record<Todo['priority'], string> = {
+  high: 'bg-rose-400',
+  medium: 'bg-amber-400',
+  low: 'bg-slate-500/50',
+};
+
 /** MIME type pour le drag&drop d'une todo entre les deux tableaux. */
 const DRAG_MIME = 'application/x-todo-id';
+
+const SPRING = { type: 'spring', stiffness: 380, damping: 32, mass: 0.6 } as const;
+
+/** Date locale au format YYYY-MM-DD (pas d'UTC — l'échéance est "jour local"). */
+function localDateStr(d: Date): string {
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+type DueMeta = { Icon: LucideIcon; className: string; label: string };
+
+/**
+ * Chip d'échéance contextuelle : rouge si dépassée, ambre si aujourd'hui,
+ * neutre sinon. Une tâche terminée n'est jamais "en retard".
+ */
+function dueMeta(todo: Todo, t: AppT): DueMeta | null {
+  if (!todo.due_date) return null;
+  const dueStr = todo.due_date.slice(0, 10);
+  const todayStr = localDateStr(new Date());
+  const formatted = new Date(todo.due_date).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'short',
+  });
+  if (!todo.done && dueStr < todayStr) {
+    return {
+      Icon: CalendarClock,
+      className: 'border-rose-500/40 bg-rose-500/10 text-rose-400',
+      label: `${t.pages.todos.due_overdue} · ${formatted}`,
+    };
+  }
+  if (!todo.done && dueStr === todayStr) {
+    return {
+      Icon: CalendarClock,
+      className: 'border-amber-500/40 bg-amber-500/10 text-amber-400',
+      label: t.pages.todos.due_today,
+    };
+  }
+  return {
+    Icon: Calendar,
+    className: 'border-hairline text-muted-foreground',
+    label: formatted,
+  };
+}
 
 /**
  * To do list personnelle de l'utilisateur connecté.
@@ -110,7 +169,6 @@ const DRAG_MIME = 'application/x-todo-id';
 export default function TodosPage() {
   const { user, activeOrgId } = useOrganization();
   const t = useAppT();
-  const PRIORITY_LABEL = useMemo(() => buildPriorityLabel(t), [t]);
   const [filter, setFilter] = useState<'pending' | 'done' | 'all'>('pending');
   const [editing, setEditing] = useState<Todo | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -153,7 +211,7 @@ export default function TodosPage() {
   // RLS appliquée par Realtime → seuls les events accessibles arrivent.
   useRealtimeReload(['user_todos'], () => reload());
 
-  const allTodos = todosData ?? [];
+  const allTodos = useMemo(() => todosData ?? [], [todosData]);
 
   // Récupère tous les membres de l'org (pour le ping + résolution nom).
   // Un seul fetch au mount + reload sur changement d'org.
@@ -181,8 +239,8 @@ export default function TodosPage() {
     const otherUserIds = Array.from(
       new Set(
         allTodos
-          .filter((t) => t.shared && t.user_id !== user.id)
-          .map((t) => t.user_id),
+          .filter((td) => td.shared && td.user_id !== user.id)
+          .map((td) => td.user_id),
       ),
     );
     const missing = otherUserIds.filter((id) => !ownerProfiles.has(id));
@@ -234,30 +292,30 @@ export default function TodosPage() {
   //   - Équipe : tâches que je vois sans en être l'auteur (partagées par
   //     un collègue, ou pinguées sur moi)
   const myId = user?.id ?? null;
-  const filterByStatus = (t: Todo) =>
-    filter === 'pending' ? !t.done : filter === 'done' ? t.done : true;
+  const filterByStatus = (td: Todo) =>
+    filter === 'pending' ? !td.done : filter === 'done' ? td.done : true;
 
   // Une tâche est "perso" si elle n'a AUCUN aspect équipe : créée par moi,
   // pas partagée, et sans ping sur quelqu'un d'autre. Sinon elle est "équipe".
   // → toggle share ou ping sur un collègue déplace la tâche vers l'équipe.
   const mineAll = useMemo(
     () =>
-      allTodos.filter((t) => {
+      allTodos.filter((td) => {
         if (!myId) return false;
-        if (t.user_id !== myId) return false;
-        if (t.shared) return false;
-        if (t.pinged_user_id && t.pinged_user_id !== myId) return false;
+        if (td.user_id !== myId) return false;
+        if (td.shared) return false;
+        if (td.pinged_user_id && td.pinged_user_id !== myId) return false;
         return true;
       }),
     [allTodos, myId],
   );
   const teamAll = useMemo(
     () =>
-      allTodos.filter((t) => {
+      allTodos.filter((td) => {
         if (!myId) return false;
-        if (t.user_id !== myId) return true; // tâche d'un collègue qu'on voit
-        if (t.shared) return true;
-        if (t.pinged_user_id && t.pinged_user_id !== myId) return true;
+        if (td.user_id !== myId) return true; // tâche d'un collègue qu'on voit
+        if (td.shared) return true;
+        if (td.pinged_user_id && td.pinged_user_id !== myId) return true;
         return false;
       }),
     [allTodos, myId],
@@ -266,20 +324,31 @@ export default function TodosPage() {
   const teamTodos = sortTodos(teamAll.filter(filterByStatus));
 
   const counts = {
-    pending: mineAll.filter((t) => !t.done).length + teamAll.filter((t) => !t.done).length,
-    done: mineAll.filter((t) => t.done).length + teamAll.filter((t) => t.done).length,
+    pending: mineAll.filter((td) => !td.done).length + teamAll.filter((td) => !td.done).length,
+    done: mineAll.filter((td) => td.done).length + teamAll.filter((td) => td.done).length,
     all: mineAll.length + teamAll.length,
   };
+
+  // Stats du bandeau "pulse" : en retard = non fait + échéance dépassée.
+  const todayStr = localDateStr(new Date());
+  const overdueCount = useMemo(
+    () =>
+      [...mineAll, ...teamAll].filter(
+        (td) => !td.done && td.due_date && td.due_date.slice(0, 10) < todayStr,
+      ).length,
+    [mineAll, teamAll, todayStr],
+  );
+  const progressPct = counts.all === 0 ? 0 : Math.round((counts.done / counts.all) * 100);
 
   async function toggleDone(todo: Todo) {
     const supabase = createClient();
     const nextDone = !todo.done;
     // Optimistic update
     setTodos((prev) =>
-      (prev ?? []).map((t) =>
-        t.id === todo.id
-          ? { ...t, done: nextDone, completed_at: nextDone ? new Date().toISOString() : null }
-          : t,
+      (prev ?? []).map((td) =>
+        td.id === todo.id
+          ? { ...td, done: nextDone, completed_at: nextDone ? new Date().toISOString() : null }
+          : td,
       ),
     );
     const { error } = await supabase
@@ -295,7 +364,7 @@ export default function TodosPage() {
   async function deleteTodo(todo: Todo) {
     if (!confirm(`${t.pages.todos.delete_confirm_prefix} "${todo.title}" ?`)) return;
     const prev = todosData;
-    setTodos((list) => (list ?? []).filter((t) => t.id !== todo.id));
+    setTodos((list) => (list ?? []).filter((td) => td.id !== todo.id));
     const supabase = createClient();
     const { error } = await supabase.from('user_todos').delete().eq('id', todo.id);
     if (error) {
@@ -319,10 +388,10 @@ export default function TodosPage() {
     const prev = todosData;
     // Optimistic
     setTodos((list) =>
-      (list ?? []).map((t) =>
-        t.id === todo.id
-          ? { ...t, shared: nextShared, organization_id: nextShared ? activeOrgId : t.organization_id }
-          : t,
+      (list ?? []).map((td) =>
+        td.id === todo.id
+          ? { ...td, shared: nextShared, organization_id: nextShared ? activeOrgId : td.organization_id }
+          : td,
       ),
     );
     const supabase = createClient();
@@ -356,14 +425,14 @@ export default function TodosPage() {
   // Seules les tâches que je possède sont draggable — RLS empêcherait
   // d'éditer celles d'un collègue de toute façon, mais on l'enforce
   // côté UI pour éviter un drop visuel trompeur.
-  function onDragStartTodo(e: React.DragEvent, t: Todo) {
-    if (!user?.id || t.user_id !== user.id) {
+  function onDragStartTodo(e: React.DragEvent, todo: Todo) {
+    if (!user?.id || todo.user_id !== user.id) {
       e.preventDefault();
       return;
     }
-    e.dataTransfer.setData(DRAG_MIME, t.id);
+    e.dataTransfer.setData(DRAG_MIME, todo.id);
     e.dataTransfer.effectAllowed = 'move';
-    setDraggingId(t.id);
+    setDraggingId(todo.id);
   }
 
   function onDragEndTodo() {
@@ -390,12 +459,128 @@ export default function TodosPage() {
     setDraggingId(null);
     setDragOverTarget(null);
     if (!id) return;
-    const t = allTodos.find((x) => x.id === id);
-    if (!t || !user?.id || t.user_id !== user.id) return;
+    const todo = allTodos.find((x) => x.id === id);
+    if (!todo || !user?.id || todo.user_id !== user.id) return;
     const desiredShared = target === 'team';
-    if (t.shared === desiredShared) return; // déjà dans le bon tableau
-    void toggleShare(t);
+    if (todo.shared === desiredShared) return; // déjà dans le bon tableau
+    void toggleShare(todo);
   }
+
+  // Source = la carte d'où vient la tâche draggée. Elle s'atténue
+  // pour mettre en avant la cible (façon CRM).
+  const sourceTarget: 'mine' | 'team' | null = (() => {
+    if (!draggingId) return null;
+    const todo = allTodos.find((x) => x.id === draggingId);
+    if (!todo) return null;
+    return mineAll.some((x) => x.id === todo.id) ? 'mine' : 'team';
+  })();
+
+  const cardClass = (target: 'mine' | 'team') => {
+    const isTarget = dragOverTarget === target && draggingId !== null && sourceTarget !== target;
+    const isSource = sourceTarget === target && draggingId !== null;
+    return cn(
+      'transition-all duration-200',
+      isTarget &&
+        'border-violet-glow/70 bg-violet-glow/[0.06] shadow-[0_0_30px_-12px_rgba(168,85,247,0.65)] scale-[1.01]',
+      isSource && !isTarget && 'opacity-70',
+    );
+  };
+
+  const renderRow = (todo: Todo) => (
+    <TodoRow
+      key={todo.id}
+      todo={todo}
+      currentUserId={myId}
+      owner={todo.user_id !== myId ? ownerProfiles.get(todo.user_id) ?? null : null}
+      memberById={memberById}
+      draggingId={draggingId}
+      onDragStart={onDragStartTodo}
+      onDragEnd={onDragEndTodo}
+      onToggleDone={toggleDone}
+      onView={setViewing}
+      onToggleShare={toggleShare}
+      onEdit={(td) => {
+        setEditing(td);
+        setShowForm(true);
+      }}
+      onDelete={(td) => void deleteTodo(td)}
+    />
+  );
+
+  const renderList = (
+    list: Todo[],
+    emptyText: string,
+    dropTarget: 'mine' | 'team',
+    EmptyIcon: LucideIcon,
+  ) => {
+    if (loading) {
+      return (
+        <div className="space-y-2 p-4">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-14 animate-pulse rounded-xl surface-1"
+              style={{ animationDelay: `${i * 150}ms` }}
+            />
+          ))}
+        </div>
+      );
+    }
+    if (list.length === 0) {
+      const dragActive = dragOverTarget === dropTarget && draggingId !== null;
+      const dropHint =
+        dropTarget === 'team' ? t.pages.todos.drop_team_hint : t.pages.todos.drop_private_hint;
+      return (
+        <div className="p-4">
+          <div
+            className={cn(
+              'flex flex-col items-center gap-3 rounded-xl border border-dashed px-4 py-10 text-center transition-all duration-200',
+              dragActive ? 'border-violet-glow/60 bg-violet-glow/[0.06]' : 'border-hairline',
+            )}
+          >
+            <span
+              className={cn(
+                'flex h-10 w-10 items-center justify-center rounded-full border transition-colors',
+                dragActive
+                  ? 'border-violet-glow/40 text-violet-glow'
+                  : 'border-hairline text-muted-foreground/50',
+              )}
+            >
+              <EmptyIcon className="h-[18px] w-[18px]" />
+            </span>
+            <p
+              className={cn(
+                'text-sm',
+                dragActive ? 'font-medium text-violet-glow' : 'text-muted-foreground/70',
+              )}
+            >
+              {dragActive ? dropHint : emptyText}
+            </p>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <ul className="divide-y divide-hairline">
+        <AnimatePresence initial={false}>{list.map(renderRow)}</AnimatePresence>
+      </ul>
+    );
+  };
+
+  const emptyTextFor = (scope: 'mine' | 'team') => {
+    if (scope === 'mine') {
+      return filter === 'pending'
+        ? t.pages.todos.empty_mine_pending
+        : filter === 'done'
+          ? t.pages.todos.empty_mine_done
+          : t.pages.todos.empty_mine_all;
+    }
+    return filter === 'pending'
+      ? t.pages.todos.empty_team_pending
+      : filter === 'done'
+        ? t.pages.todos.empty_team_done
+        : t.pages.todos.empty_team_all;
+  };
 
   return (
     <AppShell>
@@ -421,7 +606,7 @@ export default function TodosPage() {
               setEditing(null);
               setShowForm(true);
             }}
-            className="bg-gradient-to-r from-violet-glow to-magenta-neon hover:opacity-95"
+            className="bg-gradient-to-r from-violet-glow to-magenta-neon hover:opacity-95 dark:shadow-glow-magenta"
           >
             <Plus className="h-4 w-4" />
             {t.pages.todos.new_task}
@@ -429,32 +614,72 @@ export default function TodosPage() {
         }
       />
 
-      {/* Une seule barre maintenant : status (À faire / Terminées / Toutes)
-          appliqué aux deux tableaux. Le "scope" est devenu superflu puisque
-          la séparation visuelle Perso / Équipe le remplace. */}
-      <div className="mb-4 flex items-center gap-1 rounded-lg border border-hairline bg-white/[0.02] p-1 w-fit">
-        <FilterChip
-          tone="violet"
-          active={filter === 'pending'}
-          onClick={() => setFilter('pending')}
-          label={t.pages.todos.tab_pending}
-          count={counts.pending}
+      {/* ============ Bandeau "pulse" : stats animées + progression ============ */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className="qc-premium mb-6 grid grid-cols-2 rounded-2xl border lg:grid-cols-4"
+      >
+        <StatCell
+          label={t.pages.todos.stat_pending}
+          value={counts.pending}
+          icon={ListTodo}
+          iconClass="text-violet-glow"
+          loading={loading}
         />
-        <FilterChip
-          tone="violet"
-          active={filter === 'done'}
-          onClick={() => setFilter('done')}
-          label={t.pages.todos.tab_done}
-          count={counts.done}
+        <StatCell
+          label={t.pages.todos.stat_overdue}
+          value={overdueCount}
+          icon={CalendarClock}
+          iconClass={overdueCount > 0 ? 'text-rose-400' : 'text-muted-foreground/50'}
+          valueClass={overdueCount > 0 ? 'text-rose-400' : undefined}
+          loading={loading}
+          className="border-l border-hairline"
         />
-        <FilterChip
-          tone="violet"
-          active={filter === 'all'}
-          onClick={() => setFilter('all')}
-          label={t.pages.todos.tab_all}
-          count={counts.all}
+        <StatCell
+          label={t.pages.todos.stat_done}
+          value={counts.done}
+          icon={CheckCheck}
+          iconClass="text-emerald-400"
+          loading={loading}
+          className="border-t border-hairline lg:border-l lg:border-t-0"
         />
-      </div>
+        <div className="border-l border-t border-hairline px-5 py-4 lg:border-t-0">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground/80">
+              {t.pages.todos.stat_progress}
+            </div>
+            <TrendingUp className="h-4 w-4 text-magenta-neon" />
+          </div>
+          <div className="mt-1.5 flex items-baseline gap-1">
+            <span className="font-display text-[1.75rem] font-light leading-none tracking-[-0.03em] text-foreground">
+              <AnimatedNumber value={loading ? null : progressPct} />
+            </span>
+            <span className="text-sm text-muted-foreground">%</span>
+          </div>
+          <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-foreground/[0.07]">
+            <motion.div
+              className="h-full rounded-full bg-magenta dark:bg-gradient-to-r dark:from-violet-glow dark:to-magenta-neon"
+              initial={false}
+              animate={{ width: `${loading ? 0 : progressPct}%` }}
+              transition={{ type: 'spring', stiffness: 90, damping: 20 }}
+            />
+          </div>
+        </div>
+      </motion.section>
+
+      {/* Filtres : status (À faire / Terminées / Toutes) appliqué aux deux
+          tableaux — pilule active animée façon segmented control. */}
+      <FilterTabs
+        value={filter}
+        onChange={setFilter}
+        tabs={[
+          { key: 'pending', label: t.pages.todos.tab_pending, count: counts.pending },
+          { key: 'done', label: t.pages.todos.tab_done, count: counts.done },
+          { key: 'all', label: t.pages.todos.tab_all, count: counts.all },
+        ]}
+      />
 
       {showForm && (
         <TodoForm
@@ -469,7 +694,7 @@ export default function TodosPage() {
           onSaved={(saved) => {
             setTodos((prev) => {
               const list = prev ?? [];
-              const idx = list.findIndex((t) => t.id === saved.id);
+              const idx = list.findIndex((td) => td.id === saved.id);
               if (idx === -1) return [saved, ...list];
               const next = list.slice();
               next[idx] = saved;
@@ -494,368 +719,396 @@ export default function TodosPage() {
         }
         ownerMember={viewing ? memberById.get(viewing.user_id) ?? null : null}
         onClose={() => setViewing(null)}
-        onToggleDone={(t) => toggleDone(t)}
-        onEdit={(t) => {
-          setEditing(t);
+        onToggleDone={(td) => toggleDone(td)}
+        onEdit={(td) => {
+          setEditing(td);
           setShowForm(true);
           setViewing(null);
         }}
-        onDelete={(t) => {
+        onDelete={(td) => {
           setViewing(null);
-          void deleteTodo(t);
+          void deleteTodo(td);
         }}
-        onToggleShare={(t) => toggleShare(t)}
+        onToggleShare={(td) => toggleShare(td)}
       />
 
-      {/* Helper inline pour rendre une ligne de todo, réutilisé par les
-          deux tableaux Perso / Équipe pour éviter la duplication. */}
-      {(() => {
-        // Alias `t` (i18n) pour éviter le shadowing par la variable Todo locale.
-        const tt = t;
-        const renderRow = (t: Todo) => {
-          const isMine = t.user_id === user?.id;
-          const owner = isMine ? null : ownerProfiles.get(t.user_id) ?? null;
-          const ownerColor = owner ? presenceColor(owner.id) : null;
-          const ownerInitials = owner
-            ? presenceInitials(owner.first_name, owner.last_name, owner.email)
-            : '';
-          const ownerName = owner
-            ? presenceDisplayName(owner.first_name, owner.last_name, owner.email)
-            : '';
-          const canDrag = isMine; // seules mes tâches sont déplaçables
-          const isDragging = draggingId === t.id;
-          return (
-            <motion.li
-              key={t.id}
-              layoutId={`todo-${t.id}`}
-              layout
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 4 }}
-              transition={{ type: 'spring', stiffness: 380, damping: 32, mass: 0.6 }}
-              draggable={canDrag}
-              onDragStart={(e) => onDragStartTodo(e as unknown as React.DragEvent, t)}
-              onDragEnd={onDragEndTodo}
-              className={cn(
-                'flex items-start gap-3 px-4 py-3 transition-all duration-200 select-none',
-                t.done && 'opacity-60',
-                t.shared && !isMine && 'bg-violet-glow/[0.03]',
-                canDrag && !isDragging && 'cursor-grab',
-                // Animation drag façon CRM : rotation + scale + opacity
-                isDragging && 'cursor-grabbing rotate-2 scale-95 opacity-50',
-              )}
-            >
-              <button
-                type="button"
-                onClick={() => toggleDone(t)}
-                className="mt-0.5 shrink-0 text-muted-foreground hover:text-violet-glow transition"
-                title={t.done ? tt.pages.todos.mark_undone_short : tt.pages.todos.mark_done_short}
-              >
-                {t.done ? (
-                  <CheckSquare className="h-5 w-5 text-emerald-400" />
-                ) : (
-                  <Square className="h-5 w-5" />
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewing(t)}
-                className="flex-1 min-w-0 text-left rounded-md -mx-2 px-2 py-1 hover:bg-white/[0.02] transition cursor-pointer"
-                title={tt.pages.todos.view_tooltip}
-              >
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span
-                    className={cn(
-                      'font-medium',
-                      t.done && 'line-through text-muted-foreground',
-                    )}
-                  >
-                    {t.title}
-                  </span>
-                  <StatusBadge tone={PRIORITY_TONE[t.priority]} dot={false}>
-                    {PRIORITY_LABEL[t.priority]}
-                  </StatusBadge>
-                  {t.shared && (
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] border-violet-glow/40 bg-violet-glow/[0.08] text-violet-glow inline-flex items-center gap-1"
-                      title={tt.pages.todos.shared_with_team}
-                    >
-                      <Globe className="h-3 w-3" />
-                      {tt.pages.todos.team_badge}
-                    </Badge>
-                  )}
-                  {t.pinged_user_id &&
-                    (() => {
-                      const m = memberById.get(t.pinged_user_id);
-                      if (!m) return null;
-                      const name = `${m.first_name ?? ''} ${m.last_name ?? ''}`.trim() || m.email;
-                      const pingedSelf = t.pinged_user_id === user?.id;
-                      const fromName = pingedSelf
-                        ? memberById.get(t.user_id)?.first_name ?? tt.pages.todos.a_colleague
-                        : '';
-                      return (
-                        <span
-                          className={cn(
-                            'inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border',
-                            pingedSelf
-                              ? 'border-amber-500/60 bg-amber-500/15 text-amber-300'
-                              : 'border-violet-glow/40 bg-violet-glow/[0.08] text-violet-glow',
-                          )}
-                          title={pingedSelf ? `${tt.pages.todos.pinged_by_label} ${fromName}` : `${tt.pages.todos.ping_to_label} → ${name}`}
-                        >
-                          <Users className="h-3 w-3" />
-                          {pingedSelf ? `${tt.pages.todos.pinged_by_label} ${fromName}` : `→ ${name}`}
-                        </span>
-                      );
-                    })()}
-                  {owner && ownerColor && (
-                    <span
-                      className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
-                      title={ownerName}
-                    >
-                      <span
-                        className={cn(
-                          'inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold',
-                          ownerColor.bg,
-                          ownerColor.text,
-                        )}
-                      >
-                        {ownerInitials}
-                      </span>
-                      <span className="hidden sm:inline">{ownerName}</span>
-                    </span>
-                  )}
-                  {t.due_date && (
-                    <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {new Date(t.due_date).toLocaleDateString('fr-FR', {
-                        day: '2-digit',
-                        month: 'short',
-                      })}
-                    </span>
-                  )}
-                </div>
-                {t.description && (
-                  <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed line-clamp-2">
-                    {t.description}
-                  </p>
-                )}
-              </button>
-              <div className="flex items-center gap-1 shrink-0">
-                {isMine && (
-                  <button
-                    type="button"
-                    onClick={() => toggleShare(t)}
-                    className={cn(
-                      'h-7 w-7 rounded-md inline-flex items-center justify-center transition',
-                      t.shared
-                        ? 'text-violet-glow bg-violet-glow/15 hover:bg-violet-glow/25'
-                        : 'text-muted-foreground hover:text-violet-glow hover:bg-violet-glow/10',
-                    )}
-                    title={t.shared ? tt.pages.todos.back_to_private : tt.pages.todos.share_with_team}
-                    aria-label={t.shared ? tt.pages.todos.back_to_private : tt.pages.todos.share_with_team}
-                  >
-                    {t.shared ? (
-                      <Lock className="h-3.5 w-3.5" />
-                    ) : (
-                      <Users className="h-3.5 w-3.5" />
-                    )}
-                  </button>
-                )}
-                {isMine && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditing(t);
-                      setShowForm(true);
-                    }}
-                    className="h-7 w-7 rounded-md inline-flex items-center justify-center text-violet-glow hover:bg-violet-glow/10 transition"
-                    title={tt.pages.todos.edit_button}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                )}
-                {isMine && (
-                  <button
-                    type="button"
-                    onClick={() => deleteTodo(t)}
-                    className="h-7 w-7 rounded-md inline-flex items-center justify-center text-red-400 hover:bg-red-500/10 transition"
-                    title={tt.pages.todos.delete_button}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-            </motion.li>
-          );
-        };
+      <LayoutGroup>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.05, ease: 'easeOut' }}
+            onDragOver={(e) => onDragOverTarget(e, 'mine')}
+            onDragLeave={(e) => onDragLeaveTarget(e, 'mine')}
+            onDrop={(e) => onDropTarget(e, 'mine')}
+            className={cn('qc-premium relative overflow-hidden rounded-2xl border', cardClass('mine'))}
+          >
+            <header className="flex items-center gap-3 border-b border-hairline px-5 py-4">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-violet-glow/30 bg-violet-glow/15 text-violet-glow">
+                <Lock className="h-4 w-4" />
+              </span>
+              <h2 className="text-sm font-semibold tracking-tight">
+                {t.pages.todos.card_my_title}
+              </h2>
+              <span className="ml-auto rounded-full border border-hairline surface-2 px-2.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+                {mineTodos.length}
+              </span>
+            </header>
+            {renderList(mineTodos, emptyTextFor('mine'), 'mine', Sparkles)}
+          </motion.section>
 
-        const renderList = (
-          list: Todo[],
-          emptyText: string,
-          dropTarget: 'mine' | 'team',
-        ) =>
-          loading ? (
-            <div className="p-6 space-y-2">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="h-12 bg-white/[0.02] animate-pulse rounded-md" />
-              ))}
-            </div>
-          ) : list.length === 0 ? (
-            <div className="py-12 text-center px-4 transition-all duration-200">
-              <div
-                className={cn(
-                  'mx-3 rounded-lg border border-dashed py-8 px-4 transition-all duration-200',
-                  dragOverTarget === dropTarget && draggingId !== null
-                    ? 'border-violet-glow/60 bg-violet-glow/[0.06] text-violet-glow'
-                    : 'border-hairline text-muted-foreground/60',
-                )}
-              >
-                <p className="text-sm font-medium">
-                  {dragOverTarget === dropTarget && draggingId !== null
-                    ? dropTarget === 'team'
-                      ? tt.pages.todos.drop_team_hint
-                      : tt.pages.todos.drop_private_hint
-                    : emptyText}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <ul className="divide-y divide-hairline">
-              <AnimatePresence initial={false}>{list.map(renderRow)}</AnimatePresence>
-            </ul>
-          );
-
-        // Source = la carte d'où vient la tâche draggée. Elle s'atténue
-        // pour mettre en avant la cible (façon CRM).
-        const sourceTarget: 'mine' | 'team' | null = (() => {
-          if (!draggingId) return null;
-          const t = allTodos.find((x) => x.id === draggingId);
-          if (!t) return null;
-          const inMine = mineAll.some((x) => x.id === t.id);
-          return inMine ? 'mine' : 'team';
-        })();
-        const cardClass = (target: 'mine' | 'team') => {
-          const isTarget = dragOverTarget === target && draggingId !== null && sourceTarget !== target;
-          const isSource = sourceTarget === target && draggingId !== null;
-          return cn(
-            'transition-all duration-200',
-            isTarget &&
-              'border-violet-glow/70 bg-violet-glow/[0.06] shadow-[0_0_30px_-12px_rgba(168,85,247,0.65)] scale-[1.01]',
-            isSource && !isTarget && 'opacity-70',
-          );
-        };
-
-        return (
-          <LayoutGroup>
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Card
-                onDragOver={(e) => onDragOverTarget(e, 'mine')}
-                onDragLeave={(e) => onDragLeaveTarget(e, 'mine')}
-                onDrop={(e) => onDropTarget(e, 'mine')}
-                className={cardClass('mine')}
-              >
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Lock className="h-4 w-4 text-violet-glow" />
-                    {tt.pages.todos.card_my_title}
-                    <span className="ml-auto text-[10px] font-mono text-muted-foreground">
-                      {mineTodos.length}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {renderList(
-                    mineTodos,
-                    filter === 'pending'
-                      ? tt.pages.todos.empty_mine_pending
-                      : filter === 'done'
-                        ? tt.pages.todos.empty_mine_done
-                        : tt.pages.todos.empty_mine_all,
-                    'mine',
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card
-                onDragOver={(e) => onDragOverTarget(e, 'team')}
-                onDragLeave={(e) => onDragLeaveTarget(e, 'team')}
-                onDrop={(e) => onDropTarget(e, 'team')}
-                className={cardClass('team')}
-              >
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Users className="h-4 w-4 text-violet-glow" />
-                    {tt.pages.todos.card_team_title}
-                    <span className="ml-auto text-[10px] font-mono text-muted-foreground">
-                      {teamTodos.length}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {renderList(
-                    teamTodos,
-                    filter === 'pending'
-                      ? tt.pages.todos.empty_team_pending
-                      : filter === 'done'
-                        ? tt.pages.todos.empty_team_done
-                        : tt.pages.todos.empty_team_all,
-                    'team',
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </LayoutGroup>
-        );
-      })()}
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1, ease: 'easeOut' }}
+            onDragOver={(e) => onDragOverTarget(e, 'team')}
+            onDragLeave={(e) => onDragLeaveTarget(e, 'team')}
+            onDrop={(e) => onDropTarget(e, 'team')}
+            className={cn('qc-premium relative overflow-hidden rounded-2xl border', cardClass('team'))}
+          >
+            <header className="flex items-center gap-3 border-b border-hairline px-5 py-4">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-magenta/30 bg-magenta/10 text-magenta-neon">
+                <Users className="h-4 w-4" />
+              </span>
+              <h2 className="text-sm font-semibold tracking-tight">
+                {t.pages.todos.card_team_title}
+              </h2>
+              <span className="ml-auto rounded-full border border-hairline surface-2 px-2.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+                {teamTodos.length}
+              </span>
+            </header>
+            {renderList(teamTodos, emptyTextFor('team'), 'team', Users)}
+          </motion.section>
+        </div>
+      </LayoutGroup>
     </AppShell>
   );
 }
 
-function FilterChip({
-  active,
-  onClick,
+/** Cellule du bandeau de stats : label CAPS + nombre animé + icône tonale. */
+function StatCell({
   label,
-  count,
-  tone = 'violet',
+  value,
+  icon: Icon,
+  iconClass,
+  valueClass,
+  loading,
+  className,
 }: {
-  active: boolean;
-  onClick: () => void;
   label: string;
-  count: number;
-  /** Palette du chip quand actif. Rouge = scope (gauche), violet = status (droite). */
-  tone?: 'red' | 'violet';
+  value: number;
+  icon: LucideIcon;
+  iconClass?: string;
+  valueClass?: string;
+  loading?: boolean;
+  className?: string;
 }) {
-  const activeChip =
-    tone === 'red'
-      ? 'bg-red-500/15 text-red-300 border border-red-500/30'
-      : 'bg-violet-glow/15 text-violet-glow border border-violet-glow/30';
-  const activeCount =
-    tone === 'red'
-      ? 'bg-red-500/25 text-red-50'
-      : 'bg-violet-glow/25 text-violet-50';
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition',
-        active
-          ? activeChip
-          : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.03] border border-transparent',
-      )}
-    >
-      <span className="font-medium">{label}</span>
-      <span
+    <div className={cn('px-5 py-4', className)}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground/80">
+          {label}
+        </div>
+        <Icon className={cn('h-4 w-4', iconClass)} />
+      </div>
+      <div
         className={cn(
-          'text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
-          active ? activeCount : 'bg-white/[0.05] text-muted-foreground',
+          'mt-1.5 font-display text-[1.75rem] font-light leading-none tracking-[-0.03em] text-foreground',
+          valueClass,
         )}
       >
-        {count}
-      </span>
-    </button>
+        <AnimatedNumber value={loading ? null : value} />
+      </div>
+    </div>
+  );
+}
+
+type FilterKey = 'pending' | 'done' | 'all';
+
+/** Segmented control avec pilule active qui glisse (layoutId framer-motion). */
+function FilterTabs({
+  value,
+  onChange,
+  tabs,
+}: {
+  value: FilterKey;
+  onChange: (f: FilterKey) => void;
+  tabs: { key: FilterKey; label: string; count: number }[];
+}) {
+  return (
+    <div className="mb-6 flex w-fit items-center gap-1 rounded-xl border border-hairline surface-1 p-1">
+      {tabs.map((tab) => {
+        const active = tab.key === value;
+        return (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => onChange(tab.key)}
+            className={cn(
+              'relative rounded-lg px-3.5 py-1.5 text-sm transition-colors',
+              active ? 'text-violet-glow' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {active && (
+              <motion.span
+                layoutId="todos-filter-pill"
+                transition={{ type: 'spring', stiffness: 400, damping: 34 }}
+                className="absolute inset-0 rounded-lg border border-violet-glow/30 bg-violet-glow/15"
+              />
+            )}
+            <span className="relative z-10 inline-flex items-center gap-2">
+              <span className="font-medium">{tab.label}</span>
+              <span
+                className={cn(
+                  'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+                  active ? 'bg-violet-glow/15 text-violet-glow' : 'surface-2 text-muted-foreground',
+                )}
+              >
+                {tab.count}
+              </span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+type TodoRowProps = {
+  todo: Todo;
+  currentUserId: string | null;
+  owner: OwnerProfile | null;
+  memberById: Map<string, OrgMember>;
+  draggingId: string | null;
+  onDragStart: (e: React.DragEvent, todo: Todo) => void;
+  onDragEnd: () => void;
+  onToggleDone: (todo: Todo) => void;
+  onView: (todo: Todo) => void;
+  onToggleShare: (todo: Todo) => void;
+  onEdit: (todo: Todo) => void;
+  onDelete: (todo: Todo) => void;
+};
+
+/**
+ * Ligne de tâche — priorité encodée par le liseré vertical gauche
+ * (rouge/ambre/gris), checkbox circulaire animée, chips contextuelles
+ * (équipe / ping / échéance intelligente), actions révélées au survol.
+ */
+function TodoRow({
+  todo,
+  currentUserId,
+  owner,
+  memberById,
+  draggingId,
+  onDragStart,
+  onDragEnd,
+  onToggleDone,
+  onView,
+  onToggleShare,
+  onEdit,
+  onDelete,
+}: TodoRowProps) {
+  const t = useAppT();
+  const PRIORITY_LABEL = buildPriorityLabel(t);
+  const isMine = todo.user_id === currentUserId;
+  const ownerColor = owner ? presenceColor(owner.id) : null;
+  const ownerInitials = owner
+    ? presenceInitials(owner.first_name, owner.last_name, owner.email)
+    : '';
+  const ownerName = owner
+    ? presenceDisplayName(owner.first_name, owner.last_name, owner.email)
+    : '';
+  const canDrag = isMine; // seules mes tâches sont déplaçables
+  const isDragging = draggingId === todo.id;
+  const due = dueMeta(todo, t);
+
+  return (
+    <motion.li
+      layoutId={`todo-${todo.id}`}
+      layout
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 4 }}
+      transition={SPRING}
+      draggable={canDrag}
+      onDragStart={(e) => onDragStart(e as unknown as React.DragEvent, todo)}
+      onDragEnd={onDragEnd}
+      className={cn(
+        'group relative flex select-none items-start gap-3 py-3 pl-6 pr-3 transition-colors duration-200 hover-surface',
+        todo.done && 'opacity-55',
+        canDrag && !isDragging && 'cursor-grab',
+        // Animation drag façon CRM : rotation + scale + opacity
+        isDragging && 'rotate-2 scale-95 cursor-grabbing opacity-50',
+      )}
+    >
+      <span
+        aria-hidden
+        title={PRIORITY_LABEL[todo.priority]}
+        className={cn(
+          'absolute bottom-3.5 left-2 top-3.5 w-[3px] rounded-full',
+          PRIORITY_STRIPE[todo.priority],
+          todo.done && 'opacity-40',
+        )}
+      />
+
+      <button
+        type="button"
+        onClick={() => onToggleDone(todo)}
+        title={todo.done ? t.pages.todos.mark_undone_short : t.pages.todos.mark_done_short}
+        className={cn(
+          'relative mt-0.5 h-5 w-5 shrink-0 rounded-full border-2 transition-colors',
+          todo.done
+            ? 'border-emerald-500'
+            : 'border-muted-foreground/35 hover:border-emerald-400',
+        )}
+      >
+        <AnimatePresence initial={false}>
+          {todo.done && (
+            <motion.span
+              key="check"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 28 }}
+              className="absolute inset-[-2px] flex items-center justify-center rounded-full bg-emerald-500"
+            >
+              <Check className="h-3 w-3 text-white" strokeWidth={3} />
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => onView(todo)}
+        className="min-w-0 flex-1 cursor-pointer text-left"
+        title={t.pages.todos.view_tooltip}
+      >
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span
+            className={cn(
+              'text-sm font-medium leading-snug',
+              todo.done && 'text-muted-foreground line-through decoration-muted-foreground/50',
+            )}
+          >
+            {todo.title}
+          </span>
+          {/* Le liseré encode déjà la priorité — on ne badge que "Haute"
+              (le seul signal réellement actionnable) pour alléger la ligne. */}
+          {todo.priority === 'high' && !todo.done && (
+            <StatusBadge tone={PRIORITY_TONE.high} dot={false} className="px-2 py-0.5 text-[10px]">
+              {PRIORITY_LABEL.high}
+            </StatusBadge>
+          )}
+          {todo.shared && (
+            <Badge
+              variant="outline"
+              className="inline-flex items-center gap-1 border-violet-glow/40 bg-violet-glow/[0.08] text-[10px] text-violet-glow"
+              title={t.pages.todos.shared_with_team}
+            >
+              <Globe className="h-3 w-3" />
+              {t.pages.todos.team_badge}
+            </Badge>
+          )}
+          {todo.pinged_user_id &&
+            (() => {
+              const m = memberById.get(todo.pinged_user_id);
+              if (!m) return null;
+              const name = `${m.first_name ?? ''} ${m.last_name ?? ''}`.trim() || m.email;
+              const pingedSelf = todo.pinged_user_id === currentUserId;
+              const fromName = pingedSelf
+                ? memberById.get(todo.user_id)?.first_name ?? t.pages.todos.a_colleague
+                : '';
+              return (
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold',
+                    pingedSelf
+                      ? 'border-amber-500/50 bg-amber-500/10 text-amber-400'
+                      : 'border-violet-glow/40 bg-violet-glow/[0.08] text-violet-glow',
+                  )}
+                  title={
+                    pingedSelf
+                      ? `${t.pages.todos.pinged_by_label} ${fromName}`
+                      : `${t.pages.todos.ping_to_label} → ${name}`
+                  }
+                >
+                  <Users className="h-3 w-3" />
+                  {pingedSelf ? `${t.pages.todos.pinged_by_label} ${fromName}` : `→ ${name}`}
+                </span>
+              );
+            })()}
+          {owner && ownerColor && (
+            <span
+              className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
+              title={ownerName}
+            >
+              <span
+                className={cn(
+                  'inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold',
+                  ownerColor.bg,
+                  ownerColor.text,
+                )}
+              >
+                {ownerInitials}
+              </span>
+              <span className="hidden sm:inline">{ownerName}</span>
+            </span>
+          )}
+          {due && (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium',
+                due.className,
+              )}
+            >
+              <due.Icon className="h-3 w-3" />
+              {due.label}
+            </span>
+          )}
+        </div>
+        {todo.description && (
+          <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
+            {todo.description}
+          </p>
+        )}
+      </button>
+
+      {isMine && (
+        <div className="flex shrink-0 items-center gap-0.5 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
+          <button
+            type="button"
+            onClick={() => onToggleShare(todo)}
+            className={cn(
+              'inline-flex h-7 w-7 items-center justify-center rounded-lg transition',
+              todo.shared
+                ? 'bg-violet-glow/15 text-violet-glow hover:bg-violet-glow/25'
+                : 'text-muted-foreground hover:bg-violet-glow/10 hover:text-violet-glow',
+            )}
+            title={todo.shared ? t.pages.todos.back_to_private : t.pages.todos.share_with_team}
+            aria-label={todo.shared ? t.pages.todos.back_to_private : t.pages.todos.share_with_team}
+          >
+            {todo.shared ? <Lock className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            type="button"
+            onClick={() => onEdit(todo)}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-violet-glow transition hover:bg-violet-glow/10"
+            title={t.pages.todos.edit_button}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(todo)}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-red-400 transition hover:bg-red-500/10"
+            title={t.pages.todos.delete_button}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+    </motion.li>
   );
 }
 
@@ -952,7 +1205,7 @@ function TodoDetailDialog({
                   `${pingedMember.first_name ?? ''} ${pingedMember.last_name ?? ''}`.trim() ||
                   pingedMember.email;
                 const pingedSelf = pingedMember.id === currentUserId;
-                const ownerName = ownerMember
+                const fromName = ownerMember
                   ? `${ownerMember.first_name ?? ''} ${ownerMember.last_name ?? ''}`.trim() ||
                     ownerMember.email
                   : t.pages.todos.a_colleague;
@@ -967,7 +1220,7 @@ function TodoDetailDialog({
                     )}
                   >
                     <Users className="h-3 w-3" />
-                    {pingedSelf ? `${t.pages.todos.pinged_by_label} ${ownerName}` : `${t.pages.todos.ping_to_label} ${name}`}
+                    {pingedSelf ? `${t.pages.todos.pinged_by_label} ${fromName}` : `${t.pages.todos.ping_to_label} ${name}`}
                   </Badge>
                 );
               })()}
@@ -1091,7 +1344,7 @@ function TodoDetailDialog({
 
 function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-md border border-hairline bg-white/[0.02] px-2.5 py-2">
+    <div className="rounded-md border border-hairline surface-1 px-2.5 py-2">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
         {icon}
         {label}
@@ -1100,6 +1353,13 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
     </div>
   );
 }
+
+/** Styles du sélecteur de priorité segmenté (formulaire). */
+const PRIORITY_PICKER: Record<Todo['priority'], { active: string; dot: string }> = {
+  high: { active: 'border-rose-500/50 bg-rose-500/10 text-rose-400', dot: 'bg-rose-400' },
+  medium: { active: 'border-amber-500/50 bg-amber-500/10 text-amber-400', dot: 'bg-amber-400' },
+  low: { active: 'border-slate-500/50 bg-slate-500/10 text-slate-300', dot: 'bg-slate-400' },
+};
 
 type FormProps = {
   todo: Todo | null;
@@ -1110,6 +1370,10 @@ type FormProps = {
   onSaved: (todo: Todo) => void;
 };
 
+/**
+ * Formulaire création / édition — désormais en Dialog pour garder la page
+ * épurée. Priorité en segmented control coloré plutôt qu'un <select>.
+ */
 function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
   const t = useAppT();
   const [title, setTitle] = useState(todo?.title ?? '');
@@ -1121,6 +1385,7 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
   const [busy, setBusy] = useState(false);
 
   const isEdit = !!todo;
+  const PRIORITY_LABEL = buildPriorityLabel(t);
   // On peut se pinger soi-même (rappel visuel "à faire perso") mais pas
   // pinger les consultants — leurs comptes ne traitent pas les tâches
   // internes, ils ont leur propre portail.
@@ -1182,25 +1447,20 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
   );
 
   return (
-    <Card className="mb-4">
-      <CardContent className="p-4">
-        <form onSubmit={submit} className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold inline-flex items-center gap-2">
-              {isEdit ? <Pencil className="h-4 w-4 text-violet-glow" /> : <Plus className="h-4 w-4 text-violet-glow" />}
-              {isEdit ? t.pages.todos.form_edit_title : t.pages.todos.form_create_title}
-            </h2>
-            <button
-              type="button"
-              onClick={onClose}
-              className="h-7 w-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
-              title={t.pages.todos.form_close}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-violet-glow/30 bg-violet-glow/15 text-violet-glow">
+              {isEdit ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            </span>
+            {isEdit ? t.pages.todos.form_edit_title : t.pages.todos.form_create_title}
+          </DialogTitle>
+          <DialogDescription>{t.pages.todos.form_dialog_hint}</DialogDescription>
+        </DialogHeader>
 
-          <div>
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-1.5">
             <Label>{t.pages.todos.form_title_label}</Label>
             <Input
               value={title}
@@ -1210,7 +1470,7 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
             />
           </div>
 
-          <div>
+          <div className="space-y-1.5">
             <Label>{t.pages.todos.form_notes_label}</Label>
             <Textarea
               rows={3}
@@ -1220,25 +1480,41 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
               <Label>{t.pages.todos.form_priority_label}</Label>
-              <Select value={priority} onChange={(e) => setPriority(e.target.value as Todo['priority'])}>
-                <option value="high">{t.pages.todos.prio_high}</option>
-                <option value="medium">{t.pages.todos.prio_medium}</option>
-                <option value="low">{t.pages.todos.prio_low}</option>
-              </Select>
+              <div className="grid grid-cols-3 gap-1.5">
+                {(['high', 'medium', 'low'] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPriority(p)}
+                    className={cn(
+                      'inline-flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-medium transition',
+                      priority === p
+                        ? PRIORITY_PICKER[p].active
+                        : 'border-hairline text-muted-foreground hover-surface hover:text-foreground',
+                    )}
+                  >
+                    <span className={cn('h-1.5 w-1.5 rounded-full', PRIORITY_PICKER[p].dot)} />
+                    {PRIORITY_LABEL[p]}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label>{t.pages.todos.form_due_label}</Label>
               <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </div>
           </div>
 
-          <div>
+          <div className="space-y-1.5">
             <Label className="inline-flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5 text-violet-glow" />
-              {t.pages.todos.form_ping_label} <span className="text-muted-foreground/60 font-normal">{t.pages.todos.form_ping_optional}</span>
+              {t.pages.todos.form_ping_label}{' '}
+              <span className="font-normal text-muted-foreground/60">
+                {t.pages.todos.form_ping_optional}
+              </span>
             </Label>
             <Select value={pingedUserId} onChange={(e) => setPingedUserId(e.target.value)}>
               <option value="">{t.pages.todos.form_ping_none}</option>
@@ -1251,12 +1527,12 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
                 );
               })}
             </Select>
-            <p className="text-[11px] text-muted-foreground mt-1">
+            <p className="text-[11px] text-muted-foreground">
               {t.pages.todos.form_ping_hint}
             </p>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-1">
+          <DialogFooter className="gap-2 pt-1 sm:gap-2">
             <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
               {t.pages.todos.form_cancel}
             </Button>
@@ -1268,9 +1544,9 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
               {busy && <Loader2 className="h-4 w-4 animate-spin" />}
               {isEdit ? t.pages.todos.form_save : t.pages.todos.form_add}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 }
