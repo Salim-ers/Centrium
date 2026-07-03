@@ -273,7 +273,7 @@ const FEATURE_COMPARISON: Array<{
     features: [
       {
         name: 'Pricing public transparent',
-        centrium: '3 plans publics (Starter/Medium/Enterprise)',
+        centrium: '3 plans publics (Starter/Medium/Illimité)',
         boondmanager: 'Sur devis uniquement',
       },
       {
@@ -318,7 +318,7 @@ const KEY_DIFFERENTIATORS = [
     icon: Euro,
     title: 'Tarif transparent, 30-40 % moins cher',
     description:
-      'Centrium publie ses 3 plans (Starter, Medium, Enterprise) avec prix indicatifs. Boondmanager garde son tarif opaque, généralement 30-40 % plus cher à scope équivalent.',
+      'Centrium publie ses 3 plans (Starter 74,99 €, Medium 149,99 €, Illimité 299,99 €). Boondmanager garde son tarif opaque, généralement 30-40 % plus cher à scope équivalent.',
   },
   {
     icon: Zap,

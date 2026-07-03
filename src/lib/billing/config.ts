@@ -21,9 +21,10 @@ import 'server-only';
 //   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY     recommandé (pk_test_ ou pk_live_)
 //   STRIPE_STARTER_PRICE_ID                obligatoire pour souscrire Starter
 //   STRIPE_MEDIUM_PRICE_ID                 obligatoire pour souscrire Medium
+//   STRIPE_ENTERPRISE_PRICE_ID             obligatoire pour souscrire Illimité
 //
-// Enterprise n'a PAS de Price ID — la souscription se fait sur devis via
-// contact commercial, jamais via Stripe Checkout self-service.
+// Les 3 plans sont désormais en self-service via Stripe Checkout :
+//   Starter 74,99 € · Medium 149,99 € · Illimité (id 'enterprise') 299,99 €.
 // =========================================================================
 
 /**
@@ -117,19 +118,21 @@ export function getStripePublishableKey(): string | null {
 
 /**
  * Plans avec souscription self-service via Stripe Checkout.
- * Enterprise volontairement absent : souscription sur devis.
  *
  * Mapping planId (interne DB) → env var :
- *   'starter' → STRIPE_STARTER_PRICE_ID
- *   'growth'  → STRIPE_MEDIUM_PRICE_ID   (id 'growth' conservé pour compat
- *                                         DB + Stripe metadata, display
- *                                         name UI = "Medium")
+ *   'starter'    → STRIPE_STARTER_PRICE_ID
+ *   'growth'     → STRIPE_MEDIUM_PRICE_ID     (id 'growth' conservé pour
+ *                                              compat DB + Stripe metadata,
+ *                                              display name UI = "Medium")
+ *   'enterprise' → STRIPE_ENTERPRISE_PRICE_ID (display name UI = "Illimité",
+ *                                              id conservé pour compat)
  */
-export type StripePlanId = 'starter' | 'growth';
+export type StripePlanId = 'starter' | 'growth' | 'enterprise';
 
 const PLAN_ENV_VAR: Record<StripePlanId, string> = {
   starter: 'STRIPE_STARTER_PRICE_ID',
   growth: 'STRIPE_MEDIUM_PRICE_ID',
+  enterprise: 'STRIPE_ENTERPRISE_PRICE_ID',
 };
 
 /**
@@ -155,6 +158,7 @@ export function requireStripePriceId(planId: StripePlanId): string {
 export function priceIdToPlanId(priceId: string): StripePlanId | null {
   if (priceId === process.env.STRIPE_STARTER_PRICE_ID) return 'starter';
   if (priceId === process.env.STRIPE_MEDIUM_PRICE_ID) return 'growth';
+  if (priceId === process.env.STRIPE_ENTERPRISE_PRICE_ID) return 'enterprise';
   return null;
 }
 
@@ -168,6 +172,7 @@ export function getStripeConfigStatus(): {
   publishableKey: 'ok' | 'missing' | 'invalid';
   starterPriceId: 'ok' | 'missing' | 'invalid';
   mediumPriceId: 'ok' | 'missing' | 'invalid';
+  enterprisePriceId: 'ok' | 'missing' | 'invalid';
   mode: 'test' | 'live' | 'unknown';
 } {
   const check = (
@@ -188,6 +193,9 @@ export function getStripeConfigStatus(): {
       STRIPE_PRICE_ID_REGEX.test(v),
     ),
     mediumPriceId: check(process.env.STRIPE_MEDIUM_PRICE_ID, (v) =>
+      STRIPE_PRICE_ID_REGEX.test(v),
+    ),
+    enterprisePriceId: check(process.env.STRIPE_ENTERPRISE_PRICE_ID, (v) =>
       STRIPE_PRICE_ID_REGEX.test(v),
     ),
     mode: process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_')

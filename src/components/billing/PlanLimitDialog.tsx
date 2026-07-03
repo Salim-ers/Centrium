@@ -78,8 +78,8 @@ export function PlanLimitDialog({ payload, onOpenChange }: Props) {
     if (!payload) return;
     const nextPlanId = NEXT_PLAN[payload.planId];
     if (!nextPlanId) {
-      // Déjà au top du ladder (enterprise) → contact commercial
-      setNextPlan({ id: 'enterprise', name: 'Enterprise', limit: null });
+      // Déjà au top du ladder (Illimité) → contact commercial
+      setNextPlan({ id: 'enterprise', name: 'Illimité', limit: null });
       return;
     }
     const col = RESOURCE_TO_LIMIT_COLUMN[payload.resource];
@@ -109,9 +109,12 @@ export function PlanLimitDialog({ payload, onOpenChange }: Props) {
 
   async function upgrade() {
     if (!nextPlan) return;
-    if (nextPlan.id === 'enterprise') {
+    // Déjà sur Illimité (top du ladder) : rien à vendre en self-service,
+    // on bascule sur le contact commercial. Sinon TOUS les plans — y
+    // compris Illimité — passent par le Checkout Stripe standard.
+    if (isTopOfLadder) {
       window.location.href =
-        'mailto:contact@centrium-platform.com?subject=Upgrade Enterprise';
+        'mailto:contact@centrium-platform.com?subject=Quotas Centrium';
       return;
     }
     setUpgrading(true);
@@ -162,9 +165,9 @@ export function PlanLimitDialog({ payload, onOpenChange }: Props) {
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
             {isTopOfLadder
-              ? 'Ton compte est déjà sur Enterprise. Écris-nous pour ajuster les quotas contractuels.'
+              ? 'Ton compte est déjà sur Illimité — le plan sans aucune limite. Écris-nous si tu constates un blocage.'
               : nextPlan?.limit === null
-                ? `${resourceLabel[0].toUpperCase()}${resourceLabel.slice(1)} illimités, SSO, SLA contractuel, API + Webhooks.`
+                ? `${resourceLabel[0].toUpperCase()}${resourceLabel.slice(1)} illimités, SSO, API + Webhooks — 299,99 € HT/mois.`
                 : nextPlan
                   ? `Jusqu'à ${nextPlan.limit} ${resourceLabel} (au lieu de ${payload.limit}). Changement immédiat, prorata appliqué automatiquement.`
                   : 'Chargement des détails…'}

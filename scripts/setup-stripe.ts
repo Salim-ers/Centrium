@@ -28,14 +28,14 @@ import { createClient } from '@supabase/supabase-js';
 config({ path: '.env.local' });
 
 // ---------- Grille tarifaire ----------
-// 3 tiers publics :
-//   - Starter    75  EUR HT/mo — TPE ESN < 20 consultants
-//   - Medium    149  EUR HT/mo — PME ESN 20-100 consultants (id 'growth')
-//   - Enterprise sur devis     — 100+ consultants ou groupes
+// 3 tiers publics, tous self-service :
+//   - Starter   74,99  EUR HT/mo — TPE ESN < 20 consultants
+//   - Medium   149,99  EUR HT/mo — PME ESN 20-100 consultants (id 'growth')
+//   - Illimité 299,99  EUR HT/mo — tout illimité (id 'enterprise')
 //
-// L'id 'growth' est conservé pour Medium — références en dur dans le code +
-// dans les metadata Stripe des abonnés existants. Seul le nom d'affichage
-// change.
+// Les ids 'growth' et 'enterprise' sont conservés — références en dur dans
+// le code + dans les metadata Stripe des abonnés existants. Seuls les noms
+// d'affichage changent (Medium / Illimité).
 // --------------------------------------
 const YEARLY_DISCOUNT = 0.2;
 
@@ -59,7 +59,7 @@ const PLANS: PlanSpec[] = [
     id: 'starter',
     name: 'Starter',
     description: 'Pour lancer une petite ESN — 3 utilisateurs, 20 consultants.',
-    monthlyEur: 75,
+    monthlyEur: 74.99,
     maxConsultants: 20,
     maxUsers: 3,
     maxOpenOpportunities: 100,
@@ -84,7 +84,7 @@ const PLANS: PlanSpec[] = [
     id: 'growth', // ← id interne conservé, nom d'affichage = "Medium"
     name: 'Medium',
     description: 'Pour ESN active — 10 utilisateurs, jusqu\'à 100 consultants, portail conseil, MFA.',
-    monthlyEur: 149,
+    monthlyEur: 149.99,
     maxConsultants: 100,
     maxUsers: 10,
     maxOpenOpportunities: 500,
@@ -107,10 +107,10 @@ const PLANS: PlanSpec[] = [
     sortOrder: 20,
   },
   {
-    id: 'enterprise',
-    name: 'Enterprise',
-    description: 'Sur devis — consultants & utilisateurs illimités, SSO, SLA contractuel.',
-    monthlyEur: 0,
+    id: 'enterprise', // ← id interne conservé, nom d'affichage = "Illimité"
+    name: 'Illimité',
+    description: 'Compte illimité — utilisateurs, consultants, CRM et missions sans aucune limite.',
+    monthlyEur: 299.99,
     maxConsultants: null,
     maxUsers: null,
     maxOpenOpportunities: null,
@@ -118,12 +118,12 @@ const PLANS: PlanSpec[] = [
     maxActiveMissions: null,
     features: [
       'Utilisateurs & consultants illimités',
+      'Opportunités, contacts & missions illimités',
+      'Tout Medium',
       'SSO SAML/OIDC',
       'API publique + Webhooks',
-      'SLA 99.95% contractuel',
       'Account Manager dédié',
-      'Multi-organisations',
-      'Support 24/7',
+      'Support prioritaire 24/7',
     ],
     isPublic: true,
     sortOrder: 30,
@@ -354,6 +354,7 @@ async function main() {
   // historiques. Sortie exploitable en copy-paste dans .env.local.
   const starter = (plans ?? []).find((p) => p.id === 'starter');
   const medium = (plans ?? []).find((p) => p.id === 'growth');
+  const unlimited = (plans ?? []).find((p) => p.id === 'enterprise');
 
   console.log('\n📋 Copie ces lignes dans .env.local :\n');
   console.log('# ---- Stripe Price IDs (générés par ce script) ----');
@@ -367,10 +368,15 @@ async function main() {
   } else {
     console.log('# ⚠  Medium n\'a pas de Price ID — relance le script.');
   }
+  if (unlimited?.stripe_price_id) {
+    console.log(`STRIPE_ENTERPRISE_PRICE_ID=${unlimited.stripe_price_id}`);
+  } else {
+    console.log('# ⚠  Illimité n\'a pas de Price ID — relance le script.');
+  }
   console.log('');
 
   console.log('\n🎯 Prochaines étapes :');
-  console.log('   1. Copie les 2 lignes ci-dessus dans .env.local');
+  console.log('   1. Copie les 3 lignes ci-dessus dans .env.local');
   console.log('   2. Vérifie aussi que STRIPE_SECRET_KEY et NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY sont déjà présents');
   console.log('   3. Lance : stripe listen --forward-to localhost:3000/api/billing/webhook');
   console.log('   4. Copie whsec_... dans STRIPE_WEBHOOK_SECRET');

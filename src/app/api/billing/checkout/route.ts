@@ -11,14 +11,14 @@ import { requireOrg } from '@/lib/auth/guards';
 // =========================================================================
 // POST /api/billing/checkout — Crée une Stripe Checkout Session
 // -------------------------------------------------------------------------
-// Body : { planId: 'starter' | 'growth' }
+// Body : { planId: 'starter' | 'growth' | 'enterprise' }
 //
 // Plans acceptés pour checkout self-service :
-//   'starter'  → STRIPE_STARTER_PRICE_ID  (75 EUR HT/mois)
-//   'growth'   → STRIPE_MEDIUM_PRICE_ID   (149 EUR HT/mois, display "Medium")
+//   'starter'    → STRIPE_STARTER_PRICE_ID    (74,99 EUR HT/mois)
+//   'growth'     → STRIPE_MEDIUM_PRICE_ID     (149,99 EUR HT/mois, "Medium")
+//   'enterprise' → STRIPE_ENTERPRISE_PRICE_ID (299,99 EUR HT/mois, "Illimité")
 //
 // Plans REFUSÉS :
-//   'enterprise' → 400 avec message explicite (sur devis, contact commercial)
 //   autres       → 400 unknown_plan
 //   déjà exempt  → 403 exempt
 //   non-admin    → 403 forbidden
@@ -29,7 +29,7 @@ import { requireOrg } from '@/lib/auth/guards';
 
 export const runtime = 'nodejs';
 
-const CHECKOUTABLE_PLANS = new Set<StripePlanId>(['starter', 'growth']);
+const CHECKOUTABLE_PLANS = new Set<StripePlanId>(['starter', 'growth', 'enterprise']);
 
 export async function POST(req: NextRequest) {
   const ctx = await requireOrg();
@@ -48,19 +48,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'missing_plan' }, { status: 400 });
   }
 
-  // 1) Enterprise = sur devis, jamais de Checkout self-service.
-  if (planId === 'enterprise') {
-    return NextResponse.json(
-      {
-        error: 'enterprise_quote_only',
-        message:
-          'Le plan Enterprise se souscrit sur devis. Écris à contact@centrium-platform.com pour lancer la conversation commerciale.',
-      },
-      { status: 400 },
-    );
-  }
-
-  // 2) Plans supportés pour checkout self-service ?
+  // 1) Plans supportés pour checkout self-service ?
   if (!CHECKOUTABLE_PLANS.has(planId as StripePlanId)) {
     return NextResponse.json(
       {

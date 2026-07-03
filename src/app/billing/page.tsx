@@ -288,9 +288,7 @@ function BillingPageInner() {
               hint={
                 sub?.priceMonthly != null && sub.priceMonthly > 0
                   ? `${sub.priceMonthly} € HT/mois`
-                  : sub?.planId === 'enterprise'
-                    ? 'Sur devis'
-                    : undefined
+                  : undefined
               }
             />
             <KPICard
@@ -555,7 +553,11 @@ function PlanCard({
   disabled: boolean;
 }) {
   const isCurrent = plan.id === currentPlanId;
-  const isEnterprise = plan.id === 'enterprise' || plan.price_monthly_eur === 0;
+  // 'enterprise' = plan Illimité (display "Illimité"), désormais souscriptible
+  // en self-service comme les autres. Le libellé "Sur devis" ne subsiste que
+  // pour un éventuel plan legacy sans prix.
+  const isUnlimited = plan.id === 'enterprise';
+  const hasPrice = plan.price_monthly_eur != null && plan.price_monthly_eur > 0;
   return (
     <Card
       className={`relative ${isCurrent ? 'border-violet-500/60 bg-violet-500/[0.04]' : ''}`}
@@ -566,15 +568,15 @@ function PlanCard({
           {isCurrent && <StatusBadge tone="violet">Actuel</StatusBadge>}
         </div>
         <CardDescription>
-          {isEnterprise ? (
-            <span className="text-lg font-semibold text-foreground">Sur devis</span>
-          ) : (
+          {hasPrice ? (
             <>
               <span className="text-lg font-semibold text-foreground">
                 {plan.price_monthly_eur} €
               </span>
               <span className="text-xs"> HT / mois</span>
             </>
+          ) : (
+            <span className="text-lg font-semibold text-foreground">Sur devis</span>
           )}
         </CardDescription>
       </CardHeader>
@@ -592,7 +594,7 @@ function PlanCard({
               <span>Jusqu'à {plan.max_consultants} consultants</span>
             </li>
           )}
-          {isEnterprise && (
+          {isUnlimited && (
             <>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-emerald-400" />
@@ -600,7 +602,7 @@ function PlanCard({
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-emerald-400" />
-                <span>SSO SAML/OIDC, API, SLA contractuel</span>
+                <span>Opportunités, contacts & missions illimités</span>
               </li>
             </>
           )}
@@ -615,13 +617,9 @@ function PlanCard({
           <Button variant="outline" className="w-full" disabled>
             Plan actuel
           </Button>
-        ) : isEnterprise ? (
-          <Button
-            variant="outline"
-            className="w-full"
-            asChild
-          >
-            <a href="mailto:contact@centrium-platform.com?subject=Devis Enterprise Centrium">
+        ) : !hasPrice ? (
+          <Button variant="outline" className="w-full" asChild>
+            <a href="mailto:contact@centrium-platform.com?subject=Devis Centrium">
               Contacter les ventes
             </a>
           </Button>

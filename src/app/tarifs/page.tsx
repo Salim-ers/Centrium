@@ -8,7 +8,7 @@ import { BreadcrumbJsonLd } from '@/components/seo/BreadcrumbJsonLd';
 export const metadata: Metadata = {
   title: 'Tarifs Centrium — 3 plans transparents pour ESN',
   description:
-    "Tarifs publics Centrium : Starter 75 €/mois, Medium 149 €/mois, Enterprise sur devis. Souscription self-service en 2 minutes, annulation à tout moment.",
+    "Tarifs publics Centrium : Starter 74,99 €/mois, Medium 149,99 €/mois, Illimité 299,99 €/mois. Souscription self-service en 2 minutes, annulation à tout moment.",
   keywords: [
     'tarif centrium',
     'prix logiciel ESN',
@@ -44,8 +44,8 @@ const PLANS: Plan[] = [
     id: 'starter',
     name: 'Starter',
     tagline: 'Pour petite ESN jusqu\'à 20 consultants',
-    monthly: 75,
-    annual: 720, // 75 * 12 * 0.8
+    monthly: 74.99,
+    annual: 720, // 74,99 * 12 * 0.8 arrondi
     maxUsers: 3,
     maxConsultants: 20,
     cta: { label: 'Souscrire', href: '/billing' },
@@ -68,8 +68,8 @@ const PLANS: Plan[] = [
     id: 'growth', // ← id interne conservé, nom d'affichage = "Medium"
     name: 'Medium',
     tagline: 'Pour ESN active jusqu\'à 100 consultants',
-    monthly: 149,
-    annual: 1430, // 149 * 12 * 0.8
+    monthly: 149.99,
+    annual: 1440, // 149,99 * 12 * 0.8 arrondi
     maxUsers: 10,
     maxConsultants: 100,
     highlight: true,
@@ -90,25 +90,24 @@ const PLANS: Plan[] = [
     ],
   },
   {
-    id: 'enterprise',
-    name: 'Enterprise',
-    tagline: 'Pour ESN 100+ consultants ou groupes',
-    monthly: null,
-    annual: null,
+    id: 'enterprise', // ← id interne conservé, nom d'affichage = "Illimité"
+    name: 'Illimité',
+    tagline: 'Compte illimité — aucune limite, aucun plafond',
+    monthly: 299.99,
+    annual: 2880, // 299,99 * 12 * 0.8 arrondi
     maxUsers: null,
     maxConsultants: null,
-    cta: { label: 'Contacter les ventes', href: '/devis?plan=enterprise' },
+    cta: { label: 'Souscrire', href: '/billing' },
     features: [
       'Tout Medium inclus',
       'Utilisateurs & consultants illimités',
+      'Opportunités, contacts & missions illimités',
       'SSO SAML/OIDC',
-      'SLA 99,95 % contractuel',
       'Multi-organisations (groupes, holdings)',
       'API publique REST + Webhooks',
       'Intégrations sur mesure (Sage, Cegid, LinkedIn Recruiter)',
       'Account Manager dédié',
-      'Support 24/7',
-      'Audit de sécurité personnalisé',
+      'Support prioritaire 24/7',
       'Migration de données accompagnée',
     ],
   },
@@ -129,7 +128,7 @@ const FAQ = [
   },
   {
     q: "Comment savoir quel plan choisir ?",
-    a: "Moins de 20 consultants : Starter. Entre 20 et 100 : Medium (le plus populaire). Au-dessus de 100 ou groupe multi-orgs : Enterprise. Vous pouvez changer de plan à tout moment depuis /billing, la différence de prix est calculée au prorata automatiquement.",
+    a: "Moins de 20 consultants : Starter. Entre 20 et 100 : Medium (le plus populaire). Au-dessus de 100, groupe multi-orgs ou zéro limite : Illimité. Vous pouvez changer de plan à tout moment depuis /billing, la différence de prix est calculée au prorata automatiquement.",
   },
   {
     q: "Puis-je essayer avant de payer ?",
@@ -137,7 +136,7 @@ const FAQ = [
   },
   {
     q: "Comment sont facturées les factures Stripe ?",
-    a: "Facture PDF envoyée par email automatiquement à chaque prélèvement. Historique complet accessible via le portail Stripe (bouton depuis /billing). Paiement par CB uniquement pour l'instant, virement SEPA sur demande pour Enterprise.",
+    a: "Facture PDF envoyée par email automatiquement à chaque prélèvement. Historique complet accessible via le portail Stripe (bouton depuis /billing). Paiement par CB uniquement pour l'instant, virement SEPA sur demande pour le plan Illimité.",
   },
   {
     q: "Le tarif inclut-il l'IA générative ?",
