@@ -24,7 +24,7 @@ const SELECT_COLS =
   'id, name, logo_url, brand_name, footer_tagline, brand_primary_color, brand_accent_color, default_cv_template, signature_url';
 
 export async function GET() {
-  const ctx = await requireOrg();
+  const ctx = await requireOrg({ skipSubscriptionGate: true });
   const admin = createAdminClient('cross-org-query');
 
   const { data, error } = await admin
@@ -44,7 +44,7 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
-  const ctx = await requireOrg();
+  const ctx = await requireOrg({ skipSubscriptionGate: true });
   if (ctx.role !== 'admin') {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }

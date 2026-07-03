@@ -10,7 +10,11 @@ export type UserRole =
   | 'recruiter'
   | 'finance'
   | 'viewer'
-  | 'consultant';
+  | 'consultant'
+  // Fondateurs uniquement — accès super-console cross-tenant. Aligné sur
+  // l'enum DB user_role (migration 048). Vérifié serveur via
+  // lib/auth/super-admin.ts (rôle DB + allowlist FOUNDER_EMAILS).
+  | 'super_admin';
 
 export type ConsultantStatus =
   | 'available'

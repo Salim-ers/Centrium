@@ -32,7 +32,7 @@ export const runtime = 'nodejs';
 const CHECKOUTABLE_PLANS = new Set<StripePlanId>(['starter', 'growth', 'enterprise']);
 
 export async function POST(req: NextRequest) {
-  const ctx = await requireOrg();
+  const ctx = await requireOrg({ skipSubscriptionGate: true });
   if (ctx.role !== 'admin') {
     return NextResponse.json(
       { error: 'forbidden', message: 'Seul un admin peut souscrire.' },

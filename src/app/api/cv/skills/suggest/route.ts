@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod/v4';
 import { createClient } from '@/lib/supabase/server';
+import { guardLlmRoute } from '@/lib/auth/llm-guard';
 
 // =========================================================================
 // /api/cv/skills/suggest — Analyse de plausibilité des compétences manquantes
@@ -67,6 +68,10 @@ FORMAT :
 SORTIE : strict JSON conforme au schéma. Rien d'autre.`;
 
 export async function POST(req: NextRequest) {
+  // Auth + rôle + rate-limit + gating abonnement — appels Claude payants.
+  const guard = await guardLlmRoute({ bucket: 'cv-skills' });
+  if ('response' in guard) return guard.response;
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(

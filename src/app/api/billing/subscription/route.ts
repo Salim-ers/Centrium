@@ -23,7 +23,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 export const runtime = 'nodejs';
 
 export async function GET() {
-  const ctx = await requireOrg();
+  const ctx = await requireOrg({ skipSubscriptionGate: true });
   const admin = createAdminClient('billing-subscription');
 
   const { data: sub } = await admin

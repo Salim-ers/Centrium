@@ -13,7 +13,7 @@ import { getQuotaUsage } from '@/lib/billing/enforce';
 export const runtime = 'nodejs';
 
 export async function GET() {
-  const ctx = await requireOrg();
+  const ctx = await requireOrg({ skipSubscriptionGate: true });
   const usage = await getQuotaUsage(ctx.organizationId);
   return NextResponse.json({ data: usage });
 }

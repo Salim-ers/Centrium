@@ -29,7 +29,7 @@ const patchSchema = z.object({
 });
 
 export async function GET() {
-  const ctx = await requireOrg();
+  const ctx = await requireOrg({ skipSubscriptionGate: true });
   const admin = createAdminClient('cross-org-query');
 
   const { data, error } = await admin
@@ -49,7 +49,7 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
-  const ctx = await requireOrg();
+  const ctx = await requireOrg({ skipSubscriptionGate: true });
   if (ctx.role !== 'admin') {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }

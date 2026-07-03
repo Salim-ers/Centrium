@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { createClient as createServerClient } from '@/lib/supabase/server';
+import { guardLlmRoute } from '@/lib/auth/llm-guard';
 import { generateMatchingJustification } from '@/lib/ai/matching-llm';
 import type { Consultant, ConsultantSkill, JobOffer } from '@/types';
 
@@ -28,11 +29,12 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // Auth + rôle interne + rate-limit + gating abonnement. Avant : simple
+  // getUser — un consultant du portail pouvait invoquer le LLM.
+  const guard = await guardLlmRoute({ bucket: 'matching-justify', limitPerMinute: 10 });
+  if ('response' in guard) return guard.response;
+
   const supabase = createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const parsed = bodySchema.safeParse(await req.json());
   if (!parsed.success) {

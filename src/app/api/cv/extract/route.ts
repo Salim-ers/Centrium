@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { guardLlmRoute } from '@/lib/auth/llm-guard';
 import { ensureFileSafe } from '@/lib/security/virustotal';
 
 // =========================================================================
@@ -15,6 +16,11 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
+  // Auth + rôle + rate-limit + gating abonnement — la route consomme
+  // VirusTotal et du parsing fichier : jamais accessible sans session.
+  const guard = await guardLlmRoute({ bucket: 'cv-extract' });
+  if ('response' in guard) return guard.response;
+
   let form: FormData;
   try {
     form = await req.formData();

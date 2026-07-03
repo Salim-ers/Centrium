@@ -20,7 +20,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 export const runtime = 'nodejs';
 
 export async function POST() {
-  const ctx = await requireOrg();
+  const ctx = await requireOrg({ skipSubscriptionGate: true });
   if (ctx.role !== 'admin') {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }

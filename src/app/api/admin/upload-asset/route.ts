@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createClient as createServerClient } from '@/lib/supabase/server';
+import { getSuperAdminContext } from '@/lib/auth/super-admin';
 import { ensureFileSafe } from '@/lib/security/virustotal';
 
 export const runtime = 'nodejs';
@@ -47,19 +47,11 @@ function randomId(): string {
   return globalThis.crypto.randomUUID();
 }
 
+// Check centralisé (rôle super_admin + allowlist FOUNDER_EMAILS) —
+// cf. lib/auth/super-admin.ts. Le wrapper local préserve les call-sites.
 async function requireSuperAdmin() {
-  const supabase = createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle();
-  if (!profile || profile.role !== 'super_admin') return null;
-  return user;
+  const ctx = await getSuperAdminContext();
+  return ctx?.user ?? null;
 }
 
 export async function POST(req: NextRequest) {

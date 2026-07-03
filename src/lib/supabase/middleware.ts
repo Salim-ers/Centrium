@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { evaluateSubscriptionAccess } from '@/lib/billing/access';
 
 // Paths accessibles sans session (devis public, login, invitations, pricing, landing).
 // /signup reste public mais redirige côté serveur vers /devis pour les bookmarks
@@ -214,46 +215,13 @@ export async function updateSession(request: NextRequest) {
         .eq('organization_id', orgId!)
         .maybeSingle();
 
-      // Bypass fondateurs / partenaires
-      if (sub?.is_exempt_from_billing) {
-        // fall-through, laisse passer
-      } else {
-        const now = new Date();
-        const trialEnd = sub?.trial_end ? new Date(sub.trial_end) : null;
-        const periodEnd = sub?.current_period_end
-          ? new Date(sub.current_period_end)
-          : null;
-
-        let denyReason: string | null = null;
-        if (!sub) {
-          denyReason = 'no_subscription';
-        } else if (sub.status === 'active') {
-          // grant
-        } else if (sub.status === 'trialing') {
-          if (trialEnd && trialEnd < now) denyReason = 'trial_expired';
-        } else if (sub.status === 'canceled') {
-          if (!periodEnd || periodEnd < now) denyReason = 'subscription_expired';
-          // sinon grant : grace period jusqu'à periodEnd
-        } else if (sub.status === 'past_due' || sub.status === 'unpaid') {
-          denyReason = 'payment_failed';
-        } else if (
-          sub.status === 'incomplete' ||
-          sub.status === 'incomplete_expired'
-        ) {
-          denyReason = 'checkout_incomplete';
-        } else if (sub.status === 'paused') {
-          denyReason = 'paused';
-        } else {
-          // Statut inconnu Stripe → fail-safe deny
-          denyReason = 'unknown_status';
-        }
-
-        if (denyReason) {
-          const url = request.nextUrl.clone();
-          url.pathname = '/billing';
-          url.search = `?error=${encodeURIComponent(denyReason)}`;
-          return NextResponse.redirect(url);
-        }
+      // Matrice partagée avec requireOrg() (API) — cf. lib/billing/access.ts
+      const access = evaluateSubscriptionAccess(sub ?? null);
+      if (!access.allowed) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/billing';
+        url.search = `?error=${encodeURIComponent(access.reason)}`;
+        return NextResponse.redirect(url);
       }
     }
   }
