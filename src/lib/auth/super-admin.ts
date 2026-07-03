@@ -35,9 +35,23 @@ function founderAllowlist(): string[] | null {
     .filter(Boolean);
 }
 
+/** True si l'email fait partie de l'allowlist fondateurs (env). */
+export function isFounderEmail(email: string | null | undefined): boolean {
+  const allowlist = founderAllowlist();
+  if (!allowlist || !email) return false;
+  return allowlist.includes(email.toLowerCase());
+}
+
 /**
  * Retourne le contexte super-admin, ou null si l'appelant n'est pas un
  * fondateur autorisé. Ne throw jamais — l'appelant décide (403 / redirect).
+ *
+ * Deux voies d'accès (l'une OU l'autre) :
+ *   a. rôle DB 'super_admin' — compte console dédié (org NULL). Si
+ *      FOUNDER_EMAILS est défini, l'email doit AUSSI y figurer.
+ *   b. email ∈ FOUNDER_EMAILS — les fondateurs utilisent leur compte
+ *      admin quotidien (org QuadCore) et accèdent à la console via le
+ *      menu profil, sans compte séparé.
  */
 export async function getSuperAdminContext(): Promise<SuperAdminContext | null> {
   const supabase = createClient();
@@ -46,21 +60,29 @@ export async function getSuperAdminContext(): Promise<SuperAdminContext | null> 
   } = await supabase.auth.getUser();
   if (!user) return null;
 
+  const allowlist = founderAllowlist();
+  const email = (user.email ?? '').toLowerCase();
+  const allowlisted = !!allowlist && allowlist.includes(email);
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .maybeSingle();
-  if (!profile || profile.role !== 'super_admin') return null;
 
-  const allowlist = founderAllowlist();
-  const email = (user.email ?? '').toLowerCase();
-  if (allowlist && !allowlist.includes(email)) {
-    console.warn(
-      `[super-admin] role=super_admin mais email hors FOUNDER_EMAILS — accès refusé (user=${user.id})`,
-    );
-    return null;
+  if (profile?.role === 'super_admin') {
+    if (allowlist && !allowlisted) {
+      console.warn(
+        `[super-admin] role=super_admin mais email hors FOUNDER_EMAILS — accès refusé (user=${user.id})`,
+      );
+      return null;
+    }
+    return { user: { id: user.id, email: user.email ?? '' } };
   }
 
-  return { user: { id: user.id, email: user.email ?? '' } };
+  if (allowlisted) {
+    return { user: { id: user.id, email: user.email ?? '' } };
+  }
+
+  return null;
 }

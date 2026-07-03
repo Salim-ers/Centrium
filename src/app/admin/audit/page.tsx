@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ArrowLeft, Activity, AlertTriangle, ShieldAlert, Users as UsersIcon, LogOut } from 'lucide-react';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireUser } from '@/lib/auth/guards';
+import { getSuperAdminContext } from '@/lib/auth/super-admin';
 import { redirect } from 'next/navigation';
 
 import { AuditTable } from './AuditTable';
@@ -24,14 +24,10 @@ const CRITICAL_ACTIONS = new Set(['deleted', 'archived', 'requested']);
  * journalisées, toutes organisations confondues.
  */
 export default async function AdminAuditPage() {
-  const user = await requireUser();
+  // Helper central : rôle super_admin OU fondateur (FOUNDER_EMAILS).
+  const ctx = await getSuperAdminContext();
+  if (!ctx) redirect('/dashboard');
   const admin = createAdminClient('cross-org-query');
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle();
-  if (profile?.role !== 'super_admin') redirect('/dashboard');
 
   const { data: rows } = await admin
     .from('activities')

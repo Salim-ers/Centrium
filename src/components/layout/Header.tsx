@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Search, Bell, User, LogOut } from 'lucide-react';
+import { Search, Bell, User, LogOut, ShieldCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useOrganizationSafe } from '@/lib/auth/context';
@@ -23,6 +23,25 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  // null = pas encore vérifié. Vérifié une seule fois, à la première
+  // ouverture du menu (lazy — la plupart des users ne sont pas fondateurs).
+  const [isFounder, setIsFounder] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!menuOpen || isFounder !== null) return;
+    let cancelled = false;
+    fetch('/api/auth/founder-status')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (!cancelled) setIsFounder(!!body?.data?.isFounder);
+      })
+      .catch(() => {
+        if (!cancelled) setIsFounder(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [menuOpen, isFounder]);
 
   useEffect(() => {
     if (!org?.activeOrgId) {
@@ -180,6 +199,19 @@ export function Header() {
                 >
                   {t.nav.settings}
                 </Link>
+                {/* Super console — fondateurs uniquement (FOUNDER_EMAILS).
+                    Le lien n'est qu'un raccourci : l'accès réel est vérifié
+                    côté serveur (layout /admin + routes API). */}
+                {isFounder && (
+                  <Link
+                    href="/admin/clients"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2.5 text-sm text-violet-glow hover:bg-violet-glow/10 transition border-t border-hairline"
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Super console
+                  </Link>
+                )}
                 <form action="/api/auth/logout" method="POST">
                   <button
                     type="submit"

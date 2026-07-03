@@ -138,9 +138,22 @@ export async function updateSession(request: NextRequest) {
   const isAdminRoute = pathname.startsWith('/admin');
   const hasOrg = !!orgId;
 
-  // Le super_admin n'a pas d'org rattachée et opère sur /admin/*. Il
-  // n'est PAS redirigé vers /onboarding, et c'est le seul rôle autorisé
-  // sur les routes /admin.
+  // Fondateurs : comptes admin quotidiens listés dans FOUNDER_EMAILS —
+  // autorisés sur /admin SANS le rôle exclusif super_admin (ils gardent
+  // leur org et leur app). Routing seulement : la sécurité réelle est
+  // dans le layout SSR /admin + les routes API (getSuperAdminContext).
+  const founderEmails = (process.env.FOUNDER_EMAILS ?? '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  const isFounder =
+    founderEmails.length > 0 &&
+    !!user.email &&
+    founderEmails.includes(user.email.toLowerCase());
+
+  // Le super_admin (rôle dédié) n'a pas d'org rattachée et opère sur
+  // /admin/*. Il n'est PAS redirigé vers /onboarding, et reste confiné
+  // à la console.
   if (isSuperAdmin) {
     if (isAdminRoute || pathname.startsWith('/auth/')) return response;
     // Toute autre URL → on l'envoie sur sa home admin.
@@ -148,11 +161,16 @@ export async function updateSession(request: NextRequest) {
     url.pathname = '/admin/clients';
     return NextResponse.redirect(url);
   }
-  if (isAdminRoute && !isSuperAdmin) {
-    // Tentative d'accès /admin sans le rôle → 404 logique
+  if (isAdminRoute && !isSuperAdmin && !isFounder) {
+    // Tentative d'accès /admin sans le rôle ni l'allowlist → 404 logique
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);
+  }
+  if (isAdminRoute && isFounder) {
+    // Fondateur sur la console : on laisse passer sans appliquer le
+    // gating abonnement / onboarding plus bas (la console est cross-org).
+    return response;
   }
 
   // Pas d'org active (vient de signer up) → onboarding obligatoire
