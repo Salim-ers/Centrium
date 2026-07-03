@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getSuperAdminContext } from '@/lib/auth/super-admin';
+import { sendEmail } from '@/lib/email/send';
 
 // =========================================================================
 // POST /api/admin/organizations — Provisionne un nouvel espace client.
@@ -65,6 +66,13 @@ const schema = z.object({
 
   // Optionnel : lier au quote_request qu'on convertit
   quote_request_id: z.string().uuid().optional().nullable(),
+
+  // Abonnement choisi lors du provisionnement (suite au devis)
+  plan_id: z.enum(['starter', 'growth', 'enterprise']).default('starter'),
+  // trial_14d : accès immédiat, paiement à la fin de l'essai (défaut)
+  // paid_only : accès BLOQUÉ tant que l'abonnement n'est pas payé
+  // exempt    : partenaire/interne — jamais facturé, aucune limite
+  billing_mode: z.enum(['trial_14d', 'paid_only', 'exempt']).default('trial_14d'),
 });
 
 export async function POST(req: NextRequest) {
@@ -220,7 +228,75 @@ export async function POST(req: NextRequest) {
       });
   }
 
-  // 4) Marque le quote_request d'origine comme converti (si fourni)
+  // 4) Configure l'abonnement selon le devis. Le trigger DB
+  // on_organization_created a déjà inséré (starter, trialing, +14j) —
+  // on ajuste plan + statut selon le mode choisi. Upsert par sécurité
+  // (si le trigger manquait, la ligne est créée avec ces valeurs).
+  const subConfig: Record<string, unknown> = {
+    organization_id: org.id,
+    plan_id: data.plan_id,
+  };
+  if (data.billing_mode === 'exempt') {
+    subConfig.is_exempt_from_billing = true;
+    subConfig.status = 'active';
+  } else if (data.billing_mode === 'paid_only') {
+    // 'incomplete' + trial_end null → la matrice d'accès (lib/billing/
+    // access.ts) bloque tout jusqu'au paiement (checkout_incomplete).
+    subConfig.status = 'incomplete';
+    subConfig.trial_end = null;
+  }
+  const { error: subErr } = await admin
+    .from('subscriptions')
+    .upsert(subConfig, { onConflict: 'organization_id' });
+  if (subErr) {
+    console.error('[admin/organizations] subscription config failed', {
+      organizationId: org.id,
+      error: subErr.message,
+    });
+  }
+
+  // 5) Email de bienvenue (Resend) — complète l'email d'activation Supabase
+  // avec le contexte abonnement : quel plan, comment payer / démarrer.
+  const billingUrl = `${appUrl}/billing?plan=${data.plan_id}`;
+  const planLabel =
+    data.plan_id === 'starter'
+      ? 'Starter (74,99 € HT/mois)'
+      : data.plan_id === 'growth'
+        ? 'Medium (149,99 € HT/mois)'
+        : 'Illimité (299,99 € HT/mois)';
+  const welcomeParagraphs = [
+    `Bonjour${data.admin_first_name ? ` ${data.admin_first_name}` : ''},`,
+    `Ton espace ${org.name} est prêt sur Centrium. Tu vas recevoir (ou viens de recevoir) un email séparé « Active ton compte » : clique dessus pour définir ton mot de passe.`,
+  ];
+  if (data.billing_mode === 'paid_only') {
+    welcomeParagraphs.push(
+      `Ton abonnement ${planLabel} est réservé. L'accès à la plateforme s'ouvre dès le paiement — le bouton ci-dessous t'y emmène directement après ta première connexion.`,
+    );
+  } else if (data.billing_mode === 'trial_14d') {
+    welcomeParagraphs.push(
+      `Tu bénéficies de 14 jours d'essai gratuit, sans carte bancaire. Ton plan recommandé : ${planLabel}. Tu peux l'activer à tout moment depuis la page Abonnement.`,
+    );
+  } else {
+    welcomeParagraphs.push(
+      `Ton compte partenaire est actif sans facturation. Bonne exploration !`,
+    );
+  }
+  await sendEmail({
+    to: data.admin_email,
+    subject:
+      data.billing_mode === 'paid_only'
+        ? `${org.name} — active ton abonnement Centrium`
+        : `Bienvenue sur Centrium — ton espace ${org.name} est prêt`,
+    paragraphs: welcomeParagraphs,
+    cta:
+      data.billing_mode === 'exempt'
+        ? { label: 'Découvrir mon espace', url: `${appUrl}/dashboard` }
+        : { label: data.billing_mode === 'paid_only' ? 'Payer mon abonnement' : 'Voir mon abonnement', url: billingUrl },
+    footnote:
+      'Commence par définir ton mot de passe via l\'email « Active ton compte », puis connecte-toi.',
+  });
+
+  // 6) Marque le quote_request d'origine comme converti (si fourni)
   if (data.quote_request_id) {
     await admin
       .from('quote_requests')
@@ -233,7 +309,15 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json(
-    { data: { organization: org, invite_email: data.admin_email } },
+    {
+      data: {
+        organization: org,
+        invite_email: data.admin_email,
+        plan_id: data.plan_id,
+        billing_mode: data.billing_mode,
+        billing_url: billingUrl,
+      },
+    },
     { status: 201 },
   );
 }

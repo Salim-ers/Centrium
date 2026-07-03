@@ -7,6 +7,7 @@ import {
   StripeConfigError,
 } from '@/lib/billing/config';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { sendEmail } from '@/lib/email/send';
 
 // =========================================================================
 // POST /api/billing/webhook — Source de vérité pour l'état des abonnements
@@ -24,7 +25,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 //   - customer.subscription.deleted           — fin réelle de la sub
 //   - customer.subscription.paused / .resumed — pause_collection lifecycle
 //   - customer.subscription.trial_will_end    — 3j avant fin de trial
-//                                              (log, TODO email)
+//                                              (email Resend aux admins org)
 //   - invoice.paid / invoice.payment_succeeded — renouvellement OK, on
 //                                              rebasculte past_due→active
 //                                              proactivement
@@ -140,16 +141,48 @@ export async function POST(req: NextRequest) {
       }
 
       case 'customer.subscription.trial_will_end': {
-        // Fire 3 jours avant trial_end. Pour l'instant : log seulement.
-        // TODO : envoyer un email transactionnel via Resend (template
-        // trial_ending.html) — cf. supabase/templates/ pour le style.
+        // Fire 3 jours avant trial_end → email aux admins de l'org avec
+        // CTA vers /billing (choisir un plan avant la coupure d'accès).
         const sub = event.data.object as Stripe.Subscription;
-        console.info(
-          '[stripe/webhook] trial_will_end for org',
-          sub.metadata?.organization_id,
-          'trial_end',
-          sub.trial_end && new Date(sub.trial_end * 1000).toISOString(),
-        );
+        const orgId = sub.metadata?.organization_id;
+        const trialEndIso = sub.trial_end
+          ? new Date(sub.trial_end * 1000).toISOString()
+          : null;
+        console.info('[stripe/webhook] trial_will_end for org', orgId, 'trial_end', trialEndIso);
+        if (orgId) {
+          const [{ data: org }, { data: admins }] = await Promise.all([
+            admin.from('organizations').select('name, brand_name').eq('id', orgId).maybeSingle(),
+            admin
+              .from('profiles')
+              .select('email')
+              .eq('organization_id', orgId)
+              .eq('role', 'admin'),
+          ]);
+          const orgName = org?.brand_name ?? org?.name ?? 'ton organisation';
+          const emails = (admins ?? [])
+            .map((p) => p.email as string | null)
+            .filter((e): e is string => !!e);
+          const trialEndLabel = sub.trial_end
+            ? new Date(sub.trial_end * 1000).toLocaleDateString('fr-FR', {
+                day: 'numeric',
+                month: 'long',
+              })
+            : 'bientôt';
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://centrium-platform.com';
+          if (emails.length > 0) {
+            await sendEmail({
+              to: emails,
+              subject: `Ton essai Centrium se termine le ${trialEndLabel}`,
+              paragraphs: [
+                `Bonjour,`,
+                `L'essai gratuit de ${orgName} sur Centrium se termine le ${trialEndLabel}. Après cette date, l'accès à la plateforme sera suspendu jusqu'au choix d'un abonnement.`,
+                `Choisis ton plan en 2 minutes — tes données, consultants et documents restent intacts.`,
+              ],
+              cta: { label: 'Choisir mon abonnement', url: `${appUrl}/billing` },
+              footnote: 'Une question ? Réponds simplement à cet email.',
+            });
+          }
+        }
         break;
       }
 

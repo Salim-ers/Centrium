@@ -168,6 +168,24 @@ function BillingPageInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load]);
 
+  // ?plan=starter|growth|enterprise — arrivée depuis l'email de bienvenue
+  // ("Payer mon abonnement") : on lance directement le Stripe Checkout du
+  // plan réservé, sans re-choisir dans la grille. Admin only ; ignoré si
+  // l'org est exempte ou déjà active sur ce plan.
+  const [autoCheckoutDone, setAutoCheckoutDone] = useState(false);
+  useEffect(() => {
+    if (autoCheckoutDone || loading || !sub) return;
+    const planParam = searchParams.get('plan');
+    if (!planParam || !['starter', 'growth', 'enterprise'].includes(planParam)) return;
+    setAutoCheckoutDone(true);
+    // Nettoie l'URL pour ne pas relancer le checkout au retour/refresh.
+    window.history.replaceState(null, '', '/billing');
+    if (role !== 'admin' || sub.isExempt) return;
+    if (sub.status === 'active' && sub.planId === planParam) return;
+    void subscribe(planParam);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, sub, autoCheckoutDone]);
+
   async function openPortal() {
     setBusy('portal');
     try {

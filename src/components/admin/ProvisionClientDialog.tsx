@@ -7,7 +7,6 @@ import { extractColorsFromImage } from '@/lib/colors/extract-from-image';
 
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
@@ -63,7 +62,37 @@ type FormState = {
   admin_email: string;
   admin_first_name: string;
   admin_last_name: string;
+  plan_id: 'starter' | 'growth' | 'enterprise';
+  billing_mode: 'trial_14d' | 'paid_only' | 'exempt';
 };
+
+const PLAN_OPTIONS: { id: FormState['plan_id']; label: string }[] = [
+  { id: 'starter', label: 'Starter — 74,99 € HT/mois' },
+  { id: 'growth', label: 'Medium — 149,99 € HT/mois' },
+  { id: 'enterprise', label: 'Illimité — 299,99 € HT/mois' },
+];
+
+const BILLING_MODES: {
+  id: FormState['billing_mode'];
+  label: string;
+  hint: string;
+}[] = [
+  {
+    id: 'trial_14d',
+    label: 'Essai 14 jours',
+    hint: 'Accès immédiat, paiement à la fin de l\'essai (relance auto J-3).',
+  },
+  {
+    id: 'paid_only',
+    label: 'Paiement requis',
+    hint: 'Aucun accès tant que l\'abonnement n\'est pas payé.',
+  },
+  {
+    id: 'exempt',
+    label: 'Exempté',
+    hint: 'Partenaire / interne — jamais facturé, aucune limite.',
+  },
+];
 
 function slugify(s: string): string {
   return s
@@ -102,6 +131,8 @@ const INITIAL: FormState = {
   admin_email: '',
   admin_first_name: '',
   admin_last_name: '',
+  plan_id: 'starter',
+  billing_mode: 'trial_14d',
 };
 
 /**
@@ -443,6 +474,49 @@ export function ProvisionClientDialog({
                 value={form.admin_email}
                 onChange={(e) => update('admin_email', e.target.value)}
               />
+            </Field>
+          </Section>
+
+          {/* Abonnement */}
+          <Section title="Abonnement" icon={<Sparkles className="h-3.5 w-3.5" />}>
+            <Field label="Plan">
+              <select
+                value={form.plan_id}
+                onChange={(e) => update('plan_id', e.target.value as FormState['plan_id'])}
+                className="flex h-9 w-full rounded-md border border-hairline bg-transparent px-3 py-1 text-sm"
+              >
+                {PLAN_OPTIONS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Mode de facturation">
+              <div className="space-y-1.5">
+                {BILLING_MODES.map((m) => (
+                  <label
+                    key={m.id}
+                    className={`flex items-start gap-2.5 rounded-lg border px-3 py-2 cursor-pointer transition ${
+                      form.billing_mode === m.id
+                        ? 'border-violet-glow/50 bg-violet-glow/[0.08]'
+                        : 'border-hairline hover:border-foreground/25'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="billing_mode"
+                      checked={form.billing_mode === m.id}
+                      onChange={() => update('billing_mode', m.id)}
+                      className="mt-0.5 accent-magenta"
+                    />
+                    <span>
+                      <span className="block text-sm font-medium">{m.label}</span>
+                      <span className="block text-[11px] text-muted-foreground">{m.hint}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
             </Field>
           </Section>
         </div>
