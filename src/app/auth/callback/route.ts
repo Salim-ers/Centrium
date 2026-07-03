@@ -35,7 +35,38 @@ export async function GET(req: NextRequest) {
   const code = url.searchParams.get('code');
   const tokenHash = url.searchParams.get('token_hash');
   const type = url.searchParams.get('type') as EmailOtpType | null;
-  const next = url.searchParams.get('next') ?? '/dashboard';
+  let next = url.searchParams.get('next') ?? '';
+
+  // `rt` = le redirectTo ORIGINAL de l'invitation, injecté par les templates
+  // token_hash ({{ .RedirectTo }}). Il pointe généralement vers ce même
+  // callback avec son propre ?next=… (ex: /invite/accept?token=X) — on en
+  // extrait le next pour préserver la destination métier. Même origine
+  // exigée (anti open-redirect).
+  if (!next) {
+    const rt = url.searchParams.get('rt');
+    if (rt) {
+      try {
+        const rtUrl = new URL(rt);
+        const innerNext = rtUrl.searchParams.get('next');
+        if (innerNext) next = innerNext;
+        else if (rtUrl.pathname !== '/auth/callback') {
+          next = `${rtUrl.pathname}${rtUrl.search}`;
+        }
+      } catch {
+        /* rt illisible → défauts par type ci-dessous */
+      }
+    }
+  }
+  // Défaut par type de lien : un invite/recovery sans next explicite doit
+  // atterrir sur la création de mot de passe, jamais sur le dashboard.
+  if (!next) {
+    next =
+      type === 'recovery'
+        ? '/auth/set-password?welcome=recovery'
+        : type === 'invite' || type === 'signup' || type === 'magiclink'
+          ? '/auth/set-password?welcome=invited'
+          : '/dashboard';
+  }
 
   // Sécurité : ne suit que les chemins relatifs (pas d'open redirect).
   const safeNext = next.startsWith('/') ? next : '/dashboard';
@@ -64,6 +95,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL(safeNext, url.origin));
   }
 
-  // Ni code ni token_hash → lien mal formé. On log un flag pour tracer.
-  return NextResponse.redirect(new URL('/login?error=missing_code', url.origin));
+  // Ni code ni token_hash : très probablement un lien {{ .ConfirmationURL }}
+  // dont la session est dans le FRAGMENT (#access_token=…) — invisible ici
+  // (les fragments n'atteignent jamais le serveur) mais PRÉSERVÉ par le
+  // navigateur à travers cette redirection 3xx. /auth/complete (page client)
+  // le consomme et termine le parcours. Fini le dead-end /login.
+  return NextResponse.redirect(
+    new URL(`/auth/complete?next=${encodeURIComponent(safeNext)}`, url.origin),
+  );
 }
