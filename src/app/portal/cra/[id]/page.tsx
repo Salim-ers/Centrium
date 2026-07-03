@@ -23,6 +23,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
 import { useBrandName } from '@/components/brand/BrandingStyles';
 import { timesheetService } from '@/lib/services';
+import {
+  TimesheetCalendar,
+  type CalendarDay,
+  type TimesheetDayKind,
+} from '@/components/timesheets/TimesheetCalendar';
 import type { Timesheet } from '@/types';
 
 const MONTHS = [
@@ -41,15 +46,19 @@ export default function PortalCraDetailPage() {
 
   const [days, setDays] = useState<number>(0);
   const [notes, setNotes] = useState<string>('');
+  // Jours détaillés du calendrier (RLS : visibles/écrivables via le parent)
+  const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
 
   async function reload() {
     if (!params?.id) return;
     const supabase = createClient();
-    const { data, error } = await supabase
-      .from('timesheets')
-      .select('*')
-      .eq('id', params.id)
-      .maybeSingle();
+    const [{ data, error }, { data: dayRows }] = await Promise.all([
+      supabase.from('timesheets').select('*').eq('id', params.id).maybeSingle(),
+      supabase
+        .from('timesheet_days')
+        .select('day_date, duration, kind, note')
+        .eq('timesheet_id', params.id),
+    ]);
     if (error || !data) {
       toast.error('CRA introuvable ou accès refusé');
       router.push('/portal/cra');
@@ -59,7 +68,54 @@ export default function PortalCraDetailPage() {
     setTs(row);
     setDays(Number(row.days_worked));
     setNotes(row.notes ?? '');
+    setCalendarDays((dayRows ?? []) as CalendarDay[]);
     setLoading(false);
+  }
+
+  // Édition jour par jour — mêmes helpers que le calendrier org ; le
+  // trigger DB recompute_timesheet_days_worked met à jour le total, et
+  // la RLS n'autorise l'écriture que si le CRA est draft/rejected.
+  const calendarEditable = ts?.status === 'draft' || ts?.status === 'rejected';
+
+  async function handleDayChange(
+    dayDate: string,
+    next: { kind: TimesheetDayKind | null; duration?: number; note?: string | null },
+  ) {
+    if (!ts) return;
+    const res = await timesheetService.upsertDay({
+      timesheetId: ts.id,
+      dayDate,
+      kind: next.kind,
+      duration: next.duration,
+      note: next.note,
+    });
+    if (res.error) {
+      toast.error('Modification impossible : ' + res.error.message);
+      return;
+    }
+    await reload();
+  }
+
+  async function handleBatchDayChange(
+    dayDates: string[],
+    next: { kind: TimesheetDayKind | null; duration?: number },
+  ) {
+    if (!ts) return;
+    const results = await Promise.all(
+      dayDates.map((dayDate) =>
+        timesheetService.upsertDay({
+          timesheetId: ts.id,
+          dayDate,
+          kind: next.kind,
+          duration: next.duration,
+        }),
+      ),
+    );
+    const firstError = results.find((r) => r.error)?.error;
+    if (firstError) {
+      toast.error(`Modification impossible sur certains jours : ${firstError.message}`);
+    }
+    await reload();
   }
 
   useEffect(() => {
@@ -217,6 +273,31 @@ export default function PortalCraDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Calendrier jour par jour — même composant que côté organisation.
+          Éditable en draft/rejected (RLS + trigger recalculent le total). */}
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle className="text-base">
+            Calendrier du mois
+            {!calendarEditable && (
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                (lecture seule — CRA {ts.status === 'submitted' ? 'soumis' : 'validé'})
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TimesheetCalendar
+            year={ts.period_year}
+            month={ts.period_month}
+            days={calendarDays}
+            editable={calendarEditable}
+            onChange={handleDayChange}
+            onBatchChange={handleBatchDayChange}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

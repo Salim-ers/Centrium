@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { consultantService } from '@/lib/services/consultant.service';
 import { ConsultantDocuments } from '@/components/consultants/ConsultantDocuments';
+import { ConsultantActivityPanel } from '@/components/consultants/ConsultantActivityPanel';
 import { KycDocuments } from '@/components/consultants/KycDocuments';
 import { ConsultantFormDialog } from '@/components/consultants/ConsultantFormDialog';
 import { ConsultantMissionsList } from '@/components/missions/ConsultantMissionsList';
@@ -566,6 +567,8 @@ export default function ConsultantDetailPage() {
           </Card>
 
           <ConsultantMissionsList consultantId={c.id} canManage />
+
+          <ConsultantActivityPanel consultantId={c.id} />
 
           <KycDocuments
             consultantId={c.id}

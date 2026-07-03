@@ -20,7 +20,11 @@ export default function PortalMissionsPage() {
         </p>
       </div>
 
-      <ConsultantMissionsList consultantId={consultantId} canManage={false} />
+      <ConsultantMissionsList
+        consultantId={consultantId}
+        canManage={false}
+        linkBase="/portal/missions"
+      />
     </div>
   );
 }

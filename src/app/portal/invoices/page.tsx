@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Receipt, CheckCircle2, Eye, Wallet, TrendingUp, AlertCircle, Hourglass } from 'lucide-react';
+import { Receipt, CheckCircle2, Eye, Wallet, TrendingUp, Hourglass } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -46,16 +46,21 @@ export default function PortalInvoicesPage() {
     })();
   }, []);
 
+  // NOTE : la RLS ne montre au consultant QUE les factures payées de ses
+  // missions — les anciens KPIs "À venir"/"En retard" étaient donc toujours
+  // à 0 (UI morte et trompeuse). On affiche des indicateurs réellement
+  // calculables : encaissé YTD, total encaissé, nombre, dernier paiement.
   const currentYear = new Date().getFullYear();
   const ytdPaid = invoices.filter(
-    (i) => i.status === 'paid' && i.payment_date && new Date(i.payment_date).getFullYear() === currentYear,
+    (i) => i.payment_date && new Date(i.payment_date).getFullYear() === currentYear,
   );
   const totalPaidYtd = ytdPaid.reduce((s, i) => s + Number(i.amount_ht), 0);
-  const overdue = invoices.filter((i) => i.status === 'overdue');
-  const upcoming = invoices.filter((i) => i.status === 'sent');
-  const totalYtd = invoices
-    .filter((i) => new Date(i.issue_date).getFullYear() === currentYear)
-    .reduce((s, i) => s + Number(i.amount_ht), 0);
+  const totalPaidAll = invoices.reduce((s, i) => s + Number(i.amount_ht), 0);
+  const lastPayment = invoices
+    .map((i) => i.payment_date)
+    .filter((d): d is string => !!d)
+    .sort()
+    .at(-1);
 
   return (
     <div>
@@ -67,32 +72,37 @@ export default function PortalInvoicesPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <KPICard
-          label="À venir"
-          value={upcoming.length}
-          icon={Hourglass}
-          tone="cyan"
-          hint="Émises non payées"
-        />
-        <KPICard
-          label="Payées YTD"
-          value={ytdPaid.length}
-          icon={CheckCircle2}
-          tone="emerald"
-          hint={`${currentYear}`}
-        />
-        <KPICard
-          label="En retard"
-          value={overdue.length}
-          icon={AlertCircle}
-          tone="rose"
-        />
-        <KPICard
-          label="Total YTD"
-          value={totalYtd}
+          label="Encaissé YTD"
+          value={totalPaidYtd}
           prefix="€"
           icon={TrendingUp}
           tone="magenta"
-          hint="HT cumulé"
+          hint={`HT · ${currentYear}`}
+        />
+        <KPICard
+          label="Factures payées"
+          value={invoices.length}
+          icon={CheckCircle2}
+          tone="emerald"
+          hint={`dont ${ytdPaid.length} en ${currentYear}`}
+        />
+        <KPICard
+          label="Encaissé total"
+          value={totalPaidAll}
+          prefix="€"
+          icon={Receipt}
+          tone="violet"
+          hint="HT toutes périodes"
+        />
+        <KPICard
+          label="Dernier paiement"
+          valueText={
+            lastPayment
+              ? new Date(lastPayment).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
+              : '—'
+          }
+          icon={Hourglass}
+          tone="cyan"
         />
       </div>
 

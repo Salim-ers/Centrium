@@ -55,9 +55,12 @@ type Props = {
   consultantId: string;
   /** Côté admin : montre les actions de validation. */
   canManage?: boolean;
+  /** Si fourni, le titre devient un lien vers `${linkBase}/${mission.id}`
+   *  (utilisé par le portail consultant → /portal/missions/[id]). */
+  linkBase?: string;
 };
 
-export function ConsultantMissionsList({ consultantId, canManage = false }: Props) {
+export function ConsultantMissionsList({ consultantId, canManage = false, linkBase }: Props) {
   const { format: formatCurrency } = useCurrency();
   const [missions, setMissions] = useState<MissionRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,7 +144,16 @@ export function ConsultantMissionsList({ consultantId, canManage = false }: Prop
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <div className="font-medium truncate">{m.title}</div>
+                      {linkBase ? (
+                        <Link
+                          href={`${linkBase}/${m.id}`}
+                          className="font-medium truncate hover:text-violet-glow hover:underline underline-offset-2 transition"
+                        >
+                          {m.title}
+                        </Link>
+                      ) : (
+                        <div className="font-medium truncate">{m.title}</div>
+                      )}
                       <Badge variant="outline" className={STATUS_STYLE[m.status] ?? ''}>
                         {STATUS_LABEL[m.status] ?? m.status}
                       </Badge>
