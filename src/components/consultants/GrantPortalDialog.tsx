@@ -17,10 +17,14 @@ import { Label } from '@/components/ui/label';
 import { notifyCreated, notifyError } from '@/lib/notify';
 import type { Consultant } from '@/types';
 
+// Seuls ces 4 champs sont utilisés — le Pick permet d'ouvrir le dialog
+// depuis des listes qui n'ont pas la fiche Consultant complète (en-mission).
+type GrantTarget = Pick<Consultant, 'id' | 'first_name' | 'last_name' | 'email'>;
+
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  consultant: Consultant | null;
+  consultant: GrantTarget | null;
   onGranted?: (consultantId: string, email: string) => void;
 };
 

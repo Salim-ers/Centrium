@@ -12,6 +12,7 @@ import {
   Archive,
   ArchiveRestore,
   Trash2,
+  KeyRound,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -29,6 +30,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { TalentTabs } from '@/components/consultants/TalentTabs';
+import { GrantPortalDialog } from '@/components/consultants/GrantPortalDialog';
 
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
@@ -65,12 +67,17 @@ type OnMissionRow = {
   job_title: string;
   seniority: string;
   is_prospect: boolean;
+  email: string | null;
+  /** Un profile portail est déjà lié à ce consultant. */
+  has_portal: boolean;
 };
 
 export default function EnMissionPage() {
   const { activeOrgId } = useOrganization();
   const { format: formatCurrency } = useCurrency();
   const [search, setSearch] = useState('');
+  // Cible du dialog "créer l'accès portail" (bouton Portail sur la ligne)
+  const [grantTarget, setGrantTarget] = useState<OnMissionRow | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
@@ -88,7 +95,7 @@ export default function EnMissionPage() {
         .select(
           `id, title, status, archived, daily_rate_eur, start_date, end_date,
            consultant:consultants!consultant_id (
-             id, first_name, last_name, job_title, seniority, is_prospect
+             id, first_name, last_name, job_title, seniority, is_prospect, email
            ),
            job_offer:job_offers (title)`,
         );
@@ -116,7 +123,22 @@ export default function EnMissionPage() {
           job_title: m.consultant.job_title,
           seniority: m.consultant.seniority,
           is_prospect: m.consultant.is_prospect,
+          email: m.consultant.email ?? null,
+          has_portal: false, // résolu juste en dessous
         }));
+      // Statut portail : un profile lié = accès déjà créé. Résolu en un
+      // seul round-trip pour tous les consultants de la page.
+      const consultantIds = Array.from(new Set(rows.map((r) => r.consultant_id)));
+      if (consultantIds.length > 0) {
+        const { data: portalProfiles } = await supabase
+          .from('profiles')
+          .select('consultant_id')
+          .in('consultant_id', consultantIds);
+        const withPortal = new Set(
+          (portalProfiles ?? []).map((p) => p.consultant_id as string),
+        );
+        for (const r of rows) r.has_portal = withPortal.has(r.consultant_id);
+      }
       // Tri alphabétique par nom du consultant (nom, prénom).
       rows.sort((a, b) => {
         const an = `${a.last_name ?? ''} ${a.first_name ?? ''}`.toLowerCase();
@@ -434,6 +456,19 @@ export default function EnMissionPage() {
                             </>
                           ) : (
                             <>
+                              {!r.has_portal && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setGrantTarget(r)}
+                                  disabled={busy}
+                                  title="Créer l'accès portail consultant — email d'invitation avec création de mot de passe"
+                                  className="text-violet-glow hover:bg-violet-glow/10"
+                                >
+                                  <KeyRound className="h-3.5 w-3.5" />
+                                  Portail
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 variant="ghost"
@@ -486,6 +521,27 @@ export default function EnMissionPage() {
         pagination={pagination}
         total={onMission.length}
         itemLabel="mission"
+      />
+
+      <GrantPortalDialog
+        open={!!grantTarget}
+        onOpenChange={(v) => {
+          if (!v) setGrantTarget(null);
+        }}
+        consultant={
+          grantTarget
+            ? {
+                id: grantTarget.consultant_id,
+                first_name: grantTarget.first_name,
+                last_name: grantTarget.last_name,
+                email: grantTarget.email,
+              }
+            : null
+        }
+        onGranted={() => {
+          setGrantTarget(null);
+          reload();
+        }}
       />
     </AppShell>
   );

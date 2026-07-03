@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   XCircle,
   ArrowRight,
+  ArrowLeft,
   LogOut,
 } from 'lucide-react';
 
@@ -175,6 +176,16 @@ export default function AdminClientsPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Retour à l'app : utile pour les fondateurs (comptes admin
+                quotidiens). Les comptes au rôle super_admin dédié sont
+                reroutés vers /admin/clients par le middleware — sans effet
+                pour eux, jamais bloquant. */}
+            <Button variant="outline" size="sm" asChild>
+              <a href="/dashboard" className="inline-flex items-center gap-1.5">
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Retour à l&apos;app
+              </a>
+            </Button>
             <Button size="sm" asChild className="qc-cta">
               <a href="/admin/new-org" className="inline-flex items-center gap-1.5">
                 <Sparkles className="h-3.5 w-3.5" />
