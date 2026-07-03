@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, Space_Grotesk, Instrument_Serif } from 'next/font/google';
 import { Toaster } from 'sonner';
 import './globals.css';
+import { MuteSuccessToasts } from '@/components/ui/MuteSuccessToasts';
 import { OrganizationProvider } from '@/lib/auth/context';
 import { RouteThemeManager } from '@/components/theme/RouteThemeManager';
 import { CookieBanner } from '@/components/marketing/CookieBanner';
@@ -193,6 +194,7 @@ export default function RootLayout({
             <CookieBanner />
           </CurrencyProvider>
         </LocaleProvider>
+        <MuteSuccessToasts />
         <Toaster
           position="top-right"
           visibleToasts={2}

@@ -84,7 +84,9 @@ export default function AccountingAssistantPage() {
 
   function copyBlock(text: string) {
     navigator.clipboard.writeText(text).then(
-      () => toast.success(t.toasts.copied),
+      // toast.info (pas success) : les toasts success sont mutés globalement,
+      // mais copier n'a AUCUN autre feedback visuel — on garde celui-ci.
+      () => toast.info(t.toasts.copied),
       () => toast.error(t.toasts.error_generic),
     );
   }

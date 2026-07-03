@@ -34,24 +34,31 @@ function pack(opts?: Opts): BrandToastOptions {
   };
 }
 
-/** Création d'une ressource — vert (icône Check). */
-export function notifyCreated(message: string, opts?: Opts) {
-  return showBrandToast('success', message, pack(opts));
+/* ============ TOASTS DE SUCCÈS DÉSACTIVÉS (demande utilisateur) ============
+   Plus AUCUNE notification quand on crée / modifie / supprime / archive :
+   le dialog qui se ferme, la ligne qui disparaît ou le compteur qui bouge
+   sont des signaux de succès suffisants. Les helpers restent en place pour
+   ne pas casser les ~100 call-sites — ils ne font simplement plus rien.
+   Les erreurs / warnings / infos restent actifs (feedback indispensable). */
+
+/** Création d'une ressource — DÉSACTIVÉ (silencieux). */
+export function notifyCreated(_message: string, _opts?: Opts) {
+  return '';
 }
 
-/** Édition / mise à jour — violet (icône Pencil). */
-export function notifyUpdated(message: string, opts?: Opts) {
-  return showBrandToast('update', message, pack(opts));
+/** Édition / mise à jour — DÉSACTIVÉ (silencieux). */
+export function notifyUpdated(_message: string, _opts?: Opts) {
+  return '';
 }
 
-/** Action destructive réussie (archive, suppression) — rouge (icône Trash). */
-export function notifyDestructive(message: string, opts?: Opts) {
-  return showBrandToast('destructive', message, pack(opts));
+/** Action destructive réussie — DÉSACTIVÉ (silencieux). */
+export function notifyDestructive(_message: string, _opts?: Opts) {
+  return '';
 }
 
-/** Promotion d'un prospect en consultant — célébration brand. */
-export function notifyPromoted(message: string, opts?: Opts) {
-  return showBrandToast('celebration', message, { duration: 6000, ...pack(opts) });
+/** Promotion d'un prospect en consultant — DÉSACTIVÉ (silencieux). */
+export function notifyPromoted(_message: string, _opts?: Opts) {
+  return '';
 }
 
 /** Erreur réelle (réseau, validation serveur, etc.) — rouge XCircle. */
@@ -80,8 +87,10 @@ export function notifyInfo(message: string, opts?: Opts) {
  * dialog qui se ferme / la ligne qui disparaît est un signal de succès
  * suffisant en soi).
  */
-export function notifyMilestone(message: string, opts?: Opts) {
-  return showBrandToast('milestone', message, pack(opts));
+export function notifyMilestone(_message: string, _opts?: Opts) {
+  // Désactivé comme les autres toasts de succès — le changement de vue
+  // (ligne qui part / arrive) est le signal.
+  return '';
 }
 
 /**

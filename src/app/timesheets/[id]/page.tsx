@@ -167,6 +167,29 @@ export default function TimesheetDetailPage() {
     await reload();
   }
 
+  /** Applique un même type à plusieurs jours (pinceau clic-glissé) :
+   *  upserts en parallèle, UN SEUL reload à la fin. */
+  async function handleBatchDayChange(
+    dayDates: string[],
+    next: { kind: TimesheetDayKind | null; duration?: number },
+  ) {
+    const results = await Promise.all(
+      dayDates.map((dayDate) =>
+        timesheetService.upsertDay({
+          timesheetId: timesheet.id,
+          dayDate,
+          kind: next.kind,
+          duration: next.duration,
+        }),
+      ),
+    );
+    const firstError = results.find((r) => r.error)?.error;
+    if (firstError) {
+      toast.error(`Modification impossible sur certains jours : ${firstError.message}`);
+    }
+    await reload();
+  }
+
   return (
     <AppShell>
       <div className="no-print mb-4 flex items-center justify-between flex-wrap gap-3">
@@ -227,8 +250,8 @@ export default function TimesheetDetailPage() {
                 {calendarEditable ? (
                   <span className="inline-flex items-center gap-1.5 text-violet-300">
                     <Pencil className="h-3.5 w-3.5" />
-                    Clique sur un jour pour le marquer travaillé, férié, ou
-                    en absence
+                    Choisis un type ci-dessous puis clique-glisse pour remplir
+                    plusieurs jours — ou clique un jour pour le menu détaillé
                   </span>
                 ) : (
                   <span className="text-muted-foreground">
@@ -252,6 +275,7 @@ export default function TimesheetDetailPage() {
             days={detail.days}
             editable={calendarEditable}
             onChange={handleDayChange}
+            onBatchChange={handleBatchDayChange}
             primaryColor={branding?.primaryColor ?? undefined}
           />
         </CardContent>

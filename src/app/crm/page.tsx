@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { motion, LayoutGroup } from 'framer-motion';
-import { Plus, Trash2, Pencil, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { useOpportunityStatusLabels } from '@/lib/i18n/useBadges';
@@ -789,12 +789,9 @@ function OpportunityCard({
           : 'cursor-grab active:cursor-grabbing',
       )}
     >
-      {/* Grip handle déplacé en absolute (apparaît au hover seulement) pour libérer
-          de la place horizontale au titre — colonnes étroites obligent. */}
-      <GripVertical
-        className="absolute left-1.5 top-3 h-4 w-4 text-muted-foreground/0 group-hover:text-muted-foreground/40 transition pointer-events-none"
-        aria-hidden
-      />
+      {/* Grip handle RETIRÉ (demande utilisateur : il chevauchait le titre
+          dans les colonnes étroites). Le curseur grab + le hover de la carte
+          suffisent à signaler qu'elle est déplaçable. */}
       <CardContent className="p-3 space-y-1.5">
         {peer && (
           <div className="flex items-center justify-end">

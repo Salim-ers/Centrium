@@ -52,17 +52,12 @@ export function QuadCoreSignature({
               alt="Signature"
               className="max-h-full max-w-[200px] object-contain select-none"
             />
-          ) : (
-            <span
-              className="text-[32px] text-neutral-900 select-none"
-              style={{
-                fontFamily: '"Brush Script MT","Lucida Handwriting",cursive',
-                transform: 'rotate(-4deg)',
-              }}
-            >
-              {displayName}
-            </span>
-          )}
+          ) : null
+          /* Pas de tampon/signature configuré dans les paramètres → zone
+             VOLONTAIREMENT vide (demande utilisateur). On ne simule plus une
+             signature manuscrite avec le nom : l'espace reste libre pour
+             signer/tamponner le document imprimé. */
+          }
         </div>
 
         <div className="mt-3 pt-3 border-t border-neutral-100 flex items-center justify-between gap-4">

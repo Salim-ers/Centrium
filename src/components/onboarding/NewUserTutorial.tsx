@@ -560,8 +560,10 @@ export function NewUserTutorial({ open: controlledOpen, onOpenChange }: Props = 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-w-2xl p-0 overflow-hidden gap-0">
-        {/* Header bar : wordmark + step counter */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-hairline">
+        {/* Header bar : wordmark + step counter. pr-12 réserve la place de
+            la croix de fermeture du Dialog (absolute top-right) pour que le
+            compteur d'étape ne passe pas dessous. */}
+        <div className="flex items-center justify-between pl-6 pr-12 py-4 border-b border-hairline">
           <CentriumWordmark size="sm" showEditor={false} />
           <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-mono">
             {labels.stepOf}
