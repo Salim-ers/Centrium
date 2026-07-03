@@ -2,13 +2,15 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { Target, TrendingUp, Plus, Briefcase, Pencil, Sparkles } from 'lucide-react';
+import { Target, TrendingUp, Plus, Briefcase, Pencil, Sparkles, Loader2 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -18,7 +20,6 @@ import {
   AppCardBody,
   SectionHeader,
   EmptyState,
-  StatusBadge,
 } from '@/components/app';
 
 import { createClient } from '@/lib/supabase/client';
@@ -178,7 +179,13 @@ function MatchingInner() {
         }
       />
 
-      <AppCard variant="luminous" tone="violet" className="mb-6">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className="mb-6"
+      >
+      <AppCard variant="luminous" tone="violet">
         <AppCardBody size="md">
           <SectionHeader
             eyebrow={t.pages.matching.scoring_eyebrow}
@@ -223,12 +230,30 @@ function MatchingInner() {
               </Button>
             )}
             <Button onClick={runMatching} disabled={loading || !offerId}>
-              <TrendingUp className="h-4 w-4" />
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <TrendingUp className="h-4 w-4" />
+              )}
               {t.pages.matching.run_match}
             </Button>
           </div>
         </AppCardBody>
       </AppCard>
+      </motion.div>
+
+      {/* Skeleton pendant le calcul du matching */}
+      {loading && results.length === 0 && (
+        <div className="space-y-2">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-24 rounded-xl surface-1 animate-pulse"
+              style={{ animationDelay: `${i * 150}ms` }}
+            />
+          ))}
+        </div>
+      )}
 
       {results.length === 0 && !loading && offerId && (
         <EmptyState
@@ -255,7 +280,7 @@ function MatchingInner() {
                   : undefined
             }
           />
-          {results.map((r) => {
+          {results.map((r, rank) => {
             // Garde-fous : profils anciens peuvent avoir des champs nulls.
             // On préfère afficher "—" qu'un crash render.
             const c = r.consultant;
@@ -279,11 +304,26 @@ function MatchingInner() {
             const breakdown = r.breakdown;
             const gates = r.gates ?? [];
             return (
-            <Card key={c.id} className="qc-card-hover">
+            <motion.div
+              key={c.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: Math.min(rank, 8) * 0.06, ease: 'easeOut' }}
+            >
+            <Card className="qc-card-hover group">
               <CardContent className="p-4 flex flex-col gap-3">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="h-12 w-12 rounded-full bg-qc-gradient flex items-center justify-center text-white font-semibold">
+                  <span
+                    className={
+                      rank === 0
+                        ? 'w-5 shrink-0 text-center font-mono text-xs font-bold text-amber-400'
+                        : 'w-5 shrink-0 text-center font-mono text-xs font-semibold text-muted-foreground/50'
+                    }
+                  >
+                    {rank + 1}
+                  </span>
+                  <div className="h-12 w-12 rounded-full bg-qc-gradient ring-1 ring-foreground/10 flex items-center justify-center text-white font-semibold transition-transform duration-200 group-hover:scale-105">
                     {initials}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -307,7 +347,7 @@ function MatchingInner() {
 
                 <div className="shrink-0 text-right">
                   <div className="font-display font-light tracking-[-0.04em] text-[clamp(2rem,3vw,2.75rem)] qc-gradient-text leading-none">
-                    {r.score ?? 0}
+                    <AnimatedNumber value={r.score ?? 0} />
                   </div>
                   <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mt-1">
                     {t.pages.matching.score_label}
@@ -372,7 +412,7 @@ function MatchingInner() {
 
               {/* Breakdown détaillé du scoring (7 composants pondérés) */}
               {breakdown && (
-                <div className="rounded-md border border-white/10 bg-white/[0.02] px-3 py-2.5">
+                <div className="rounded-md border border-hairline surface-1 px-3 py-2.5">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                       {t.pages.matching.scoring_detail_title}
@@ -432,6 +472,7 @@ function MatchingInner() {
               )}
               </CardContent>
             </Card>
+            </motion.div>
             );
           })}
         </div>
@@ -482,10 +523,12 @@ function ScoreBar({
           {points.toFixed(1)}/{max}
         </span>
       </div>
-      <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-        <div
-          className={`h-full ${toneClass[tone]} transition-all`}
-          style={{ width: `${pct}%` }}
+      <div className="h-1.5 rounded-full bg-foreground/[0.07] overflow-hidden">
+        <motion.div
+          className={`h-full rounded-full ${toneClass[tone]}`}
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
         />
       </div>
     </div>

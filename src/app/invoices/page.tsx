@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
@@ -215,7 +216,7 @@ function InvoicesPageInner() {
         }
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <Reveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <KPICard
           icon={FileText}
           label={t.pages.invoices.kpi_issued}
@@ -240,7 +241,7 @@ function InvoicesPageInner() {
           valueText={formatCurrency(overdueAmount)}
           tone="rose"
         />
-      </div>
+      </Reveal>
 
       <InvoiceFormDialog
         open={dialogOpen}
@@ -283,6 +284,7 @@ function InvoicesPageInner() {
           }
         />
       ) : (
+      <Reveal delay={0.08}>
       <AppCard>
         <div className="overflow-hidden rounded-2xl">
           <Table>
@@ -301,13 +303,18 @@ function InvoicesPageInner() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow>
-                  <TableCell colSpan={9}>
-                    <div className="h-10 bg-white/[0.02] animate-pulse rounded" />
-                  </TableCell>
-                </TableRow>
+                Array.from({ length: 4 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell colSpan={9}>
+                      <div
+                        className="h-10 surface-1 animate-pulse rounded-lg"
+                        style={{ animationDelay: `${i * 120}ms` }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))
               ) : (
-                paginatedInvoices.map((inv) => {
+                paginatedInvoices.map((inv, rowIdx) => {
                   // Le consultant peut venir d'une mission liée OU d'un
                   // lien direct sur la facture (cas des factures manuelles).
                   const c = inv.mission?.consultant ?? inv.consultant ?? null;
@@ -315,12 +322,22 @@ function InvoicesPageInner() {
                     ? `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() || '—'
                     : '—';
                   return (
-                    <TableRow key={inv.id}>
+                    <motion.tr
+                      key={inv.id}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        duration: 0.25,
+                        delay: Math.min(rowIdx, 10) * 0.03,
+                        ease: 'easeOut',
+                      }}
+                      className="group border-b border-hairline transition-colors hover-surface"
+                    >
                       <TableCell className="font-mono font-medium">{inv.invoice_number}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {c ? (
-                            <div className="h-6 w-6 rounded-full bg-qc-gradient flex items-center justify-center text-white text-[9px] font-semibold shrink-0">
+                            <div className="h-6 w-6 rounded-full bg-qc-gradient ring-1 ring-foreground/10 flex items-center justify-center text-white text-[9px] font-semibold shrink-0">
                               {(c.first_name?.[0] ?? '?').toUpperCase()}
                               {(c.last_name?.[0] ?? '').toUpperCase()}
                             </div>
@@ -407,7 +424,7 @@ function InvoicesPageInner() {
                           )}
                         </div>
                       </TableCell>
-                    </TableRow>
+                    </motion.tr>
                   );
                 })
               )}
@@ -415,6 +432,7 @@ function InvoicesPageInner() {
           </Table>
         </div>
       </AppCard>
+      </Reveal>
       )}
 
       <PaginationFooter
@@ -423,6 +441,28 @@ function InvoicesPageInner() {
         itemLabel="facture"
       />
     </AppShell>
+  );
+}
+
+/** Entrée en cascade des sections de la page (fondu + translation). */
+function Reveal({
+  delay = 0,
+  className,
+  children,
+}: {
+  delay?: number;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay, ease: 'easeOut' }}
+      className={className}
+    >
+      {children}
+    </motion.div>
   );
 }
 

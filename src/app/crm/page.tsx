@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { motion, LayoutGroup } from 'framer-motion';
 import { Plus, Trash2, Pencil, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
@@ -281,11 +282,20 @@ export default function CRMPage() {
       />
 
       {loading ? (
-        <p className="text-muted-foreground">{t.pages.crm.loading}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="min-h-[220px] rounded-xl surface-1 animate-pulse"
+              style={{ animationDelay: `${i * 100}ms` }}
+            />
+          ))}
+        </div>
       ) : (
+        <LayoutGroup>
         <>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          {byStatus.map((col) => {
+          {byStatus.map((col, colIdx) => {
             const isTarget = dragOverStatus === col.status && draggingId !== null;
             const isSource =
               !!draggingId &&
@@ -293,8 +303,13 @@ export default function CRMPage() {
             // Quelqu'un d'autre survole cette colonne avec une carte attrapée.
             const peerHover = peerByColumn.get(col.status);
             return (
-              <div
+              <motion.div
                 key={col.status}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: colIdx * 0.05, ease: 'easeOut' }}
+              >
+              <div
                 onDragOver={(e) => onDragOverColumn(e, col.status)}
                 onDragLeave={(e) => onDragLeaveColumn(e, col.status)}
                 onDrop={(e) => onDropColumn(e, col.status)}
@@ -363,6 +378,7 @@ export default function CRMPage() {
                   )}
                 </div>
               </div>
+              </motion.div>
             );
           })}
         </div>
@@ -554,6 +570,7 @@ export default function CRMPage() {
           onDelete={deleteOpportunity}
         />
         </>
+        </LayoutGroup>
       )}
     </AppShell>
   );
@@ -634,7 +651,7 @@ function ClosedOpportunitiesDialogInline({
                 'rounded-md border px-2.5 py-1 text-xs font-medium transition',
                 filter === f
                   ? 'border-violet-glow/60 bg-violet-glow/10 text-violet-glow'
-                  : 'border-hairline text-muted-foreground hover:text-foreground hover:bg-white/[0.03]',
+                  : 'border-hairline text-muted-foreground hover:text-foreground hover-surface',
               )}
             >
               {f === 'all' ? t.pages.crm.closed_filter_all : (oppLabels[f as keyof typeof oppLabels] ?? OPPORTUNITY_STATUS_LABEL[f])}
@@ -736,6 +753,16 @@ function OpportunityCard({
   // local (sinon conflit de mises à jour) et on affiche son indicateur.
   const lockedByPeer = !!peer;
   return (
+    // Wrapper motion SANS gestion de drag framer : le drag HTML5 reste sur la
+    // Card. layoutId fait glisser la carte en douceur d'une colonne à l'autre
+    // (drop local, move d'un collègue, réouverture depuis "Terminées").
+    <motion.div
+      layout
+      layoutId={`opp-${opportunity.id}`}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 380, damping: 32, mass: 0.7 }}
+    >
     <Card
       draggable={!lockedByPeer}
       onDragStart={(e) => {
@@ -847,5 +874,6 @@ function OpportunityCard({
         )}
       </CardContent>
     </Card>
+    </motion.div>
   );
 }

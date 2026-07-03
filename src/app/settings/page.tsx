@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { LogOut, Palette, Users, User, ShieldCheck, Building2, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { LogOut, Palette, Users, User, ShieldCheck, Building2, Sparkles, CreditCard } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
@@ -27,8 +28,10 @@ type IdentityRow = {
 
 type SectionTone = 'magenta' | 'violet' | 'emerald' | 'amber' | 'cyan' | 'rose';
 
-type SectionKey = 'profile' | 'branding' | 'team' | 'data' | 'appearance';
+type SectionKey = 'profile' | 'branding' | 'team' | 'billing' | 'data' | 'appearance';
 
+// Hub unique "Paramètres" : Équipe et Abonnement vivent ici (le menu
+// latéral n'a plus qu'une seule entrée Organisation → Paramètres).
 const SECTIONS: Array<{
   key: SectionKey;
   href: string;
@@ -38,6 +41,7 @@ const SECTIONS: Array<{
   { key: 'profile', href: '/settings/profile', icon: User, tone: 'magenta' },
   { key: 'branding', href: '/settings/branding', icon: Palette, tone: 'violet' },
   { key: 'team', href: '/settings/team', icon: Users, tone: 'cyan' },
+  { key: 'billing', href: '/billing', icon: CreditCard, tone: 'rose' },
   { key: 'data', href: '/settings/privacy', icon: ShieldCheck, tone: 'emerald' },
   { key: 'appearance', href: '/settings/appearance', icon: Sparkles, tone: 'amber' },
 ];
@@ -141,12 +145,13 @@ export default function SettingsPage() {
       />
 
       <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
-        {SECTIONS.map((s) => {
+        {SECTIONS.map((s, i) => {
           const Icon = s.icon;
           const titleByKey: Record<SectionKey, string> = {
             profile: t.pages.settings.card_profile_title,
             branding: t.pages.settings.card_branding_title,
             team: t.pages.settings.card_team_title,
+            billing: t.pages.settings.card_billing_title,
             data: t.pages.settings.card_data_title,
             appearance: t.pages.settings.card_appearance_title,
           };
@@ -154,14 +159,21 @@ export default function SettingsPage() {
             profile: t.pages.settings.card_profile_description,
             branding: t.pages.settings.card_branding_description,
             team: t.pages.settings.card_team_description,
+            billing: t.pages.settings.card_billing_description,
             data: t.pages.settings.card_data_description,
             appearance: t.pages.settings.card_appearance_description,
           };
           return (
-            <Link key={s.href} href={s.href} className="block group">
+            <motion.div
+              key={s.href}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: i * 0.05, ease: 'easeOut' }}
+            >
+            <Link href={s.href} className="block group h-full">
               <AppCard variant="default" tone={s.tone} interactive className="h-full">
                 <AppCardBody size="md" className="flex items-start gap-4">
-                  <div className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] p-2.5 text-magenta transition-transform group-hover:scale-110">
+                  <div className="shrink-0 rounded-xl border border-hairline surface-1 p-2.5 text-magenta transition-transform group-hover:scale-110">
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
@@ -175,6 +187,7 @@ export default function SettingsPage() {
                 </AppCardBody>
               </AppCard>
             </Link>
+            </motion.div>
           );
         })}
       </div>

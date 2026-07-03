@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { useTimesheetStatusLabels } from '@/lib/i18n/useBadges';
@@ -178,7 +179,7 @@ function TimesheetsPageInner() {
         }
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <Reveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <KPICard
           icon={CheckCircle2}
           label={t.pages.timesheets.kpi_validated_month}
@@ -205,7 +206,7 @@ function TimesheetsPageInner() {
           suffix="%"
           tone="violet"
         />
-      </div>
+      </Reveal>
 
       <TimesheetFormDialog
         open={dialogOpen}
@@ -248,6 +249,7 @@ function TimesheetsPageInner() {
           }
         />
       ) : (
+      <Reveal delay={0.08}>
       <AppCard>
         <div className="overflow-hidden rounded-2xl">
           <Table>
@@ -262,14 +264,29 @@ function TimesheetsPageInner() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow>
-                  <TableCell colSpan={5}>
-                    <div className="h-10 bg-foreground/[0.04] animate-pulse rounded" />
-                  </TableCell>
-                </TableRow>
+                Array.from({ length: 4 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell colSpan={5}>
+                      <div
+                        className="h-10 surface-1 animate-pulse rounded-lg"
+                        style={{ animationDelay: `${i * 120}ms` }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))
               ) : (
-                paginatedTimesheets.map((ts) => (
-                  <TableRow key={ts.id}>
+                paginatedTimesheets.map((ts, rowIdx) => (
+                  <motion.tr
+                    key={ts.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.25,
+                      delay: Math.min(rowIdx, 10) * 0.03,
+                      ease: 'easeOut',
+                    }}
+                    className="group border-b border-hairline transition-colors hover-surface"
+                  >
                     <TableCell className="font-medium">
                       {MONTHS[ts.period_month - 1]} {ts.period_year}
                     </TableCell>
@@ -281,7 +298,7 @@ function TimesheetsPageInner() {
                       </StatusBadge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-1 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
                         <Button size="sm" variant="ghost" asChild>
                           <Link href={`/timesheets/${ts.id}`}>
                             <Eye className="h-3 w-3" />
@@ -305,13 +322,14 @@ function TimesheetsPageInner() {
                         </Button>
                       </div>
                     </TableCell>
-                  </TableRow>
+                  </motion.tr>
                 ))
               )}
             </TableBody>
           </Table>
         </div>
       </AppCard>
+      </Reveal>
       )}
 
       {timesheets.length > 0 && (
@@ -323,6 +341,28 @@ function TimesheetsPageInner() {
         />
       )}
     </AppShell>
+  );
+}
+
+/** Entrée en cascade des sections de la page (fondu + translation). */
+function Reveal({
+  delay = 0,
+  className,
+  children,
+}: {
+  delay?: number;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay, ease: 'easeOut' }}
+      className={className}
+    >
+      {children}
+    </motion.div>
   );
 }
 

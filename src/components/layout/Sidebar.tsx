@@ -16,14 +16,12 @@ import {
   Kanban,
   Settings,
   Calculator,
-  CreditCard,
   Briefcase,
   ChevronDown,
   ChevronsLeft,
   ChevronsRight,
   Activity,
   Building2,
-  Package,
   CheckSquare,
 } from 'lucide-react';
 import { Sparkles } from 'lucide-react';
@@ -96,9 +94,10 @@ function buildGroups(t: AppDict): NavGroup[] {
       label: t.sidebar.organisation,
       icon: Building2,
       items: [
-        { label: t.nav.team, href: '/settings/team', icon: Package },
-        { label: t.nav.billing, href: '/billing', icon: CreditCard },
-        { label: t.nav.settings, href: '/settings', icon: Settings },
+        // Menu unifié : Équipe (/settings/team) et Abonnement (/billing)
+        // vivent désormais DANS le hub Paramètres (cartes de sections).
+        // matchAlso garde l'item allumé quand on navigue sur /billing.
+        { label: t.nav.settings, href: '/settings', icon: Settings, matchAlso: ['/billing'] },
       ],
     },
   ];

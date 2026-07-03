@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
 import { useContractStatusLabels } from '@/lib/i18n/useBadges';
 import Link from 'next/link';
@@ -50,6 +51,28 @@ import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import type { Contract, ContractStatus } from '@/types';
 import { formatDate } from '@/lib/utils';
 import { useCurrency } from '@/lib/i18n/CurrencyProvider';
+
+/** Entrée en cascade des sections de la page (fondu + translation). */
+function Reveal({
+  delay = 0,
+  className,
+  children,
+}: {
+  delay?: number;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay, ease: 'easeOut' }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 const STATUS_LABEL: Record<ContractStatus, string> = {
   draft: 'Brouillon',
@@ -205,7 +228,7 @@ export default function ContractsPage() {
       />
 
       {view === 'active' && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Reveal className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <KPICard
             label={t.pages.contracts.kpi_signed_month}
             value={signedThisMonth}
@@ -233,7 +256,7 @@ export default function ContractsPage() {
             tone="violet"
             hint={t.pages.contracts.kpi_annual_tjm_hint}
           />
-        </div>
+        </Reveal>
       )}
 
       <Tabs value={view} onValueChange={(v) => setView(v as View)} className="space-y-4">
@@ -261,6 +284,7 @@ export default function ContractsPage() {
               }
             />
           ) : (
+          <Reveal delay={0.08}>
           <AppCard>
             <div className="p-0">
               <Table>
@@ -277,14 +301,29 @@ export default function ContractsPage() {
                 </TableHeader>
                 <TableBody>
                   {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={7}>
-                        <div className="h-10 bg-white/[0.02] animate-pulse rounded" />
-                      </TableCell>
-                    </TableRow>
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell colSpan={7}>
+                          <div
+                            className="h-10 surface-1 animate-pulse rounded-lg"
+                            style={{ animationDelay: `${i * 120}ms` }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))
                   ) : (
-                    paginatedContracts.map((c) => (
-                      <TableRow key={c.id}>
+                    paginatedContracts.map((c, rowIdx) => (
+                      <motion.tr
+                        key={c.id}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{
+                          duration: 0.25,
+                          delay: Math.min(rowIdx, 10) * 0.03,
+                          ease: 'easeOut',
+                        }}
+                        className="group border-b border-hairline transition-colors hover-surface"
+                      >
                         <TableCell className="font-mono font-medium">{c.contract_number}</TableCell>
                         <TableCell className="max-w-xs">
                           <div className="truncate">{c.title}</div>
@@ -310,7 +349,7 @@ export default function ContractsPage() {
                           </StatusBadge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex gap-1 justify-end">
+                          <div className="flex gap-1 justify-end transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
                             <Button variant="ghost" size="sm" asChild title="Voir le détail">
                               <Link href={`/contracts/${c.id}`}>
                                 <Eye className="h-3 w-3" />
@@ -382,13 +421,14 @@ export default function ContractsPage() {
                             </Button>
                           </div>
                         </TableCell>
-                      </TableRow>
+                      </motion.tr>
                     ))
                   )}
                 </TableBody>
               </Table>
             </div>
           </AppCard>
+          </Reveal>
           )}
         </TabsContent>
       </Tabs>

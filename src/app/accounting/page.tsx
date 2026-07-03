@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import {
   Bot,
   Send,
   Sparkles,
   CheckCircle2,
   AlertTriangle,
-  Loader2,
   Copy,
   ExternalLink,
 } from 'lucide-react';
@@ -32,7 +32,7 @@ const TONE_STYLES: Record<string, string> = {
   good: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
   warn: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
   bad: 'bg-red-500/10 text-red-300 border-red-500/20',
-  neutral: 'bg-white/5 text-muted-foreground border-hairline',
+  neutral: 'surface-2 text-muted-foreground border-hairline',
 };
 
 export default function AccountingAssistantPage() {
@@ -110,6 +110,11 @@ export default function AccountingAssistantPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
         {/* Chat */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+        >
         <AppCard variant="luminous" tone="violet" className="h-[70vh]">
           <div className="flex flex-col h-[70vh]">
             <div
@@ -120,11 +125,25 @@ export default function AccountingAssistantPage() {
                 <MessageBubble key={i} message={m} onCopy={copyBlock} />
               ))}
               {thinking && (
-                <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                  <Bot className="h-4 w-4" />
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2.5 text-muted-foreground text-sm"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-qc-gradient">
+                    <Bot className="h-4 w-4 text-white" />
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    {[0, 1, 2].map((i) => (
+                      <span
+                        key={i}
+                        className="h-1.5 w-1.5 rounded-full bg-violet-glow animate-bounce"
+                        style={{ animationDelay: `${i * 150}ms` }}
+                      />
+                    ))}
+                  </span>
                   {t.actions.loading}
-                </div>
+                </motion.div>
               )}
             </div>
 
@@ -137,7 +156,7 @@ export default function AccountingAssistantPage() {
                 className="flex gap-2"
               >
                 <input
-                  className="flex h-10 flex-1 rounded-md border border-hairline bg-white/[0.02] px-3 py-2 text-sm focus:border-violet-glow/50 focus:outline-none"
+                  className="flex h-10 flex-1 rounded-lg border border-hairline surface-1 px-3 py-2 text-sm focus:border-violet-glow/50 focus:outline-none"
                   placeholder={t.pages.accounting.chat_placeholder}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -150,10 +169,16 @@ export default function AccountingAssistantPage() {
             </div>
           </div>
         </AppCard>
+        </motion.div>
 
         {/* Quick prompts */}
-        <aside className="space-y-3">
-          <Card>
+        <motion.aside
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.08, ease: 'easeOut' }}
+          className="space-y-3"
+        >
+          <Card className="qc-premium rounded-2xl">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">{t.pages.accounting.quick_questions}</CardTitle>
               <CardDescription className="text-xs">{t.pages.accounting.one_click_hint}</CardDescription>
@@ -231,13 +256,13 @@ export default function AccountingAssistantPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="qc-premium rounded-2xl">
             <CardContent className="p-4 text-xs text-muted-foreground space-y-2">
               <p className="font-semibold text-foreground">{t.pages.accounting.to_know_title}</p>
               <p>{t.pages.accounting.to_know_body}</p>
             </CardContent>
           </Card>
-        </aside>
+        </motion.aside>
       </div>
     </AppShell>
   );
@@ -252,16 +277,26 @@ function MessageBubble({
 }) {
   if (message.role === 'user') {
     return (
-      <div className="flex justify-end">
+      <motion.div
+        initial={{ opacity: 0, y: 8, x: 12 }}
+        animate={{ opacity: 1, y: 0, x: 0 }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+        className="flex justify-end"
+      >
         <div className="max-w-[75%] rounded-2xl rounded-tr-sm bg-violet-glow/20 border border-violet-glow/30 px-4 py-2.5 text-sm">
           {message.content}
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="flex gap-3">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="flex gap-3"
+    >
       <div className="shrink-0 h-8 w-8 rounded-full bg-qc-gradient flex items-center justify-center">
         <Bot className="h-4 w-4 text-white" />
       </div>
@@ -278,7 +313,7 @@ function MessageBubble({
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -309,7 +344,7 @@ function AssistantBlockView({
 }) {
   if (block.type === 'list') {
     return (
-      <div className="rounded-lg border border-hairline bg-white/[0.02] p-3">
+      <div className="rounded-lg border border-hairline surface-1 p-3">
         <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
           {block.title}
         </div>
@@ -317,7 +352,7 @@ function AssistantBlockView({
           {block.items.map((it, i) => (
             <li
               key={i}
-              className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 hover:bg-white/[0.03] transition-colors"
+              className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 hover-surface transition-colors"
             >
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium truncate flex items-center gap-2">
@@ -361,7 +396,7 @@ function AssistantBlockView({
   }
   if (block.type === 'draft') {
     return (
-      <div className="rounded-lg border border-hairline bg-white/[0.02] p-3">
+      <div className="rounded-lg border border-hairline surface-1 p-3">
         <div className="flex items-center justify-between mb-2">
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
             {block.title}
