@@ -43,10 +43,43 @@ type EditableForm = {
   country: string;
   mobility: string;
   summary: string;
+  // Société & facturation (migration 072)
+  legal_status: string;
+  company_name: string;
+  siret: string;
+  vat_number: string;
+  address: string;
+  postal_code: string;
+  iban: string;
+  bic: string;
 };
 
 function emptyForm(): EditableForm {
-  return { email: '', phone: '', linkedin_url: '', city: '', country: 'FR', mobility: '', summary: '' };
+  return {
+    email: '', phone: '', linkedin_url: '', city: '', country: 'FR', mobility: '', summary: '',
+    legal_status: '', company_name: '', siret: '', vat_number: '', address: '', postal_code: '', iban: '', bic: '',
+  };
+}
+
+/** Form pré-rempli depuis la fiche consultant (partagé load/cancel). */
+function formFromConsultant(c: Consultant): EditableForm {
+  return {
+    email: c.email ?? '',
+    phone: c.phone ?? '',
+    linkedin_url: c.linkedin_url ?? '',
+    city: c.city ?? '',
+    country: c.country ?? 'FR',
+    mobility: c.mobility ?? '',
+    summary: c.summary ?? '',
+    legal_status: c.legal_status ?? '',
+    company_name: c.company_name ?? '',
+    siret: c.siret ?? '',
+    vat_number: c.vat_number ?? '',
+    address: c.address ?? '',
+    postal_code: c.postal_code ?? '',
+    iban: c.iban ?? '',
+    bic: c.bic ?? '',
+  };
 }
 
 export default function PortalProfilePage() {
@@ -76,15 +109,7 @@ export default function PortalProfilePage() {
 
   useEffect(() => {
     if (consultant && !editing) {
-      setForm({
-        email: consultant.email ?? '',
-        phone: consultant.phone ?? '',
-        linkedin_url: consultant.linkedin_url ?? '',
-        city: consultant.city ?? '',
-        country: consultant.country ?? 'FR',
-        mobility: consultant.mobility ?? '',
-        summary: consultant.summary ?? '',
-      });
+      setForm(formFromConsultant(consultant));
     }
   }, [consultant, editing]);
 
@@ -112,17 +137,7 @@ export default function PortalProfilePage() {
   }
 
   function cancel() {
-    if (consultant) {
-      setForm({
-        email: consultant.email ?? '',
-        phone: consultant.phone ?? '',
-        linkedin_url: consultant.linkedin_url ?? '',
-        city: consultant.city ?? '',
-        country: consultant.country ?? 'FR',
-        mobility: consultant.mobility ?? '',
-        summary: consultant.summary ?? '',
-      });
-    }
+    if (consultant) setForm(formFromConsultant(consultant));
     setEditing(false);
   }
 
@@ -263,6 +278,68 @@ export default function PortalProfilePage() {
                   placeholder="Quelques lignes pour te présenter…"
                 />
               </FormField>
+
+              {/* ---- Société & facturation ---- */}
+              <div className="md:col-span-2 mt-2 pt-3 border-t border-hairline text-[10px] uppercase tracking-wider text-muted-foreground">
+                Société & facturation
+              </div>
+              <FormField label="Statut juridique">
+                <Input
+                  value={form.legal_status}
+                  onChange={(e) => setForm({ ...form, legal_status: e.target.value })}
+                  placeholder="EI, EURL, SASU, portage salarial…"
+                />
+              </FormField>
+              <FormField label="Raison sociale">
+                <Input
+                  value={form.company_name}
+                  onChange={(e) => setForm({ ...form, company_name: e.target.value })}
+                  placeholder="Ma Société SASU"
+                />
+              </FormField>
+              <FormField label="SIRET">
+                <Input
+                  value={form.siret}
+                  onChange={(e) => setForm({ ...form, siret: e.target.value.replace(/\s/g, '') })}
+                  placeholder="14 chiffres"
+                  inputMode="numeric"
+                />
+              </FormField>
+              <FormField label="N° TVA intracommunautaire">
+                <Input
+                  value={form.vat_number}
+                  onChange={(e) => setForm({ ...form, vat_number: e.target.value })}
+                  placeholder="FRXX999999999"
+                />
+              </FormField>
+              <FormField label="Adresse">
+                <Input
+                  value={form.address}
+                  onChange={(e) => setForm({ ...form, address: e.target.value })}
+                  placeholder="12 rue Exemple"
+                />
+              </FormField>
+              <FormField label="Code postal">
+                <Input
+                  value={form.postal_code}
+                  onChange={(e) => setForm({ ...form, postal_code: e.target.value })}
+                  placeholder="75011"
+                />
+              </FormField>
+              <FormField label="IBAN">
+                <Input
+                  value={form.iban}
+                  onChange={(e) => setForm({ ...form, iban: e.target.value.toUpperCase() })}
+                  placeholder="FR76 …"
+                />
+              </FormField>
+              <FormField label="BIC">
+                <Input
+                  value={form.bic}
+                  onChange={(e) => setForm({ ...form, bic: e.target.value.toUpperCase() })}
+                  placeholder="AGRIFRPPXXX"
+                />
+              </FormField>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
@@ -292,6 +369,29 @@ export default function PortalProfilePage() {
                   </p>
                 </div>
               )}
+              <div className="md:col-span-2 mt-2 pt-2 border-t border-hairline">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                  Société & facturation
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <ReadRow label="Statut juridique" value={c.legal_status} />
+                  <ReadRow label="Raison sociale" value={c.company_name} />
+                  <ReadRow label="SIRET" value={c.siret} />
+                  <ReadRow label="N° TVA" value={c.vat_number} />
+                  <ReadRow
+                    label="Adresse"
+                    value={c.address ? `${c.address}${c.postal_code ? `, ${c.postal_code}` : ''}` : null}
+                  />
+                  <ReadRow label="IBAN" value={c.iban} />
+                  <ReadRow label="BIC" value={c.bic} />
+                </div>
+                {!c.legal_status && !c.siret && !c.iban && (
+                  <p className="mt-2 text-xs text-amber-300/90">
+                    Complète tes informations de société et de facturation — elles
+                    sont nécessaires pour tes contrats et le règlement de tes CRA.
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
@@ -365,7 +465,7 @@ function ReadRow({
   value,
   href,
 }: {
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   label: string;
   value: string | null;
   href?: string;

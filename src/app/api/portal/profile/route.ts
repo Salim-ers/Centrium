@@ -22,6 +22,27 @@ const editableSchema = z.object({
   country: z.string().max(3).optional().nullable(),
   mobility: z.string().max(200).optional().nullable(),
   summary: z.string().max(2000).optional().nullable(),
+  // Infos légales / fiscales / bancaires (migration 072) — le consultant
+  // déclare sa propre structure. Les champs business (TJM, séniorité,
+  // statut, internal_notes) restent admin-only.
+  legal_status: z.string().max(60).optional().nullable(),
+  company_name: z.string().max(200).optional().nullable(),
+  siret: z
+    .string()
+    .regex(/^\d{14}$/, 'SIRET : 14 chiffres')
+    .optional()
+    .nullable()
+    .or(z.literal('')),
+  vat_number: z.string().max(30).optional().nullable(),
+  address: z.string().max(200).optional().nullable(),
+  postal_code: z.string().max(20).optional().nullable(),
+  iban: z
+    .string()
+    .regex(/^[A-Z]{2}\d{2}[A-Z0-9 ]{10,32}$/i, 'IBAN invalide')
+    .optional()
+    .nullable()
+    .or(z.literal('')),
+  bic: z.string().max(15).optional().nullable(),
 });
 
 export async function PATCH(req: NextRequest) {

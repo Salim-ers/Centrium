@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { ArrowLeft, Download, CheckCircle2, Receipt, Pencil } from 'lucide-react';
+import { ArrowLeft, Download, CheckCircle2, Receipt, Pencil, XCircle, Loader2 } from 'lucide-react';
 
 import { downloadElementAsPdf } from '@/lib/pdf/download-document';
 
@@ -12,6 +12,15 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { TimesheetDocument, type TimesheetIssuer } from '@/components/timesheets/TimesheetDocument';
 import {
   TimesheetCalendar,
@@ -62,6 +71,10 @@ export default function TimesheetDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [linkedInvoiceId, setLinkedInvoiceId] = useState<string | null>(null);
   const docRef = useRef<HTMLDivElement | null>(null);
+  // Refus de CRA (boucle de correction consultant)
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejecting, setRejecting] = useState(false);
 
   // Issuer dérivé du branding unifié (Phase 3) — plus de fetch identity séparé.
   // version dependency = régen instantanée après save dans /settings/branding.
@@ -114,6 +127,12 @@ export default function TimesheetDetailPage() {
       toast.error('Erreur : ' + (res.error?.message ?? 'inconnue'));
       return;
     }
+    // Email "CRA validé" au consultant — fire-and-forget, jamais bloquant.
+    void fetch(`/api/timesheets/${detail.timesheet.id}/transition`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'notify_validated' }),
+    }).catch(() => {});
     if (res.data.alreadyInvoiced) {
       toast.success('CRA validé — facture déjà existante, ouverture…');
     } else {
@@ -204,6 +223,20 @@ export default function TimesheetDetailPage() {
           <Badge variant="outline" className={STATUS_STYLE[timesheet.status]}>
             {STATUS_LABEL[timesheet.status]}
           </Badge>
+          {timesheet.status === 'submitted' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setRejectReason('');
+                setRejectOpen(true);
+              }}
+              className="border-red-500/40 text-red-400 hover:bg-red-500/10"
+            >
+              <XCircle className="h-4 w-4" />
+              Refuser
+            </Button>
+          )}
           {timesheet.status !== 'client_validated' && (
             <Button variant="outline" size="sm" onClick={validateAndInvoice}>
               <CheckCircle2 className="h-4 w-4" />
@@ -284,6 +317,65 @@ export default function TimesheetDetailPage() {
       <div ref={docRef} className="bg-neutral-200 rounded-xl p-6 overflow-auto">
         <TimesheetDocument {...detail} issuer={issuer} />
       </div>
+
+      {/* Dialog de refus — la raison est OBLIGATOIRE : elle s'affiche sur le
+          portail consultant et part dans l'email "correction demandée". */}
+      <Dialog open={rejectOpen} onOpenChange={(o) => !rejecting && setRejectOpen(o)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-red-400" />
+              Refuser ce CRA
+            </DialogTitle>
+            <DialogDescription>
+              Le consultant recevra un email avec ta raison, pourra corriger son
+              CRA depuis son portail et le soumettre à nouveau.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            rows={4}
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="Ex : le 15 mars est compté travaillé alors que la mission était suspendue…"
+            autoFocus
+          />
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setRejectOpen(false)} disabled={rejecting}>
+              Annuler
+            </Button>
+            <Button
+              variant="outline"
+              disabled={rejecting || !rejectReason.trim()}
+              onClick={async () => {
+                setRejecting(true);
+                try {
+                  const res = await fetch(
+                    `/api/timesheets/${timesheet.id}/transition`,
+                    {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ action: 'reject', reason: rejectReason }),
+                    },
+                  );
+                  const body = await res.json().catch(() => ({}));
+                  if (!res.ok) {
+                    toast.error(body.message ?? 'Refus impossible');
+                    return;
+                  }
+                  setRejectOpen(false);
+                  await reload();
+                } finally {
+                  setRejecting(false);
+                }
+              }}
+              className="border-red-500/40 text-red-400 hover:bg-red-500/10"
+            >
+              {rejecting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Refuser et demander correction
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

@@ -153,6 +153,16 @@ export type Consultant = {
   cv_pushed: boolean;
   cv_pushed_at: string | null;
   cv_pushed_target: string | null;
+  // Infos légales / fiscales / bancaires déclarées par le consultant
+  // (migration 072) — éditables via le portail (whitelist PATCH).
+  legal_status: string | null;
+  company_name: string | null;
+  siret: string | null;
+  vat_number: string | null;
+  address: string | null;
+  postal_code: string | null;
+  iban: string | null;
+  bic: string | null;
   created_at: string;
   updated_at: string;
 };

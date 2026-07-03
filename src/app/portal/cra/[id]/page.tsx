@@ -88,14 +88,27 @@ export default function PortalCraDetailPage() {
   async function submit() {
     if (!ts) return;
     setSaving(true);
-    const res = await timesheetService.submit(ts.id);
-    setSaving(false);
-    if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
-      return;
+    try {
+      // Via l'API de transition (et non le service direct) : la route fait
+      // la même mise à jour SOUS RLS + triggers, ET envoie l'email "CRA
+      // soumis" aux admins de l'organisation.
+      const res = await fetch(`/api/timesheets/${ts.id}/transition`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'submit' }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(body.message ?? 'Soumission impossible');
+        return;
+      }
+      toast.success('CRA soumis — ton organisation a été notifiée');
+      reload();
+    } catch {
+      toast.error('Erreur réseau — réessaie.');
+    } finally {
+      setSaving(false);
     }
-    toast.success('CRA soumis — en attente de validation');
-    reload();
   }
 
   async function reopen() {
