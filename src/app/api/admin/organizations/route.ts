@@ -142,7 +142,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 2) Invitation du premier admin via auth.admin.inviteUserByEmail
+  // 2) Invitation du premier admin via auth.admin.inviteUserByEmail.
+  // IMPORTANT : on passe par /auth/callback (échange du code PKCE en
+  // cookies sur NOTRE domaine) avant d'atterrir sur set-password — comme
+  // les invitations d'équipe et portail. Un redirectTo direct vers
+  // /auth/set-password sautait l'échange de session sur certains
+  // navigateurs/devices → page "session expirée" au premier clic.
+  const setPasswordPath = `/auth/set-password?welcome=invited&org=${encodeURIComponent(org.name)}`;
   const { data: invite, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(
     data.admin_email,
     {
@@ -152,7 +158,7 @@ export async function POST(req: NextRequest) {
         organization_id: org.id,
         role: 'admin',
       },
-      redirectTo: `${appUrl}/auth/set-password`,
+      redirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent(setPasswordPath)}`,
     },
   );
   if (inviteErr) {

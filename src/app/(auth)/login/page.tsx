@@ -25,6 +25,20 @@ import { markSessionActive } from '@/hooks/useSessionPresence';
 // Stocker un mdp en localStorage le rendrait volable par n'importe quel XSS.
 const REMEMBER_EMAIL_KEY = 'centrium-remember-email';
 
+// Messages FR pour les erreurs remontées par /auth/callback et
+// /auth/set-password via ?error=… — avant, le param était ignoré et
+// l'utilisateur atterrissait sur le login sans explication.
+const URL_ERROR_MESSAGES: Record<string, string> = {
+  session_expired:
+    'Ton lien a expiré ou a déjà été utilisé. Demande un nouveau lien via « Mot de passe oublié ».',
+  missing_code:
+    'Lien invalide ou incomplet. Réouvre le lien depuis ton email, ou demande-en un nouveau.',
+  otp_expired:
+    'Ce lien a expiré. Demande un nouveau lien via « Mot de passe oublié ».',
+  access_denied:
+    'Ce lien n\'est plus valide (déjà utilisé ou révoqué). Demande un nouveau lien.',
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const { t } = useLocale();
@@ -55,8 +69,47 @@ export default function LoginPage() {
     }
   }, [setValue]);
 
+  // Affiche les erreurs de lien (?error=session_expired|missing_code|…)
+  // remontées par /auth/callback. window.location plutôt que
+  // useSearchParams pour éviter le boundary Suspense sur ce client page.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const err = new URLSearchParams(window.location.search).get('error');
+    if (!err) return;
+    toast.error(URL_ERROR_MESSAGES[err] ?? 'Connexion impossible — réessaie.', {
+      duration: 8000,
+    });
+    // Nettoie l'URL pour ne pas re-toaster au refresh.
+    window.history.replaceState(null, '', '/login');
+  }, []);
+
   async function onSubmit(values: LoginInput) {
     setLoading(true);
+
+    // Pré-flight anti brute-force (10/5min par IP + 5/15min par email —
+    // cf. /api/auth/throttle). Défense en profondeur : on bloque AVANT
+    // d'atteindre Supabase Auth. Une erreur réseau sur le throttle ne
+    // bloque pas le login (fail-open, Supabase rate-limite aussi).
+    try {
+      const throttleRes = await fetch('/api/auth/throttle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: values.email, action: 'login' }),
+      });
+      if (throttleRes.status === 429) {
+        const body = await throttleRes.json().catch(() => ({}));
+        setLoading(false);
+        toast.error(
+          body.message ??
+            'Trop de tentatives. Pour ta sécurité, attends quelques minutes avant de réessayer.',
+          { duration: 8000 },
+        );
+        return;
+      }
+    } catch {
+      /* réseau — on laisse le signIn tenter */
+    }
+
     const supabase = createClient();
     const { data: authRes, error } = await supabase.auth.signInWithPassword({
       email: values.email,
@@ -109,6 +162,11 @@ export default function LoginPage() {
         window.localStorage.removeItem(REMEMBER_EMAIL_KEY);
       }
     }
+
+    // Trace la connexion + alerte email "nouvel appareil" si la policy org
+    // l'active (cf. /api/auth/track-login). Fire-and-forget : ne retarde
+    // jamais la redirection.
+    void fetch('/api/auth/track-login', { method: 'POST' }).catch(() => {});
 
     setLoading(false);
     toastWelcome({ firstName: profile?.first_name ?? null });

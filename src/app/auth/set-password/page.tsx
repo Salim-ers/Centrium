@@ -26,6 +26,20 @@ export default function SetPasswordPage() {
   );
 }
 
+type PasswordCheck = {
+  ok: boolean;
+  errors: string[];
+  strength: 0 | 1 | 2 | 3 | 4;
+};
+
+const STRENGTH_LABEL: Record<PasswordCheck['strength'], string> = {
+  0: 'Très faible',
+  1: 'Faible',
+  2: 'Correct',
+  3: 'Solide',
+  4: 'Excellent',
+};
+
 function SetPasswordInner() {
   const router = useRouter();
   const params = useSearchParams();
@@ -35,6 +49,38 @@ function SetPasswordInner() {
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
+  // Résultat du check serveur (policy + HaveIBeenPwned + jauge de force).
+  // null = pas encore vérifié / vérification indisponible (fail-open :
+  // la policy Supabase côté serveur reste le filet).
+  const [check, setCheck] = useState<PasswordCheck | null>(null);
+
+  // Vérification live (debounce 450 ms) via /api/auth/password-check —
+  // policy + fuites HIBP + score de force pour la jauge.
+  useEffect(() => {
+    if (password.length < 8) {
+      setCheck(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/auth/password-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password }),
+        });
+        if (!res.ok) return; // rate-limited / erreur → fail-open
+        const body = (await res.json()) as { data?: PasswordCheck };
+        if (!cancelled && body.data) setCheck(body.data);
+      } catch {
+        /* réseau — fail-open */
+      }
+    }, 450);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [password]);
 
   // Vérifie la session au mount. Sans session (verifyOtp/exchangeCodeForSession
   // ont échoué avant le redirect), updateUser retournerait "Auth session
@@ -59,6 +105,13 @@ function SetPasswordInner() {
     }
     if (password !== confirm) {
       notifyError('Les deux mots de passe ne correspondent pas');
+      return;
+    }
+    // Bloque les mots de passe refusés par la policy ou retrouvés dans des
+    // fuites publiques (HIBP). Si le check n'a pas pu tourner (réseau,
+    // rate-limit), on laisse passer — la policy Supabase serveur tranche.
+    if (check && !check.ok) {
+      notifyError(check.errors[0] ?? 'Mot de passe refusé — choisis-en un autre.');
       return;
     }
     setBusy(true);
@@ -131,6 +184,48 @@ function SetPasswordInner() {
                   required
                 />
               </div>
+
+              {/* Jauge de force + erreurs policy/HIBP en temps réel */}
+              {password.length >= 8 && check && (
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center gap-1.5">
+                    {[0, 1, 2, 3].map((i) => (
+                      <span
+                        key={i}
+                        className={`h-1 flex-1 rounded-full transition-colors ${
+                          i < check.strength
+                            ? check.strength >= 3
+                              ? 'bg-emerald-400'
+                              : check.strength === 2
+                                ? 'bg-amber-400'
+                                : 'bg-rose-400'
+                            : 'bg-foreground/10'
+                        }`}
+                      />
+                    ))}
+                    <span
+                      className={`ml-1 text-[10px] font-medium ${
+                        check.strength >= 3
+                          ? 'text-emerald-400'
+                          : check.strength === 2
+                            ? 'text-amber-400'
+                            : 'text-rose-400'
+                      }`}
+                    >
+                      {STRENGTH_LABEL[check.strength]}
+                    </span>
+                  </div>
+                  {check.errors.length > 0 && (
+                    <ul className="space-y-0.5">
+                      {check.errors.map((err, i) => (
+                        <li key={i} className="text-[11px] leading-snug text-rose-400">
+                          {err}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="confirm">Confirme le mot de passe</Label>

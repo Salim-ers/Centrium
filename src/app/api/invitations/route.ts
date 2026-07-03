@@ -111,16 +111,21 @@ export async function POST(req: NextRequest) {
   } else if (
     /already (been )?registered|already exists|user already/i.test(inviteErr.message)
   ) {
-    // Compte déjà existant → on envoie un magic link à la place
-    const { error: linkErr } = await admin.auth.admin.generateLink({
-      type: 'magiclink',
+    // Compte déjà existant → magic link. BUG FIX : l'ancien code utilisait
+    // admin.generateLink() qui GÉNÈRE le lien sans jamais envoyer d'email
+    // (le toast "invitation envoyée" mentait pour les comptes existants).
+    // signInWithOtp() envoie réellement l'email via le SMTP Supabase.
+    const { error: otpErr } = await supabase.auth.signInWithOtp({
       email: parsed.data.email.toLowerCase(),
-      options: { redirectTo: callbackUrl, data: inviteData },
+      options: {
+        emailRedirectTo: callbackUrl,
+        shouldCreateUser: false,
+      },
     });
-    if (!linkErr) {
+    if (!otpErr) {
       emailSent = true;
     } else {
-      emailError = linkErr.message;
+      emailError = otpErr.message;
     }
   } else {
     emailError = inviteErr.message;
