@@ -1,10 +1,9 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 
-import { createClient } from '@/lib/supabase/client';
 import { markSessionActive } from '@/hooks/useSessionPresence';
 
 // =========================================================================
@@ -40,6 +39,8 @@ function destinationForType(type: string | null): string {
 function CompleteInner() {
   const router = useRouter();
   const search = useSearchParams();
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -68,11 +69,25 @@ function CompleteInner() {
     const next =
       nextParam && nextParam.startsWith('/') ? nextParam : destinationForType(type);
 
-    const supabase = createClient();
-    supabase.auth
-      .setSession({ access_token: accessToken, refresh_token: refreshToken })
-      .then(({ error }) => {
-        if (error) {
+    // Session établie CÔTÉ SERVEUR (POST /api/auth/session) : setSession()
+    // client passe par navigator.locks (verrou partagé entre onglets) et
+    // pouvait rester pendant indéfiniment avec plusieurs onglets Centrium
+    // ouverts — spinner infini. Le serveur n'a pas ce problème et pose les
+    // cookies dans la réponse. Watchdog 12 s → écran d'erreur avec retry.
+    let done = false;
+    const watchdog = setTimeout(() => {
+      if (!done) setFailed(true);
+    }, 12_000);
+
+    fetch('/api/auth/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }),
+    })
+      .then(async (res) => {
+        done = true;
+        clearTimeout(watchdog);
+        if (!res.ok) {
           router.replace('/login?error=session_expired');
           return;
         }
@@ -82,9 +97,40 @@ function CompleteInner() {
         // Nettoie le fragment (tokens) de l'historique avant de router.
         window.history.replaceState(null, '', '/auth/complete');
         window.location.replace(next);
+      })
+      .catch(() => {
+        done = true;
+        clearTimeout(watchdog);
+        setFailed(true);
       });
+
+    return () => clearTimeout(watchdog);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [attempt]);
+
+  if (failed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <div className="flex flex-col items-center gap-4 text-center max-w-sm">
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            La connexion n&apos;a pas abouti (réseau ou lien altéré). Réessaie —
+            si le problème persiste, demande un nouveau lien.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setFailed(false);
+              setAttempt((a) => a + 1);
+            }}
+            className="inline-flex items-center gap-2 rounded-lg border border-hairline px-4 py-2 text-sm hover-surface transition"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">

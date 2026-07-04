@@ -2,9 +2,6 @@
 
 import { useEffect } from 'react';
 
-import { createClient } from '@/lib/supabase/client';
-import { markSessionActive } from '@/hooks/useSessionPresence';
-
 // =========================================================================
 // Filet de sécurité pour les liens email Supabase égarés sur la landing.
 // -------------------------------------------------------------------------
@@ -66,20 +63,14 @@ export function AuthHashRecovery() {
     const refreshToken = hash.get('refresh_token');
     if (!accessToken || !refreshToken) return;
 
+    // Délègue à /auth/complete (session posée CÔTÉ SERVEUR via
+    // /api/auth/session — le setSession client passait par navigator.locks
+    // et pouvait pendre indéfiniment avec plusieurs onglets ouverts).
+    // location.replace préserve le fragment tel quel.
     const type = hash.get('type');
-    const supabase = createClient();
-    supabase.auth
-      .setSession({ access_token: accessToken, refresh_token: refreshToken })
-      .then(({ error }) => {
-        if (error) {
-          window.location.replace('/login?error=session_expired');
-          return;
-        }
-        // Sans ce flag, SessionPresenceGate force un re-logout au premier
-        // chargement d'une page protégée (protection "navigateur restauré").
-        markSessionActive();
-        window.location.replace(destinationFor(type));
-      });
+    window.location.replace(
+      `/auth/complete?next=${encodeURIComponent(destinationFor(type))}${window.location.hash}`,
+    );
   }, []);
 
   return null;
