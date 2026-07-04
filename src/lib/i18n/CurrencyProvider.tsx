@@ -25,6 +25,12 @@ type CurrencyCtx = {
    * - locale='en' + USD → "$1,333"
    */
   format: (amountInEur: number | null, opts?: { maximumFractionDigits?: number }) => string;
+  /**
+   * Convertit un montant EUR vers la devise active et renvoie le NOMBRE
+   * (arrondi à l'unité) — pour les compteurs animés (KPICard/AnimatedNumber)
+   * qui ont besoin d'une valeur numérique, pas d'une chaîne formatée.
+   */
+  convert: (amountInEur: number) => number;
   /** Symbole court de la devise active ('€' ou '$'). */
   symbol: string;
 };
@@ -33,6 +39,7 @@ const Ctx = createContext<CurrencyCtx>({
   currency: 'EUR',
   setCurrency: () => {},
   format: () => '—',
+  convert: (n) => n,
   symbol: '€',
 });
 
@@ -72,7 +79,11 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         maximumFractionDigits: opts?.maximumFractionDigits ?? 0,
       }).format(converted);
     }
-    return { currency, setCurrency, format, symbol };
+    function convert(amountInEur: number): number {
+      if (!Number.isFinite(amountInEur)) return 0;
+      return Math.round(currency === 'USD' ? amountInEur * EUR_TO_USD : amountInEur);
+    }
+    return { currency, setCurrency, format, convert, symbol };
   }, [currency, setCurrency]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

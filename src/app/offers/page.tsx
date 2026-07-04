@@ -109,7 +109,7 @@ function getSeniorityLabel(t: ReturnType<typeof useAppT>): Record<string, string
 export default function OffersPage() {
   const { activeOrgId, branding, user } = useOrganization();
   const t = useAppT();
-  const { format: formatCurrency } = useCurrency();
+  const { format: formatCurrency, convert: convertCurrency, symbol: currencySymbol } = useCurrency();
   const { locale } = useLocale();
   const seniorityLabel = getSeniorityLabel(t);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -463,8 +463,8 @@ export default function OffersPage() {
           />
           <KPICard
             label={t.pages.offers.kpi_avg_tjm}
-            value={avgTjm}
-            prefix="€"
+            value={convertCurrency(avgTjm)}
+            prefix={currencySymbol}
             icon={Coins}
             tone="emerald"
             hint={tjmValues.length > 0 ? t.pages.offers.kpi_avg_tjm_hint.replace('{n}', tjmValues.length.toString()) : t.pages.offers.kpi_avg_tjm_hint_zero}

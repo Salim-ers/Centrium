@@ -101,7 +101,7 @@ type View = 'active' | 'archived';
 export default function ContractsPage() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
-  const { format: formatCurrency } = useCurrency();
+  const { format: formatCurrency, convert: convertCurrency, symbol: currencySymbol } = useCurrency();
   const ctLabels = useContractStatusLabels();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Contract | undefined>(undefined);
@@ -250,8 +250,8 @@ export default function ContractsPage() {
           />
           <KPICard
             label={t.pages.contracts.kpi_annual_tjm}
-            value={totalAnnual}
-            prefix="€"
+            value={convertCurrency(totalAnnual)}
+            prefix={currencySymbol}
             icon={Coins}
             tone="violet"
             hint={t.pages.contracts.kpi_annual_tjm_hint}
@@ -294,7 +294,7 @@ export default function ContractsPage() {
                     <TableHead>{t.forms.opportunity.title_field}</TableHead>
                     <TableHead>{t.forms.contract.client}</TableHead>
                     <TableHead>{t.forms.timesheet.period}</TableHead>
-                    <TableHead>{t.forms.contract.daily_rate}</TableHead>
+                    <TableHead>{t.forms.contract.daily_rate.replace('(€)', `(${currencySymbol})`)}</TableHead>
                     <TableHead>{t.forms.contract.status}</TableHead>
                     <TableHead className="text-right">{t.pages.consultants.table_actions}</TableHead>
                   </TableRow>
