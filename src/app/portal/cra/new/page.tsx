@@ -117,9 +117,18 @@ export default function PortalCraNewPage() {
         </Link>
       </Button>
 
+      <div className="max-w-2xl mx-auto mb-6">
+        <div className="text-[10px] sm:text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-2">
+          Mon espace
+        </div>
+        <h1 className="font-display font-light tracking-[-0.03em] leading-[1.05] text-[clamp(1.75rem,3.5vw,2.5rem)]">
+          Nouveau <span className="qc-italic-accent font-editorial italic">CRA.</span>
+        </h1>
+      </div>
+
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>Nouveau CRA</CardTitle>
+          <CardTitle className="sr-only">Nouveau CRA</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">

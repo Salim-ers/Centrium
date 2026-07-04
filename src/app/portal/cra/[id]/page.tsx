@@ -200,8 +200,14 @@ export default function PortalCraDetailPage() {
 
       <div className="mb-6 flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">
-            CRA {MONTHS[ts.period_month - 1]} {ts.period_year}
+          <div className="text-[10px] sm:text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-2">
+            Mon espace
+          </div>
+          <h1 className="font-display font-light tracking-[-0.03em] leading-[1.05] text-[clamp(1.75rem,3.5vw,2.5rem)]">
+            CRA{' '}
+            <span className="qc-italic-accent font-editorial italic">
+              {MONTHS[ts.period_month - 1]} {ts.period_year}.
+            </span>
           </h1>
           <div className="mt-2">
             <StatusPill status={ts.status} />

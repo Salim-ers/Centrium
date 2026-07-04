@@ -21,6 +21,7 @@ import {
   StatusBadge,
   EmptyState,
   DataRow,
+  Reveal,
   type StatusTone,
 } from '@/components/app';
 import { createClient } from '@/lib/supabase/client';
@@ -119,7 +120,7 @@ export default function PortalDashboardPage() {
       />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <Reveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <KPICard
           label="CRA à rédiger"
           value={(byStatus.draft ?? 0) + (byStatus.rejected ?? 0)}
@@ -148,11 +149,11 @@ export default function PortalDashboardPage() {
           tone="magenta"
           hint="Factures payées"
         />
-      </div>
+      </Reveal>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Derniers CRA */}
-        <div className="lg:col-span-2">
+        <Reveal delay={0.08} className="lg:col-span-2">
           <SectionHeader
             eyebrow="Activité"
             title={<>Mes derniers <span className="qc-italic-accent font-editorial italic">CRA.</span></>}
@@ -198,10 +199,10 @@ export default function PortalDashboardPage() {
               </div>
             )}
           </AppCard>
-        </div>
+        </Reveal>
 
         {/* Dernières factures payées */}
-        <div>
+        <Reveal delay={0.14}>
           <SectionHeader
             eyebrow="Finances"
             title={<>Factures <span className="qc-italic-accent font-editorial italic">payées.</span></>}
@@ -242,7 +243,7 @@ export default function PortalDashboardPage() {
               </>
             )}
           </AppCard>
-        </div>
+        </Reveal>
       </div>
     </div>
   );

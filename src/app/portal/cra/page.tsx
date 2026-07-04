@@ -12,6 +12,7 @@ import {
   StatusBadge,
   EmptyState,
   DataRow,
+  Reveal,
   type StatusTone,
 } from '@/components/app';
 import { createClient } from '@/lib/supabase/client';
@@ -73,7 +74,7 @@ export default function PortalCraListPage() {
         }
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <Reveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <KPICard
           label="CRA validés"
           value={validated}
@@ -101,10 +102,10 @@ export default function PortalCraListPage() {
           tone="magenta"
           hint={`${MONTHS[currentMonth - 1]} ${currentYear}`}
         />
-      </div>
+      </Reveal>
 
       {loading ? (
-        <div className="h-40 rounded-2xl bg-white/[0.02] animate-pulse" />
+        <div className="h-40 rounded-2xl bg-foreground/[0.03] animate-pulse" />
       ) : timesheets.length === 0 ? (
         <EmptyState
           icon={ClipboardCheck}
@@ -120,6 +121,7 @@ export default function PortalCraListPage() {
           }
         />
       ) : (
+        <Reveal delay={0.08}>
         <AppCard>
           <div>
             {timesheets.map((t) => {
@@ -156,6 +158,7 @@ export default function PortalCraListPage() {
             })}
           </div>
         </AppCard>
+        </Reveal>
       )}
     </div>
   );

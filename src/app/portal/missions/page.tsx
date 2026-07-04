@@ -1,7 +1,6 @@
 'use client';
 
-import { Briefcase } from 'lucide-react';
-
+import { PageHeader, Reveal } from '@/components/app';
 import { ConsultantMissionsList } from '@/components/missions/ConsultantMissionsList';
 import { usePortalConsultant } from '../portal-context';
 
@@ -10,21 +9,19 @@ export default function PortalMissionsPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-          <Briefcase className="h-7 w-7 text-violet-glow" />
-          Mes missions
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Toutes les missions auxquelles tu es affecté — proposées, en cours, terminées.
-        </p>
-      </div>
-
-      <ConsultantMissionsList
-        consultantId={consultantId}
-        canManage={false}
-        linkBase="/portal/missions"
+      <PageHeader
+        eyebrow="Mon espace"
+        title={<>Mes <span className="qc-italic-accent font-editorial italic">missions.</span></>}
+        description="Toutes les missions auxquelles tu es affecté — proposées, en cours, terminées."
       />
+
+      <Reveal>
+        <ConsultantMissionsList
+          consultantId={consultantId}
+          canManage={false}
+          linkBase="/portal/missions"
+        />
+      </Reveal>
     </div>
   );
 }

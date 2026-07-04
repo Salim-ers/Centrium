@@ -14,6 +14,7 @@ import {
   EmptyState,
   DataRow,
   StatusBadge,
+  Reveal,
 } from '@/components/app';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
@@ -158,6 +159,7 @@ export default function PortalDocumentsPage() {
         description={`Partagez vos documents avec ${brandName} et retrouvez ceux qui vous ont été transmis.`}
       />
 
+      <Reveal>
       <AppCard className="mb-8">
         <AppCardBody>
           <SectionHeader
@@ -201,9 +203,10 @@ export default function PortalDocumentsPage() {
           </div>
         </AppCardBody>
       </AppCard>
+      </Reveal>
 
       {loading ? (
-        <div className="h-40 rounded-2xl bg-white/[0.02] animate-pulse" />
+        <div className="h-40 rounded-2xl bg-foreground/[0.03] animate-pulse" />
       ) : docs.length === 0 ? (
         <EmptyState
           icon={FileText}
@@ -211,6 +214,7 @@ export default function PortalDocumentsPage() {
           description={`Téléversez votre CV, une certification ou contactez ${brandName}.`}
         />
       ) : (
+        <Reveal delay={0.08}>
         <AppCard>
           <div>
             {docs.map((d) => {
@@ -263,6 +267,7 @@ export default function PortalDocumentsPage() {
             })}
           </div>
         </AppCard>
+        </Reveal>
       )}
     </div>
   );

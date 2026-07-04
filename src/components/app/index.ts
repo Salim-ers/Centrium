@@ -19,3 +19,4 @@ export { StatusBadge, type StatusTone } from './StatusBadge';
 export { EmptyState } from './EmptyState';
 export { DataRow } from './DataRow';
 export { BulkActionBar } from './BulkActionBar';
+export { Reveal } from './Reveal';

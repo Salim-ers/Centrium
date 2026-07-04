@@ -12,6 +12,7 @@ import {
   AppCardBody,
   StatusBadge,
   EmptyState,
+  Reveal,
   type StatusTone,
 } from '@/components/app';
 import { createClient } from '@/lib/supabase/client';
@@ -61,14 +62,14 @@ export default function PortalContractsPage() {
         description={`Retrouvez vos contrats avec ${brandName} et téléchargez les PDF.`}
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+      <Reveal className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
         <KPICard label="Contrats actifs" value={active} icon={CheckCircle2} tone="emerald" />
         <KPICard label="À signer" value={toSign} icon={Clock} tone="amber" />
         <KPICard label="Terminés" value={ended} icon={XCircle} tone="violet" />
-      </div>
+      </Reveal>
 
       {loading ? (
-        <div className="h-40 rounded-2xl bg-white/[0.02] animate-pulse" />
+        <div className="h-40 rounded-2xl bg-foreground/[0.03] animate-pulse" />
       ) : contracts.length === 0 ? (
         <EmptyState
           icon={FileSignature}
@@ -77,11 +78,12 @@ export default function PortalContractsPage() {
         />
       ) : (
         <div className="space-y-3">
-          {contracts.map((c) => {
+          {contracts.map((c, idx) => {
             const s = STATUS_TONE[c.status];
             const pulse = c.status === 'sent' || c.status === 'pending_review';
             return (
-              <AppCard key={c.id} interactive>
+              <Reveal key={c.id} delay={0.06 + idx * 0.04}>
+              <AppCard interactive>
                 <AppCardBody>
                   <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
                     <div className="min-w-0">
@@ -133,6 +135,7 @@ export default function PortalContractsPage() {
                   </div>
                 </AppCardBody>
               </AppCard>
+              </Reveal>
             );
           })}
         </div>
