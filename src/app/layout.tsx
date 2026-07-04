@@ -156,6 +156,19 @@ const sessionGateScript = `
     var flag = sessionStorage.getItem('centrium-session-active');
     if (flag === '1') return;
 
+    // Entrée légitime par LIEN EMAIL (invite, reset, magic link) : le
+    // serveur vient d'établir la session (/auth/callback ou
+    // /api/auth/session) et l'a signalé via un cookie court non-httpOnly.
+    // On le convertit en flag de présence puis on le consomme — sans ça,
+    // chaque invité était déconnecté ~1 s après avoir cliqué son lien.
+    if (document.cookie.indexOf('centrium-fresh-auth=1') !== -1) {
+      sessionStorage.setItem('centrium-session-active', '1');
+      var d = window.location.hostname.replace(/^www\\./, '');
+      document.cookie = 'centrium-fresh-auth=; Max-Age=0; Path=/';
+      document.cookie = 'centrium-fresh-auth=; Max-Age=0; Path=/; Domain=.' + d;
+      return;
+    }
+
     // Pas de flag → on déco. Le serveur reçoit le beacon (purge cookies
     // httpOnly Supabase), et on redirige immédiatement vers / (page
     // d'accueil vitrine). La page protégée n'aura jamais le temps de

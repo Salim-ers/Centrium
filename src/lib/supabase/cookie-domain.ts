@@ -29,3 +29,36 @@ export function sharedAuthCookieDomain(): string | undefined {
     return undefined;
   }
 }
+
+// =========================================================================
+// Marqueur "entrée légitime par lien email"
+// -------------------------------------------------------------------------
+// Le garde anti-restauration (script inline du RootLayout +
+// useSessionPresence) déconnecte toute page protégée chargée sans le flag
+// sessionStorage `centrium-session-active` — flag posé uniquement par le
+// FORMULAIRE de login. Une session créée côté serveur par un lien email
+// (invite, recovery, magic link → /auth/callback ou /api/auth/session)
+// n'a jamais ce flag : l'invité était déconnecté ~1 s après un /verify
+// pourtant réussi (logs GoTrue : verify 200 → login → logout 204).
+//
+// Fix : les routes serveur qui établissent une session posent ce cookie
+// court (5 min, NON httpOnly). Le garde le consomme : cookie présent →
+// pose le flag sessionStorage, supprime le cookie, laisse passer.
+// Il n'accorde AUCUN droit — il empêche seulement l'auto-logout.
+// =========================================================================
+
+export const FRESH_AUTH_COOKIE = 'centrium-fresh-auth';
+
+export function freshAuthCookieOptions() {
+  const domain = sharedAuthCookieDomain();
+  return {
+    name: FRESH_AUTH_COOKIE,
+    value: '1',
+    maxAge: 300,
+    path: '/',
+    sameSite: 'lax' as const,
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: false,
+    ...(domain ? { domain } : {}),
+  };
+}

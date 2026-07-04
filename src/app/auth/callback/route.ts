@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { EmailOtpType } from '@supabase/supabase-js';
 
 import { createClient } from '@/lib/supabase/server';
+import { freshAuthCookieOptions } from '@/lib/supabase/cookie-domain';
 
 // =========================================================================
 // GET /auth/callback?code=...&next=...          (PKCE flow — invite native)
@@ -81,7 +82,11 @@ export async function GET(req: NextRequest) {
         new URL(`/login?error=${encodeURIComponent(error.message)}`, url.origin),
       );
     }
-    return NextResponse.redirect(new URL(safeNext, url.origin));
+    const res = NextResponse.redirect(new URL(safeNext, url.origin));
+    // Session créée par lien email : marque l'entrée comme légitime pour
+    // le garde anti-restauration (sinon logout automatique ~1 s après).
+    res.cookies.set(freshAuthCookieOptions());
+    return res;
   }
 
   // Branch 2 — PKCE (?code=…). Requiert le code_verifier cookie.
@@ -92,7 +97,9 @@ export async function GET(req: NextRequest) {
         new URL(`/login?error=${encodeURIComponent(error.message)}`, url.origin),
       );
     }
-    return NextResponse.redirect(new URL(safeNext, url.origin));
+    const res = NextResponse.redirect(new URL(safeNext, url.origin));
+    res.cookies.set(freshAuthCookieOptions());
+    return res;
   }
 
   // Ni code ni token_hash : très probablement un lien {{ .ConfirmationURL }}

@@ -51,6 +51,23 @@ export function useSessionPresence() {
         /* mode incognito strict */
       }
     };
+    // Session fraîchement établie par LIEN EMAIL : /auth/callback ou
+    // /api/auth/session vient de poser un cookie court non-httpOnly
+    // (cf. cookie-domain.ts). On le convertit en flag de présence et on
+    // le consomme. Couvre les navigations client-side post-set-password
+    // (le script inline du <head> ne rejoue pas sur un router.push).
+    const consumeFreshAuthCookie = () => {
+      try {
+        if (document.cookie.indexOf('centrium-fresh-auth=1') === -1) return false;
+        setFlag();
+        const d = window.location.hostname.replace(/^www\./, '');
+        document.cookie = 'centrium-fresh-auth=; Max-Age=0; Path=/';
+        document.cookie = `centrium-fresh-auth=; Max-Age=0; Path=/; Domain=.${d}`;
+        return true;
+      } catch {
+        return false;
+      }
+    };
 
     try {
       bc = new BroadcastChannel(BROADCAST_CHANNEL);
@@ -58,7 +75,7 @@ export function useSessionPresence() {
       /* BroadcastChannel pas supporté (anciens browsers) */
     }
 
-    if (hasFlag()) {
+    if (hasFlag() || consumeFreshAuthCookie()) {
       // On est sur une session active. On répond aux pings des autres
       // onglets qui auraient été ouverts par Ctrl+T pour qu'ils héritent
       // de notre statut connecté.

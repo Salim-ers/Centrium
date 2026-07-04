@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { createClient } from '@/lib/supabase/server';
+import { freshAuthCookieOptions } from '@/lib/supabase/cookie-domain';
 
 // =========================================================================
 // POST /api/auth/session — établit la session côté SERVEUR à partir des
@@ -41,7 +42,11 @@ export async function POST(req: NextRequest) {
       { status: 401 },
     );
   }
-  return NextResponse.json({ data: { ok: true } });
+  const res = NextResponse.json({ data: { ok: true } });
+  // Session établie par lien email (fragment) : marque l'entrée comme
+  // légitime pour le garde anti-restauration (cf. cookie-domain.ts).
+  res.cookies.set(freshAuthCookieOptions());
+  return res;
 }
 
 /**

@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/card';
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { notifyCreated, notifyError } from '@/lib/notify';
+import { markSessionActive } from '@/hooks/useSessionPresence';
 
 export default function SetPasswordPage() {
   return (
@@ -100,6 +101,10 @@ function SetPasswordInner() {
           router.replace('/login?error=session_expired');
           return;
         }
+        // Session confirmée (lien email vérifié) : pose le flag de
+        // présence — sans lui, SessionPresenceGate déconnecterait dès la
+        // première page protégée après la création du mot de passe.
+        markSessionActive();
         setCheckingSession(false);
       })
       .catch(() => {
@@ -155,6 +160,7 @@ function SetPasswordInner() {
       if (!ok) setBusy(false);
     }
     notifyCreated('Mot de passe défini — bienvenue sur Centrium');
+    markSessionActive();
     // Le serveur connaît son rôle ; on laisse le middleware router au bon
     // dashboard (consultant → /portal/dashboard, autre → /dashboard).
     if (welcome === 'portal') {

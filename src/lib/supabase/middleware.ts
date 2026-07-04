@@ -281,7 +281,10 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Consultant tentant d'accéder à une route admin → renvoyer vers son portail
-  if (isConsultant && !isPortal) {
+  // EXCEPTION /auth/* : un consultant fraîchement invité atterrit sur
+  // /auth/set-password — le renvoyer vers le portail avant qu'il ait posé
+  // son mot de passe le laissait définitivement sans mot de passe.
+  if (isConsultant && !isPortal && !pathname.startsWith('/auth/')) {
     const url = request.nextUrl.clone();
     url.pathname = '/portal/dashboard';
     return NextResponse.redirect(url);
