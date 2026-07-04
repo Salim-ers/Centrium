@@ -210,11 +210,14 @@ export default function RootLayout({
         </LocaleProvider>
         <GlobalToastBridge />
         <AuthHashRecovery />
+        {/* Bas-droite : ne chevauche jamais le header, lecture naturelle.
+            unstyled : la carte est entièrement dessinée par BrandToast. */}
         <Toaster
-          position="top-right"
-          visibleToasts={2}
+          position="bottom-right"
+          visibleToasts={3}
           expand={false}
-          gap={8}
+          gap={10}
+          offset={24}
           toastOptions={{
             duration: 2500,
             unstyled: true,

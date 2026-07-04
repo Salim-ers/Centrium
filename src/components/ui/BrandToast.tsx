@@ -14,27 +14,19 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { cn } from '@/lib/utils';
+
 /**
- * Toasts Centrium — design « haut de gamme » :
- *   - carte sombre uniforme (pas de gradient par variant)
- *   - hairline 1px gauche colorée comme seul signal de variant
- *   - icône monochrome dans pastille discrète
- *   - titre normal-case (pas capitalisé arbitrairement)
- *   - largeur 300px, dismiss bouton visible au hover seulement
+ * Toasts Centrium — design « haut de gamme », THÈME-AWARE :
+ *   - light : carte crème/blanche opaque, ombre douce, accents terracotta
+ *   - dark  : carte verre sombre, ombre profonde
+ *   - trait gauche coloré = signal de variant
+ *   - pastille d'icône teintée, titre + description hiérarchisés
+ *   - dismiss visible au hover, largeur 340px
  *
- * Variants :
- *   - success      → création simple (vert hairline)         — 1800ms
- *   - update       → modification simple (violet hairline)   — 1800ms
- *   - destructive  → action destructive réussie (rouge)      — 2500ms
- *   - milestone    → état pipeline changé / cross-vue        — 3000ms
- *   - error        → vraie erreur (rouge accent + bg tint)   — 5000ms
- *   - warning      → quota / avertissement (ambre)           — 4000ms
- *   - info         → info neutre (cyan)                      — 2000ms
- *   - celebration  → promotion (gradient brand)              — 6000ms
- *
- * NOTE design : success/update/info/destructive/milestone restent monochromes
- * avec juste un trait gauche coloré. error/warning/celebration sont les
- * SEULS variants à peser visuellement (l'utilisateur DOIT les voir).
+ * Variants : success / update / destructive / milestone (discrets),
+ * error / warning / celebration (loud : wash teinté + bord coloré),
+ * loading (spinner, dismiss manuel).
  */
 export type BrandToastVariant =
   | 'success'
@@ -48,50 +40,92 @@ export type BrandToastVariant =
   | 'loading';
 
 type ToastConfig = {
-  /** Couleur du trait gauche + (pour error/warning/celebration) du bg tint. */
-  accent: string;
-  /** Couleur de l'icône. */
-  iconColor: string;
-  /** Tint de background — undefined = neutre sombre uniforme. */
-  bgTintAlpha?: number;
-  /** Icône Lucide. */
   Icon: typeof Check;
-  /** Si true → bg tinté + halo (variants visuellement « lourds »). */
+  /** Variant « lourd » : wash teinté + bordure colorée (doit être VU). */
   loud: boolean;
+  /** Trait gauche. */
+  hairline: string;
+  /** Pastille icône (fond + bordure), light + dark. */
+  chip: string;
+  /** Couleur icône, light + dark. */
+  icon: string;
+  /** Wash de fond pour les variants loud (dégradé haut → transparent). */
+  wash?: string;
+  /** Bordure carte pour les variants loud. */
+  loudBorder?: string;
 };
 
 const VARIANTS: Record<BrandToastVariant, ToastConfig> = {
-  success: { accent: '#10b981', iconColor: '#6ee7b7', Icon: Check, loud: false },
-  update: { accent: '#8b5cf6', iconColor: '#c4b5fd', Icon: Pencil, loud: false },
-  destructive: { accent: '#f43f5e', iconColor: '#fda4af', Icon: Trash2, loud: false },
-  milestone: { accent: '#22d3ee', iconColor: '#a5f3fc', Icon: ArrowRight, loud: false },
-  info: { accent: '#0ea5e9', iconColor: '#7dd3fc', Icon: Info, loud: false },
-  loading: { accent: '#8b5cf6', iconColor: '#c4b5fd', Icon: Loader2, loud: false },
+  success: {
+    Icon: Check,
+    loud: false,
+    hairline: 'bg-emerald-500',
+    chip: 'bg-emerald-500/10 border-emerald-500/20',
+    icon: 'text-emerald-600 dark:text-emerald-300',
+  },
+  update: {
+    Icon: Pencil,
+    loud: false,
+    hairline: 'bg-violet-500',
+    chip: 'bg-violet-500/10 border-violet-500/20',
+    icon: 'text-violet-600 dark:text-violet-300',
+  },
+  destructive: {
+    Icon: Trash2,
+    loud: false,
+    hairline: 'bg-rose-500',
+    chip: 'bg-rose-500/10 border-rose-500/20',
+    icon: 'text-rose-600 dark:text-rose-300',
+  },
+  milestone: {
+    Icon: ArrowRight,
+    loud: false,
+    hairline: 'bg-cyan-500',
+    chip: 'bg-cyan-500/10 border-cyan-500/20',
+    icon: 'text-cyan-600 dark:text-cyan-300',
+  },
+  info: {
+    Icon: Info,
+    loud: false,
+    hairline: 'bg-sky-500',
+    chip: 'bg-sky-500/10 border-sky-500/20',
+    icon: 'text-sky-600 dark:text-sky-300',
+  },
+  loading: {
+    Icon: Loader2,
+    loud: false,
+    hairline: 'bg-violet-500',
+    chip: 'bg-violet-500/10 border-violet-500/20',
+    icon: 'text-violet-600 dark:text-violet-300',
+  },
   warning: {
-    accent: '#f59e0b',
-    iconColor: '#fbbf24',
     Icon: AlertTriangle,
     loud: true,
-    bgTintAlpha: 0.08,
+    hairline: 'bg-amber-500',
+    chip: 'bg-amber-500/15 border-amber-500/25',
+    icon: 'text-amber-600 dark:text-amber-300',
+    wash: 'from-amber-500/[0.10]',
+    loudBorder: 'border-amber-500/40 dark:border-amber-400/25',
   },
   error: {
-    accent: '#ef4444',
-    iconColor: '#fca5a5',
     Icon: XCircle,
     loud: true,
-    bgTintAlpha: 0.1,
+    hairline: 'bg-rose-500',
+    chip: 'bg-rose-500/15 border-rose-500/25',
+    icon: 'text-rose-600 dark:text-rose-300',
+    wash: 'from-rose-500/[0.10]',
+    loudBorder: 'border-rose-500/40 dark:border-rose-400/25',
   },
   celebration: {
-    accent: '#e11d74',
-    iconColor: '#f9a8d4',
     Icon: Sparkles,
     loud: true,
-    bgTintAlpha: 0.14,
+    hairline: 'bg-magenta',
+    chip: 'bg-magenta/15 border-magenta/25',
+    icon: 'text-magenta dark:text-pink-300',
+    wash: 'from-magenta/[0.12]',
+    loudBorder: 'border-magenta/40 dark:border-magenta/30',
   },
 };
-
-const NEUTRAL_BG = 'rgba(11,11,13,0.95)';
-const NEUTRAL_BORDER = 'rgba(255,255,255,0.08)';
 
 type Props = {
   variant: BrandToastVariant;
@@ -100,61 +134,60 @@ type Props = {
   toastId: string | number;
 };
 
-/** Couleur RGB depuis un hex. Pour construire les tints proprement. */
-function hexToRgb(hex: string): [number, number, number] {
-  const v = hex.replace('#', '');
-  return [parseInt(v.slice(0, 2), 16), parseInt(v.slice(2, 4), 16), parseInt(v.slice(4, 6), 16)];
-}
-
 function BrandToastInner({ variant, title, description, toastId }: Props) {
   const cfg = VARIANTS[variant];
   const Icon = cfg.Icon;
-  const [r, g, b] = hexToRgb(cfg.accent);
-  const bg = cfg.loud && cfg.bgTintAlpha
-    ? `linear-gradient(180deg, rgba(${r},${g},${b},${cfg.bgTintAlpha}) 0%, ${NEUTRAL_BG} 100%)`
-    : NEUTRAL_BG;
-  const border = cfg.loud
-    ? `1px solid rgba(${r},${g},${b},0.25)`
-    : `1px solid ${NEUTRAL_BORDER}`;
 
   return (
     <div
-      className="group relative w-[300px] max-w-[88vw] overflow-hidden rounded-lg backdrop-blur-md"
-      style={{
-        background: bg,
-        border,
-        boxShadow: cfg.loud
-          ? `0 4px 16px -4px rgba(${r},${g},${b},0.18), 0 2px 4px rgba(0,0,0,0.3)`
-          : '0 4px 16px -6px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)',
-      }}
+      role="status"
+      className={cn(
+        'group relative w-[340px] max-w-[92vw] overflow-hidden rounded-xl border backdrop-blur-xl',
+        // Carte : crème opaque en light, verre sombre en dark.
+        'bg-white/95 dark:bg-[#0d0d12]/95',
+        'shadow-[0_16px_48px_-16px_rgba(30,15,10,0.25),0_2px_8px_rgba(30,15,10,0.08)]',
+        'dark:shadow-[0_16px_48px_-16px_rgba(0,0,0,0.8),0_2px_8px_rgba(0,0,0,0.4)]',
+        cfg.loud && cfg.loudBorder
+          ? cfg.loudBorder
+          : 'border-neutral-200/90 dark:border-white/[0.08]',
+      )}
     >
-      {/* Trait gauche 2px — seul signal de variant pour les variants discrets */}
+      {/* Wash teinté (variants loud uniquement) */}
+      {cfg.loud && cfg.wash && (
+        <div
+          aria-hidden
+          className={cn('absolute inset-0 bg-gradient-to-b to-transparent', cfg.wash)}
+        />
+      )}
+
+      {/* Trait gauche — signal du variant */}
       <div
         aria-hidden
-        className="absolute left-0 top-0 bottom-0 w-[2px]"
-        style={{ background: cfg.accent, opacity: cfg.loud ? 1 : 0.7 }}
+        className={cn(
+          'absolute left-0 top-0 bottom-0 w-[3px]',
+          cfg.hairline,
+          cfg.loud ? 'opacity-100' : 'opacity-80',
+        )}
       />
 
-      <div className="flex items-start gap-2.5 pl-3.5 pr-2 py-2.5">
+      <div className="relative flex items-start gap-3 pl-4 pr-2.5 py-3">
         <div
-          className="h-7 w-7 rounded-md flex items-center justify-center shrink-0 mt-px"
-          style={{
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.06)',
-          }}
+          className={cn(
+            'h-8 w-8 rounded-lg border flex items-center justify-center shrink-0',
+            cfg.chip,
+          )}
         >
           <Icon
-            className={variant === 'loading' ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'}
-            style={{ color: cfg.iconColor }}
+            className={cn('h-4 w-4', cfg.icon, variant === 'loading' && 'animate-spin')}
           />
         </div>
 
-        <div className="flex-1 min-w-0 pt-px">
-          <div className="text-[13px] font-medium leading-snug text-white/95 normal-case">
+        <div className="flex-1 min-w-0 pt-0.5">
+          <div className="text-[13.5px] font-semibold leading-snug text-neutral-900 dark:text-white/95">
             {title}
           </div>
           {description && (
-            <p className="text-[11.5px] text-white/55 mt-0.5 leading-snug">
+            <p className="text-[12px] text-neutral-500 dark:text-white/55 mt-1 leading-relaxed">
               {description}
             </p>
           )}
@@ -163,10 +196,15 @@ function BrandToastInner({ variant, title, description, toastId }: Props) {
         <button
           type="button"
           onClick={() => toast.dismiss(toastId)}
-          className="shrink-0 h-5 w-5 rounded inline-flex items-center justify-center text-white/30 hover:text-white/80 hover:bg-white/[0.06] transition opacity-0 group-hover:opacity-100"
+          className={cn(
+            'shrink-0 h-6 w-6 rounded-md inline-flex items-center justify-center transition',
+            'text-neutral-400 hover:text-neutral-700 hover:bg-neutral-900/[0.06]',
+            'dark:text-white/30 dark:hover:text-white/80 dark:hover:bg-white/[0.08]',
+            'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
+          )}
           aria-label="Fermer"
         >
-          <X className="h-3 w-3" />
+          <X className="h-3.5 w-3.5" />
         </button>
       </div>
     </div>
@@ -178,17 +216,16 @@ export type BrandToastOptions = {
   duration?: number;
 };
 
-/** Durée par défaut selon le variant — privilégie les variants discrets à
- *  une durée courte (moins de noise visuel), les loud variants restent
- *  plus longtemps pour que l'utilisateur ait le temps de lire. */
+/** Durée par défaut selon le variant — courts pour les discrets, plus
+ *  longs pour les loud (l'utilisateur doit avoir le temps de lire). */
 const DEFAULT_DURATION: Record<BrandToastVariant, number> = {
   success: 1800,
   update: 1800,
   destructive: 2500,
   milestone: 3000,
-  info: 2000,
-  warning: 4000,
-  error: 5000,
+  info: 2500,
+  warning: 5000,
+  error: 6000,
   celebration: 6000,
   loading: 60_000, // dismiss manuel attendu (toast.dismiss après l'opération)
 };
