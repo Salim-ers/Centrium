@@ -239,9 +239,11 @@ function BillingPageInner() {
           ...(wantEmbedded ? { ui: 'embedded' } : {}),
         }),
       });
-      const body = await res.json();
+      // .catch : un 500 HTML (crash serveur) faisait lever res.json() et
+      // le clic semblait mort. On veut TOUJOURS un feedback.
+      const body = await res.json().catch(() => ({}) as Record<string, string>);
       if (!res.ok) {
-        toast.error(body.message ?? 'Souscription impossible');
+        toast.error(body.message ?? `Souscription impossible (HTTP ${res.status})`);
         return;
       }
 
@@ -280,7 +282,17 @@ function BillingPageInner() {
         return;
       }
 
-      window.location.href = body.url;
+      if (body.url) {
+        window.location.href = body.url;
+      } else {
+        toast.error('Réponse de paiement invalide — réessaie.');
+      }
+    } catch (e) {
+      // Sans catch, toute exception (réseau, Stripe.js) rendait le clic
+      // muet. L'utilisateur DOIT toujours voir pourquoi rien ne s'ouvre.
+      toast.error(
+        e instanceof Error ? `Paiement indisponible : ${e.message}` : 'Paiement indisponible — réessaie.',
+      );
     } finally {
       setBusy(null);
     }

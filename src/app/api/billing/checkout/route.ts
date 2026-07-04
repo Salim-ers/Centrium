@@ -108,66 +108,89 @@ export async function POST(req: NextRequest) {
     throw e;
   }
 
-  // 5) Récupère / crée le customer Stripe.
-  const { data: sub } = await admin
-    .from('subscriptions')
-    .select('stripe_customer_id')
-    .eq('organization_id', ctx.organizationId)
-    .maybeSingle();
+  // 5) Customer + session Stripe — TOUT le bloc est gardé : une clé
+  // manquante (getStripe → StripeConfigError) ou une erreur API Stripe
+  // renvoyait un 500 HTML Next → res.json() côté client levait en
+  // silence → « je clique sur Souscrire et rien ne se passe ».
+  try {
+    const { data: sub } = await admin
+      .from('subscriptions')
+      .select('stripe_customer_id')
+      .eq('organization_id', ctx.organizationId)
+      .maybeSingle();
 
-  const stripe = getStripe();
-  let customerId = sub?.stripe_customer_id ?? null;
+    const stripe = getStripe();
+    let customerId = sub?.stripe_customer_id ?? null;
 
-  if (!customerId) {
-    const customer = await stripe.customers.create({
-      email: ctx.user.email || undefined,
-      metadata: { organization_id: ctx.organizationId },
-    });
-    customerId = customer.id;
-    await admin.from('subscriptions').upsert(
-      {
-        organization_id: ctx.organizationId,
-        plan_id: 'free',
-        status: 'incomplete',
-        stripe_customer_id: customerId,
-      },
-      { onConflict: 'organization_id' },
-    );
-  }
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: ctx.user.email || undefined,
+        metadata: { organization_id: ctx.organizationId },
+      });
+      customerId = customer.id;
+      await admin.from('subscriptions').upsert(
+        {
+          organization_id: ctx.organizationId,
+          plan_id: 'free',
+          status: 'incomplete',
+          stripe_customer_id: customerId,
+        },
+        { onConflict: 'organization_id' },
+      );
+    }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
-  if (ui === 'embedded') {
-    // Paiement DANS l'app : pas de success/cancel_url, pas de redirection —
-    // le dialog écoute onComplete côté client puis rafraîchit l'abonnement
-    // (le webhook Stripe met la DB à jour en parallèle).
+    if (ui === 'embedded') {
+      // Paiement DANS l'app : pas de success/cancel_url, pas de redirection —
+      // le dialog écoute onComplete côté client puis rafraîchit l'abonnement
+      // (le webhook Stripe met la DB à jour en parallèle).
+      const session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        ui_mode: 'embedded_page',
+        redirect_on_completion: 'never',
+        customer: customerId,
+        line_items: [{ price: priceId, quantity: 1 }],
+        subscription_data: {
+          metadata: { organization_id: ctx.organizationId, plan_id: planId },
+        },
+        allow_promotion_codes: true,
+        billing_address_collection: 'auto',
+      });
+      return NextResponse.json({ client_secret: session.client_secret });
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      ui_mode: 'embedded_page',
-      redirect_on_completion: 'never',
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
+      success_url: `${appUrl}/billing?success=1`,
+      cancel_url: `${appUrl}/billing?canceled=1`,
       subscription_data: {
         metadata: { organization_id: ctx.organizationId, plan_id: planId },
       },
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
     });
-    return NextResponse.json({ client_secret: session.client_secret });
+
+    return NextResponse.json({ url: session.url });
+  } catch (e) {
+    if (e instanceof StripeConfigError) {
+      console.error(`[billing/checkout] ${e.envVar} ${e.kind}`);
+      return NextResponse.json(
+        {
+          error: 'stripe_not_configured',
+          message:
+            'Le paiement n\'est pas encore configuré côté serveur (clé Stripe manquante). Écris à contact@centrium-platform.com.',
+        },
+        { status: 503 },
+      );
+    }
+    const message = e instanceof Error ? e.message : 'Erreur Stripe inconnue';
+    console.error('[billing/checkout] stripe error', message);
+    return NextResponse.json(
+      { error: 'stripe_error', message: `Paiement indisponible : ${message}` },
+      { status: 502 },
+    );
   }
-
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    customer: customerId,
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${appUrl}/billing?success=1`,
-    cancel_url: `${appUrl}/billing?canceled=1`,
-    subscription_data: {
-      metadata: { organization_id: ctx.organizationId, plan_id: planId },
-    },
-    allow_promotion_codes: true,
-    billing_address_collection: 'auto',
-  });
-
-  return NextResponse.json({ url: session.url });
 }

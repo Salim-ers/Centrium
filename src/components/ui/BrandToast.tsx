@@ -9,6 +9,7 @@ import {
   Sparkles,
   XCircle,
   ArrowRight,
+  Loader2,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -43,7 +44,8 @@ export type BrandToastVariant =
   | 'error'
   | 'warning'
   | 'info'
-  | 'celebration';
+  | 'celebration'
+  | 'loading';
 
 type ToastConfig = {
   /** Couleur du trait gauche + (pour error/warning/celebration) du bg tint. */
@@ -64,6 +66,7 @@ const VARIANTS: Record<BrandToastVariant, ToastConfig> = {
   destructive: { accent: '#f43f5e', iconColor: '#fda4af', Icon: Trash2, loud: false },
   milestone: { accent: '#22d3ee', iconColor: '#a5f3fc', Icon: ArrowRight, loud: false },
   info: { accent: '#0ea5e9', iconColor: '#7dd3fc', Icon: Info, loud: false },
+  loading: { accent: '#8b5cf6', iconColor: '#c4b5fd', Icon: Loader2, loud: false },
   warning: {
     accent: '#f59e0b',
     iconColor: '#fbbf24',
@@ -92,8 +95,8 @@ const NEUTRAL_BORDER = 'rgba(255,255,255,0.08)';
 
 type Props = {
   variant: BrandToastVariant;
-  title: string;
-  description?: string;
+  title: React.ReactNode;
+  description?: React.ReactNode;
   toastId: string | number;
 };
 
@@ -140,7 +143,10 @@ function BrandToastInner({ variant, title, description, toastId }: Props) {
             border: '1px solid rgba(255,255,255,0.06)',
           }}
         >
-          <Icon className="h-3.5 w-3.5" style={{ color: cfg.iconColor }} />
+          <Icon
+            className={variant === 'loading' ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'}
+            style={{ color: cfg.iconColor }}
+          />
         </div>
 
         <div className="flex-1 min-w-0 pt-px">
@@ -168,7 +174,7 @@ function BrandToastInner({ variant, title, description, toastId }: Props) {
 }
 
 export type BrandToastOptions = {
-  description?: string;
+  description?: React.ReactNode;
   duration?: number;
 };
 
@@ -184,11 +190,12 @@ const DEFAULT_DURATION: Record<BrandToastVariant, number> = {
   warning: 4000,
   error: 5000,
   celebration: 6000,
+  loading: 60_000, // dismiss manuel attendu (toast.dismiss après l'opération)
 };
 
 export function showBrandToast(
   variant: BrandToastVariant,
-  title: string,
+  title: React.ReactNode,
   opts: BrandToastOptions = {},
 ) {
   const { description, duration } = opts;

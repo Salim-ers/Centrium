@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, Space_Grotesk, Instrument_Serif } from 'next/font/google';
 import { Toaster } from 'sonner';
 import './globals.css';
-import { MuteSuccessToasts } from '@/components/ui/MuteSuccessToasts';
+import { GlobalToastBridge } from '@/components/ui/GlobalToastBridge';
 import { AuthHashRecovery } from '@/components/auth/AuthHashRecovery';
 import { OrganizationProvider } from '@/lib/auth/context';
 import { RouteThemeManager } from '@/components/theme/RouteThemeManager';
@@ -208,7 +208,7 @@ export default function RootLayout({
             <CookieBanner />
           </CurrencyProvider>
         </LocaleProvider>
-        <MuteSuccessToasts />
+        <GlobalToastBridge />
         <AuthHashRecovery />
         <Toaster
           position="top-right"
