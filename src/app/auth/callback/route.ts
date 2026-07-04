@@ -43,8 +43,9 @@ import { freshAuthCookieOptions } from '@/lib/supabase/cookie-domain';
 
 export const runtime = 'nodejs';
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Token d'invitation d'org : opaque URL-safe (64 hex aujourd'hui — on
+// tolère uuid/base64url pour ne pas coupler au générateur SQL).
+const INVITE_TOKEN_RE = /^[A-Za-z0-9_-]{16,128}$/;
 
 function errorDestination(type: EmailOtpType | null): string {
   if (type === 'recovery') return '/auth/reset-password?error=link_expired';
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
   //    caprices de redirect_to (allow-list, encodage, réécriture email).
   if (!next) {
     const it = url.searchParams.get('it');
-    if (it && UUID_RE.test(it)) next = `/invite/accept?token=${it}`;
+    if (it && INVITE_TOKEN_RE.test(it)) next = `/invite/accept?token=${it}`;
   }
 
   // 3. rt = redirectTo original ({{ .RedirectTo }} des templates). On n'en
