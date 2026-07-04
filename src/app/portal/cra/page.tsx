@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ClipboardCheck, Plus, Eye, CalendarCheck, Hourglass, AlertTriangle, CalendarDays } from 'lucide-react';
 
@@ -16,6 +15,8 @@ import {
   type StatusTone,
 } from '@/components/app';
 import { createClient } from '@/lib/supabase/client';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { usePortalConsultant } from '../portal-context';
 import type { Timesheet } from '@/types';
 
 const MONTHS = [
@@ -31,21 +32,22 @@ const STATUS: Record<Timesheet['status'], { label: string; tone: StatusTone; hig
 };
 
 export default function PortalCraListPage() {
-  const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
+  const { consultantId } = usePortalConsultant();
+  // Cache SWR : la liste s'affiche instantanément au retour sur la page
+  // (sessionStorage) pendant que la version fraîche arrive en arrière-plan.
+  const { data, loading } = useCachedQuery<Timesheet[]>(
+    `portal-cra-list:${consultantId}`,
+    async () => {
       const supabase = createClient();
-      const { data } = await supabase
+      const { data: rows } = await supabase
         .from('timesheets')
         .select('*')
         .order('period_year', { ascending: false })
         .order('period_month', { ascending: false });
-      setTimesheets((data ?? []) as Timesheet[]);
-      setLoading(false);
-    })();
-  }, []);
+      return (rows ?? []) as Timesheet[];
+    },
+  );
+  const timesheets = data ?? [];
 
   const now = new Date();
   const currentMonth = now.getMonth() + 1;

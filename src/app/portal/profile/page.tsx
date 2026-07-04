@@ -41,6 +41,7 @@ import {
 import type { Consultant } from '@/types';
 import { useOrganization } from '@/lib/auth/context';
 import { KycDocuments } from '@/components/consultants/KycDocuments';
+import { ConsultantSelfDocuments } from '@/components/portal/ConsultantSelfDocuments';
 import { usePortalConsultant } from '../portal-context';
 
 type EditableForm = {
@@ -91,7 +92,7 @@ function formFromConsultant(c: Consultant): EditableForm {
 }
 
 export default function PortalProfilePage() {
-  const { consultantId } = usePortalConsultant();
+  const { consultantId, userId } = usePortalConsultant();
   const { activeOrgId } = useOrganization();
   const brandName = useBrandName();
   const [editing, setEditing] = useState(false);
@@ -450,9 +451,26 @@ export default function PortalProfilePage() {
         </Reveal>
       )}
 
+      {/* ---- Mes documents (CV, certifications…) ---- */}
+      <Reveal delay={0.22}>
+        <SectionHeader
+          eyebrow="Documents"
+          title={<>CV &amp; <span className="qc-italic-accent font-editorial italic">certifications.</span></>}
+          description="Ton CV et tes justificatifs, partagés avec l'équipe qui te positionne."
+        />
+        <div className="mb-8">
+          <ConsultantSelfDocuments
+            consultantId={consultantId}
+            userId={userId}
+            orgId={activeOrgId}
+            compact
+          />
+        </div>
+      </Reveal>
+
       {/* ---- Documents légaux & administratifs ---- */}
       {activeOrgId && (
-        <Reveal delay={0.24}>
+        <Reveal delay={0.28}>
           <div className="mb-8">
             <KycDocuments
               consultantId={consultantId}

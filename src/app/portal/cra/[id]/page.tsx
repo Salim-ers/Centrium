@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  Download,
   Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -22,13 +23,19 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
 import { useBrandName } from '@/components/brand/BrandingStyles';
+import { useOrganization } from '@/lib/auth/context';
 import { timesheetService } from '@/lib/services';
 import {
   TimesheetCalendar,
   type CalendarDay,
   type TimesheetDayKind,
 } from '@/components/timesheets/TimesheetCalendar';
-import type { Timesheet } from '@/types';
+import {
+  TimesheetDocument,
+  type TimesheetIssuer,
+} from '@/components/timesheets/TimesheetDocument';
+import { downloadElementAsPdf } from '@/lib/pdf/download-document';
+import type { Timesheet, Mission, Consultant, Company } from '@/types';
 
 const MONTHS = [
   'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -48,6 +55,29 @@ export default function PortalCraDetailPage() {
   const [notes, setNotes] = useState<string>('');
   // Jours détaillés du calendrier (RLS : visibles/écrivables via le parent)
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
+  // Contexte du DOCUMENT officiel (mission / client / consultant)
+  const [mission, setMission] = useState<Mission | null>(null);
+  const [consultant, setConsultant] = useState<Consultant | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
+  const docRef = useRef<HTMLDivElement | null>(null);
+  const { branding } = useOrganization();
+
+  // Même issuer que côté org : le document du consultant est IDENTIQUE à
+  // celui que l'admin imprime — branding + tampon/signature inclus.
+  const issuer: TimesheetIssuer | null = useMemo(() => {
+    if (!branding) return null;
+    return {
+      brandName: branding.brandName ?? branding.name,
+      logoUrl: branding.logoUrl,
+      footerTagline: branding.footerTagline,
+      signatureUrl: branding.signatureUrl,
+      primaryColor: branding.primaryColor,
+      accentColor: branding.accentColor,
+      representativeName: branding.representativeName,
+      representativeTitle: branding.representativeTitle,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branding, branding?.version]);
 
   async function reload() {
     if (!params?.id) return;
@@ -56,7 +86,7 @@ export default function PortalCraDetailPage() {
       supabase.from('timesheets').select('*').eq('id', params.id).maybeSingle(),
       supabase
         .from('timesheet_days')
-        .select('day_date, duration, kind, note')
+        .select('id, day_date, duration, kind, note')
         .eq('timesheet_id', params.id),
     ]);
     if (error || !data) {
@@ -69,6 +99,32 @@ export default function PortalCraDetailPage() {
     setDays(Number(row.days_worked));
     setNotes(row.notes ?? '');
     setCalendarDays((dayRows ?? []) as CalendarDay[]);
+
+    // Contexte document (best-effort — le CRA reste utilisable sans)
+    if (row.mission_id) {
+      const { data: m } = await supabase
+        .from('missions')
+        .select('*')
+        .eq('id', row.mission_id)
+        .maybeSingle();
+      setMission((m as Mission | null) ?? null);
+      if (m?.company_id) {
+        const { data: co } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('id', m.company_id)
+          .maybeSingle();
+        setCompany((co as Company | null) ?? null);
+      }
+    }
+    if (row.consultant_id) {
+      const { data: c } = await supabase
+        .from('consultants')
+        .select('*')
+        .eq('id', row.consultant_id)
+        .maybeSingle();
+      setConsultant((c as Consultant | null) ?? null);
+    }
     setLoading(false);
   }
 
@@ -369,6 +425,58 @@ export default function PortalCraDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Document OFFICIEL — identique à celui que l'org imprime, avec le
+          tampon/signature de l'organisation. Affiché une fois le CRA
+          validé : c'est la version qui fait foi pour la facturation. */}
+      {ts.status === 'client_validated' && (
+        <div className="mt-8">
+          <div className="no-print mb-4 flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <div className="text-[10px] font-semibold tracking-[0.28em] uppercase text-magenta mb-1.5">
+                Document officiel
+              </div>
+              <h2 className="font-display font-light tracking-[-0.02em] text-xl">
+                CRA validé et{' '}
+                <span className="qc-italic-accent font-editorial italic">tamponné.</span>
+              </h2>
+            </div>
+            <Button
+              size="sm"
+              onClick={() =>
+                downloadElementAsPdf(docRef.current, {
+                  fileName: `CRA_${ts.period_year}-${String(ts.period_month).padStart(2, '0')}`,
+                })
+              }
+            >
+              <Download className="h-4 w-4" />
+              Télécharger PDF
+            </Button>
+          </div>
+          <div ref={docRef} className="bg-neutral-200 rounded-xl p-6 overflow-auto">
+            <TimesheetDocument
+              timesheet={ts}
+              mission={mission}
+              consultant={consultant}
+              company={company}
+              days={calendarDays.map((d, i) => ({
+                id: `${d.day_date ?? i}`,
+                day_date: d.day_date,
+                duration: Number(d.duration ?? 0),
+                note: d.note ?? null,
+                kind: d.kind as
+                  | 'worked'
+                  | 'paid_leave'
+                  | 'sick_leave'
+                  | 'unpaid_leave'
+                  | 'holiday'
+                  | undefined,
+              }))}
+              issuer={issuer}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

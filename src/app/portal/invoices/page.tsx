@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Receipt, CheckCircle2, Eye, Wallet, TrendingUp, Hourglass } from 'lucide-react';
 
@@ -17,7 +16,9 @@ import {
 } from '@/components/app';
 import { createClient } from '@/lib/supabase/client';
 import { useBrandName } from '@/components/brand/BrandingStyles';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { usePortalConsultant } from '../portal-context';
 import type { Invoice } from '@/types';
 
 const INVOICE_TONE: Record<Invoice['status'], { tone: StatusTone; label: string }> = {
@@ -30,22 +31,21 @@ const INVOICE_TONE: Record<Invoice['status'], { tone: StatusTone; label: string 
 
 export default function PortalInvoicesPage() {
   const brandName = useBrandName();
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
+  const { consultantId } = usePortalConsultant();
+  const { data, loading } = useCachedQuery<Invoice[]>(
+    `portal-invoices:${consultantId}`,
+    async () => {
       const supabase = createClient();
       // Les RLS garantissent qu'on ne voit que les factures 'paid' liées
       // aux missions du consultant courant.
-      const { data } = await supabase
+      const { data: rows } = await supabase
         .from('invoices')
         .select('*')
         .order('payment_date', { ascending: false });
-      setInvoices((data ?? []) as Invoice[]);
-      setLoading(false);
-    })();
-  }, []);
+      return (rows ?? []) as Invoice[];
+    },
+  );
+  const invoices = data ?? [];
 
   // NOTE : la RLS ne montre au consultant QUE les factures payées de ses
   // missions — les anciens KPIs "À venir"/"En retard" étaient donc toujours

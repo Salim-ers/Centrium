@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { FileSignature, FileText, Eye, CheckCircle2, Clock, XCircle } from 'lucide-react';
 
@@ -17,7 +16,9 @@ import {
 } from '@/components/app';
 import { createClient } from '@/lib/supabase/client';
 import { useBrandName } from '@/components/brand/BrandingStyles';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import { usePortalConsultant } from '../portal-context';
 import type { Contract } from '@/types';
 
 const STATUS_TONE: Record<Contract['status'], { tone: StatusTone; label: string }> = {
@@ -33,20 +34,19 @@ const STATUS_TONE: Record<Contract['status'], { tone: StatusTone; label: string 
 
 export default function PortalContractsPage() {
   const brandName = useBrandName();
-  const [contracts, setContracts] = useState<Contract[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
+  const { consultantId } = usePortalConsultant();
+  const { data, loading } = useCachedQuery<Contract[]>(
+    `portal-contracts:${consultantId}`,
+    async () => {
       const supabase = createClient();
-      const { data } = await supabase
+      const { data: rows } = await supabase
         .from('contracts')
         .select('*')
         .order('start_date', { ascending: false });
-      setContracts((data ?? []) as Contract[]);
-      setLoading(false);
-    })();
-  }, []);
+      return (rows ?? []) as Contract[];
+    },
+  );
+  const contracts = data ?? [];
 
   const active = contracts.filter((c) => c.status === 'active' || c.status === 'signed').length;
   const toSign = contracts.filter((c) => c.status === 'sent' || c.status === 'pending_review').length;

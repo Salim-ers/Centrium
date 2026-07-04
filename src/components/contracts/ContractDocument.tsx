@@ -211,13 +211,16 @@ export function ContractDocument({ contract, issuer }: Props) {
       )}
 
       <section className="px-12 py-6 border-t border-neutral-100 bg-neutral-50/40">
-        <div className="grid grid-cols-2 gap-8 items-end">
-          <div className="text-[10px] text-neutral-500 leading-relaxed">
-            <div className="font-semibold text-neutral-700 mb-1">Signature des parties</div>
-            Le présent contrat prend effet à compter de sa signature par les deux parties.
-            Chaque partie conserve un exemplaire original.
-          </div>
-          <div className="flex justify-end">
+        <div className="text-[10px] text-neutral-500 leading-relaxed mb-5">
+          <div className="font-semibold text-neutral-700 mb-1">Signature des parties</div>
+          Le présent contrat prend effet à compter de sa signature par les deux parties.
+          Chaque partie conserve un exemplaire original.
+        </div>
+        <div className="grid grid-cols-2 gap-8 items-start">
+          <div>
+            <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
+              Pour le donneur d&apos;ordre
+            </div>
             <QuadCoreSignature
               signerName={iss.representativeName ?? iss.brandName}
               signerRole={iss.representativeTitle ?? 'Signataire'}
@@ -228,6 +231,64 @@ export function ContractDocument({ contract, issuer }: Props) {
               cacheKey={iss.version}
               date={isSigned ? formatDate(c.signed_at) : formatDate(new Date().toISOString())}
             />
+          </div>
+
+          <div>
+            <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
+              Pour le prestataire
+            </div>
+            {c.consultant_signature_data ? (
+              <div className="inline-block">
+                <div className="border border-neutral-200 rounded-lg bg-white px-6 py-4 min-w-[260px]">
+                  <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-400 mb-2">
+                    Signature
+                  </div>
+                  <div className="h-16 flex items-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={c.consultant_signature_data}
+                      alt="Signature du prestataire"
+                      className="max-h-full max-w-[200px] object-contain select-none"
+                    />
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-neutral-100 text-right">
+                    <div className="text-[10px] font-semibold text-neutral-800">
+                      {c.consultant_signed_name ?? c.supplier_representative ?? '—'}
+                    </div>
+                    <div className="text-[9px] text-neutral-500">
+                      {c.supplier_company_name ?? 'Prestataire'}
+                    </div>
+                  </div>
+                </div>
+                {c.consultant_signed_at && (
+                  <div className="mt-2 text-center text-[11px] text-neutral-700">
+                    Fait le{' '}
+                    <span className="font-semibold text-neutral-900">
+                      {formatDate(c.consultant_signed_at)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="inline-block">
+                <div className="border border-dashed border-neutral-300 rounded-lg bg-white px-6 py-4 min-w-[260px]">
+                  <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-400 mb-2">
+                    Signature
+                  </div>
+                  <div className="h-16 flex items-center justify-center text-[10px] text-neutral-400 italic">
+                    En attente de signature
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-neutral-100 text-right">
+                    <div className="text-[10px] font-semibold text-neutral-800">
+                      {c.supplier_representative ?? '—'}
+                    </div>
+                    <div className="text-[9px] text-neutral-500">
+                      {c.supplier_company_name ?? 'Prestataire'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>

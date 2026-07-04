@@ -54,6 +54,10 @@ export type Contract = {
   pdf_url: string | null;
   signed_pdf_url: string | null;
   signed_at: string | null;
+  /** Signature manuscrite du consultant (PNG dataURL, tracée au portail). */
+  consultant_signature_data: string | null;
+  consultant_signed_name: string | null;
+  consultant_signed_at: string | null;
   notes: string | null;
   archived: boolean;
   created_at: string;
