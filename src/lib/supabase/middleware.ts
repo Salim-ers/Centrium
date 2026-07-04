@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { evaluateSubscriptionAccess } from '@/lib/billing/access';
+import { sharedAuthCookieDomain } from './cookie-domain';
 
 // Paths accessibles sans session (devis public, login, invitations, pricing, landing).
 // /signup reste public mais redirige côté serveur vers /devis pour les bookmarks
@@ -29,7 +30,10 @@ const PROFILE_COOKIE_TTL_SEC = 300; // 5 min
 function sessionOnly(_name: string, options: CookieOptions): CookieOptions {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { maxAge, expires, ...rest } = options;
-  return rest;
+  // Domain=.centrium-platform.com en prod : la session survit aux rebonds
+  // apex ↔ www (cause des "liens email qui ramènent au login").
+  const domain = sharedAuthCookieDomain();
+  return domain ? { ...rest, domain } : rest;
 }
 
 type ProfileCache = { role: string | null; orgId: string | null; ts: number };

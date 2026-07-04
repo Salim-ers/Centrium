@@ -1,6 +1,8 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+import { sharedAuthCookieDomain } from './cookie-domain';
+
 /**
  * Strip maxAge / expires pour rendre TOUS les cookies session-only,
  * y compris les cookies d'auth Supabase.
@@ -9,11 +11,15 @@ import { cookies } from 'next/headers';
  * cookies sont purgés et l'utilisateur doit se reconnecter au prochain
  * démarrage. F5 ne casse pas la session (le processus navigateur reste
  * en vie).
+ *
+ * Ajoute aussi Domain=.centrium-platform.com en prod pour que la session
+ * survive aux rebonds apex ↔ www (cf. lib/supabase/cookie-domain.ts).
  */
 function sessionOnly(_name: string, options: CookieOptions): CookieOptions {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { maxAge, expires, ...rest } = options;
-  return rest;
+  const domain = sharedAuthCookieDomain();
+  return domain ? { ...rest, domain } : rest;
 }
 
 export function createClient() {
