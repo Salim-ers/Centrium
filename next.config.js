@@ -57,23 +57,31 @@ const nextConfig = {
               // de l'eval interne pour le layout PDF.
               // 'blob:' permet aux Web Workers spawnés par @react-pdf
               // (génération de PDF en off-thread).
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://va.vercel-scripts.com https://*.vercel-insights.com",
+              // https://js.stripe.com : Stripe.js (Embedded Checkout in-app).
+              // Sans lui → « Failed to load Stripe.js » au clic Souscrire.
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://va.vercel-scripts.com https://*.vercel-insights.com https://js.stripe.com",
               // worker-src explicite : @react-pdf/renderer + d'autres libs
               // (html2canvas, jspdf) spawnent des workers depuis Blob URLs.
               "worker-src 'self' blob:",
               // child-src fallback pour worker-src + frames éventuelles.
-              "child-src 'self' blob:",
+              "child-src 'self' blob: https://js.stripe.com https://hooks.stripe.com",
+              // frame-src : iframe Embedded Checkout (js.stripe.com) +
+              // 3D Secure (hooks.stripe.com) + fallback hosted checkout.
+              "frame-src 'self' blob: https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com data:",
               // 'blob:' indispensable pour <a href={URL.createObjectURL(...)} download>
               // qui déclenche le téléchargement du PDF généré côté client.
-              "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://*.vercel.app",
+              // *.stripe.com : logos de cartes / icônes du checkout embarqué.
+              "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://*.vercel.app https://*.stripe.com",
               // 'blob:' aussi pour les fetchs internes @react-pdf vers ses ressources.
               // wss:// nécessaire pour Supabase Realtime (postgres_changes + presence
               // utilisés par useCrmRealtime, OrgCursorsOverlay, OrgActivityListener,
               // useRealtimeReload). Sans wss:, l'app interne crash au mount avec
               // "WebSocket connection blocked by CSP".
-              "connect-src 'self' blob: https://*.supabase.co wss://*.supabase.co https://*.supabase.in wss://*.supabase.in https://api.anthropic.com https://formspree.io https://*.vercel-insights.com",
+              // api.stripe.com + r.stripe.com + merchant-ui-api.stripe.com :
+              // XHR du checkout embarqué Stripe.
+              "connect-src 'self' blob: https://*.supabase.co wss://*.supabase.co https://*.supabase.in wss://*.supabase.in https://api.anthropic.com https://formspree.io https://*.vercel-insights.com https://api.stripe.com https://r.stripe.com https://merchant-ui-api.stripe.com https://checkout.stripe.com",
               "frame-ancestors 'self'",
               "form-action 'self' https://formspree.io",
               "base-uri 'self'",
