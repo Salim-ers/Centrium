@@ -213,7 +213,7 @@ export default function OnboardingPage() {
                 Une organisation = une ESN. Tu en seras admin.
                 <br />
                 <span className="text-[11px] text-violet-300/80 inline-flex items-center gap-1 mt-1">
-                  <Sparkles className="h-3 w-3" /> 14 jours d&apos;essai gratuit, aucune CB demandée
+                  <Sparkles className="h-3 w-3" /> 7 jours d&apos;essai gratuit, aucune CB demandée
                 </span>
               </>
             )}

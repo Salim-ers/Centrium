@@ -69,6 +69,11 @@ export function PasswordSetupForm({ mode }: { mode: Mode }) {
   const welcome = params?.get('welcome'); // 'portal' = consultant, 'invited' = membre org
   const orgName = params?.get('org');
   const linkError = params?.get('error');
+  // Destination post-mot-de-passe explicite (chemin relatif uniquement) —
+  // ex: /billing?plan=starter pour enchaîner directement sur le paiement
+  // Stripe dans le tunnel devis (mode paid_only).
+  const rawNext = params?.get('next');
+  const nextPath = rawNext && rawNext.startsWith('/') ? rawNext : null;
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
@@ -186,7 +191,9 @@ export function PasswordSetupForm({ mode }: { mode: Mode }) {
     markSessionActive();
     // Connecté : direction l'espace. Le middleware corrige la destination
     // selon le rôle (consultant → /portal/dashboard).
-    if (welcome === 'portal') {
+    if (nextPath) {
+      router.push(nextPath);
+    } else if (welcome === 'portal') {
       router.push('/portal/dashboard');
     } else if (welcome === 'invited' && orgName) {
       router.push(`/dashboard?invited=${encodeURIComponent(orgName)}`);

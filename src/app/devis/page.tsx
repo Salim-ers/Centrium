@@ -82,6 +82,7 @@ async function notifyFormspree(payload: {
   wanted_help: string[];
   wanted_help_labels: Record<string, string>;
   logo_url?: string | null;
+  plan_label?: string;
 }): Promise<boolean> {
   const help = payload.wanted_help
     .map((k) => payload.wanted_help_labels[k] ?? k)
@@ -99,6 +100,7 @@ async function notifyFormspree(payload: {
   if (payload.contact_role) body.append('Fonction', payload.contact_role);
   body.append('Email', payload.contact_email);
   if (payload.contact_phone) body.append('Téléphone', payload.contact_phone);
+  if (payload.plan_label) body.append('Formule choisie', payload.plan_label);
   if (help) body.append("Besoins d'accompagnement", help);
   if (payload.message) body.append('Message', payload.message);
   if (payload.logo_url) body.append('Logo (URL)', payload.logo_url);
@@ -158,9 +160,27 @@ const INITIAL_FORM: FormState = {
   message: '',
 };
 
+type PlanId = 'starter' | 'growth' | 'enterprise';
+
+// Formules self-service — mêmes prix que /tarifs et Stripe (source :
+// lib/billing/config). Le prospect choisit ici, la super console confirme,
+// l'email d'activation embarque le lien de paiement du plan choisi.
+const PLAN_CARDS: {
+  id: PlanId;
+  name: string;
+  price: string;
+  tagline: string;
+  popular?: boolean;
+}[] = [
+  { id: 'starter', name: 'Starter', price: '74,99 €', tagline: '1 à 5 utilisateurs · 30 consultants' },
+  { id: 'growth', name: 'Medium', price: '149,99 €', tagline: '15 utilisateurs · 150 consultants', popular: true },
+  { id: 'enterprise', name: 'Illimité', price: '299,99 €', tagline: 'Utilisateurs et consultants illimités' },
+];
+
 export default function DevisPage() {
   const { t } = useLocale();
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
+  const [planId, setPlanId] = useState<PlanId>('growth');
   const [help, setHelp] = useState<Set<HelpKey>>(new Set());
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -258,6 +278,7 @@ export default function DevisPage() {
             ...form,
             wanted_help: wantedHelp,
             logo_url: logoUrl,
+            plan_id: planId,
             source: 'landing',
           }),
         }),
@@ -266,6 +287,9 @@ export default function DevisPage() {
           wanted_help: wantedHelp,
           wanted_help_labels: wantedHelpLabels,
           logo_url: logoUrl,
+          plan_label:
+            PLAN_CARDS.find((p) => p.id === planId)?.name + ' — ' +
+            PLAN_CARDS.find((p) => p.id === planId)?.price + ' HT/mois',
         }),
       ]);
 
@@ -421,6 +445,64 @@ export default function DevisPage() {
                   ))}
                 </Select>
               </div>
+            </div>
+          </section>
+
+          {/* Bloc formule — le prospect choisit son abonnement ; la super
+              console valide puis l'email d'activation porte le lien de
+              paiement de CE plan. */}
+          <section className="space-y-4 pt-2 border-t border-hairline">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-violet-300 pt-4">
+              <Sparkles className="h-3.5 w-3.5" />
+              {t.devis.planSection}
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {t.devis.planIntro}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3" role="radiogroup" aria-label={t.devis.planSection}>
+              {PLAN_CARDS.map((p) => {
+                const selected = planId === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setPlanId(p.id)}
+                    className={
+                      'relative rounded-2xl border px-4 py-4 text-left transition-all duration-200 ' +
+                      (selected
+                        ? 'border-magenta/60 bg-magenta/[0.08] shadow-[0_0_30px_-10px_rgba(236,72,153,0.5)]'
+                        : 'border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.05]')
+                    }
+                  >
+                    {p.popular && (
+                      <span className="absolute -top-2.5 left-3 text-[9px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 rounded-full bg-qc-gradient text-white">
+                        {t.devis.planPopular}
+                      </span>
+                    )}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-display font-semibold text-sm">{p.name}</span>
+                      <span
+                        className={
+                          'h-4 w-4 rounded-full border-2 shrink-0 transition-colors ' +
+                          (selected ? 'border-magenta bg-magenta' : 'border-white/25')
+                        }
+                        aria-hidden
+                      />
+                    </div>
+                    <div className="mt-2">
+                      <span className="font-display text-xl font-bold">{p.price}</span>{' '}
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                        {t.devis.planMonthly}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-[11px] text-muted-foreground leading-snug">
+                      {p.tagline}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </section>
 

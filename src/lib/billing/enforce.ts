@@ -17,7 +17,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 // planLimitResponse(err). Client → PlanLimitDialog upsell.
 //
 // Trial expiration :
-//   ensureTrialNotExpired throw TrialExpiredError si le trial 14j est
+//   ensureTrialNotExpired throw TrialExpiredError si le trial 7j est
 //   dépassé sans checkout. Middleware l'utilise pour bloquer l'app (sauf
 //   /billing et /auth) et pousser l'user vers l'upgrade.
 //
@@ -227,7 +227,7 @@ export async function enforceMissionLimit(
 // -------- Trial expiration ------------------------------------------------
 
 /**
- * Check idempotent : le trial 14j est-il dépassé ?
+ * Check idempotent : le trial 7j est-il dépassé ?
  * Throw TrialExpiredError si oui. Middleware attrape et redirige.
  *
  * Règles :

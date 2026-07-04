@@ -54,7 +54,14 @@ type QuoteRequest = {
   converted_to_organization_id: string | null;
   wanted_help: string[] | null;
   logo_url: string | null;
+  plan_id: 'starter' | 'growth' | 'enterprise' | null;
   created_at: string;
+};
+
+const PLAN_LABELS: Record<NonNullable<QuoteRequest['plan_id']>, string> = {
+  starter: 'Starter · 74,99 €',
+  growth: 'Medium · 149,99 €',
+  enterprise: 'Illimité · 299,99 €',
 };
 
 const HELP_LABELS: Record<string, string> = {
@@ -354,6 +361,12 @@ export default function AdminClientsPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground space-y-0.5 max-w-[260px]">
+                          {it.plan_id && (
+                            <div className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                              <Sparkles className="h-2.5 w-2.5" />
+                              {PLAN_LABELS[it.plan_id]}
+                            </div>
+                          )}
                           {it.team_size && <div>Équipe: {it.team_size}</div>}
                           {it.consultants_count && (
                             <div>Consultants: {it.consultants_count}</div>

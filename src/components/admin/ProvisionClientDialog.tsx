@@ -26,6 +26,8 @@ type QuoteRequest = {
   contact_email: string;
   /** Logo uploadé par le prospect (URL Supabase Storage public). */
   logo_url?: string | null;
+  /** Formule choisie par le prospect sur /devis. */
+  plan_id?: 'starter' | 'growth' | 'enterprise' | null;
 };
 
 type Props = {
@@ -63,7 +65,7 @@ type FormState = {
   admin_first_name: string;
   admin_last_name: string;
   plan_id: 'starter' | 'growth' | 'enterprise';
-  billing_mode: 'trial_14d' | 'paid_only' | 'exempt';
+  billing_mode: 'trial_7d' | 'paid_only' | 'exempt';
 };
 
 const PLAN_OPTIONS: { id: FormState['plan_id']; label: string }[] = [
@@ -78,14 +80,14 @@ const BILLING_MODES: {
   hint: string;
 }[] = [
   {
-    id: 'trial_14d',
-    label: 'Essai 14 jours',
-    hint: 'Accès immédiat, paiement à la fin de l\'essai (relance auto J-3).',
-  },
-  {
     id: 'paid_only',
     label: 'Paiement requis',
-    hint: 'Aucun accès tant que l\'abonnement n\'est pas payé.',
+    hint: 'Email « Activer mon compte et payer » — accès dès le paiement.',
+  },
+  {
+    id: 'trial_7d',
+    label: 'Essai 7 jours',
+    hint: 'Accès immédiat, paiement à la fin de l\'essai (relance auto J-3).',
   },
   {
     id: 'exempt',
@@ -132,7 +134,7 @@ const INITIAL: FormState = {
   admin_first_name: '',
   admin_last_name: '',
   plan_id: 'starter',
-  billing_mode: 'trial_14d',
+  billing_mode: 'paid_only',
 };
 
 /**
@@ -171,6 +173,10 @@ export function ProvisionClientDialog({
         admin_email: quoteRequest.contact_email,
         admin_first_name: first,
         admin_last_name: last,
+        // Formule choisie par le prospect sur /devis — pré-sélectionnée,
+        // le fondateur peut toujours la corriger avant confirmation.
+        plan_id: quoteRequest.plan_id ?? 'starter',
+        billing_mode: 'paid_only',
       });
     } else {
       setForm(INITIAL);
@@ -412,7 +418,7 @@ export function ProvisionClientDialog({
                 <Input
                   value={form.representative_name}
                   onChange={(e) => update('representative_name', e.target.value)}
-                  placeholder="Salim El Réssalitate"
+                  placeholder="Jean Dupont"
                 />
               </Field>
               <Field label="Titre">

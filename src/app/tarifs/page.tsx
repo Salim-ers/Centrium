@@ -132,7 +132,7 @@ const FAQ = [
   },
   {
     q: "Puis-je essayer avant de payer ?",
-    a: "Oui, à la création de votre organisation vous bénéficiez de 14 jours d'essai gratuit sans CB requise. À la fin de l'essai, vous choisissez un plan pour continuer, ou l'accès est suspendu.",
+    a: "Oui, à la création de votre organisation vous bénéficiez de 7 jours d'essai gratuit sans CB requise. À la fin de l'essai, vous choisissez un plan pour continuer, ou l'accès est suspendu.",
   },
   {
     q: "Comment sont facturées les factures Stripe ?",
@@ -198,7 +198,7 @@ export default function TarifsPage() {
               fin de la période payée.
             </p>
             <p className="mt-3 text-sm text-white/45">
-              Essai gratuit 14 jours · Sans CB · Annulation self-service
+              Essai gratuit 7 jours · Sans CB · Annulation self-service
             </p>
           </div>
 

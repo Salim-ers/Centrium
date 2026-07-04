@@ -263,6 +263,10 @@ export type LandingDict = {
       logo: string;
       message: string;
     };
+    planSection: string;
+    planIntro: string;
+    planMonthly: string;
+    planPopular: string;
     fields: {
       companyName: string;
       companyNamePh: string;
@@ -648,17 +652,21 @@ export const DICT: Record<Locale, LandingDict> = {
       success: {
         title: 'Demande envoyée ✓',
         received1: 'On a bien reçu ta demande pour',
-        received2: 'Tu vas recevoir une réponse à',
-        followUp: 'sous 24 à 48 h ouvrées avec un devis personnalisé et la prochaine étape pour activer ton espace.',
+        received2: 'Notre équipe la valide sous 24 h ouvrées. Tu recevras à',
+        followUp: 'l’email d’activation de ton espace avec le lien de paiement sécurisé — ton accès s’ouvre immédiatement après.',
         question: 'Une question entre-temps ?',
         back: 'Retour à l’accueil',
       },
-      eyebrow: 'Devis personnalisé',
-      titleA: 'Parlons de',
+      eyebrow: 'Créer mon espace',
+      titleA: 'Lançons',
       titleB: 'votre ESN.',
-      sub: 'Décris-nous ton ESN en quelques minutes. On revient vers toi sous 24-48 h avec un devis personnalisé et on configure ensemble ton espace à ton image (logo, couleurs, mentions légales, signature) avant l’activation.',
+      sub: 'Renseigne ton ESN et choisis ta formule en quelques minutes. Notre équipe valide ta demande sous 24 h ouvrées, on configure ton espace à ton image (logo, couleurs, mentions légales, signature), et tu reçois l’email d’activation avec le lien de paiement.',
       repliesSentBy: 'Réponses envoyées par',
       section: { company: 'Ton entreprise', contact: 'Ton contact', help: 'Avec quoi peut-on t’aider ?', logo: 'Logo de la société (optionnel)', message: 'Quel est ton besoin ?' },
+      planSection: 'Ta formule',
+      planIntro: 'Choisis la formule à activer. Sans engagement — annulable à tout moment, et notre équipe la confirme avec toi avant tout paiement.',
+      planMonthly: 'HT / mois',
+      planPopular: 'Le plus choisi',
       fields: {
         companyName: 'Nom de la société *',
         companyNamePh: 'ACME Consulting',
@@ -1051,17 +1059,21 @@ export const DICT: Record<Locale, LandingDict> = {
       success: {
         title: 'Request sent ✓',
         received1: 'We received your request for',
-        received2: 'You’ll receive a reply at',
-        followUp: 'within 24-48 business hours with a custom quote and the next step to activate your workspace.',
+        received2: 'Our team validates it within 24 business hours. You’ll receive at',
+        followUp: 'the activation email for your workspace with the secure payment link — access opens right after.',
         question: 'Question in the meantime?',
         back: 'Back to home',
       },
-      eyebrow: 'Custom quote',
-      titleA: 'Let’s talk about',
+      eyebrow: 'Create my workspace',
+      titleA: 'Let’s launch',
       titleB: 'your agency.',
-      sub: 'Describe your agency in a few minutes. We get back to you within 24-48 h with a custom quote and we configure your branded workspace together (logo, colors, legal mentions, signature) before activation.',
+      sub: 'Tell us about your agency and pick your plan in a few minutes. Our team validates your request within 24 business hours, we configure your branded workspace (logo, colors, legal mentions, signature), and you receive the activation email with the payment link.',
       repliesSentBy: 'Replies sent from',
       section: { company: 'Your company', contact: 'Your contact', help: 'How can we help?', logo: 'Company logo (optional)', message: 'What do you need?' },
+      planSection: 'Your plan',
+      planIntro: 'Pick the plan to activate. No commitment — cancel anytime, and our team confirms it with you before any payment.',
+      planMonthly: 'excl. VAT / month',
+      planPopular: 'Most popular',
       fields: {
         companyName: 'Company name *',
         companyNamePh: 'ACME Consulting',

@@ -69,10 +69,14 @@ const schema = z.object({
 
   // Abonnement choisi lors du provisionnement (suite au devis)
   plan_id: z.enum(['starter', 'growth', 'enterprise']).default('starter'),
-  // trial_14d : accès immédiat, paiement à la fin de l'essai (défaut)
-  // paid_only : accès BLOQUÉ tant que l'abonnement n'est pas payé
+  // trial_7d  : accès immédiat, paiement à la fin de l'essai de 7 jours
+  // paid_only : accès BLOQUÉ tant que l'abonnement n'est pas payé (défaut
+  //             du tunnel devis : confirmation → email avec lien de paiement)
   // exempt    : partenaire/interne — jamais facturé, aucune limite
-  billing_mode: z.enum(['trial_14d', 'paid_only', 'exempt']).default('trial_14d'),
+  // ('trial_14d' accepté en alias legacy → traité comme trial_7d)
+  billing_mode: z
+    .enum(['trial_7d', 'trial_14d', 'paid_only', 'exempt'])
+    .default('trial_7d'),
 });
 
 export async function POST(req: NextRequest) {
@@ -150,36 +154,51 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 2) Invitation du premier admin via auth.admin.inviteUserByEmail.
-  // IMPORTANT : on passe par /auth/callback (échange du code PKCE en
-  // cookies sur NOTRE domaine) avant d'atterrir sur set-password — comme
-  // les invitations d'équipe et portail. Un redirectTo direct vers
-  // /auth/set-password sautait l'échange de session sur certains
-  // navigateurs/devices → page "session expirée" au premier clic.
-  const setPasswordPath = `/auth/first-password?welcome=invited&org=${encodeURIComponent(org.name)}`;
-  const { data: invite, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(
-    data.admin_email,
-    {
+  // 2) Création du compte admin via generateLink — SANS email Supabase.
+  //
+  // POURQUOI (bug vécu) : l'ancien flow envoyait DEUX emails (invite
+  // Supabase « Active ton compte » + welcome Resend « Payer mon
+  // abonnement »), et le bouton de paiement pointait sur /billing qui
+  // exige une session → le destinataire, sans mot de passe encore,
+  // atterrissait sur /login. Impasse totale.
+  //
+  // Désormais UN SEUL email (Resend, brandé) dont le bouton porte le
+  // token d'activation et ENCHAÎNE tout : /auth/callback (session) →
+  // /auth/first-password (mot de passe) → /billing?plan=… (paiement
+  // Stripe direct) pour le mode paid_only, ou /dashboard sinon.
+  const chainedNext =
+    data.billing_mode === 'paid_only' ? `/billing?plan=${data.plan_id}` : '';
+  const firstPasswordPath =
+    `/auth/first-password?welcome=invited&org=${encodeURIComponent(org.name)}` +
+    (chainedNext ? `&next=${encodeURIComponent(chainedNext)}` : '');
+  const { data: invite, error: inviteErr } = await admin.auth.admin.generateLink({
+    type: 'invite',
+    email: data.admin_email,
+    options: {
       data: {
         first_name: data.admin_first_name ?? null,
         last_name: data.admin_last_name ?? null,
         organization_id: org.id,
         role: 'admin',
       },
-      redirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent(setPasswordPath)}`,
+      redirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent(firstPasswordPath)}`,
     },
-  );
-  if (inviteErr) {
+  });
+  const hashedToken = invite?.properties?.hashed_token ?? null;
+  if (inviteErr || !hashedToken) {
     return NextResponse.json(
       {
         error: 'invite_failed',
-        message: inviteErr.message,
+        message: inviteErr?.message ?? 'hashed_token manquant',
         organization: org,
         note: "L'organisation a été créée mais l'invite a échoué. Renvoie une invitation manuellement.",
       },
       { status: 207 },
     );
   }
+  // Lien d'activation à usage unique (token_hash → verifyOtp serveur,
+  // cross-device safe — même mécanique que les templates email).
+  const activationUrl = `${appUrl}/auth/callback?token_hash=${hashedToken}&type=invite&next=${encodeURIComponent(firstPasswordPath)}`;
 
   // 3) Lie l'invité à l'org : profile + organization_members.
   //
@@ -229,7 +248,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 4) Configure l'abonnement selon le devis. Le trigger DB
-  // on_organization_created a déjà inséré (starter, trialing, +14j) —
+  // on_organization_created a déjà inséré (starter, trialing, +7j) —
   // on ajuste plan + statut selon le mode choisi. Upsert par sécurité
   // (si le trigger manquait, la ligne est créée avec ces valeurs).
   const subConfig: Record<string, unknown> = {
@@ -244,6 +263,12 @@ export async function POST(req: NextRequest) {
     // access.ts) bloque tout jusqu'au paiement (checkout_incomplete).
     subConfig.status = 'incomplete';
     subConfig.trial_end = null;
+  } else {
+    // trial_7d (ou alias legacy trial_14d) : essai de 7 jours à compter
+    // de MAINTENANT — on ne dépend pas du default DB (le trigger a pu
+    // poser la ligne quelques ms avant avec l'ancien réglage).
+    subConfig.status = 'trialing';
+    subConfig.trial_end = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
   }
   const { error: subErr } = await admin
     .from('subscriptions')
@@ -255,9 +280,10 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // 5) Email de bienvenue (Resend) — complète l'email d'activation Supabase
-  // avec le contexte abonnement : quel plan, comment payer / démarrer.
-  const billingUrl = `${appUrl}/billing?plan=${data.plan_id}`;
+  // 5) L'UNIQUE email (Resend, brandé) : son bouton porte le token
+  // d'activation et enchaîne mot de passe → paiement (paid_only) ou
+  // découverte de l'espace (essai / exempt). Plus d'email Supabase
+  // séparé, plus de CTA /billing qui échouait sur /login sans session.
   const planLabel =
     data.plan_id === 'starter'
       ? 'Starter (74,99 € HT/mois)'
@@ -266,34 +292,36 @@ export async function POST(req: NextRequest) {
         : 'Illimité (299,99 € HT/mois)';
   const welcomeParagraphs = [
     `Bonjour${data.admin_first_name ? ` ${data.admin_first_name}` : ''},`,
-    `Ton espace ${org.name} est prêt sur Centrium. Tu vas recevoir (ou viens de recevoir) un email séparé « Active ton compte » : clique dessus pour définir ton mot de passe.`,
+    `Ta demande a été validée : ton espace ${org.name} est prêt sur Centrium.`,
   ];
   if (data.billing_mode === 'paid_only') {
     welcomeParagraphs.push(
-      `Ton abonnement ${planLabel} est réservé. L'accès à la plateforme s'ouvre dès le paiement — le bouton ci-dessous t'y emmène directement après ta première connexion.`,
+      `Ton abonnement ${planLabel} est réservé. Clique sur le bouton ci-dessous : tu choisis ton mot de passe, puis tu règles ton abonnement en ligne — l'accès s'ouvre immédiatement après le paiement.`,
     );
-  } else if (data.billing_mode === 'trial_14d') {
+  } else if (data.billing_mode === 'exempt') {
     welcomeParagraphs.push(
-      `Tu bénéficies de 14 jours d'essai gratuit, sans carte bancaire. Ton plan recommandé : ${planLabel}. Tu peux l'activer à tout moment depuis la page Abonnement.`,
+      `Ton compte partenaire est actif sans facturation. Clique sur le bouton ci-dessous pour choisir ton mot de passe et découvrir ton espace.`,
     );
   } else {
     welcomeParagraphs.push(
-      `Ton compte partenaire est actif sans facturation. Bonne exploration !`,
+      `Tu bénéficies de 7 jours d'essai gratuit, sans carte bancaire. Clique sur le bouton ci-dessous pour choisir ton mot de passe et découvrir ton espace. Ton plan recommandé : ${planLabel} — activable à tout moment depuis la page Abonnement.`,
     );
   }
   await sendEmail({
     to: data.admin_email,
     subject:
       data.billing_mode === 'paid_only'
-        ? `${org.name} — active ton abonnement Centrium`
+        ? `${org.name} — active ton espace et ton abonnement Centrium`
         : `Bienvenue sur Centrium — ton espace ${org.name} est prêt`,
     paragraphs: welcomeParagraphs,
-    cta:
-      data.billing_mode === 'exempt'
-        ? { label: 'Découvrir mon espace', url: `${appUrl}/dashboard` }
-        : { label: data.billing_mode === 'paid_only' ? 'Payer mon abonnement' : 'Voir mon abonnement', url: billingUrl },
-    footnote:
-      'Commence par définir ton mot de passe via l\'email « Active ton compte », puis connecte-toi.',
+    cta: {
+      label:
+        data.billing_mode === 'paid_only'
+          ? 'Activer mon compte et payer'
+          : 'Activer mon compte',
+      url: activationUrl,
+    },
+    footnote: 'Lien personnel à usage unique, valable 24 heures.',
   });
 
   // 6) Marque le quote_request d'origine comme converti (si fourni)
@@ -315,7 +343,6 @@ export async function POST(req: NextRequest) {
         invite_email: data.admin_email,
         plan_id: data.plan_id,
         billing_mode: data.billing_mode,
-        billing_url: billingUrl,
       },
     },
     { status: 201 },
