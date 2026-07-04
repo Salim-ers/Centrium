@@ -74,13 +74,45 @@ function writeProfileCookie(res: NextResponse, data: Omit<ProfileCache, 'ts'>) {
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
 
+  // ---- Migration cookies host-only → Domain=.centrium-platform.com ----
+  // Les navigateurs qui ont connu l'app AVANT la migration portent DEUX
+  // cookies de même nom (ancien host-only + nouveau avec Domain). Next
+  // collapse les doublons en prenant le PREMIER = le PÉRIMÉ → session
+  // fantôme / données qui ne chargent jamais. On lit donc la DERNIÈRE
+  // occurrence du header brut, et on purge la variante host-only sur la
+  // réponse (Set-Cookie Max-Age=0 sans Domain — la variante domaine reste).
+  const rawCookieHeader = request.headers.get('cookie') ?? '';
+  const rawPairs = rawCookieHeader
+    .split(';')
+    .map((c) => c.trim())
+    .filter(Boolean)
+    .map((c) => {
+      const eq = c.indexOf('=');
+      return eq === -1 ? [c, ''] : [c.slice(0, eq), c.slice(eq + 1)];
+    });
+  const lastCookieValue = (name: string): string | undefined => {
+    const matches = rawPairs.filter(([n]) => n === name);
+    const last = matches.at(-1);
+    return last ? decodeURIComponent(last[1]) : undefined;
+  };
+  const dupSbNames = new Set(
+    rawPairs
+      .map(([n]) => n)
+      .filter((n, i, arr) => n.startsWith('sb-') && arr.indexOf(n) !== i),
+  );
+  for (const name of dupSbNames) {
+    // Suppression de la variante host-only uniquement (pas de Domain).
+    response.cookies.set({ name, value: '', maxAge: 0, path: '/' });
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {
-          return request.cookies.get(name)?.value;
+          // Dernière occurrence = cookie de domaine posé après migration.
+          return lastCookieValue(name) ?? request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
           const opts = sessionOnly(name, options);

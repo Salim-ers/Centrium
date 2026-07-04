@@ -1,7 +1,27 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 
 import { sharedAuthCookieDomain } from './cookie-domain';
+
+/**
+ * Lecture "dernière occurrence" depuis le header Cookie brut : pendant la
+ * migration host-only → Domain=…, deux cookies de même nom coexistent et
+ * l'API cookies() de Next prend le PREMIER (le périmé). La dernière
+ * occurrence est le cookie de domaine, le plus frais.
+ */
+function lastCookieFromHeader(name: string): string | undefined {
+  try {
+    const raw = headers().get('cookie') ?? '';
+    const matches = raw
+      .split(';')
+      .map((c) => c.trim())
+      .filter((c) => c.startsWith(`${name}=`));
+    const last = matches.at(-1);
+    return last ? decodeURIComponent(last.slice(name.length + 1)) : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * Strip maxAge / expires pour rendre TOUS les cookies session-only,
@@ -31,7 +51,7 @@ export function createClient() {
     {
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value;
+          return lastCookieFromHeader(name) ?? cookieStore.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
           try {
