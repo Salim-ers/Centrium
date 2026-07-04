@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
   // les invitations d'équipe et portail. Un redirectTo direct vers
   // /auth/set-password sautait l'échange de session sur certains
   // navigateurs/devices → page "session expirée" au premier clic.
-  const setPasswordPath = `/auth/set-password?welcome=invited&org=${encodeURIComponent(org.name)}`;
+  const setPasswordPath = `/auth/first-password?welcome=invited&org=${encodeURIComponent(org.name)}`;
   const { data: invite, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(
     data.admin_email,
     {

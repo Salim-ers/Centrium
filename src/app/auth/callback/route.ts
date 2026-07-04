@@ -5,31 +5,54 @@ import { createClient } from '@/lib/supabase/server';
 import { freshAuthCookieOptions } from '@/lib/supabase/cookie-domain';
 
 // =========================================================================
-// GET /auth/callback?code=...&next=...          (PKCE flow — invite native)
-// GET /auth/callback?token_hash=...&type=...&next=...   (token_hash / OTP)
+// GET /auth/callback — endpoint unique d'établissement de session pour
+// TOUS les liens email Supabase Auth (invite, magic_link, recovery,
+// email_change, confirmation).
 // -------------------------------------------------------------------------
-// Endpoint unique d'établissement de session pour TOUS les liens email
-// Supabase Auth (invite, magic_link, recovery, email_change, confirmation).
+// Formes supportées :
+//   ?token_hash=…&type=…            flow stateless (nos templates) —
+//                                    verifyOtp(), cross-device safe
+//   ?code=…                          flow PKCE (@supabase/ssr)
+//   ?it=<uuid>                       token d'invitation d'ORGANISATION,
+//                                    injecté par invite.html via
+//                                    {{ .Data.invitation_token }} — route
+//                                    directe vers /invite/accept sans
+//                                    dépendre de redirect_to
+//   ?next=… / ?rt=…                  destination métier explicite
 //
-// SUPPORTE 2 flows en parallèle pour être robuste cross-device :
+// RÈGLES DE DESTINATION (jamais la vitrine, jamais '/') :
+//   1. next explicite (chemin relatif)             → next
+//   2. it (invitation org)                          → /invite/accept?token=it
+//   3. rt (redirectTo original) SEULEMENT si son    → inner next
+//      ?next= interne est présent — un rt sans next
+//      (fallback SiteURL de GoTrue) est IGNORÉ :
+//      l'ancien fallback sur rt.pathname envoyait
+//      les invités sur '/' (vitrine) → onboarding
+//      fantôme.
+//   4. défaut par type + état du compte :
+//        recovery                    → /auth/reset-password
+//        invite/signup/magiclink     → password déjà posé ? espace (rôle)
+//                                      : /auth/first-password (welcome
+//                                        selon rôle consultant/membre)
+//        autre                       → /dashboard
 //
-//   1. PKCE (?code=…) — flow standard depuis @supabase/ssr. Nécessite le
-//      code_verifier stocké côté client dans un cookie session-only. CASSE
-//      quand l'user demande le reset sur son desktop mais clique le lien
-//      sur son téléphone : le verifier n'existe pas dans l'autre browser.
-//
-//   2. token_hash (?token_hash=…&type=…) — flow stateless. Supabase génère
-//      un TokenHash côté serveur et l'envoie dans le lien email. On appelle
-//      verifyOtp() qui vérifie le hash sans dépendre d'aucun cookie
-//      pré-existant. Cross-device OK.
-//
-// Nos templates recovery/magic_link/email_change utilisent explicitement le
-// token_hash pattern (voir supabase/templates/*.html) pour éviter la casse
-// cross-device. Le PKCE branch reste pour l'invite flow qui a besoin de
-// préserver le org_invite_token via `redirect_to`.
+// ERREURS verifyOtp / exchange (lien expiré, déjà utilisé, altéré) :
+//   → la PAGE DÉDIÉE avec ?error=link_expired (elle affiche la carte
+//     d'erreur + action de renvoi), pas un /login sec.
 // =========================================================================
 
 export const runtime = 'nodejs';
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function errorDestination(type: EmailOtpType | null): string {
+  if (type === 'recovery') return '/auth/reset-password?error=link_expired';
+  if (type === 'invite' || type === 'signup' || type === 'magiclink') {
+    return '/auth/first-password?error=link_expired';
+  }
+  return '/login?error=otp_expired';
+}
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
@@ -38,51 +61,67 @@ export async function GET(req: NextRequest) {
   const type = url.searchParams.get('type') as EmailOtpType | null;
   let next = url.searchParams.get('next') ?? '';
 
-  // `rt` = le redirectTo ORIGINAL de l'invitation, injecté par les templates
-  // token_hash ({{ .RedirectTo }}). Il pointe généralement vers ce même
-  // callback avec son propre ?next=… (ex: /invite/accept?token=X) — on en
-  // extrait le next pour préserver la destination métier. Même origine
-  // exigée (anti open-redirect).
+  // 2. Token d'invitation d'organisation — voie directe, insensible aux
+  //    caprices de redirect_to (allow-list, encodage, réécriture email).
+  if (!next) {
+    const it = url.searchParams.get('it');
+    if (it && UUID_RE.test(it)) next = `/invite/accept?token=${it}`;
+  }
+
+  // 3. rt = redirectTo original ({{ .RedirectTo }} des templates). On n'en
+  //    extrait QUE le ?next= interne. Sans next interne → ignoré (c'est le
+  //    fallback SiteURL de GoTrue, il pointe sur la vitrine).
   if (!next) {
     const rt = url.searchParams.get('rt');
     if (rt) {
       try {
-        const rtUrl = new URL(rt);
-        const innerNext = rtUrl.searchParams.get('next');
+        const innerNext = new URL(rt).searchParams.get('next');
         if (innerNext) next = innerNext;
-        else if (rtUrl.pathname !== '/auth/callback') {
-          next = `${rtUrl.pathname}${rtUrl.search}`;
-        }
       } catch {
-        /* rt illisible → défauts par type ci-dessous */
+        /* rt illisible → défauts par type */
       }
     }
   }
-  // Défaut par type de lien : un invite/recovery sans next explicite doit
-  // atterrir sur la création de mot de passe, jamais sur le dashboard.
-  if (!next) {
-    next =
-      type === 'recovery'
-        ? '/auth/set-password?welcome=recovery'
-        : type === 'invite' || type === 'signup' || type === 'magiclink'
-          ? '/auth/set-password?welcome=invited'
-          : '/dashboard';
-  }
 
-  // Sécurité : ne suit que les chemins relatifs (pas d'open redirect).
-  const safeNext = next.startsWith('/') ? next : '/dashboard';
+  // Sécurité : chemins relatifs uniquement (anti open-redirect), et jamais
+  // la racine vitrine.
+  const explicitNext = next.startsWith('/') && next !== '/' ? next : '';
 
   const supabase = createClient();
+
+  // Défaut post-session selon le type de lien et l'état du compte.
+  // Appelé APRÈS l'établissement de la session (on lit le profil).
+  async function defaultDestination(): Promise<string> {
+    if (type === 'recovery') return '/auth/reset-password';
+    if (type === 'invite' || type === 'signup' || type === 'magiclink') {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return '/auth/first-password?welcome=invited';
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, password_set')
+        .eq('id', user.id)
+        .maybeSingle();
+      const isConsultant = profile?.role === 'consultant';
+      if (profile?.password_set) {
+        return isConsultant ? '/portal/dashboard' : '/dashboard';
+      }
+      return isConsultant
+        ? '/auth/first-password?welcome=portal'
+        : '/auth/first-password?welcome=invited';
+    }
+    return '/dashboard';
+  }
 
   // Branch 1 — token_hash / OTP flow. Cross-device safe.
   if (tokenHash && type) {
     const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
     if (error) {
-      return NextResponse.redirect(
-        new URL(`/login?error=${encodeURIComponent(error.message)}`, url.origin),
-      );
+      return NextResponse.redirect(new URL(errorDestination(type), url.origin));
     }
-    const res = NextResponse.redirect(new URL(safeNext, url.origin));
+    const dest = explicitNext || (await defaultDestination());
+    const res = NextResponse.redirect(new URL(dest, url.origin));
     // Session créée par lien email : marque l'entrée comme légitime pour
     // le garde anti-restauration (sinon logout automatique ~1 s après).
     res.cookies.set(freshAuthCookieOptions());
@@ -93,11 +132,10 @@ export async function GET(req: NextRequest) {
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
-      return NextResponse.redirect(
-        new URL(`/login?error=${encodeURIComponent(error.message)}`, url.origin),
-      );
+      return NextResponse.redirect(new URL(errorDestination(type), url.origin));
     }
-    const res = NextResponse.redirect(new URL(safeNext, url.origin));
+    const dest = explicitNext || (await defaultDestination());
+    const res = NextResponse.redirect(new URL(dest, url.origin));
     res.cookies.set(freshAuthCookieOptions());
     return res;
   }
@@ -107,7 +145,8 @@ export async function GET(req: NextRequest) {
   // (les fragments n'atteignent jamais le serveur) mais PRÉSERVÉ par le
   // navigateur à travers cette redirection 3xx. /auth/complete (page client)
   // le consomme et termine le parcours. Fini le dead-end /login.
-  return NextResponse.redirect(
-    new URL(`/auth/complete?next=${encodeURIComponent(safeNext)}`, url.origin),
-  );
+  const completeNext = explicitNext
+    ? `?next=${encodeURIComponent(explicitNext)}`
+    : '';
+  return NextResponse.redirect(new URL(`/auth/complete${completeNext}`, url.origin));
 }

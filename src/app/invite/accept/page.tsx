@@ -32,7 +32,7 @@ export default async function InviteAcceptPage({ searchParams }: Props) {
   const admin = createAdminClient('invitation');
   const { data: invite } = await admin
     .from('organization_invitations')
-    .select('id, organization_id, email, role, expires_at, accepted_at, organizations(name)')
+    .select('id, organization_id, email, role, expires_at, accepted_at, accepted_by, organizations(name)')
     .eq('token', token)
     .maybeSingle();
 
@@ -42,7 +42,25 @@ export default async function InviteAcceptPage({ searchParams }: Props) {
     );
   }
 
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Invitation déjà acceptée : si c'est PAR LE MÊME utilisateur (re-clic
+  // sur le lien email), on continue le routage au lieu d'un cul-de-sac.
   if (invite.accepted_at) {
+    if (user && invite.accepted_by === user.id) {
+      const { data: profile } = await admin
+        .from('profiles')
+        .select('password_set')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (!profile?.password_set) {
+        redirect('/auth/first-password?welcome=invited');
+      }
+      redirect('/dashboard');
+    }
     return (
       <ErrorCard
         title="Invitation déjà utilisée"
@@ -61,24 +79,18 @@ export default async function InviteAcceptPage({ searchParams }: Props) {
     );
   }
 
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   // Non connecté → redirect signup avec le token
   if (!user) {
     redirect(`/signup?invite=${token}`);
   }
 
-  // Connecté avec le mauvais email → erreur anti-phishing
+  // Connecté avec le MAUVAIS compte — cas fréquent : l'admin clique le lien
+  // d'invitation dans le navigateur où sa propre session est ouverte, ou
+  // l'invité a plusieurs comptes. On propose la déconnexion directe (le
+  // lien d'invitation reste valable, il suffira de le recliquer).
   if ((user.email ?? '').toLowerCase() !== invite.email.toLowerCase()) {
     return (
-      <ErrorCard
-        title="Email différent"
-        message={`Cette invitation est pour ${invite.email}. Connecte-toi avec cet email.`}
-        backTo="/login"
-      />
+      <WrongAccountCard invitedEmail={invite.email} currentEmail={user.email ?? ''} />
     );
   }
 
@@ -113,20 +125,59 @@ export default async function InviteAcceptPage({ searchParams }: Props) {
     .update({ organization_id: invite.organization_id, role: invite.role })
     .eq('id', user.id);
 
-  // Premier sign-in via invite → on FORCE le passage par set-password.
-  // Détection : user créé via Supabase inviteUserByEmail n'a pas de
-  // last_sign_in_at, OU a un last_sign_in_at < 5s (le verify vient de
-  // logger). Dans ce cas on l'envoie poser un mdp avant /dashboard pour
-  // qu'il puisse se reconnecter sans nouveau magic link.
-  const justFirstSignIn =
-    !user.last_sign_in_at ||
-    Date.now() - new Date(user.last_sign_in_at).getTime() < 5_000;
-  if (justFirstSignIn) {
+  // Pas encore de mot de passe défini (compte créé par invitation) →
+  // passage OBLIGATOIRE par la création du premier mot de passe, sinon
+  // l'invité entre une fois puis ne peut plus jamais se reconnecter.
+  // Détection exacte via profiles.password_set (posé par update-password) —
+  // l'ancienne heuristique "last_sign_in_at < 5 s" cassait au moindre
+  // ralentissement du parcours.
+  const { data: profileFlags } = await admin
+    .from('profiles')
+    .select('password_set')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (!profileFlags?.password_set) {
     redirect(
-      `/auth/set-password?welcome=invited&org=${encodeURIComponent(orgName)}`,
+      `/auth/first-password?welcome=invited&org=${encodeURIComponent(orgName)}`,
     );
   }
   redirect('/dashboard?invited=' + encodeURIComponent(orgName));
+}
+
+function WrongAccountCard({
+  invitedEmail,
+  currentEmail,
+}: {
+  invitedEmail: string;
+  currentEmail: string;
+}) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-6">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center space-y-3">
+          <div className="flex justify-center">
+            <CentriumWordmark size="md" />
+          </div>
+          <CardTitle>Mauvais compte connecté</CardTitle>
+          <CardDescription>
+            Cette invitation est adressée à <strong>{invitedEmail}</strong>, mais tu es
+            connecté avec <strong>{currentEmail}</strong>. Déconnecte-toi puis reclique
+            le lien de l&apos;email — il reste valable.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <form action="/api/auth/logout" method="POST">
+            <Button type="submit" className="w-full">
+              Se déconnecter
+            </Button>
+          </form>
+          <Button asChild variant="outline" className="w-full">
+            <Link href="/dashboard">Rester sur mon compte</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 function ErrorCard({

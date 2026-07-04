@@ -90,7 +90,7 @@ export async function POST(
   // que l'UI copiera dans le presse-papier.
   const redirectTo = buildRedirectTo(
     new URL(req.url),
-    '/auth/set-password?welcome=portal',
+    '/auth/first-password?welcome=portal',
   );
   const invite = await sendPortalInvite({
     email: parsed.data.email,

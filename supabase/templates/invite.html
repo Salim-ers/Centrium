@@ -45,8 +45,12 @@
                     <!-- Pattern token_hash (comme recovery.html) : session établie
                          SERVEUR via verifyOtp — pas de fragment #access_token
                          invisible, cross-device OK. `rt` transporte le redirectTo
-                         original (next métier, ex: /invite/accept?token=…). -->
-                    <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=invite&rt={{ .RedirectTo }}"
+                         original (next métier, ex: /invite/accept?token=…).
+                         `it` = token d'invitation d'ORGANISATION (user_metadata,
+                         posé par /api/invitations) : voie directe vers
+                         /invite/accept, insensible à l'allow-list redirect_to.
+                         Absent (invitation consultant) → rien n'est rendu. -->
+                    <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=invite{{ with .Data.invitation_token }}&it={{ . }}{{ end }}&rt={{ .RedirectTo }}"
                        style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.01em;">
                       Accepter l'invitation
                     </a>

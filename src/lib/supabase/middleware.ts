@@ -36,14 +36,19 @@ function sessionOnly(_name: string, options: CookieOptions): CookieOptions {
   return domain ? { ...rest, domain } : rest;
 }
 
-type ProfileCache = { role: string | null; orgId: string | null; ts: number };
+type ProfileCache = { uid: string; role: string | null; orgId: string | null; ts: number };
 
-function readProfileCookie(req: NextRequest): ProfileCache | null {
+function readProfileCookie(req: NextRequest, userId: string): ProfileCache | null {
   const raw = req.cookies.get(PROFILE_COOKIE)?.value;
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as ProfileCache;
     if (Date.now() - parsed.ts > PROFILE_COOKIE_TTL_SEC * 1000) return null;
+    // CLÉ PAR UTILISATEUR : sans ça, cliquer un lien d'invitation dans un
+    // navigateur où un AUTRE compte était connecté faisait hériter le
+    // nouvel utilisateur du rôle/org caché du précédent pendant 5 min
+    // (routing complètement faux : invité traité en admin, etc.).
+    if (parsed.uid !== userId) return null;
     return parsed;
   } catch {
     return null;
@@ -152,7 +157,7 @@ export async function updateSession(request: NextRequest) {
   // Utilisateur connecté : on doit connaître son rôle + org
   // Lecture depuis le cookie cache (0 DB call). On ne cache QUE si orgId est
   // renseigné, sinon on boucle /dashboard → /onboarding le temps du TTL.
-  const cached = readProfileCookie(request);
+  const cached = readProfileCookie(request, user.id);
   let role: string | null;
   let orgId: string | null;
   if (cached && cached.orgId) {
@@ -166,7 +171,7 @@ export async function updateSession(request: NextRequest) {
       .maybeSingle();
     role = (profile?.role as string | undefined) ?? null;
     orgId = (profile?.organization_id as string | undefined) ?? null;
-    if (orgId) writeProfileCookie(response, { role, orgId });
+    if (orgId) writeProfileCookie(response, { uid: user.id, role, orgId });
   }
 
   const isConsultant = role === 'consultant';

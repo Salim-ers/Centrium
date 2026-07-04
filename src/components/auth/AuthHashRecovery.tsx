@@ -27,11 +27,11 @@ import { useEffect } from 'react';
 function destinationFor(type: string | null): string {
   switch (type) {
     case 'recovery':
-      return '/auth/set-password?welcome=recovery';
+      return '/auth/reset-password';
     case 'invite':
     case 'signup':
     case 'magiclink':
-      return '/auth/set-password?welcome=invited';
+      return '/auth/first-password?welcome=invited';
     default:
       return '/dashboard';
   }

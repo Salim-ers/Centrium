@@ -51,7 +51,7 @@ export default function ForgotPasswordPage() {
     // redirectTo absolu requis. window.location.origin fonctionne en dev
     // (localhost) ET en prod (centrium-platform.com) tant que l'URL est
     // whitelistée côté Supabase Auth → URL Configuration.
-    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent('/auth/set-password?welcome=recovery')}`;
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent('/auth/reset-password')}`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,
     });

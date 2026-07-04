@@ -121,7 +121,7 @@ export default function BillingPage() {
 }
 
 function BillingPageInner() {
-  const { activeOrgId, role } = useOrganization();
+  const { activeOrgId, role, loading: orgLoading } = useOrganization();
   const t = useAppT();
   const searchParams = useSearchParams();
   const [sub, setSub] = useState<Subscription | null>(null);
@@ -133,7 +133,13 @@ function BillingPageInner() {
   const isAdmin = role === 'admin';
 
   const load = useCallback(async () => {
-    if (!activeOrgId) return;
+    // Pas d'organisation active (compte orphelin, onboarding inachevé…) :
+    // on coupe le spinner et on laisse le rendu afficher l'état dédié —
+    // avant, `return` sec laissait loading=true → spinner INFINI.
+    if (!activeOrgId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const [subRes, plansRes] = await Promise.all([
       fetch('/api/billing/subscription', { cache: 'no-store' }).then((r) =>
@@ -288,10 +294,31 @@ function BillingPageInner() {
         }
       />
 
-      {loading ? (
+      {loading || orgLoading ? (
         <div className="flex justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
+      ) : !activeOrgId ? (
+        <Card className="max-w-lg mx-auto mt-8">
+          <CardHeader className="text-center space-y-2">
+            <div className="flex justify-center">
+              <div className="p-3 bg-amber-500/10 rounded-full">
+                <AlertTriangle className="h-6 w-6 text-amber-400" />
+              </div>
+            </div>
+            <CardTitle>Aucune organisation active</CardTitle>
+            <CardDescription>
+              Ton compte n&apos;est rattaché à aucune organisation. Si tu as reçu une
+              invitation, reclique le lien de l&apos;email d&apos;invitation ; sinon
+              demande à ton administrateur de t&apos;inviter, ou crée ton organisation.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild className="w-full">
+              <a href="/onboarding">Créer mon organisation</a>
+            </Button>
+          </CardContent>
+        </Card>
       ) : sub?.isExempt ? (
         <ExemptCard t={t} />
       ) : (

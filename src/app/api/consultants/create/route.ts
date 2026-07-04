@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
   // helper renvoie une invite_url copiable si l'email n'a pas pu partir.
   const redirectTo = buildRedirectTo(
     new URL(req.url),
-    '/auth/set-password?welcome=portal',
+    '/auth/first-password?welcome=portal',
   );
   const invite = await sendPortalInvite({
     email: portal_access.email,

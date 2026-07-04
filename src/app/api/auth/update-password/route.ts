@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 // =========================================================================
 // POST /api/auth/update-password — définit le mot de passe de la session
@@ -46,5 +47,19 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
+
+  // Marque le compte comme "mot de passe défini" — /auth/callback et
+  // /invite/accept s'en servent pour router les liens email : tant que
+  // false, direction /auth/first-password. Service role : la colonne n'est
+  // pas exposée en écriture par les policies RLS user.
+  try {
+    await createAdminClient('password-set')
+      .from('profiles')
+      .update({ password_set: true })
+      .eq('id', user.id);
+  } catch {
+    /* best-effort — le flag sera reposé à la prochaine définition */
+  }
+
   return NextResponse.json({ data: { ok: true } });
 }

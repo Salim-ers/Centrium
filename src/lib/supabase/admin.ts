@@ -27,7 +27,8 @@ type AdminReason =
   | 'data-migration' // migration de données one-shot
   | 'billing-cancel' // POST /api/billing/cancel
   | 'billing-reactivate' // POST /api/billing/reactivate
-  | 'billing-subscription'; // GET /api/billing/subscription state snapshot
+  | 'billing-subscription' // GET /api/billing/subscription state snapshot
+  | 'password-set'; // POST /api/auth/update-password → profiles.password_set
 
 export function createAdminClient(reason: AdminReason): SupabaseClient {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
