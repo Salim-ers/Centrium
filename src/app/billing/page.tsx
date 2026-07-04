@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
@@ -120,6 +120,9 @@ export default function BillingPage() {
   );
 }
 
+/** Instance Embedded Checkout Stripe montée (pour destroy au close). */
+type EmbeddedCheckoutInstance = { mount: (sel: string | HTMLElement) => void; destroy: () => void };
+
 function BillingPageInner() {
   const { activeOrgId, role, loading: orgLoading } = useOrganization();
   const t = useAppT();
@@ -129,6 +132,19 @@ function BillingPageInner() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null); // 'portal' | 'checkout:X' | 'cancel' | 'reactivate'
   const [cancelOpen, setCancelOpen] = useState(false);
+  // Paiement intégré : dialog + instance embedded checkout à détruire au close.
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const embeddedRef = useRef<EmbeddedCheckoutInstance | null>(null);
+
+  const closeCheckout = useCallback(() => {
+    setCheckoutOpen(false);
+    try {
+      embeddedRef.current?.destroy();
+    } catch {
+      /* déjà détruit */
+    }
+    embeddedRef.current = null;
+  }, []);
 
   const isAdmin = role === 'admin';
 
@@ -210,16 +226,60 @@ function BillingPageInner() {
   async function subscribe(planId: string) {
     setBusy(`checkout:${planId}`);
     try {
+      const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+      // Paiement INTÉGRÉ (Stripe Embedded Checkout dans un dialog) quand la
+      // clé publique est dispo ; sinon fallback redirection hosted.
+      const wantEmbedded = !!publishableKey;
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId, cycle: 'monthly' }),
+        body: JSON.stringify({
+          planId,
+          cycle: 'monthly',
+          ...(wantEmbedded ? { ui: 'embedded' } : {}),
+        }),
       });
       const body = await res.json();
       if (!res.ok) {
         toast.error(body.message ?? 'Souscription impossible');
         return;
       }
+
+      if (wantEmbedded && body.client_secret) {
+        const { loadStripe } = await import('@stripe/stripe-js');
+        const stripe = await loadStripe(publishableKey!);
+        if (!stripe) {
+          toast.error('Stripe indisponible — réessaie.');
+          return;
+        }
+        // Ouvre le dialog d'abord pour que le conteneur existe au mount.
+        setCheckoutOpen(true);
+        const checkout = await stripe.createEmbeddedCheckoutPage({
+          clientSecret: body.client_secret as string,
+          onComplete: () => {
+            closeCheckout();
+            toast.success('Paiement confirmé — activation de ton abonnement…');
+            // Le webhook Stripe met la DB à jour ; petit délai puis refresh.
+            setTimeout(() => {
+              void load();
+            }, 2000);
+          },
+        });
+        embeddedRef.current = checkout as unknown as EmbeddedCheckoutInstance;
+        // Le conteneur vit dans le dialog (portal Radix) — il peut mettre
+        // quelques frames à exister. Retry court avant de monter l'iframe.
+        const tryMount = (attempt = 0) => {
+          const el = document.getElementById('embedded-checkout-container');
+          if (el) {
+            checkout.mount('#embedded-checkout-container');
+            return;
+          }
+          if (attempt < 20) setTimeout(() => tryMount(attempt + 1), 50);
+        };
+        tryMount();
+        return;
+      }
+
       window.location.href = body.url;
     } finally {
       setBusy(null);
@@ -513,6 +573,29 @@ function BillingPageInner() {
               Confirmer l'annulation
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Paiement Stripe INTÉGRÉ — le checkout s'affiche dans l'app,
+          aucune redirection. Fermer le dialog détruit l'iframe proprement
+          (le paiement peut être repris en recliquant Souscrire). */}
+      <Dialog
+        open={checkoutOpen}
+        onOpenChange={(v) => {
+          if (!v) closeCheckout();
+        }}
+      >
+        <DialogContent className="max-w-3xl p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-5 pb-0">
+            <DialogTitle>Paiement sécurisé</DialogTitle>
+            <DialogDescription>
+              Règle ton abonnement sans quitter Centrium — paiement traité par Stripe.
+            </DialogDescription>
+          </DialogHeader>
+          <div
+            id="embedded-checkout-container"
+            className="min-h-[520px] max-h-[75vh] overflow-y-auto bg-white rounded-b-lg"
+          />
         </DialogContent>
       </Dialog>
     </AppShell>

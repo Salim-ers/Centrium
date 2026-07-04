@@ -11,7 +11,13 @@ import { requireOrg } from '@/lib/auth/guards';
 // =========================================================================
 // POST /api/billing/checkout — Crée une Stripe Checkout Session
 // -------------------------------------------------------------------------
-// Body : { planId: 'starter' | 'growth' | 'enterprise' }
+// Body : { planId: 'starter' | 'growth' | 'enterprise', ui?: 'embedded' }
+//
+// ui='embedded' → session ui_mode 'embedded' + redirect_on_completion
+// 'never' : le formulaire de paiement Stripe s'affiche DANS l'app
+// (dialog /billing) au lieu d'une redirection plein écran. Réponse :
+// { client_secret }. Sans ui → flow hosted historique { url } (fallback
+// si la clé publique n'est pas dispo côté client).
 //
 // Plans acceptés pour checkout self-service :
 //   'starter'    → STRIPE_STARTER_PRICE_ID    (74,99 EUR HT/mois)
@@ -40,8 +46,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { planId } = (await req.json().catch(() => ({}))) as {
+  const { planId, ui } = (await req.json().catch(() => ({}))) as {
     planId?: string;
+    ui?: string;
   };
 
   if (!planId) {
@@ -129,6 +136,25 @@ export async function POST(req: NextRequest) {
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+
+  if (ui === 'embedded') {
+    // Paiement DANS l'app : pas de success/cancel_url, pas de redirection —
+    // le dialog écoute onComplete côté client puis rafraîchit l'abonnement
+    // (le webhook Stripe met la DB à jour en parallèle).
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      ui_mode: 'embedded_page',
+      redirect_on_completion: 'never',
+      customer: customerId,
+      line_items: [{ price: priceId, quantity: 1 }],
+      subscription_data: {
+        metadata: { organization_id: ctx.organizationId, plan_id: planId },
+      },
+      allow_promotion_codes: true,
+      billing_address_collection: 'auto',
+    });
+    return NextResponse.json({ client_secret: session.client_secret });
+  }
 
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
