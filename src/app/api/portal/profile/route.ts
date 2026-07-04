@@ -43,6 +43,17 @@ const editableSchema = z.object({
     .nullable()
     .or(z.literal('')),
   bic: z.string().max(15).optional().nullable(),
+  // Langues parlées — le consultant gère sa propre liste (code ISO court
+  // + niveau libre parmi les libellés proposés côté UI).
+  languages: z
+    .array(
+      z.object({
+        code: z.string().trim().min(2).max(5),
+        level: z.string().trim().min(1).max(40),
+      }),
+    )
+    .max(10)
+    .optional(),
 });
 
 export async function PATCH(req: NextRequest) {
@@ -78,10 +89,16 @@ export async function PATCH(req: NextRequest) {
     );
   }
 
-  // Normalise les "" en null
+  // Normalise les "" en null (les tableaux passent tels quels)
   const payload = Object.fromEntries(
     Object.entries(parsed.data).map(([k, v]) => [k, v === '' ? null : v]),
   );
+  if (parsed.data.languages) {
+    payload.languages = parsed.data.languages.map((l) => ({
+      code: l.code.toUpperCase(),
+      level: l.level,
+    }));
+  }
 
   // Defense-in-depth : on borne aussi la mise à jour à l'org du caller,
   // au cas où profile.consultant_id pointerait par accident vers une fiche

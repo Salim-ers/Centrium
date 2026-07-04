@@ -29,43 +29,66 @@ import { showBrandToast } from '@/components/ui/BrandToast';
 
 let patched = false;
 
-type SonnerData = { description?: React.ReactNode; duration?: number } | undefined;
+type SonnerData =
+  | { description?: React.ReactNode; duration?: number; id?: string | number }
+  | undefined;
+
+/** Certains call-sites REMPLACENT un toast existant via { id } (pattern
+ *  loading → succès/erreur, cf. download-document). toast.custom crée un
+ *  nouveau toast : on ferme d'abord l'ancien pour reproduire le
+ *  remplacement sans laisser tourner un spinner orphelin. */
+function replaceIfNeeded(data: SonnerData) {
+  if (data?.id !== undefined) toast.dismiss(data.id);
+}
 
 function bridge() {
   if (patched) return;
   patched = true;
 
-  toast.success = (() => '') as typeof toast.success;
+  toast.success = ((message: React.ReactNode, data?: SonnerData) => {
+    replaceIfNeeded(data);
+    return '';
+  }) as typeof toast.success;
 
-  toast.error = ((message: React.ReactNode, data?: SonnerData) =>
-    showBrandToast('error', message, {
+  toast.error = ((message: React.ReactNode, data?: SonnerData) => {
+    replaceIfNeeded(data);
+    return showBrandToast('error', message, {
       description: data?.description,
       duration: data?.duration,
-    })) as typeof toast.error;
+    });
+  }) as typeof toast.error;
 
-  toast.warning = ((message: React.ReactNode, data?: SonnerData) =>
-    showBrandToast('warning', message, {
+  toast.warning = ((message: React.ReactNode, data?: SonnerData) => {
+    replaceIfNeeded(data);
+    return showBrandToast('warning', message, {
       description: data?.description,
       duration: data?.duration,
-    })) as typeof toast.warning;
+    });
+  }) as typeof toast.warning;
 
-  toast.info = ((message: React.ReactNode, data?: SonnerData) =>
-    showBrandToast('info', message, {
+  toast.info = ((message: React.ReactNode, data?: SonnerData) => {
+    replaceIfNeeded(data);
+    return showBrandToast('info', message, {
       description: data?.description,
       duration: data?.duration,
-    })) as typeof toast.info;
+    });
+  }) as typeof toast.info;
 
-  toast.message = ((message: React.ReactNode, data?: SonnerData) =>
-    showBrandToast('info', message, {
+  toast.message = ((message: React.ReactNode, data?: SonnerData) => {
+    replaceIfNeeded(data);
+    return showBrandToast('info', message, {
       description: data?.description,
       duration: data?.duration,
-    })) as typeof toast.message;
+    });
+  }) as typeof toast.message;
 
-  toast.loading = ((message: React.ReactNode, data?: SonnerData) =>
-    showBrandToast('loading', message, {
+  toast.loading = ((message: React.ReactNode, data?: SonnerData) => {
+    replaceIfNeeded(data);
+    return showBrandToast('loading', message, {
       description: data?.description,
       duration: data?.duration,
-    })) as typeof toast.loading;
+    });
+  }) as typeof toast.loading;
 }
 
 export function GlobalToastBridge() {

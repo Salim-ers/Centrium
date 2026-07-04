@@ -8,7 +8,9 @@ import {
   Linkedin,
   MapPin,
   Pencil,
+  Plus,
   Save,
+  Trash2,
   X,
   Loader2,
   Briefcase,
@@ -44,6 +46,10 @@ import { KycDocuments } from '@/components/consultants/KycDocuments';
 import { ConsultantSelfDocuments } from '@/components/portal/ConsultantSelfDocuments';
 import { usePortalConsultant } from '../portal-context';
 
+type LangRow = { code: string; level: string };
+
+const LANG_LEVELS = ['Natif', 'Bilingue', 'Courant', 'Professionnel', 'Intermédiaire', 'Notions'];
+
 type EditableForm = {
   email: string;
   phone: string;
@@ -61,12 +67,14 @@ type EditableForm = {
   postal_code: string;
   iban: string;
   bic: string;
+  languages: LangRow[];
 };
 
 function emptyForm(): EditableForm {
   return {
     email: '', phone: '', linkedin_url: '', city: '', country: 'FR', mobility: '', summary: '',
     legal_status: '', company_name: '', siret: '', vat_number: '', address: '', postal_code: '', iban: '', bic: '',
+    languages: [],
   };
 }
 
@@ -88,6 +96,7 @@ function formFromConsultant(c: Consultant): EditableForm {
     postal_code: c.postal_code ?? '',
     iban: c.iban ?? '',
     bic: c.bic ?? '',
+    languages: (c.languages ?? []).map((l) => ({ code: l.code, level: l.level })),
   };
 }
 
@@ -128,7 +137,11 @@ export default function PortalProfilePage() {
       const res = await fetch('/api/portal/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          // Ignore les lignes langue incomplètes (code < 2 caractères)
+          languages: form.languages.filter((l) => l.code.trim().length >= 2),
+        }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -423,16 +436,92 @@ export default function PortalProfilePage() {
         </AppCard>
       </Reveal>
 
-      {/* ---- Langues ---- */}
-      {c.languages.length > 0 && (
-        <Reveal delay={0.18}>
-          <SectionHeader
-            eyebrow="Profil"
-            title={<>Mes <span className="qc-italic-accent font-editorial italic">langues.</span></>}
-          />
-          <AppCard className="mb-8">
-            <AppCardBody className="space-y-1">
-              {c.languages.map((l) => (
+      {/* ---- Langues (ajout / suppression par le consultant) ---- */}
+      <Reveal delay={0.18}>
+        <SectionHeader
+          eyebrow="Profil"
+          title={<>Mes <span className="qc-italic-accent font-editorial italic">langues.</span></>}
+          description={editing ? 'Ajoute, modifie ou retire tes langues — pense à enregistrer.' : undefined}
+        />
+        <AppCard className="mb-8">
+          <AppCardBody className="space-y-1">
+            {editing ? (
+              <div className="space-y-2">
+                {form.languages.map((l, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Input
+                      value={l.code}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          languages: form.languages.map((row, j) =>
+                            j === i ? { ...row, code: e.target.value.toUpperCase().slice(0, 5) } : row,
+                          ),
+                        })
+                      }
+                      placeholder="FR"
+                      className="w-24 uppercase"
+                      aria-label="Code langue"
+                    />
+                    <select
+                      value={l.level}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          languages: form.languages.map((row, j) =>
+                            j === i ? { ...row, level: e.target.value } : row,
+                          ),
+                        })
+                      }
+                      className="flex-1 h-10 rounded-md border border-input bg-transparent px-3 text-sm"
+                      aria-label="Niveau"
+                    >
+                      {!LANG_LEVELS.includes(l.level) && l.level && (
+                        <option value={l.level}>{l.level}</option>
+                      )}
+                      {LANG_LEVELS.map((lvl) => (
+                        <option key={lvl} value={lvl}>
+                          {lvl}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          languages: form.languages.filter((_, j) => j !== i),
+                        })
+                      }
+                      aria-label="Retirer cette langue"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-rose-400" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setForm({
+                      ...form,
+                      languages: [...form.languages, { code: '', level: 'Professionnel' }],
+                    })
+                  }
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Ajouter une langue
+                </Button>
+              </div>
+            ) : c.languages.length === 0 ? (
+              <p className="text-sm text-muted-foreground/60 italic px-1 py-2">
+                Aucune langue renseignée — clique sur « Modifier » pour en ajouter.
+              </p>
+            ) : (
+              c.languages.map((l) => (
                 <div
                   key={l.code}
                   className="flex items-center justify-between rounded-lg px-3 py-2.5 hover-surface transition-colors"
@@ -445,11 +534,11 @@ export default function PortalProfilePage() {
                   </span>
                   <span className="text-sm text-muted-foreground">{l.level}</span>
                 </div>
-              ))}
-            </AppCardBody>
-          </AppCard>
-        </Reveal>
-      )}
+              ))
+            )}
+          </AppCardBody>
+        </AppCard>
+      </Reveal>
 
       {/* ---- Mes documents (CV, certifications…) ---- */}
       <Reveal delay={0.22}>
