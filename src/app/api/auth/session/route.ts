@@ -43,3 +43,17 @@ export async function POST(req: NextRequest) {
   }
   return NextResponse.json({ data: { ok: true } });
 }
+
+/**
+ * GET — la session de l'appelant est-elle valide ? Vérification CÔTÉ
+ * SERVEUR (cookies) : getUser() client passe par navigator.locks et peut
+ * pendre indéfiniment avec plusieurs onglets ouverts (spinner infini sur
+ * set-password). Ici : zéro verrou, réponse immédiate.
+ */
+export async function GET() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return NextResponse.json({ data: { authenticated: !!user } });
+}

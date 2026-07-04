@@ -15,7 +15,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
-import { createClient } from '@/lib/supabase/client';
 import { notifyCreated, notifyError } from '@/lib/notify';
 
 export default function SetPasswordPage() {
@@ -82,19 +81,37 @@ function SetPasswordInner() {
     };
   }, [password]);
 
-  // Vérifie la session au mount. Sans session (verifyOtp/exchangeCodeForSession
-  // ont échoué avant le redirect), updateUser retournerait "Auth session
-  // missing!" ce qui laisse l'user perplexe sur une page vide. On redirige
-  // proprement vers /login avec un code d'erreur explicite.
+  // Vérifie la session au mount — CÔTÉ SERVEUR (GET /api/auth/session).
+  // L'ancien supabase.auth.getUser() client passait par navigator.locks
+  // (verrou partagé entre onglets) et pouvait pendre indéfiniment →
+  // spinner infini. En cas d'erreur réseau on affiche le formulaire
+  // (fail-open) : la route update-password revalidera la session.
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) {
-        router.replace('/login?error=session_expired');
-        return;
-      }
-      setCheckingSession(false);
-    });
+    let cancelled = false;
+    const watchdog = setTimeout(() => {
+      if (!cancelled) setCheckingSession(false);
+    }, 8000);
+    fetch('/api/auth/session')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (cancelled) return;
+        clearTimeout(watchdog);
+        if (body && body.data?.authenticated === false) {
+          router.replace('/login?error=session_expired');
+          return;
+        }
+        setCheckingSession(false);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          clearTimeout(watchdog);
+          setCheckingSession(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+      clearTimeout(watchdog);
+    };
   }, [router]);
 
   async function submit(e: React.FormEvent) {
@@ -115,12 +132,27 @@ function SetPasswordInner() {
       return;
     }
     setBusy(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password });
-    if (error) {
-      notifyError(error.message);
-      setBusy(false);
+    // Mise à jour CÔTÉ SERVEUR (cf. /api/auth/update-password) — le
+    // updateUser() client pouvait pendre sur navigator.locks (multi-onglets).
+    let ok = false;
+    try {
+      const res = await fetch('/api/auth/update-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        notifyError(body.message ?? 'Mise à jour impossible — réessaie.');
+        if (res.status === 401) router.replace('/login?error=session_expired');
+        return;
+      }
+      ok = true;
+    } catch {
+      notifyError('Erreur réseau — vérifie ta connexion puis réessaie.');
       return;
+    } finally {
+      if (!ok) setBusy(false);
     }
     notifyCreated('Mot de passe défini — bienvenue sur Centrium');
     // Le serveur connaît son rôle ; on laisse le middleware router au bon
