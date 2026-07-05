@@ -3,6 +3,7 @@ import type { EmailOtpType } from '@supabase/supabase-js';
 
 import { createClient } from '@/lib/supabase/server';
 import { freshAuthCookieOptions } from '@/lib/supabase/cookie-domain';
+import { claimPendingInvitation } from '@/lib/auth/claim-invitation';
 
 // =========================================================================
 // GET /auth/callback — endpoint unique d'établissement de session pour
@@ -90,6 +91,24 @@ export async function GET(req: NextRequest) {
 
   const supabase = createClient();
 
+  // Rattachement AUTOMATIQUE : si l'email du compte a une invitation d'org
+  // pendante, on l'accepte ici — quel que soit le lien cliqué (invitation,
+  // recovery, magic link). Sans ça, un invité entré par « mot de passe
+  // oublié » restait orphelin (viewer sans org, invitation en attente à
+  // vie). Doit tourner AVANT defaultDestination() qui lit le profil.
+  async function claimIfInvited(): Promise<void> {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) await claimPendingInvitation(user);
+  }
+
+  // Le middleware cache role/org 5 min dans qc_profile : après un claim
+  // (ou tout début de parcours), on le purge pour forcer une relecture.
+  function clearProfileCache(res: NextResponse): void {
+    res.cookies.set({ name: 'qc_profile', value: '', path: '/', maxAge: 0 });
+  }
+
   // Défaut post-session selon le type de lien et l'état du compte.
   // Appelé APRÈS l'établissement de la session (on lit le profil).
   async function defaultDestination(): Promise<string> {
@@ -121,11 +140,13 @@ export async function GET(req: NextRequest) {
     if (error) {
       return NextResponse.redirect(new URL(errorDestination(type), url.origin));
     }
+    await claimIfInvited();
     const dest = explicitNext || (await defaultDestination());
     const res = NextResponse.redirect(new URL(dest, url.origin));
     // Session créée par lien email : marque l'entrée comme légitime pour
     // le garde anti-restauration (sinon logout automatique ~1 s après).
     res.cookies.set(freshAuthCookieOptions());
+    clearProfileCache(res);
     return res;
   }
 
@@ -135,9 +156,11 @@ export async function GET(req: NextRequest) {
     if (error) {
       return NextResponse.redirect(new URL(errorDestination(type), url.origin));
     }
+    await claimIfInvited();
     const dest = explicitNext || (await defaultDestination());
     const res = NextResponse.redirect(new URL(dest, url.origin));
     res.cookies.set(freshAuthCookieOptions());
+    clearProfileCache(res);
     return res;
   }
 

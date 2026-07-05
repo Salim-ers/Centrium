@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { claimPendingInvitation } from '@/lib/auth/claim-invitation';
 
 // =========================================================================
 // POST /api/auth/update-password — définit le mot de passe de la session
@@ -61,5 +62,16 @@ export async function POST(req: NextRequest) {
     /* best-effort — le flag sera reposé à la prochaine définition */
   }
 
-  return NextResponse.json({ data: { ok: true } });
+  // Filet de rattachement : une invitation d'org pendante pour cet email
+  // est acceptée ici aussi — couvre les sessions établies côté client
+  // (/auth/complete, fragments) qui ne passent pas par /auth/callback.
+  const claim = await claimPendingInvitation(user);
+
+  const res = NextResponse.json({ data: { ok: true, joined: claim.organizationName } });
+  if (claim.claimed) {
+    // Purge le cache middleware role/org (TTL 5 min) pour que la prochaine
+    // navigation lise le profil fraîchement rattaché.
+    res.cookies.set({ name: 'qc_profile', value: '', path: '/', maxAge: 0 });
+  }
+  return res;
 }
