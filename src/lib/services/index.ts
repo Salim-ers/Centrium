@@ -507,8 +507,10 @@ export const companyService = {
 
 export type InvoiceListItem = Invoice & {
   mission: { title: string; consultant: { first_name: string; last_name: string } | null } | null;
-  // Consultant lié directement à la facture (factures hors mission).
-  consultant: { first_name: string; last_name: string } | null;
+  // Consultant lié directement à la facture (factures hors mission / sous-traitance).
+  consultant: { first_name: string; last_name: string; company_name: string | null } | null;
+  // Entreprise cliente facturée (factures de vente).
+  company: { name: string } | null;
 };
 
 export const invoiceService = {
@@ -533,7 +535,7 @@ export const invoiceService = {
     let q = supabase
       .from('invoices')
       .select(
-        '*, mission:missions(title, consultant:consultants(first_name, last_name)), consultant:consultants!consultant_id(first_name, last_name)',
+        '*, mission:missions(title, consultant:consultants(first_name, last_name)), consultant:consultants!consultant_id(first_name, last_name, company_name), company:companies(name)',
       );
     if (!opts?.includeArchived) q = q.eq('archived', false);
     const { data, error } = await q.order('issue_date', { ascending: false });
@@ -612,6 +614,123 @@ export const invoiceService = {
     return { data: data as Invoice, error: null };
   },
 
+  /**
+   * Génère la facture de SOUS-TRAITANCE (party='consultant') d'un CRA validé :
+   * le pendant « achat » de la facture client auto-générée à la validation.
+   * Montant = jours validés × TJM achat (contrat consultant signé > TJM fiche
+   * consultant > TJM mission en dernier recours). TVA 20 % si le consultant a
+   * un n° de TVA, sinon 0 % avec la mention légale art. 293 B du CGI.
+   * Idempotent : renvoie la facture existante si le CRA en a déjà une.
+   */
+  async generateConsultantInvoice(
+    timesheetId: string,
+  ): Promise<ServiceResult<{ invoice: Invoice; alreadyExists: boolean }>> {
+    const supabase = createClient();
+
+    const { data: ts, error: tsErr } = await supabase
+      .from('timesheets')
+      .select('id, organization_id, mission_id, consultant_id, period_month, period_year, days_validated, days_worked, status')
+      .eq('id', timesheetId)
+      .maybeSingle();
+    if (tsErr || !ts) return { data: null, error: tsErr ?? new Error('CRA introuvable') };
+    if (ts.status !== 'client_validated') {
+      return { data: null, error: new Error('Le CRA doit être validé avant de générer la facture consultant') };
+    }
+    if (!ts.consultant_id) {
+      return { data: null, error: new Error('Aucun consultant lié à ce CRA') };
+    }
+
+    // Idempotence : une seule facture consultant par CRA.
+    const { data: existing } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('timesheet_id', ts.id)
+      .eq('party', 'consultant')
+      .maybeSingle();
+    if (existing) return { data: { invoice: existing as Invoice, alreadyExists: true }, error: null };
+
+    const [{ data: mission }, { data: consultant }, { data: contract }] = await Promise.all([
+      ts.mission_id
+        ? supabase.from('missions').select('id, title, daily_rate_eur').eq('id', ts.mission_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      supabase
+        .from('consultants')
+        .select('id, first_name, last_name, company_name, daily_rate_eur, vat_number')
+        .eq('id', ts.consultant_id)
+        .maybeSingle(),
+      // Dernier contrat de sous-traitance actif/signé du consultant : source
+      // de vérité du TJM ACHAT et du délai de paiement.
+      supabase
+        .from('contracts')
+        .select('daily_rate_eur, payment_terms_days')
+        .eq('consultant_id', ts.consultant_id)
+        .eq('party', 'consultant')
+        .in('status', ['signed', 'active'])
+        .eq('archived', false)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    const days = Number(ts.days_validated ?? ts.days_worked ?? 0);
+    if (!days) return { data: null, error: new Error('Aucun jour validé sur ce CRA') };
+
+    const tjmAchat = Number(
+      contract?.daily_rate_eur ?? consultant?.daily_rate_eur ?? mission?.daily_rate_eur ?? 0,
+    );
+    if (!tjmAchat) {
+      return {
+        data: null,
+        error: new Error('Aucun TJM trouvé (contrat consultant, fiche consultant ou mission)'),
+      };
+    }
+
+    const amount_ht = +(days * tjmAchat).toFixed(2);
+    // Franchise en base (art. 293 B du CGI) si le consultant n'a pas de n° TVA.
+    const vat_rate = consultant?.vat_number ? 20 : 0;
+    const amount_vat = +((amount_ht * vat_rate) / 100).toFixed(2);
+    const amount_ttc = +(amount_ht + amount_vat).toFixed(2);
+
+    const MONTHS_FULL = [
+      'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+    ];
+    const period_label = `${MONTHS_FULL[ts.period_month - 1]} ${ts.period_year}`;
+
+    const issue = new Date();
+    const due = new Date();
+    due.setDate(due.getDate() + (contract?.payment_terms_days ?? 30));
+
+    const invoice_number = `FC-${issue.getFullYear()}-${Math.floor(Math.random() * 9000 + 1000)}`;
+
+    const { data, error } = await supabase
+      .from('invoices')
+      .insert({
+        organization_id: ts.organization_id,
+        party: 'consultant',
+        company_id: null,
+        consultant_id: ts.consultant_id,
+        mission_id: ts.mission_id,
+        timesheet_id: ts.id,
+        invoice_number,
+        issue_date: issue.toISOString().split('T')[0],
+        due_date: due.toISOString().split('T')[0],
+        period_label,
+        unit_price: tjmAchat,
+        quantity: days,
+        amount_ht,
+        vat_rate,
+        amount_vat,
+        amount_ttc,
+        status: 'draft',
+        notes: vat_rate === 0 ? 'TVA non applicable — article 293 B du CGI' : null,
+      })
+      .select()
+      .single();
+    if (error) return { data: null, error };
+    return { data: { invoice: data as Invoice, alreadyExists: false }, error: null };
+  },
+
   async getById(id: string): Promise<
     ServiceResult<{
       invoice: Invoice;
@@ -630,7 +749,11 @@ export const invoiceService = {
     if (error || !invoice) return { data: null, error: error ?? new Error('Facture introuvable') };
 
     const [company, mission, timesheet] = await Promise.all([
-      supabase.from('companies').select('*').eq('id', invoice.company_id).maybeSingle(),
+      // company_id est nullable depuis 024 (missions libres) et vaut null
+      // sur les factures consultant — un .eq(null) ferait un 400 PostgREST.
+      invoice.company_id
+        ? supabase.from('companies').select('*').eq('id', invoice.company_id).maybeSingle()
+        : Promise.resolve({ data: null }),
       invoice.mission_id
         ? supabase.from('missions').select('*').eq('id', invoice.mission_id).maybeSingle()
         : Promise.resolve({ data: null }),
@@ -1022,11 +1145,14 @@ export const timesheetService = {
       timesheet = validated as Timesheet;
     }
 
-    // 3. Vérifier si une facture existe déjà pour ce CRA
+    // 3. Vérifier si une facture CLIENT existe déjà pour ce CRA (un CRA peut
+    // maintenant porter deux factures : vente client + sous-traitance
+    // consultant — sans le filtre party, maybeSingle() planterait).
     const { data: existingInvoice } = await supabase
       .from('invoices')
       .select('*')
       .eq('timesheet_id', id)
+      .eq('party', 'client')
       .maybeSingle();
 
     if (existingInvoice) {
@@ -1055,6 +1181,7 @@ export const timesheetService = {
       .from('invoices')
       .insert({
         organization_id: organizationId,
+        party: 'client',
         company_id: mission.company_id,
         mission_id: mission.id,
         timesheet_id: timesheet.id,
@@ -1349,23 +1476,28 @@ export const dashboardService = {
       supabase
         .from('invoices')
         .select('amount_ht')
+        .eq('party', 'client')
         .eq('status', 'paid')
         .gte('issue_date', firstDayMonth.split('T')[0]),
-      // Factures émises ce mois (status sent/overdue/paid, hors draft/cancelled)
-      // — base de calcul du CA "facturé" du mois, cohérente avec la courbe
-      // dashboard 12 mois.
+      // Factures CLIENT émises ce mois (status sent/overdue/paid, hors
+      // draft/cancelled) — base de calcul du CA "facturé" du mois, cohérente
+      // avec la courbe dashboard 12 mois. Les factures consultant (achat de
+      // sous-traitance) ne comptent jamais dans le CA.
       supabase
         .from('invoices')
         .select('amount_ht')
+        .eq('party', 'client')
         .in('status', ['sent', 'overdue', 'paid'])
         .gte('issue_date', firstDayMonth.split('T')[0]),
       supabase
         .from('invoices')
         .select('id', { count: 'exact', head: true })
+        .eq('party', 'client')
         .eq('status', 'sent'),
       supabase
         .from('invoices')
         .select('id', { count: 'exact', head: true })
+        .eq('party', 'client')
         .eq('status', 'overdue'),
       supabase
         .from('timesheets')

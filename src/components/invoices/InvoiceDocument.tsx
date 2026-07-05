@@ -75,6 +75,18 @@ export function InvoiceDocument({
   const vat = Number(invoice.amount_vat);
   const ttc = Number(invoice.amount_ttc);
 
+  // Facture de SOUS-TRAITANCE : la société du consultant est le VENDEUR et
+  // l'ESN l'acheteur. Le document est établi par l'ESN au nom et pour le
+  // compte du prestataire (autofacturation, art. 289 I-2 du CGI) — c'est
+  // pour ça que le tampon/la signature de l'org restent apposés en bas.
+  const isSub = invoice.party === 'consultant';
+  const supplierName =
+    consultant?.company_name?.trim() ||
+    [consultant?.first_name, consultant?.last_name].filter(Boolean).join(' ') ||
+    'Prestataire';
+  const supplierCityLine = [consultant?.postal_code, consultant?.city].filter(Boolean).join(' ');
+  const vatExempt = Number(invoice.vat_rate) === 0;
+
   return (
     <div
       className="qc-print-doc bg-white text-neutral-900 shadow-2xl mx-auto"
@@ -84,7 +96,9 @@ export function InvoiceDocument({
         <div className="flex items-start justify-between gap-6">
           <QuadCoreLogo size="md" src={iss.logoUrl} alt={iss.brandName} />
           <div className="text-right">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-neutral-400">Facture</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-neutral-400">
+              {isSub ? 'Facture de sous-traitance' : 'Facture'}
+            </div>
             <div className="font-mono text-lg font-bold mt-1">{invoice.invoice_number}</div>
           </div>
         </div>
@@ -94,48 +108,126 @@ export function InvoiceDocument({
         />
       </header>
 
-      <section className="px-12 py-6 grid grid-cols-2 gap-8">
-        <div>
-          <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">Émetteur</div>
-          <div className="text-sm font-semibold text-neutral-900">{iss.legalName}</div>
-          <div className="text-xs text-neutral-600 leading-relaxed mt-1">
-            {iss.address && (
-              <>
-                {iss.address}
-                <br />
-              </>
-            )}
-            {cityLine && (
-              <>
-                {cityLine}
-                <br />
-              </>
-            )}
-            {iss.siren && (
-              <>
-                SIREN {iss.siren}
-                <br />
-              </>
-            )}
-            {iss.vatNumber && <>TVA {iss.vatNumber}</>}
+      {isSub ? (
+        <section className="px-12 py-6 grid grid-cols-2 gap-8">
+          <div>
+            <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
+              Émetteur — Prestataire
+            </div>
+            <div className="text-sm font-semibold text-neutral-900">{supplierName}</div>
+            <div className="text-xs text-neutral-600 leading-relaxed mt-1">
+              {consultant?.address && (
+                <>
+                  {consultant.address}
+                  <br />
+                </>
+              )}
+              {supplierCityLine && (
+                <>
+                  {supplierCityLine}
+                  <br />
+                </>
+              )}
+              {consultant?.siret && (
+                <>
+                  SIRET {consultant.siret}
+                  <br />
+                </>
+              )}
+              {consultant?.vat_number ? (
+                <>TVA {consultant.vat_number}</>
+              ) : (
+                <>TVA non applicable — art. 293 B du CGI</>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div>
-          <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">Client</div>
-          <div className="text-sm font-semibold text-neutral-900">{company?.name ?? '—'}</div>
-          <div className="text-xs text-neutral-600 leading-relaxed mt-1">
-            {company?.address && (
-              <>
-                {company.address}
-                <br />
-              </>
-            )}
-            {company?.city}
-            {company?.country && company?.country !== 'FR' ? `, ${company.country}` : ''}
+          <div>
+            <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
+              Adressée à — Donneur d&apos;ordre
+            </div>
+            <div className="text-sm font-semibold text-neutral-900">{iss.legalName}</div>
+            <div className="text-xs text-neutral-600 leading-relaxed mt-1">
+              {iss.address && (
+                <>
+                  {iss.address}
+                  <br />
+                </>
+              )}
+              {cityLine && (
+                <>
+                  {cityLine}
+                  <br />
+                </>
+              )}
+              {iss.siren && (
+                <>
+                  SIREN {iss.siren}
+                  <br />
+                </>
+              )}
+              {iss.vatNumber && <>TVA {iss.vatNumber}</>}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : (
+        <section className="px-12 py-6 grid grid-cols-2 gap-8">
+          <div>
+            <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">Émetteur</div>
+            <div className="text-sm font-semibold text-neutral-900">{iss.legalName}</div>
+            <div className="text-xs text-neutral-600 leading-relaxed mt-1">
+              {iss.address && (
+                <>
+                  {iss.address}
+                  <br />
+                </>
+              )}
+              {cityLine && (
+                <>
+                  {cityLine}
+                  <br />
+                </>
+              )}
+              {iss.siren && (
+                <>
+                  SIREN {iss.siren}
+                  <br />
+                </>
+              )}
+              {iss.vatNumber && <>TVA {iss.vatNumber}</>}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">Client</div>
+            <div className="text-sm font-semibold text-neutral-900">{company?.name ?? '—'}</div>
+            <div className="text-xs text-neutral-600 leading-relaxed mt-1">
+              {company?.address && (
+                <>
+                  {company.address}
+                  <br />
+                </>
+              )}
+              {company?.city}
+              {company?.country && company?.country !== 'FR' ? `, ${company.country}` : ''}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {isSub && (
+        <section className="px-12 pb-4">
+          <div
+            className="rounded-md px-4 py-2.5 text-[10px] leading-relaxed text-neutral-600 border"
+            style={{ borderColor: `${primary}33`, background: `${primary}0a` }}
+          >
+            <span className="font-semibold text-neutral-800">Autofacturation.</span> Facture
+            établie par {iss.legalName} au nom et pour le compte de {supplierName} (art. 289,
+            I-2 du CGI), sur la base du compte rendu d&apos;activité validé
+            {invoice.period_label ? ` — période ${invoice.period_label}` : ''}.
+          </div>
+        </section>
+      )}
 
       <section className="px-12 pb-4 grid grid-cols-3 gap-6 text-xs">
         <InvoiceField label="Date d'émission" value={formatDate(invoice.issue_date)} />
@@ -195,7 +287,7 @@ export function InvoiceDocument({
                 <tr className="border-b border-neutral-200 align-top">
                   <td className="px-3 py-3">
                     <div className="font-medium text-neutral-900">
-                      {mission?.title ?? 'Prestation de services IT'}
+                      {mission?.title ?? (isSub ? 'Prestation de sous-traitance IT' : 'Prestation de services IT')}
                     </div>
                     {consultant && (
                       <div className="text-xs text-neutral-500 mt-0.5">
@@ -249,6 +341,11 @@ export function InvoiceDocument({
             <span>Total TTC</span>
             <span style={{ color: accent }}>{formatCurrency(ttc)}</span>
           </div>
+          {vatExempt && (
+            <p className="text-[9px] text-neutral-500 text-right">
+              TVA non applicable — article 293 B du CGI
+            </p>
+          )}
         </div>
       </section>
 
@@ -259,51 +356,88 @@ export function InvoiceDocument({
         </section>
       )}
 
-      {/* ============ COORDONNÉES BANCAIRES (pleine largeur, AU-DESSUS) ============ */}
-      {(iss.iban || iss.bic || iss.bankName) && (
-        <section className="px-12 py-4">
-          <div className="rounded-md border border-neutral-200 bg-white p-4">
-            <div
-              className="font-semibold mb-2 tracking-[0.18em] uppercase text-[10px]"
-              style={{ color: primary }}
-            >
-              Coordonnées bancaires
-            </div>
-            <div className="grid grid-cols-3 gap-6 text-[11px]">
-              {iss.bankName && (
-                <div>
-                  <div className="text-[9px] uppercase tracking-wider text-neutral-500 mb-0.5">
-                    Banque
-                  </div>
-                  <div className="text-neutral-900 font-medium">{iss.bankName}</div>
+      {/* ============ COORDONNÉES BANCAIRES (pleine largeur, AU-DESSUS) ============
+          Facture client : compte de l'ORG (le client paie l'ESN).
+          Facture consultant : compte du PRESTATAIRE (l'ESN paie le freelance). */}
+      {isSub
+        ? (consultant?.iban || consultant?.bic) && (
+            <section className="px-12 py-4">
+              <div className="rounded-md border border-neutral-200 bg-white p-4">
+                <div
+                  className="font-semibold mb-2 tracking-[0.18em] uppercase text-[10px]"
+                  style={{ color: primary }}
+                >
+                  Règlement au prestataire
                 </div>
-              )}
-              {iss.iban && (
-                <div className="col-span-2">
-                  <div className="text-[9px] uppercase tracking-wider text-neutral-500 mb-0.5">
-                    IBAN
-                  </div>
-                  <div className="text-neutral-900 font-mono">{formatIban(iss.iban)}</div>
+                <div className="grid grid-cols-3 gap-6 text-[11px]">
+                  {consultant?.iban && (
+                    <div className="col-span-2">
+                      <div className="text-[9px] uppercase tracking-wider text-neutral-500 mb-0.5">
+                        IBAN
+                      </div>
+                      <div className="text-neutral-900 font-mono">{formatIban(consultant.iban)}</div>
+                    </div>
+                  )}
+                  {consultant?.bic && (
+                    <div>
+                      <div className="text-[9px] uppercase tracking-wider text-neutral-500 mb-0.5">
+                        BIC / SWIFT
+                      </div>
+                      <div className="text-neutral-900 font-mono">{consultant.bic}</div>
+                    </div>
+                  )}
                 </div>
-              )}
-              {iss.bic && (
-                <div>
-                  <div className="text-[9px] uppercase tracking-wider text-neutral-500 mb-0.5">
-                    BIC / SWIFT
-                  </div>
-                  <div className="text-neutral-900 font-mono">{iss.bic}</div>
+              </div>
+            </section>
+          )
+        : (iss.iban || iss.bic || iss.bankName) && (
+            <section className="px-12 py-4">
+              <div className="rounded-md border border-neutral-200 bg-white p-4">
+                <div
+                  className="font-semibold mb-2 tracking-[0.18em] uppercase text-[10px]"
+                  style={{ color: primary }}
+                >
+                  Coordonnées bancaires
                 </div>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
+                <div className="grid grid-cols-3 gap-6 text-[11px]">
+                  {iss.bankName && (
+                    <div>
+                      <div className="text-[9px] uppercase tracking-wider text-neutral-500 mb-0.5">
+                        Banque
+                      </div>
+                      <div className="text-neutral-900 font-medium">{iss.bankName}</div>
+                    </div>
+                  )}
+                  {iss.iban && (
+                    <div className="col-span-2">
+                      <div className="text-[9px] uppercase tracking-wider text-neutral-500 mb-0.5">
+                        IBAN
+                      </div>
+                      <div className="text-neutral-900 font-mono">{formatIban(iss.iban)}</div>
+                    </div>
+                  )}
+                  {iss.bic && (
+                    <div>
+                      <div className="text-[9px] uppercase tracking-wider text-neutral-500 mb-0.5">
+                        BIC / SWIFT
+                      </div>
+                      <div className="text-neutral-900 font-mono">{iss.bic}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
 
       <section className="px-12 py-6 border-t border-neutral-100 bg-neutral-50/40">
         <div className="grid grid-cols-2 gap-8 items-start">
           <div className="text-[10px] text-neutral-500 leading-relaxed">
             <div className="font-semibold text-neutral-700 mb-1">Modalités de paiement</div>
-            <p>Paiement à réception par virement bancaire.</p>
+            <p>
+              {isSub
+                ? `Règlement par virement bancaire au prestataire à l'échéance indiquée.`
+                : 'Paiement à réception par virement bancaire.'}
+            </p>
             <p className="mt-1">
               Pas d&apos;escompte accordé pour paiement anticipé.
             </p>
@@ -315,12 +449,16 @@ export function InvoiceDocument({
               Tout retard de paiement entraînera une indemnité forfaitaire pour frais de
               recouvrement de 40 €.
             </p>
-            <p className="mt-1">TVA acquittée sur les débits.</p>
+            {!vatExempt && <p className="mt-1">TVA acquittée sur les débits.</p>}
           </div>
           <div className="flex justify-end">
             <QuadCoreSignature
               signerName={iss.representativeName ?? iss.legalName}
-              signerRole={iss.representativeTitle ?? 'Direction commerciale'}
+              signerRole={
+                isSub
+                  ? 'Bon pour accord — Donneur d’ordre'
+                  : (iss.representativeTitle ?? 'Direction commerciale')
+              }
               date={formatDate(invoice.issue_date)}
               imageUrl={iss.signatureUrl}
               brandName={iss.brandName}

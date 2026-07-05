@@ -631,6 +631,9 @@ export type AppDict = {
       kpi_annual_tjm_hint: string;
       tab_active: string;
       tab_archived: string;
+      tab_clients: string;
+      tab_consultants: string;
+      col_supplier: string;
     };
     timesheets: {
       eyebrow: string;
@@ -648,6 +651,9 @@ export type AppDict = {
       kpi_pending: string;
       kpi_days_entered: string;
       kpi_validated_count: string;
+      consultant_invoice: string;
+      consultant_invoice_done: string;
+      consultant_invoice_exists: string;
     };
     invoices: {
       eyebrow: string;
@@ -660,10 +666,16 @@ export type AppDict = {
       empty_title: string;
       empty_title_archived: string;
       empty_description: string;
+      empty_title_consultant: string;
+      empty_description_consultant: string;
       kpi_issued: string;
       kpi_paid: string;
       kpi_pending: string;
       kpi_overdue: string;
+      kpi_to_pay: string;
+      kpi_paid_out: string;
+      tab_clients: string;
+      tab_consultants: string;
     };
     accounting: {
       eyebrow: string;
@@ -1505,6 +1517,9 @@ export const APP_DICT: Record<Locale, AppDict> = {
         kpi_annual_tjm_hint: 'depuis le 1er janvier',
         tab_active: 'Actifs',
         tab_archived: 'Archivés',
+        tab_clients: 'Clients',
+        tab_consultants: 'Consultants',
+        col_supplier: 'Société du consultant',
       },
       timesheets: {
         eyebrow: 'Facturation',
@@ -1522,22 +1537,31 @@ export const APP_DICT: Record<Locale, AppDict> = {
         kpi_pending: 'En attente',
         kpi_days_entered: 'Jours saisis',
         kpi_validated_count: '{n} validé(s)',
+        consultant_invoice: 'Facture consultant',
+        consultant_invoice_done: 'Facture consultant générée',
+        consultant_invoice_exists: 'Facture consultant déjà générée',
       },
       invoices: {
         eyebrow: 'Facturation',
-        title_a: 'Factures',
-        title_b: 'clients.',
-        description: "Suivi du chiffre d'affaires, des encaissements et des relances.",
+        title_a: 'Vos',
+        title_b: 'factures.',
+        description: 'Ventes clients à encaisser, sous-traitance consultants à régler — les deux flux, séparés.',
         new: 'Nouvelle facture',
         see_archived: 'Voir archivées',
         see_active: 'Voir actives',
-        empty_title: 'Aucune facture',
+        empty_title: 'Aucune facture client',
         empty_title_archived: 'Aucune facture archivée',
         empty_description: 'Crée ta première facture pour démarrer la facturation client.',
+        empty_title_consultant: 'Aucune facture consultant',
+        empty_description_consultant: 'Génère-la depuis un CRA validé (page CRA) ou crée-la ici — elle apparaîtra dans l\'espace perso du consultant.',
         kpi_issued: 'Émis ce mois',
         kpi_paid: 'Encaissé',
         kpi_pending: 'En attente',
         kpi_overdue: 'En retard',
+        kpi_to_pay: 'À payer',
+        kpi_paid_out: 'Payé aux consultants',
+        tab_clients: 'Factures clients',
+        tab_consultants: 'Factures consultants',
       },
       accounting: {
         eyebrow: 'Facturation',
@@ -2377,6 +2401,9 @@ export const APP_DICT: Record<Locale, AppDict> = {
         kpi_annual_tjm_hint: 'since January 1st',
         tab_active: 'Active',
         tab_archived: 'Archived',
+        tab_clients: 'Clients',
+        tab_consultants: 'Consultants',
+        col_supplier: "Consultant's company",
       },
       timesheets: {
         eyebrow: 'Billing',
@@ -2394,22 +2421,31 @@ export const APP_DICT: Record<Locale, AppDict> = {
         kpi_pending: 'Pending',
         kpi_days_entered: 'Days entered',
         kpi_validated_count: '{n} validated',
+        consultant_invoice: 'Consultant invoice',
+        consultant_invoice_done: 'Consultant invoice generated',
+        consultant_invoice_exists: 'Consultant invoice already generated',
       },
       invoices: {
         eyebrow: 'Billing',
-        title_a: 'Client',
+        title_a: 'Your',
         title_b: 'invoices.',
-        description: 'Track revenue, collections and follow-ups.',
+        description: 'Client sales to collect, consultant subcontracting to pay — both flows, separated.',
         new: 'New invoice',
         see_archived: 'Show archived',
         see_active: 'Show active',
-        empty_title: 'No invoice',
+        empty_title: 'No client invoice',
         empty_title_archived: 'No archived invoice',
         empty_description: 'Create your first invoice to start client billing.',
+        empty_title_consultant: 'No consultant invoice',
+        empty_description_consultant: "Generate it from a validated timesheet, or create it here — it will show up in the consultant's portal.",
         kpi_issued: 'Issued this month',
         kpi_paid: 'Cashed',
         kpi_pending: 'Pending',
         kpi_overdue: 'Overdue',
+        kpi_to_pay: 'To pay',
+        kpi_paid_out: 'Paid to consultants',
+        tab_clients: 'Client invoices',
+        tab_consultants: 'Consultant invoices',
       },
       accounting: {
         eyebrow: 'Billing',

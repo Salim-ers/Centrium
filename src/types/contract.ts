@@ -17,8 +17,12 @@ export type ContractKind =
   | 'apport_affaire'
   | 'sous_traitance'
   | 'freelance_mission'
+  | 'prestation_client'
   | 'nda'
   | 'amendment';
+
+/** Contrepartie d'un document (contrat / facture) : entreprise cliente ou consultant freelance. */
+export type DocumentParty = 'client' | 'consultant';
 
 export type Contract = {
   id: string;
@@ -28,6 +32,10 @@ export type Contract = {
   kind: ContractKind;
   status: ContractStatus;
   title: string;
+  /** Contrepartie : 'client' (contrat de prestation entreprise) ou 'consultant' (sous-traitance freelance). */
+  party: DocumentParty;
+  /** Entreprise cliente signataire (party='client'). */
+  company_id: string | null;
   consultant_id: string | null;
   supplier_company_name: string | null;
   supplier_address: string | null;

@@ -100,12 +100,16 @@ export default function TimesheetDetailPage() {
       setNotFound(true);
     } else {
       setDetail(res.data);
-      // Lookup invoice link to know if "Générer la facture" should appear
+      // Lookup invoice link to know if "Générer la facture" should appear.
+      // Scopé party='client' : un CRA peut aussi porter une facture
+      // consultant (sous-traitance) — sans le filtre, maybeSingle() plante
+      // dès que les deux existent.
       const supabase = createClient();
       const { data: inv } = await supabase
         .from('invoices')
         .select('id')
         .eq('timesheet_id', params.id)
+        .eq('party', 'client')
         .maybeSingle();
       setLinkedInvoiceId((inv?.id as string | undefined) ?? null);
     }

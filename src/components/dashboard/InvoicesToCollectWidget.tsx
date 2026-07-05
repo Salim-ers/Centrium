@@ -53,6 +53,9 @@ export function InvoicesToCollectWidget() {
         `,
         )
         .in('status', ['sent', 'overdue'])
+        // À encaisser = ventes clients uniquement (les factures consultant
+        // sont un décaissement, pas une créance).
+        .eq('party', 'client')
         .eq('archived', false)
         .order('amount_ht', { ascending: false })
         .limit(5);

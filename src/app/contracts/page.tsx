@@ -19,6 +19,8 @@ import {
   Hourglass,
   AlertCircle,
   Coins,
+  Building2,
+  UserRound,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -97,6 +99,7 @@ const STATUS_TONE: Record<ContractStatus, StatusTone> = {
 };
 
 type View = 'active' | 'archived';
+type PartyView = 'client' | 'consultant';
 
 export default function ContractsPage() {
   const { activeOrgId } = useOrganization();
@@ -106,6 +109,8 @@ export default function ContractsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Contract | undefined>(undefined);
   const [view, setView] = useState<View>('active');
+  // Segment Clients (prestation) / Consultants (sous-traitance freelance).
+  const [partyView, setPartyView] = useState<PartyView>('consultant');
 
   const {
     data: contractsData,
@@ -120,7 +125,11 @@ export default function ContractsPage() {
     },
     { enabled: !!activeOrgId },
   );
-  const contracts = contractsData ?? [];
+  const allContracts = contractsData ?? [];
+  const clientCount = allContracts.filter((c) => (c.party ?? 'consultant') === 'client').length;
+  const consultantCount = allContracts.length - clientCount;
+  const contracts = allContracts.filter((c) => (c.party ?? 'consultant') === partyView);
+  const isConsultantView = partyView === 'consultant';
 
   useRealtimeReload(['contracts'], () => reload());
 
@@ -227,6 +236,54 @@ export default function ContractsPage() {
         }
       />
 
+      {/* ===== Segments Clients / Consultants — deux corpus contractuels ===== */}
+      <Reveal className="mb-6">
+        <div className="inline-flex items-center gap-1 rounded-xl border border-hairline bg-foreground/[0.03] p-1">
+          {(
+            [
+              {
+                value: 'client' as PartyView,
+                icon: Building2,
+                label: t.pages.contracts.tab_clients,
+                count: clientCount,
+              },
+              {
+                value: 'consultant' as PartyView,
+                icon: UserRound,
+                label: t.pages.contracts.tab_consultants,
+                count: consultantCount,
+              },
+            ] as const
+          ).map((seg) => {
+            const active = partyView === seg.value;
+            const Icon = seg.icon;
+            return (
+              <button
+                key={seg.value}
+                type="button"
+                onClick={() => setPartyView(seg.value)}
+                aria-pressed={active}
+                className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                  active
+                    ? 'bg-background text-foreground shadow-sm ring-1 ring-hairline'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {seg.label}
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${
+                    active ? 'bg-violet-glow/15 text-violet-glow' : 'bg-foreground/[0.06] text-muted-foreground'
+                  }`}
+                >
+                  {seg.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </Reveal>
+
       {view === 'active' && (
         <Reveal className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <KPICard
@@ -292,7 +349,11 @@ export default function ContractsPage() {
                   <TableRow>
                     <TableHead>{t.forms.invoice.invoice_number}</TableHead>
                     <TableHead>{t.forms.opportunity.title_field}</TableHead>
-                    <TableHead>{t.forms.contract.client}</TableHead>
+                    <TableHead>
+                      {isConsultantView
+                        ? t.pages.contracts.col_supplier
+                        : t.forms.contract.client}
+                    </TableHead>
                     <TableHead>{t.forms.timesheet.period}</TableHead>
                     <TableHead>{t.forms.contract.daily_rate.replace('(€)', `(${currencySymbol})`)}</TableHead>
                     <TableHead>{t.forms.contract.status}</TableHead>
@@ -327,14 +388,16 @@ export default function ContractsPage() {
                         <TableCell className="font-mono font-medium">{c.contract_number}</TableCell>
                         <TableCell className="max-w-xs">
                           <div className="truncate">{c.title}</div>
-                          {c.client_name && (
+                          {c.party !== 'client' && c.client_name && (
                             <div className="text-xs text-muted-foreground">
                               {t.forms.contract.client} : {c.client_name}
                             </div>
                           )}
                         </TableCell>
                         <TableCell className="text-sm">
-                          {c.supplier_company_name ?? '—'}
+                          {c.party === 'client'
+                            ? (c.client_name ?? '—')
+                            : (c.supplier_company_name ?? '—')}
                         </TableCell>
                         <TableCell className="text-xs">
                           {formatDate(c.start_date)}
@@ -447,6 +510,7 @@ export default function ContractsPage() {
         }}
         organizationId={activeOrgId ?? ''}
         contract={editing}
+        defaultParty={partyView}
         onSaved={() => reload()}
       />
     </AppShell>

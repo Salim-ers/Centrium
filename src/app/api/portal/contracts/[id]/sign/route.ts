@@ -64,12 +64,17 @@ export async function POST(
   const { data: contract } = await admin
     .from('contracts')
     .select(
-      'id, organization_id, consultant_id, status, title, contract_number, archived, consultant_signed_at',
+      'id, organization_id, consultant_id, party, status, title, contract_number, archived, consultant_signed_at',
     )
     .eq('id', params.id)
     .maybeSingle();
 
   if (!contract || contract.consultant_id !== profile.consultant_id) {
+    return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  }
+  // Seuls les contrats de SOUS-TRAITANCE se signent au portail — un contrat
+  // client référençant le consultant positionné ne le concerne pas.
+  if (contract.party === 'client') {
     return NextResponse.json({ error: 'not_found' }, { status: 404 });
   }
   if (contract.archived) {

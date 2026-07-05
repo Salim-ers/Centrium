@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireOrg } from '@/lib/auth/guards';
-import { contractSchema } from '@/lib/validators/contract';
+import { contractBaseSchema } from '@/lib/validators/contract';
 
 // =========================================================================
 // PATCH /api/contracts/:id  — update champs + status + archived
@@ -18,7 +18,9 @@ function computeEndDate(startDate: string, durationMonths: number): string {
   return d.toISOString().split('T')[0];
 }
 
-const updateSchema = contractSchema.partial().extend({
+// PATCH partiel : pas de refine party (un patch statut seul n'embarque pas
+// la contrepartie) — la cohérence party/contrepartie est validée à la création.
+const updateSchema = contractBaseSchema.partial().extend({
   status: z
     .enum(['draft', 'sent', 'signed', 'active', 'expired', 'terminated', 'canceled'])
     .optional(),

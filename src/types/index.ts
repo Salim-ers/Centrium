@@ -413,7 +413,9 @@ export type Timesheet = {
 export type Invoice = {
   id: string;
   organization_id: string;
-  company_id: string;
+  /** 'client' = facture de vente (à encaisser) · 'consultant' = facture de sous-traitance (à payer au freelance). */
+  party: 'client' | 'consultant';
+  company_id: string | null;
   consultant_id: string | null;
   mission_id: string | null;
   job_offer_id: string | null;

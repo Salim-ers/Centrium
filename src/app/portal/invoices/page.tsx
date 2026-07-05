@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Receipt, CheckCircle2, Eye, Wallet, TrendingUp, Hourglass } from 'lucide-react';
+import { Receipt, CheckCircle2, Eye, Wallet, TrendingUp, Hourglass, Clock3 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -21,9 +21,11 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 import { usePortalConsultant } from '../portal-context';
 import type { Invoice } from '@/types';
 
+// Libellés vus DU POINT DE VUE DU CONSULTANT : une facture « envoyée » est
+// une facture en attente de paiement par l'ESN.
 const INVOICE_TONE: Record<Invoice['status'], { tone: StatusTone; label: string }> = {
   draft: { tone: 'pending', label: 'Brouillon' },
-  sent: { tone: 'info', label: 'Envoyée' },
+  sent: { tone: 'info', label: 'En attente de paiement' },
   paid: { tone: 'success', label: 'Payée' },
   overdue: { tone: 'danger', label: 'En retard' },
   cancelled: { tone: 'neutral', label: 'Annulée' },
@@ -36,28 +38,31 @@ export default function PortalInvoicesPage() {
     `portal-invoices:${consultantId}`,
     async () => {
       const supabase = createClient();
-      // Les RLS garantissent qu'on ne voit que les factures 'paid' liées
-      // aux missions du consultant courant.
+      // RLS : uniquement SES factures de sous-traitance (party='consultant',
+      // consultant_id = lui, hors brouillons). Les factures CLIENT de ses
+      // missions ne sont plus jamais visibles (TJM de vente confidentiel).
       const { data: rows } = await supabase
         .from('invoices')
         .select('*')
-        .order('payment_date', { ascending: false });
+        .order('issue_date', { ascending: false });
       return (rows ?? []) as Invoice[];
     },
   );
   const invoices = data ?? [];
 
-  // NOTE : la RLS ne montre au consultant QUE les factures payées de ses
-  // missions — les anciens KPIs "À venir"/"En retard" étaient donc toujours
-  // à 0 (UI morte et trompeuse). On affiche des indicateurs réellement
-  // calculables : encaissé YTD, total encaissé, nombre, dernier paiement.
   const currentYear = new Date().getFullYear();
-  const ytdPaid = invoices.filter(
+  const paid = invoices.filter((i) => i.status === 'paid');
+  const ytdPaid = paid.filter(
     (i) => i.payment_date && new Date(i.payment_date).getFullYear() === currentYear,
   );
   const totalPaidYtd = ytdPaid.reduce((s, i) => s + Number(i.amount_ht), 0);
-  const totalPaidAll = invoices.reduce((s, i) => s + Number(i.amount_ht), 0);
-  const lastPayment = invoices
+  const totalPaidAll = paid.reduce((s, i) => s + Number(i.amount_ht), 0);
+  // À encaisser : factures émises non payées (TTC — c'est ce qui arrive sur
+  // le compte du freelance).
+  const pendingAmount = invoices
+    .filter((i) => i.status === 'sent' || i.status === 'overdue')
+    .reduce((s, i) => s + Number(i.amount_ttc), 0);
+  const lastPayment = paid
     .map((i) => i.payment_date)
     .filter((d): d is string => !!d)
     .sort()
@@ -68,10 +73,18 @@ export default function PortalInvoicesPage() {
       <PageHeader
         eyebrow="Mon espace"
         title={<>Mes <span className="qc-italic-accent font-editorial italic">factures.</span></>}
-        description={`Suivez vos factures émises par ${brandName} et les paiements reçus.`}
+        description={`Vos factures de sous-traitance établies avec ${brandName} — montants, échéances et paiements reçus.`}
       />
 
       <Reveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <KPICard
+          label="À encaisser"
+          value={pendingAmount}
+          prefix="€"
+          icon={Clock3}
+          tone="amber"
+          hint="TTC · émises non payées"
+        />
         <KPICard
           label="Encaissé YTD"
           value={totalPaidYtd}
@@ -79,13 +92,6 @@ export default function PortalInvoicesPage() {
           icon={TrendingUp}
           tone="magenta"
           hint={`HT · ${currentYear}`}
-        />
-        <KPICard
-          label="Factures payées"
-          value={invoices.length}
-          icon={CheckCircle2}
-          tone="emerald"
-          hint={`dont ${ytdPaid.length} en ${currentYear}`}
         />
         <KPICard
           label="Encaissé total"
@@ -113,7 +119,7 @@ export default function PortalInvoicesPage() {
         <EmptyState
           icon={Receipt}
           title="Aucune facture pour le moment"
-          description={`Les factures apparaissent ici dès qu'elles sont émises côté ${brandName}.`}
+          description={`Vos factures de sous-traitance apparaissent ici dès qu'elles sont établies par ${brandName} — en général à la validation de votre CRA mensuel.`}
         />
       ) : (
         <Reveal delay={0.08}>
@@ -140,8 +146,10 @@ export default function PortalInvoicesPage() {
                   secondary={
                     <>
                       {inv.period_label ?? '—'} · Émise le {formatDate(inv.issue_date)}
-                      {inv.status === 'paid' && inv.payment_date && (
+                      {inv.status === 'paid' && inv.payment_date ? (
                         <> · Payée le {formatDate(inv.payment_date)}</>
+                      ) : (
+                        <> · Échéance le {formatDate(inv.due_date)}</>
                       )}
                     </>
                   }
@@ -171,7 +179,7 @@ export default function PortalInvoicesPage() {
         </Reveal>
       )}
 
-      {invoices.length > 0 && (
+      {paid.length > 0 && (
         <div className="mt-4 flex items-center gap-3 px-4 py-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5">
           <StatusBadge tone="success">
             {ytdPaid.length} payée{ytdPaid.length > 1 ? 's' : ''} en {currentYear}

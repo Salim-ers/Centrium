@@ -8,6 +8,7 @@ const KIND_LABEL: Record<Contract['kind'], string> = {
   apport_affaire: "Contrat d'apport d'affaires",
   sous_traitance: 'Contrat de sous-traitance',
   freelance_mission: 'Contrat de mission freelance',
+  prestation_client: 'Contrat de prestation de services',
   nda: 'Accord de confidentialité (NDA)',
   amendment: 'Avenant',
 };
@@ -64,6 +65,10 @@ export function ContractDocument({ contract, issuer }: Props) {
   const isSigned = !!c.signed_at;
   const primary = iss.primaryColor || '#6d28d9';
   const accent = iss.accentColor || '#e11d74';
+  // Contrat CLIENT : l'ESN est le PRESTATAIRE et l'entreprise cliente la
+  // contrepartie. Contrat CONSULTANT (historique) : l'ESN est le DONNEUR
+  // D'ORDRE et la société du freelance le prestataire.
+  const isClient = c.party === 'client';
 
   return (
     <div
@@ -107,7 +112,7 @@ export function ContractDocument({ contract, issuer }: Props) {
       <section className="px-12 py-4 grid grid-cols-2 gap-8">
         <div>
           <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
-            Donneur d&apos;ordre
+            {isClient ? 'Le prestataire' : "Donneur d'ordre"}
           </div>
           <div className="text-sm font-semibold">{iss.brandName}</div>
           <div className="text-xs text-neutral-600 leading-relaxed mt-1">
@@ -127,33 +132,51 @@ export function ContractDocument({ contract, issuer }: Props) {
           </div>
         </div>
 
-        <div>
-          <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
-            Prestataire
+        {isClient ? (
+          <div>
+            <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
+              Le client
+            </div>
+            <div className="text-sm font-semibold">{c.client_name ?? '—'}</div>
+            <div className="text-xs text-neutral-600 leading-relaxed mt-1">
+              {c.client_address && (
+                <>
+                  {c.client_address}
+                  <br />
+                </>
+              )}
+              {c.billing_email && <>Contact facturation : {c.billing_email}</>}
+            </div>
           </div>
-          <div className="text-sm font-semibold">{c.supplier_company_name ?? '—'}</div>
-          <div className="text-xs text-neutral-600 leading-relaxed mt-1">
-            {c.supplier_address && (
-              <>
-                {c.supplier_address}
-                <br />
-              </>
-            )}
-            {c.supplier_postal_code} {c.supplier_city}
-            {c.supplier_rcs && (
-              <>
-                <br />
-                RCS {c.supplier_rcs}
-              </>
-            )}
-            {c.supplier_representative && (
-              <>
-                <br />
-                Représenté par {c.supplier_representative}
-              </>
-            )}
+        ) : (
+          <div>
+            <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
+              Prestataire
+            </div>
+            <div className="text-sm font-semibold">{c.supplier_company_name ?? '—'}</div>
+            <div className="text-xs text-neutral-600 leading-relaxed mt-1">
+              {c.supplier_address && (
+                <>
+                  {c.supplier_address}
+                  <br />
+                </>
+              )}
+              {c.supplier_postal_code} {c.supplier_city}
+              {c.supplier_rcs && (
+                <>
+                  <br />
+                  RCS {c.supplier_rcs}
+                </>
+              )}
+              {c.supplier_representative && (
+                <>
+                  <br />
+                  Représenté par {c.supplier_representative}
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </section>
 
       <section className="px-12 py-4">
@@ -161,7 +184,7 @@ export function ContractDocument({ contract, issuer }: Props) {
           Mission
         </div>
         <div className="grid grid-cols-2 gap-4 text-sm">
-          <Field label="Client final" value={c.client_name ?? '—'} />
+          {!isClient && <Field label="Client final" value={c.client_name ?? '—'} />}
           <Field label="Intitulé de mission" value={c.mission_title ?? '—'} />
           <Field label="Lieu d'exécution" value={c.work_location ?? '—'} />
           <Field label="Télétravail" value={`${c.remote_days_per_week} j / semaine`} />
@@ -211,13 +234,16 @@ export function ContractDocument({ contract, issuer }: Props) {
       )}
 
       {/* ---- Conditions générales — le CONTRAT à proprement parler.
-           Un récapitulatif seul n'engage à rien : le prestataire freelance
-           signe un vrai contrat de sous-traitance avec clauses complètes,
-           auto-remplies depuis les données ci-dessus. Hors NDA / avenant
-           (objets juridiques différents). ---- */}
-      {c.kind !== 'nda' && c.kind !== 'amendment' && (
-        <ContractClauses contract={c} issuerName={iss.brandName} />
-      )}
+           Deux corpus distincts selon la contrepartie :
+           · CLIENT : contrat de prestation de services (l'ESN est prestataire)
+           · CONSULTANT : contrat de sous-traitance freelance (l'ESN est
+             donneur d'ordre). Hors NDA / avenant (objets juridiques différents). ---- */}
+      {c.kind !== 'nda' && c.kind !== 'amendment' &&
+        (isClient ? (
+          <ClientContractClauses contract={c} issuerName={iss.brandName} />
+        ) : (
+          <ContractClauses contract={c} issuerName={iss.brandName} />
+        ))}
 
       <section className="px-12 py-6 border-t border-neutral-100 bg-neutral-50/40">
         <div className="text-[10px] text-neutral-500 leading-relaxed mb-5">
@@ -228,7 +254,7 @@ export function ContractDocument({ contract, issuer }: Props) {
         <div className="grid grid-cols-2 gap-8 items-start">
           <div>
             <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
-              Pour le donneur d&apos;ordre
+              {isClient ? 'Pour le prestataire' : 'Pour le donneur d’ordre'}
             </div>
             <QuadCoreSignature
               signerName={iss.representativeName ?? iss.brandName}
@@ -244,9 +270,30 @@ export function ContractDocument({ contract, issuer }: Props) {
 
           <div>
             <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
-              Pour le prestataire
+              {isClient ? 'Pour le client' : 'Pour le prestataire'}
             </div>
-            {c.consultant_signature_data ? (
+            {isClient ? (
+              // Le client signe hors plateforme (papier / parapheur externe) :
+              // cadre en attente au nom de l'entreprise cliente.
+              <div className="inline-block">
+                <div className="border border-dashed border-neutral-300 rounded-lg bg-white px-6 py-4 min-w-[260px]">
+                  <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-400 mb-2">
+                    Signature et cachet
+                  </div>
+                  <div className="h-16 flex items-center justify-center text-[10px] text-neutral-400 italic">
+                    {isSigned ? 'Signé' : 'En attente de signature'}
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-neutral-100 text-right">
+                    <div className="text-[10px] font-semibold text-neutral-800">
+                      {c.client_name ?? '—'}
+                    </div>
+                    <div className="text-[9px] text-neutral-500">
+                      Nom, qualité du signataire et cachet
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : c.consultant_signature_data ? (
               <div className="inline-block">
                 <div className="border border-neutral-200 rounded-lg bg-white px-6 py-4 min-w-[260px]">
                   <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-400 mb-2">
@@ -400,6 +447,97 @@ function ContractClauses({
     },
   ];
 
+  return <ClausesLayout articles={articles} />;
+}
+
+/**
+ * Conditions générales du contrat de PRESTATION DE SERVICES ESN ↔ client.
+ * Ici l'ESN est LE PRESTATAIRE et l'entreprise cliente LE CLIENT — miroir
+ * du contrat de sous-traitance. Clauses standard du marché AT/régie :
+ * obligation de moyens, CRA mensuel, non-sollicitation du personnel,
+ * plafond de responsabilité, réversibilité.
+ */
+function ClientContractClauses({
+  contract: c,
+  issuerName,
+}: {
+  contract: Contract;
+  issuerName: string;
+}) {
+  const clientName = c.client_name ?? 'le Client';
+  const durationLabel = c.end_date
+    ? `du ${formatDate(c.start_date)} au ${formatDate(c.end_date)}`
+    : `à compter du ${formatDate(c.start_date)}, pour une durée indéterminée`;
+  const nonSollicit = c.non_compete_months > 0 ? c.non_compete_months : 12;
+
+  const articles: { title: string; body: string }[] = [
+    {
+      title: 'Article 1 — Objet',
+      body: `Le présent contrat a pour objet la réalisation par ${issuerName} (« le Prestataire »), au profit de ${clientName} (« le Client »), de la prestation « ${c.mission_title ?? c.title} », exécutée en assistance technique. Le Prestataire affecte à la prestation un ou plusieurs intervenants disposant des compétences requises.`,
+    },
+    {
+      title: 'Article 2 — Durée',
+      body: `Le contrat est conclu ${durationLabel}. Toute prolongation ou modification du périmètre fera l'objet d'un avenant écrit signé des deux parties ou d'un bon de commande complémentaire.`,
+    },
+    {
+      title: "Article 3 — Modalités d'exécution",
+      body: `La prestation est exécutée ${c.work_location ? `principalement à ${c.work_location}` : 'dans les locaux convenus entre les parties'}${c.remote_days_per_week > 0 ? `, avec ${c.remote_days_per_week} jour(s) de télétravail par semaine` : ''}. Le Client fournit à l'intervenant les accès, informations et environnements de travail nécessaires. Le pilotage opérationnel de la prestation est assuré conjointement lors de points de suivi réguliers.`,
+    },
+    {
+      title: 'Article 4 — Obligations du Prestataire',
+      body: `Le Prestataire s'engage à exécuter la prestation avec diligence et selon les règles de l'art (obligation de moyens), à affecter des intervenants qualifiés, à signaler sans délai toute difficulté et à respecter les procédures internes du Client applicables sur site. Il maintient pendant toute la durée du contrat une assurance responsabilité civile professionnelle.`,
+    },
+    {
+      title: 'Article 5 — Personnel du Prestataire',
+      body: `Les intervenants demeurent sous la responsabilité et l'autorité hiérarchique exclusives du Prestataire : le présent contrat ne crée aucun lien de subordination entre le Client et les intervenants (interdiction du prêt de main-d'œuvre illicite et du marchandage — art. L.8231-1 et L.8241-1 du Code du travail). En cas d'indisponibilité durable d'un intervenant, le Prestataire propose un remplaçant de compétence équivalente, soumis à l'accord du Client.`,
+    },
+    {
+      title: 'Article 6 — Conditions financières',
+      body: `La prestation est facturée au taux journalier de ${formatCurrency(Number(c.daily_rate_eur))} HT. La facturation est mensuelle, établie sur la base du compte rendu d'activité (CRA) validé par le Client. Les factures sont payables à ${c.payment_terms_days} jours${c.billing_email ? `, adressées à ${c.billing_email}` : ''}. TVA en sus au taux en vigueur. Tout retard de paiement entraîne l'application de pénalités au taux BCE majoré de 10 points et de l'indemnité forfaitaire de recouvrement de 40 €.`,
+    },
+    {
+      title: "Article 7 — Comptes rendus d'activité",
+      body: `L'intervenant établit chaque mois un CRA détaillant les jours travaillés, soumis à la validation du Client. À défaut de contestation écrite dans un délai de cinq (5) jours ouvrés suivant sa transmission, le CRA est réputé validé et la facturation correspondante exigible.`,
+    },
+    {
+      title: 'Article 8 — Non-sollicitation du personnel',
+      body: `Pendant la durée du contrat et ${nonSollicit} mois après son terme, le Client s'interdit de solliciter, d'embaucher ou de contracter directement ou indirectement avec les intervenants du Prestataire, sauf accord écrit préalable. ${c.non_compete_penalty ? `Toute violation ouvre droit à l'indemnité suivante : ${c.non_compete_penalty}.` : "Toute violation ouvre droit à une indemnité forfaitaire égale à douze (12) mois de facturation de l'intervenant concerné."}`,
+    },
+    {
+      title: 'Article 9 — Confidentialité',
+      body: `Chaque partie s'engage à conserver strictement confidentielles les informations de toute nature relatives à l'autre partie dont elle aurait connaissance à l'occasion du contrat, pendant sa durée et trois (3) ans après son terme.`,
+    },
+    {
+      title: 'Article 10 — Propriété intellectuelle',
+      body: `Les livrables et développements spécifiques réalisés dans le cadre de la prestation sont cédés au Client au fur et à mesure de leur réalisation et sous condition du complet paiement des factures correspondantes, pour la durée légale de protection et pour tous territoires. Le Prestataire conserve la propriété de ses méthodes, savoir-faire et outils préexistants.`,
+    },
+    {
+      title: 'Article 11 — Responsabilité',
+      body: `La responsabilité du Prestataire est limitée aux dommages directs et prévisibles, à l'exclusion de tout dommage indirect (perte d'exploitation, de données, de chiffre d'affaires). Elle est plafonnée, toutes causes confondues, au montant total des sommes facturées au titre des six (6) derniers mois précédant le fait générateur.`,
+    },
+    {
+      title: 'Article 12 — Résiliation',
+      body: `En cas de manquement grave de l'une des parties, non réparé quinze (15) jours après mise en demeure écrite restée sans effet, le contrat pourra être résilié de plein droit, sans préjudice de tous dommages et intérêts. Chaque partie peut par ailleurs mettre fin au contrat moyennant un préavis écrit de trente (30) jours ; les prestations réalisées jusqu'au terme effectif restent dues.`,
+    },
+    {
+      title: 'Article 13 — Réversibilité',
+      body: `Au terme du contrat, le Prestataire restitue au Client l'ensemble des livrables, documents et accès qui lui ont été confiés et apporte, sur demande, une assistance raisonnable au transfert de la prestation vers le Client ou un tiers désigné, facturée aux conditions du présent contrat.`,
+    },
+    {
+      title: 'Article 14 — Données personnelles',
+      body: `Chaque partie traite les données personnelles auxquelles elle accède conformément au RGPD et à la loi Informatique et Libertés, pour les seuls besoins de l'exécution du contrat, et met en œuvre les mesures de sécurité appropriées.`,
+    },
+    {
+      title: 'Article 15 — Droit applicable et juridiction',
+      body: `Le présent contrat est soumis au droit français. À défaut de résolution amiable dans un délai de trente (30) jours, tout litige relatif à sa formation, son interprétation ou son exécution relève de la compétence exclusive du Tribunal de ${c.jurisdiction_city}.`,
+    },
+  ];
+
+  return <ClausesLayout articles={articles} />;
+}
+
+/** Rendu commun des conditions générales (grille d'articles justifiés). */
+function ClausesLayout({ articles }: { articles: { title: string; body: string }[] }) {
   return (
     <section className="px-12 py-5 border-t border-neutral-100">
       <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-3">

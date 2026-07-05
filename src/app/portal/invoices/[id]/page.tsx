@@ -63,7 +63,7 @@ export default function PortalInvoiceDetailPage() {
       if (!params?.id) return;
       const supabase = createClient();
 
-      // La RLS ne laissera voir que si la facture est paid ET liée à ses missions
+      // RLS : uniquement SES factures de sous-traitance (party='consultant').
       const { data: invoice, error } = await supabase
         .from('invoices')
         .select('*')
@@ -88,12 +88,12 @@ export default function PortalInvoiceDetailPage() {
           : Promise.resolve({ data: null }),
       ]);
       const mission = (missionRes as { data: Mission | null }).data;
-      const consultantRes = mission
-        ? await supabase
-            .from('consultants')
-            .select('*')
-            .eq('id', mission.consultant_id)
-            .maybeSingle()
+      // Consultant : lien direct de la facture d'abord (sous-traitance),
+      // mission en secours. Ses infos légales (société, SIRET, IBAN)
+      // alimentent le bloc Émetteur du document.
+      const consultantId = invoice.consultant_id ?? mission?.consultant_id ?? null;
+      const consultantRes = consultantId
+        ? await supabase.from('consultants').select('*').eq('id', consultantId).maybeSingle()
         : { data: null };
 
       setDetail({
@@ -124,9 +124,19 @@ export default function PortalInvoiceDetailPage() {
         <div className="flex items-center gap-2">
           <Badge
             variant="outline"
-            className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
+            className={
+              detail.invoice.status === 'paid'
+                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
+                : detail.invoice.status === 'overdue'
+                  ? 'bg-red-500/10 text-red-300 border-red-500/20'
+                  : 'bg-sky-500/10 text-sky-300 border-sky-500/20'
+            }
           >
-            Payée
+            {detail.invoice.status === 'paid'
+              ? 'Payée'
+              : detail.invoice.status === 'overdue'
+                ? 'En retard'
+                : 'En attente de paiement'}
           </Badge>
           <Button
             size="sm"

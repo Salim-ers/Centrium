@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Plus, X } from 'lucide-react';
+import { Building2, Check, Loader2, Plus, UserRound, X } from 'lucide-react';
 
 import {
   Dialog,
@@ -28,21 +28,26 @@ import {
 } from '@/lib/services';
 import { consultantService } from '@/lib/services/consultant.service';
 import { notifyError } from '@/lib/notify';
-import type { Company, Consultant, Invoice, JobOffer } from '@/types';
+import type { Company, Consultant, DocumentParty, Invoice, JobOffer } from '@/types';
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   organizationId: string;
+  /** Contrepartie présélectionnée (suit l'onglet actif de la page Factures). */
+  defaultParty?: DocumentParty;
   onSaved?: (inv: Invoice) => void;
 };
 
-function suggestInvoiceNumber() {
+// FAC- = facture de vente client · FC- = facture de sous-traitance consultant.
+function suggestInvoiceNumber(party: DocumentParty) {
   const d = new Date();
   const y = d.getFullYear();
   const rand = Math.floor(Math.random() * 9000 + 1000);
-  return `FAC-${y}-${rand}`;
+  return `${party === 'consultant' ? 'FC' : 'FAC'}-${y}-${rand}`;
 }
+
+const AUTO_NUMBER_RE = /^(FAC|FC)-\d{4}-\d{4}$/;
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -54,7 +59,13 @@ function plus30DaysISO() {
   return d.toISOString().slice(0, 10);
 }
 
-export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved }: Props) {
+export function InvoiceFormDialog({
+  open,
+  onOpenChange,
+  organizationId,
+  defaultParty = 'client',
+  onSaved,
+}: Props) {
   const t = useAppT();
   const { locale } = useLocale();
   const isEn = locale === 'en';
@@ -81,12 +92,40 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
   } = useForm<InvoiceInput>({
     resolver: zodResolver(invoiceSchema),
     defaultValues: {
-      invoice_number: suggestInvoiceNumber(),
+      party: defaultParty,
+      invoice_number: suggestInvoiceNumber(defaultParty),
       issue_date: todayISO(),
       due_date: plus30DaysISO(),
       vat_rate: 20,
     },
   });
+
+  const party = watch('party') ?? 'client';
+  const isConsultantInvoice = party === 'consultant';
+
+  // Suit l'onglet actif de la page à chaque ouverture.
+  useEffect(() => {
+    if (!open) return;
+    setValue('party', defaultParty);
+    setValue('invoice_number', suggestInvoiceNumber(defaultParty));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  function switchParty(next: DocumentParty) {
+    if (next === party) return;
+    setValue('party', next, { shouldValidate: true });
+    // Régénère le numéro seulement s'il est encore au format auto (on ne
+    // touche pas à un numéro saisi à la main).
+    const current = watch('invoice_number');
+    if (!current || AUTO_NUMBER_RE.test(current)) {
+      setValue('invoice_number', suggestInvoiceNumber(next));
+    }
+    if (next === 'consultant') {
+      // Une facture de sous-traitance n'a pas d'entreprise cliente.
+      setValue('company_id', null);
+      setValue('job_offer_id', null);
+    }
+  }
 
   // Calcul TJM × jours → Montant HT. Si l'utilisateur saisit les deux,
   // on alimente automatiquement amount_ht ET on persiste unit_price /
@@ -116,7 +155,7 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
   const ttc =
     amountHt && vatRate
       ? Number(amountHt) * (1 + Number(vatRate) / 100)
-      : 0;
+      : Number(amountHt) || 0;
 
   // Quand on choisit un AO, on suggère le client lié si la cellule est encore vide.
   // Petit confort : ça évite de retaper le client quand l'AO le porte déjà.
@@ -129,6 +168,18 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
       setValue('company_id', offer.company_id, { shouldValidate: true });
     }
   }, [selectedOfferId, selectedCompanyId, offers, setValue]);
+
+  // Facture consultant : le TJM ACHAT et le régime de TVA suivent la fiche
+  // du freelance (TJM fiche + franchise 293 B si pas de n° TVA).
+  const selectedConsultantId = watch('consultant_id');
+  useEffect(() => {
+    if (!isConsultantInvoice || !selectedConsultantId) return;
+    const c = consultants.find((x) => x.id === selectedConsultantId);
+    if (!c) return;
+    if (c.daily_rate_eur && !tjm) setTjm(String(c.daily_rate_eur));
+    setValue('vat_rate', c.vat_number ? 20 : 0, { shouldValidate: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedConsultantId, isConsultantInvoice, consultants]);
 
   useEffect(() => {
     if (!open) return;
@@ -156,6 +207,11 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
         `${a.last_name} ${a.first_name}`.localeCompare(`${b.last_name} ${b.first_name}`),
       ),
     [consultants],
+  );
+
+  const selectedConsultant = useMemo(
+    () => consultants.find((c) => c.id === selectedConsultantId) ?? null,
+    [consultants, selectedConsultantId],
   );
 
   async function createCompanyInline() {
@@ -199,16 +255,43 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
       }
       onSaved?.(res.data);
       reset({
-        invoice_number: suggestInvoiceNumber(),
+        party,
+        invoice_number: suggestInvoiceNumber(party),
         issue_date: todayISO(),
         due_date: plus30DaysISO(),
         vat_rate: 20,
       });
+      setTjm('');
+      setDays('');
       onOpenChange(false);
     } finally {
       setSaving(false);
     }
   }
+
+  const PARTY_CARDS: {
+    value: DocumentParty;
+    icon: typeof Building2;
+    title: string;
+    subtitle: string;
+  }[] = [
+    {
+      value: 'client',
+      icon: Building2,
+      title: isEn ? 'Client invoice' : 'Facture client',
+      subtitle: isEn
+        ? 'Billed to a client company — money in.'
+        : 'Vente à une entreprise cliente — à encaisser.',
+    },
+    {
+      value: 'consultant',
+      icon: UserRound,
+      title: isEn ? 'Consultant invoice' : 'Facture consultant',
+      subtitle: isEn
+        ? 'Freelance subcontracting — money out.'
+        : 'Sous-traitance freelance — à payer au consultant.',
+    },
+  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -218,6 +301,40 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
+          {/* ===== Contrepartie : client (vente) vs consultant (sous-traitance) ===== */}
+          <div className="grid grid-cols-2 gap-3">
+            {PARTY_CARDS.map((card) => {
+              const active = party === card.value;
+              const Icon = card.icon;
+              return (
+                <button
+                  key={card.value}
+                  type="button"
+                  onClick={() => switchParty(card.value)}
+                  aria-pressed={active}
+                  className={`relative rounded-xl border p-3.5 text-left transition-all ${
+                    active
+                      ? 'border-violet-glow/60 bg-violet-glow/[0.07] ring-1 ring-violet-glow/40'
+                      : 'border-hairline hover:border-foreground/20 hover:bg-foreground/[0.03]'
+                  }`}
+                >
+                  {active && (
+                    <span className="absolute top-2.5 right-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-violet-glow text-white">
+                      <Check className="h-2.5 w-2.5" />
+                    </span>
+                  )}
+                  <Icon
+                    className={`h-4 w-4 mb-2 ${active ? 'text-violet-glow' : 'text-muted-foreground'}`}
+                  />
+                  <div className="text-sm font-semibold leading-tight">{card.title}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                    {card.subtitle}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>{t.forms.invoice.invoice_number} *</Label>
@@ -226,126 +343,158 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
                 <p className="text-xs text-red-400 mt-1">{errors.invoice_number.message}</p>
               )}
             </div>
-            <div>
-              <div className="flex items-center justify-between">
-                <Label>{isEn ? 'Client *' : 'Client *'}</Label>
-                <button
-                  type="button"
-                  onClick={() => setCreatingCompany((v) => !v)}
-                  className="text-[11px] text-violet-300 hover:text-violet-200 inline-flex items-center gap-1"
-                >
-                  {creatingCompany ? (
-                    <>
-                      <X className="h-3 w-3" />
-                      {isEn ? 'Cancel' : 'Annuler'}
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-3 w-3" />
-                      {isEn ? 'New client' : 'Nouveau client'}
-                    </>
-                  )}
-                </button>
+
+            {isConsultantInvoice ? (
+              <div>
+                <Label>{isEn ? 'Consultant *' : 'Consultant *'}</Label>
+                <Select {...register('consultant_id')}>
+                  <option value="">
+                    {isEn ? '— Pick a consultant —' : '— Choisir un consultant —'}
+                  </option>
+                  {sortedConsultants.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.first_name} {c.last_name}
+                      {c.job_title ? ` — ${c.job_title}` : ''}
+                    </option>
+                  ))}
+                </Select>
+                {errors.consultant_id && (
+                  <p className="text-xs text-red-400 mt-1">
+                    {isEn ? 'Consultant required' : 'Consultant obligatoire'}
+                  </p>
+                )}
+                {selectedConsultant?.company_name && (
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {isEn ? 'Company: ' : 'Société : '}
+                    {selectedConsultant.company_name}
+                    {selectedConsultant.siret ? ` · SIRET ${selectedConsultant.siret}` : ''}
+                  </p>
+                )}
               </div>
-              {!creatingCompany ? (
-                <>
-                  <Select {...register('company_id')}>
-                    <option value="">{isEn ? '— Pick a client —' : '— Choisir un client —'}</option>
-                    {companies.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </Select>
-                  {errors.company_id && (
-                    <p className="text-xs text-red-400 mt-1">
-                      {isEn ? 'Client required' : 'Client obligatoire'}
-                    </p>
-                  )}
-                  {companies.length === 0 && (
-                    <p className="text-[11px] text-amber-300/80 mt-1">
-                      {isEn
-                        ? 'No clients yet — click "New client" to add one.'
-                        : 'Aucun client en base — clique « Nouveau client » pour en créer un.'}
-                    </p>
-                  )}
-                </>
-              ) : (
-                <div className="space-y-2 rounded-md border border-violet-glow/30 bg-violet-glow/[0.04] p-2.5">
-                  <Input
-                    autoFocus
-                    placeholder={
-                      isEn
-                        ? 'Legal name (e.g. Renault, ENGIE…)'
-                        : 'Raison sociale (ex: Renault, ENGIE…)'
-                    }
-                    value={newCompanyName}
-                    onChange={(e) => setNewCompanyName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        void createCompanyInline();
-                      }
-                    }}
-                  />
-                  <Input
-                    placeholder={isEn ? 'City (optional)' : 'Ville (optionnel)'}
-                    value={newCompanyCity}
-                    onChange={(e) => setNewCompanyCity(e.target.value)}
-                  />
-                  <Button
+            ) : (
+              <div>
+                <div className="flex items-center justify-between">
+                  <Label>{isEn ? 'Client *' : 'Client *'}</Label>
+                  <button
                     type="button"
-                    size="sm"
-                    onClick={createCompanyInline}
-                    disabled={savingCompany || !newCompanyName.trim()}
-                    className="w-full"
+                    onClick={() => setCreatingCompany((v) => !v)}
+                    className="text-[11px] text-violet-300 hover:text-violet-200 inline-flex items-center gap-1"
                   >
-                    {savingCompany && <Loader2 className="h-3 w-3 animate-spin" />}
-                    {isEn ? 'Create client' : 'Créer le client'}
-                  </Button>
+                    {creatingCompany ? (
+                      <>
+                        <X className="h-3 w-3" />
+                        {isEn ? 'Cancel' : 'Annuler'}
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-3 w-3" />
+                        {isEn ? 'New client' : 'Nouveau client'}
+                      </>
+                    )}
+                  </button>
                 </div>
-              )}
-            </div>
+                {!creatingCompany ? (
+                  <>
+                    <Select {...register('company_id')}>
+                      <option value="">{isEn ? '— Pick a client —' : '— Choisir un client —'}</option>
+                      {companies.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </Select>
+                    {errors.company_id && (
+                      <p className="text-xs text-red-400 mt-1">
+                        {isEn ? 'Client required' : 'Client obligatoire'}
+                      </p>
+                    )}
+                    {companies.length === 0 && (
+                      <p className="text-[11px] text-amber-300/80 mt-1">
+                        {isEn
+                          ? 'No clients yet — click "New client" to add one.'
+                          : 'Aucun client en base — clique « Nouveau client » pour en créer un.'}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="space-y-2 rounded-md border border-violet-glow/30 bg-violet-glow/[0.04] p-2.5">
+                    <Input
+                      autoFocus
+                      placeholder={
+                        isEn
+                          ? 'Legal name (e.g. Renault, ENGIE…)'
+                          : 'Raison sociale (ex: Renault, ENGIE…)'
+                      }
+                      value={newCompanyName}
+                      onChange={(e) => setNewCompanyName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          void createCompanyInline();
+                        }
+                      }}
+                    />
+                    <Input
+                      placeholder={isEn ? 'City (optional)' : 'Ville (optionnel)'}
+                      value={newCompanyCity}
+                      onChange={(e) => setNewCompanyCity(e.target.value)}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={createCompanyInline}
+                      disabled={savingCompany || !newCompanyName.trim()}
+                      className="w-full"
+                    >
+                      {savingCompany && <Loader2 className="h-3 w-3 animate-spin" />}
+                      {isEn ? 'Create client' : 'Créer le client'}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>{isEn ? 'Billed consultant' : 'Consultant facturé'}</Label>
-              <Select {...register('consultant_id')}>
-                <option value="">
-                  {isEn ? '— None (free invoice) —' : '— Aucun (facture libre) —'}
-                </option>
-                {sortedConsultants.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.first_name} {c.last_name}
-                    {c.job_title ? ` — ${c.job_title}` : ''}
+          {!isConsultantInvoice && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>{isEn ? 'Billed consultant' : 'Consultant facturé'}</Label>
+                <Select {...register('consultant_id')}>
+                  <option value="">
+                    {isEn ? '— None (free invoice) —' : '— Aucun (facture libre) —'}
                   </option>
-                ))}
-              </Select>
-              <p className="text-[10px] text-muted-foreground mt-1">
-                {isEn
-                  ? 'Optional — useful to track per-consultant billing'
-                  : 'Optionnel — utile pour tracer la facturation par consultant'}
-              </p>
+                  {sortedConsultants.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.first_name} {c.last_name}
+                      {c.job_title ? ` — ${c.job_title}` : ''}
+                    </option>
+                  ))}
+                </Select>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {isEn
+                    ? 'Optional — useful to track per-consultant billing'
+                    : 'Optionnel — utile pour tracer la facturation par consultant'}
+                </p>
+              </div>
+              <div>
+                <Label>{isEn ? 'RFP / Opportunity' : "Appel d'offre / Opportunité"}</Label>
+                <Select {...register('job_offer_id')}>
+                  <option value="">{isEn ? '— None —' : '— Aucun —'}</option>
+                  {offers.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.title}
+                      {o.status !== 'open' ? ` · ${o.status}` : ''}
+                    </option>
+                  ))}
+                </Select>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {isEn
+                    ? 'Optional — pre-fills client if the RFP has one'
+                    : "Optionnel — pré-remplit le client si l'AO en a un"}
+                </p>
+              </div>
             </div>
-            <div>
-              <Label>{isEn ? 'RFP / Opportunity' : "Appel d'offre / Opportunité"}</Label>
-              <Select {...register('job_offer_id')}>
-                <option value="">{isEn ? '— None —' : '— Aucun —'}</option>
-                {offers.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.title}
-                    {o.status !== 'open' ? ` · ${o.status}` : ''}
-                  </option>
-                ))}
-              </Select>
-              <p className="text-[10px] text-muted-foreground mt-1">
-                {isEn
-                  ? 'Optional — pre-fills client if the RFP has one'
-                  : "Optionnel — pré-remplit le client si l'AO en a un"}
-              </p>
-            </div>
-          </div>
+          )}
 
           <div>
             <Label>{t.forms.invoice.period}</Label>
@@ -367,14 +516,30 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
           </div>
 
           {/* Calcul rapide : TJM × Jours → Montant HT (auto-rempli en
-              dessous). Le Montant HT reste éditable pour les forfaits. */}
+              dessous). Le Montant HT reste éditable pour les forfaits.
+              Sur une facture consultant, le TJM proposé est le TJM ACHAT
+              (fiche du freelance). */}
           <div className="rounded-md border border-violet-glow/20 bg-violet-glow/[0.04] p-3 space-y-2">
             <div className="text-[10px] uppercase tracking-wider text-violet-300/80 font-semibold">
-              {isEn ? 'Quick compute day rate × days' : 'Calcul rapide TJM × jours'}
+              {isConsultantInvoice
+                ? isEn
+                  ? 'Quick compute buy rate × days'
+                  : 'Calcul rapide TJM achat × jours'
+                : isEn
+                  ? 'Quick compute day rate × days'
+                  : 'Calcul rapide TJM × jours'}
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <Label>{isEn ? 'Day rate (€/day)' : 'TJM (€/j)'}</Label>
+                <Label>
+                  {isConsultantInvoice
+                    ? isEn
+                      ? 'Buy rate (€/day)'
+                      : 'TJM achat (€/j)'
+                    : isEn
+                      ? 'Day rate (€/day)'
+                      : 'TJM (€/j)'}
+                </Label>
                 <Input
                   type="number"
                   min="0"
@@ -430,6 +595,13 @@ export function InvoiceFormDialog({ open, onOpenChange, organizationId, onSaved 
             <div>
               <Label>{t.forms.invoice.vat_rate}</Label>
               <Input type="number" min="0" max="100" step="0.1" {...register('vat_rate')} />
+              {isConsultantInvoice && Number(vatRate) === 0 && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {isEn
+                    ? 'VAT-exempt (art. 293 B, French tax code)'
+                    : 'Franchise en base — art. 293 B du CGI'}
+                </p>
+              )}
             </div>
             <div>
               <Label>{isEn ? 'Total incl. VAT' : 'Total TTC'}</Label>

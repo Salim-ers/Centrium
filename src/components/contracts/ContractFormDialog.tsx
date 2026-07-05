@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2, Briefcase } from 'lucide-react';
+import { Briefcase, Building2, Check, Loader2, UserRound } from 'lucide-react';
 
 import {
   Dialog,
@@ -24,9 +24,9 @@ import { Select } from '@/components/ui/select';
 import { contractSchema, type ContractInput } from '@/lib/validators/contract';
 import { contractService } from '@/lib/services/contract.service';
 import { consultantService } from '@/lib/services/consultant.service';
+import { companyService } from '@/lib/services';
 import { createClient } from '@/lib/supabase/client';
-import type { Consultant, Contract } from '@/types';
-import { useState } from 'react';
+import type { Company, Consultant, Contract, DocumentParty } from '@/types';
 
 type MissionOption = {
   id: string;
@@ -63,7 +63,28 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   organizationId: string;
   contract?: Contract;
+  /** Contrepartie présélectionnée (suit l'onglet actif de la page Contrats). */
+  defaultParty?: DocumentParty;
   onSaved?: (c: Contract) => void;
+};
+
+// Types de contrat proposés selon la contrepartie.
+const KIND_OPTIONS: Record<DocumentParty, { value: ContractInput['kind']; fr: string; en: string }[]> = {
+  client: [
+    { value: 'prestation_client', fr: 'Prestation de services', en: 'Service agreement' },
+    { value: 'assistance_technique', fr: 'Assistance technique', en: 'Technical assistance' },
+    { value: 'apport_affaire', fr: "Apport d'affaire", en: 'Business introducer' },
+    { value: 'nda', fr: 'NDA', en: 'NDA' },
+    { value: 'amendment', fr: 'Avenant', en: 'Amendment' },
+  ],
+  consultant: [
+    { value: 'assistance_technique', fr: 'Assistance technique', en: 'Technical assistance' },
+    { value: 'sous_traitance', fr: 'Sous-traitance', en: 'Subcontracting' },
+    { value: 'freelance_mission', fr: 'Ordre de mission freelance', en: 'Freelance mission order' },
+    { value: 'apport_affaire', fr: "Apport d'affaire", en: 'Business introducer' },
+    { value: 'nda', fr: 'NDA', en: 'NDA' },
+    { value: 'amendment', fr: 'Avenant', en: 'Amendment' },
+  ],
 };
 
 export function ContractFormDialog({
@@ -71,12 +92,14 @@ export function ContractFormDialog({
   onOpenChange,
   organizationId,
   contract,
+  defaultParty = 'consultant',
   onSaved,
 }: Props) {
   const t = useAppT();
   const { locale } = useLocale();
   const isEn = locale === 'en';
   const [consultants, setConsultants] = useState<Consultant[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [missions, setMissions] = useState<MissionOption[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
   const [selectedMissionId, setSelectedMissionId] = useState<string>('');
@@ -93,7 +116,8 @@ export function ContractFormDialog({
   } = useForm<ContractInput>({
     resolver: zodResolver(contractSchema),
     defaultValues: {
-      kind: 'assistance_technique',
+      party: defaultParty,
+      kind: defaultParty === 'client' ? 'prestation_client' : 'assistance_technique',
       duration_months: 3,
       remote_days_per_week: 0,
       payment_terms_days: 30,
@@ -107,10 +131,27 @@ export function ContractFormDialog({
     },
   });
 
+  const party = watch('party') ?? 'consultant';
+  const isClientContract = party === 'client';
+
+  function switchParty(next: DocumentParty) {
+    if (next === party || isEdit) return;
+    setValue('party', next, { shouldValidate: true });
+    // Le type de contrat suit la contrepartie si celui en place n'existe
+    // pas dans la nouvelle liste.
+    const currentKind = watch('kind');
+    if (!KIND_OPTIONS[next].some((k) => k.value === currentKind)) {
+      setValue('kind', next === 'client' ? 'prestation_client' : 'assistance_technique');
+    }
+  }
+
   useEffect(() => {
     if (open) {
       consultantService.list().then((res) => {
         if (res.data) setConsultants(res.data);
+      });
+      companyService.list().then((res) => {
+        if (res.data) setCompanies(res.data);
       });
       // Charge les missions actives + proposées (pour pre-fill du contrat),
       // avec le client final et l'AO source pour pré-remplir lieu / remote.
@@ -175,8 +216,10 @@ export function ContractFormDialog({
       if (contract) {
         reset({
           contract_number: contract.contract_number,
+          party: contract.party ?? 'consultant',
           kind: contract.kind,
           title: contract.title,
+          company_id: contract.company_id,
           consultant_id: contract.consultant_id,
           supplier_company_name: contract.supplier_company_name ?? '',
           supplier_address: contract.supplier_address,
@@ -200,14 +243,18 @@ export function ContractFormDialog({
           jurisdiction_city: contract.jurisdiction_city,
           notes: contract.notes,
         });
+      } else {
+        setValue('party', defaultParty);
+        setValue('kind', defaultParty === 'client' ? 'prestation_client' : 'assistance_technique');
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, contract, reset]);
 
   // Auto-remplissage depuis consultant sélectionné
   const consultantId = watch('consultant_id');
   useEffect(() => {
-    if (!consultantId) return;
+    if (!consultantId || isClientContract) return;
     const c = consultants.find((x) => x.id === consultantId);
     if (c) {
       if (c.daily_rate_eur) setValue('daily_rate_eur', c.daily_rate_eur);
@@ -215,7 +262,21 @@ export function ContractFormDialog({
         setValue('title', `Contrat AT – ${c.first_name} ${c.last_name} – ${c.job_title}`);
       }
     }
-  }, [consultantId, consultants, setValue, watch]);
+  }, [consultantId, consultants, setValue, watch, isClientContract]);
+
+  // Contrat client : la sélection de l'entreprise remplit le snapshot
+  // client_name / client_address imprimé sur le document.
+  const companyId = watch('company_id');
+  useEffect(() => {
+    if (!isClientContract || !companyId) return;
+    const co = companies.find((x) => x.id === companyId);
+    if (!co) return;
+    setValue('client_name', co.name, { shouldValidate: true });
+    const addr = [co.address, co.city].filter(Boolean).join(', ');
+    if (addr && !watch('client_address')) setValue('client_address', addr);
+    if (!watch('title')) setValue('title', `Contrat de prestation – ${co.name}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId, isClientContract, companies]);
 
   // Auto-fill depuis mission sélectionnée : consultant, TJM, dates,
   // mission_id, mission_title, client final + lieu + remote (depuis l'AO),
@@ -244,9 +305,17 @@ export function ContractFormDialog({
       );
       setValue('duration_months', months);
     }
-    if (!watch('title')) setValue('title', `Contrat AT – ${m.title}`);
+    if (!watch('title')) {
+      setValue(
+        'title',
+        isClientContract ? `Contrat de prestation – ${m.title}` : `Contrat AT – ${m.title}`,
+      );
+    }
 
     // Client final + lieu d'exécution + remote depuis l'AO source / la company.
+    if (m.company?.id && isClientContract && !watch('company_id')) {
+      setValue('company_id', m.company.id);
+    }
     if (m.company?.name && !watch('client_name')) setValue('client_name', m.company.name);
     if (m.company?.address && !watch('client_address')) {
       const addr = [m.company.address, m.company.city].filter(Boolean).join(', ');
@@ -259,7 +328,9 @@ export function ContractFormDialog({
       setValue('remote_days_per_week', m.job_offer.remote_days);
     }
 
-    // Dernier contrat pour ce consultant : on copie les infos fournisseur.
+    // Contrat consultant : on copie les infos fournisseur du dernier contrat
+    // du même consultant. Inutile côté client.
+    if (isClientContract) return;
     const supabase = createClient();
     const { data: prev } = await supabase
       .from('contracts')
@@ -306,6 +377,30 @@ export function ContractFormDialog({
     }
   }
 
+  const PARTY_CARDS: {
+    value: DocumentParty;
+    icon: typeof Building2;
+    title: string;
+    subtitle: string;
+  }[] = [
+    {
+      value: 'client',
+      icon: Building2,
+      title: isEn ? 'Client contract' : 'Contrat client',
+      subtitle: isEn
+        ? 'Service agreement with a client company.'
+        : 'Prestation de services avec une entreprise.',
+    },
+    {
+      value: 'consultant',
+      icon: UserRound,
+      title: isEn ? 'Consultant contract' : 'Contrat consultant',
+      subtitle: isEn
+        ? 'Subcontracting with a freelance — e-signed in their portal.'
+        : 'Sous-traitance freelance — signé en ligne dans son espace.',
+    },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <FormDialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -316,6 +411,42 @@ export function ContractFormDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-2">
+          {/* ===== Contrepartie : client (prestation) vs consultant (sous-traitance) ===== */}
+          {!isEdit && (
+            <div className="grid grid-cols-2 gap-3">
+              {PARTY_CARDS.map((card) => {
+                const active = party === card.value;
+                const Icon = card.icon;
+                return (
+                  <button
+                    key={card.value}
+                    type="button"
+                    onClick={() => switchParty(card.value)}
+                    aria-pressed={active}
+                    className={`relative rounded-xl border p-3.5 text-left transition-all ${
+                      active
+                        ? 'border-violet-glow/60 bg-violet-glow/[0.07] ring-1 ring-violet-glow/40'
+                        : 'border-hairline hover:border-foreground/20 hover:bg-foreground/[0.03]'
+                    }`}
+                  >
+                    {active && (
+                      <span className="absolute top-2.5 right-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-violet-glow text-white">
+                        <Check className="h-2.5 w-2.5" />
+                      </span>
+                    )}
+                    <Icon
+                      className={`h-4 w-4 mb-2 ${active ? 'text-violet-glow' : 'text-muted-foreground'}`}
+                    />
+                    <div className="text-sm font-semibold leading-tight">{card.title}</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                      {card.subtitle}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Section 1 : Identification */}
           <section>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
@@ -331,26 +462,24 @@ export function ContractFormDialog({
               <div>
                 <Label>{t.forms.contract.kind}</Label>
                 <Select {...register('kind')}>
-                  <option value="assistance_technique">
-                    {isEn ? 'Service contract' : 'Assistance technique'}
-                  </option>
-                  <option value="sous_traitance">
-                    {isEn ? 'Subcontracting' : 'Sous-traitance'}
-                  </option>
-                  <option value="apport_affaire">
-                    {isEn ? 'Business introducer' : "Apport d'affaire"}
-                  </option>
-                  <option value="freelance_mission">
-                    {isEn ? 'Freelance mission order' : 'Ordre de mission freelance'}
-                  </option>
-                  <option value="nda">NDA</option>
-                  <option value="amendment">{isEn ? 'Amendment' : 'Avenant'}</option>
+                  {KIND_OPTIONS[party].map((k) => (
+                    <option key={k.value} value={k.value}>
+                      {isEn ? k.en : k.fr}
+                    </option>
+                  ))}
                 </Select>
               </div>
             </div>
             <div className="mt-3">
               <Label>{isEn ? 'Contract title *' : 'Titre du contrat *'}</Label>
-              <Input {...register('title')} placeholder="Contrat AT – Alex S. – QA Automation" />
+              <Input
+                {...register('title')}
+                placeholder={
+                  isClientContract
+                    ? 'Contrat de prestation – BNP Paribas – QA Automation'
+                    : 'Contrat AT – Alex S. – QA Automation'
+                }
+              />
               {errors.title && (
                 <p className="text-xs text-red-400 mt-1">{errors.title.message}</p>
               )}
@@ -391,135 +520,202 @@ export function ContractFormDialog({
             </section>
           )}
 
-          {/* Section 2 : Consultant */}
-          <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
-              {isEn ? 'Consultant' : 'Consultant concerné'}
-            </h3>
-            <Label>{t.forms.contract.consultant}</Label>
-            <Select {...register('consultant_id')}>
-              <option value="">{isEn ? '— None —' : '— Aucun —'}</option>
-              {consultants.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.first_name} {c.last_name} — {c.job_title}
-                </option>
-              ))}
-            </Select>
-          </section>
-
-          {/* Section 3 : Fournisseur */}
-          <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
-              {isEn
-                ? "Supplier (consultant's company)"
-                : 'Fournisseur (société du consultant)'}
-            </h3>
-
-            {/* Dropdown : reprendre un fournisseur déjà saisi sur un précédent contrat */}
-            {suppliers.length > 0 && (
-              <div className="mb-4 rounded-md border border-magenta/25 bg-magenta/[0.04] p-3">
-                <Label className="text-magenta text-[10px] uppercase tracking-wider font-semibold">
-                  {isEn ? 'Reuse an existing supplier' : 'Reprendre un fournisseur existant'}
-                </Label>
-                <Select
-                  onChange={(e) => {
-                    const key = e.target.value;
-                    if (!key) return;
-                    const s = suppliers.find((x) => x.key === key);
-                    if (!s) return;
-                    setValue('supplier_company_name', s.company_name);
-                    setValue('supplier_address', s.address ?? '');
-                    setValue('supplier_postal_code', s.postal_code ?? '');
-                    setValue('supplier_city', s.city ?? '');
-                    setValue('supplier_rcs', s.rcs ?? '');
-                    setValue('supplier_representative', s.representative ?? '');
-                    setValue('supplier_email', s.email ?? '');
-                    toast.success(
-                      isEn
-                        ? `Supplier "${s.company_name}" pre-filled`
-                        : `Fournisseur « ${s.company_name} » pré-rempli`,
-                    );
-                    e.target.value = ''; // reset select pour pouvoir le re-sélectionner
-                  }}
-                  className="mt-1.5"
-                >
-                  <option value="">
+          {/* Section 2 : Contrepartie — entreprise cliente OU consultant + fournisseur */}
+          {isClientContract ? (
+            <section>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
+                {isEn ? 'Client company' : 'Entreprise cliente'}
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <Label>{isEn ? 'Company (from contacts)' : 'Entreprise (carnet clients)'}</Label>
+                  <Select {...register('company_id')}>
+                    <option value="">
+                      {isEn ? '— Pick a company —' : '— Choisir une entreprise —'}
+                    </option>
+                    {companies.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                        {c.city ? ` (${c.city})` : ''}
+                      </option>
+                    ))}
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground mt-1">
                     {isEn
-                      ? '— Choose an existing supplier —'
-                      : '— Choisir un fournisseur déjà saisi —'}
-                  </option>
-                  {suppliers.map((s) => (
-                    <option key={s.key} value={s.key}>
-                      {s.company_name}
-                      {s.city ? ` (${s.city})` : ''}
-                      {s.usageCount > 1
-                        ? ` · ${s.usageCount} ${isEn ? 'contracts' : 'contrats'}`
-                        : ''}
+                      ? 'Fills the legal name below — adjust freely.'
+                      : 'Remplit la raison sociale ci-dessous — ajustable librement.'}
+                  </p>
+                </div>
+                <div>
+                  <Label>{isEn ? 'Legal name *' : 'Raison sociale *'}</Label>
+                  <Input {...register('client_name')} placeholder="ex: BNP Paribas" />
+                  {errors.client_name && (
+                    <p className="text-xs text-red-400 mt-1">{errors.client_name.message}</p>
+                  )}
+                </div>
+                <div>
+                  <Label>{isEn ? 'Head office address' : 'Adresse du siège'}</Label>
+                  <Input {...register('client_address')} />
+                </div>
+                <div className="col-span-2">
+                  <Label>{isEn ? 'Consultant assigned (optional)' : 'Consultant positionné (optionnel)'}</Label>
+                  <Select {...register('consultant_id')}>
+                    <option value="">{isEn ? '— None —' : '— Aucun —'}</option>
+                    {consultants.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.first_name} {c.last_name} — {c.job_title}
+                      </option>
+                    ))}
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {isEn
+                      ? 'Linked for tracking — never visible in their portal.'
+                      : 'Lien de suivi interne — jamais visible dans son espace consultant.'}
+                  </p>
+                </div>
+              </div>
+            </section>
+          ) : (
+            <>
+              {/* Section 2 : Consultant */}
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
+                  {isEn ? 'Consultant' : 'Consultant concerné'}
+                </h3>
+                <Label>{t.forms.contract.consultant}</Label>
+                <Select {...register('consultant_id')}>
+                  <option value="">{isEn ? '— None —' : '— Aucun —'}</option>
+                  {consultants.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.first_name} {c.last_name} — {c.job_title}
                     </option>
                   ))}
                 </Select>
-                <p className="mt-2 text-[10.5px] text-muted-foreground">
+              </section>
+
+              {/* Section 3 : Fournisseur */}
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
                   {isEn
-                    ? '💡 You can then adjust the fields below case by case.'
-                    : '💡 Tu peux ensuite ajuster les champs ci-dessous au cas par cas.'}
-                </p>
-              </div>
-            )}
+                    ? "Supplier (consultant's company)"
+                    : 'Fournisseur (société du consultant)'}
+                </h3>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2">
-                <Label>{isEn ? 'Company name *' : 'Raison sociale *'}</Label>
-                <Input {...register('supplier_company_name')} />
-                {errors.supplier_company_name && (
-                  <p className="text-xs text-red-400 mt-1">
-                    {errors.supplier_company_name.message}
-                  </p>
+                {/* Dropdown : reprendre un fournisseur déjà saisi sur un précédent contrat */}
+                {suppliers.length > 0 && (
+                  <div className="mb-4 rounded-md border border-magenta/25 bg-magenta/[0.04] p-3">
+                    <Label className="text-magenta text-[10px] uppercase tracking-wider font-semibold">
+                      {isEn ? 'Reuse an existing supplier' : 'Reprendre un fournisseur existant'}
+                    </Label>
+                    <Select
+                      onChange={(e) => {
+                        const key = e.target.value;
+                        if (!key) return;
+                        const s = suppliers.find((x) => x.key === key);
+                        if (!s) return;
+                        setValue('supplier_company_name', s.company_name);
+                        setValue('supplier_address', s.address ?? '');
+                        setValue('supplier_postal_code', s.postal_code ?? '');
+                        setValue('supplier_city', s.city ?? '');
+                        setValue('supplier_rcs', s.rcs ?? '');
+                        setValue('supplier_representative', s.representative ?? '');
+                        setValue('supplier_email', s.email ?? '');
+                        toast.success(
+                          isEn
+                            ? `Supplier "${s.company_name}" pre-filled`
+                            : `Fournisseur « ${s.company_name} » pré-rempli`,
+                        );
+                        e.target.value = ''; // reset select pour pouvoir le re-sélectionner
+                      }}
+                      className="mt-1.5"
+                    >
+                      <option value="">
+                        {isEn
+                          ? '— Choose an existing supplier —'
+                          : '— Choisir un fournisseur déjà saisi —'}
+                      </option>
+                      {suppliers.map((s) => (
+                        <option key={s.key} value={s.key}>
+                          {s.company_name}
+                          {s.city ? ` (${s.city})` : ''}
+                          {s.usageCount > 1
+                            ? ` · ${s.usageCount} ${isEn ? 'contracts' : 'contrats'}`
+                            : ''}
+                        </option>
+                      ))}
+                    </Select>
+                    <p className="mt-2 text-[10.5px] text-muted-foreground">
+                      {isEn
+                        ? '💡 You can then adjust the fields below case by case.'
+                        : '💡 Tu peux ensuite ajuster les champs ci-dessous au cas par cas.'}
+                    </p>
+                  </div>
                 )}
-              </div>
-              <div className="col-span-2">
-                <Label>{isEn ? 'Head office address' : 'Adresse du siège'}</Label>
-                <Input {...register('supplier_address')} />
-              </div>
-              <div>
-                <Label>{isEn ? 'Postal code' : 'Code postal'}</Label>
-                <Input {...register('supplier_postal_code')} />
-              </div>
-              <div>
-                <Label>{isEn ? 'City' : 'Ville'}</Label>
-                <Input {...register('supplier_city')} />
-              </div>
-              <div>
-                <Label>{isEn ? 'RCS number' : 'N° RCS'}</Label>
-                <Input {...register('supplier_rcs')} placeholder="XXX XXX XXX R.C.S. Ville" />
-              </div>
-              <div>
-                <Label>{isEn ? 'Legal representative' : 'Représentant légal'}</Label>
-                <Input
-                  {...register('supplier_representative')}
-                  placeholder={isEn ? 'First name Last name' : 'Prénom Nom'}
-                />
-              </div>
-              <div className="col-span-2">
-                <Label>{isEn ? 'Supplier email' : 'Email fournisseur'}</Label>
-                <Input type="email" {...register('supplier_email')} />
-              </div>
-            </div>
-          </section>
 
-          {/* Section 4 : Mission & Client */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <Label>{isEn ? 'Company name *' : 'Raison sociale *'}</Label>
+                    <Input {...register('supplier_company_name')} />
+                    {errors.supplier_company_name && (
+                      <p className="text-xs text-red-400 mt-1">
+                        {errors.supplier_company_name.message}
+                      </p>
+                    )}
+                  </div>
+                  <div className="col-span-2">
+                    <Label>{isEn ? 'Head office address' : 'Adresse du siège'}</Label>
+                    <Input {...register('supplier_address')} />
+                  </div>
+                  <div>
+                    <Label>{isEn ? 'Postal code' : 'Code postal'}</Label>
+                    <Input {...register('supplier_postal_code')} />
+                  </div>
+                  <div>
+                    <Label>{isEn ? 'City' : 'Ville'}</Label>
+                    <Input {...register('supplier_city')} />
+                  </div>
+                  <div>
+                    <Label>{isEn ? 'RCS number' : 'N° RCS'}</Label>
+                    <Input {...register('supplier_rcs')} placeholder="XXX XXX XXX R.C.S. Ville" />
+                  </div>
+                  <div>
+                    <Label>{isEn ? 'Legal representative' : 'Représentant légal'}</Label>
+                    <Input
+                      {...register('supplier_representative')}
+                      placeholder={isEn ? 'First name Last name' : 'Prénom Nom'}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>{isEn ? 'Supplier email' : 'Email fournisseur'}</Label>
+                    <Input type="email" {...register('supplier_email')} />
+                  </div>
+                </div>
+              </section>
+            </>
+          )}
+
+          {/* Section 4 : Mission & Client final */}
           <section>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
-              {isEn ? 'Mission & End client' : 'Mission & Client final'}
+              {isClientContract
+                ? isEn
+                  ? 'Mission'
+                  : 'Mission'
+                : isEn
+                  ? 'Mission & End client'
+                  : 'Mission & Client final'}
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <Label>{isEn ? 'Mission title' : 'Intitulé de la mission'}</Label>
                 <Input {...register('mission_title')} placeholder="ex: QA Automation – Projet e-commerce" />
               </div>
-              <div>
-                <Label>{isEn ? 'End client' : 'Client final'}</Label>
-                <Input {...register('client_name')} placeholder="ex: BNP Paribas" />
-              </div>
+              {!isClientContract && (
+                <div>
+                  <Label>{isEn ? 'End client' : 'Client final'}</Label>
+                  <Input {...register('client_name')} placeholder="ex: BNP Paribas" />
+                </div>
+              )}
               <div>
                 <Label>{isEn ? 'Remote days / week' : 'Jours remote / semaine'}</Label>
                 <Input type="number" min="0" max="5" {...register('remote_days_per_week')} />
@@ -561,7 +757,15 @@ export function ContractFormDialog({
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>{isEn ? 'Day rate excl. tax (€)' : 'TJM HT (€)'}</Label>
+                <Label>
+                  {isClientContract
+                    ? isEn
+                      ? 'Sell day rate excl. tax (€)'
+                      : 'TJM vente HT (€)'
+                    : isEn
+                      ? 'Buy day rate excl. tax (€)'
+                      : 'TJM achat HT (€)'}
+                </Label>
                 <Input type="number" min="0" step="1" {...register('daily_rate_eur')} />
               </div>
               <div>
@@ -582,7 +786,15 @@ export function ContractFormDialog({
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>{isEn ? 'Non-compete (months)' : 'Non-concurrence (mois)'}</Label>
+                <Label>
+                  {isClientContract
+                    ? isEn
+                      ? 'Non-solicitation (months)'
+                      : 'Non-sollicitation (mois)'
+                    : isEn
+                      ? 'Non-compete (months)'
+                      : 'Non-concurrence (mois)'}
+                </Label>
                 <Input type="number" min="0" max="36" {...register('non_compete_months')} />
               </div>
               <div>

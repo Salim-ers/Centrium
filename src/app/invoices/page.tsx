@@ -21,6 +21,9 @@ import {
   Clock3,
   AlertTriangle,
   FileText,
+  Building2,
+  UserRound,
+  HandCoins,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -53,6 +56,8 @@ import { INVOICE_STATUS_LABEL } from '@/constants';
 import { formatDate } from '@/lib/utils';
 import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 
+type PartyView = 'client' | 'consultant';
+
 function InvoicesPageInner() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
@@ -60,6 +65,8 @@ function InvoicesPageInner() {
   const invoiceLabels = useInvoiceStatusLabels();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  // Segment Clients (ventes, à encaisser) / Consultants (sous-traitance, à payer).
+  const [partyView, setPartyView] = useState<PartyView>('client');
 
   const {
     data: invoicesData,
@@ -85,11 +92,18 @@ function InvoicesPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const urlStatusFilter = searchParams?.get('status') ?? null;
-  const invoices = urlStatusFilter
+  const statusFiltered = urlStatusFilter
     ? allInvoices.filter((i) => i.status === urlStatusFilter)
     : allInvoices;
   const hasUrlFilter = !!urlStatusFilter;
   const clearUrlFilter = () => router.push('/invoices');
+
+  // Comptes par segment (sur la liste filtrée statut, pour rester cohérent
+  // avec ce que chaque onglet affichera).
+  const clientCount = statusFiltered.filter((i) => (i.party ?? 'client') === 'client').length;
+  const consultantCount = statusFiltered.length - clientCount;
+  const invoices = statusFiltered.filter((i) => (i.party ?? 'client') === partyView);
+  const isConsultantView = partyView === 'consultant';
 
   const pagination = usePagination(invoices.length, {
     storageKey: 'invoices-page-size',
@@ -216,6 +230,54 @@ function InvoicesPageInner() {
         }
       />
 
+      {/* ===== Segments Clients / Consultants — deux flux d'argent opposés ===== */}
+      <Reveal className="mb-6">
+        <div className="inline-flex items-center gap-1 rounded-xl border border-hairline bg-foreground/[0.03] p-1">
+          {(
+            [
+              {
+                value: 'client' as PartyView,
+                icon: Building2,
+                label: t.pages.invoices.tab_clients,
+                count: clientCount,
+              },
+              {
+                value: 'consultant' as PartyView,
+                icon: UserRound,
+                label: t.pages.invoices.tab_consultants,
+                count: consultantCount,
+              },
+            ] as const
+          ).map((seg) => {
+            const active = partyView === seg.value;
+            const Icon = seg.icon;
+            return (
+              <button
+                key={seg.value}
+                type="button"
+                onClick={() => setPartyView(seg.value)}
+                aria-pressed={active}
+                className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                  active
+                    ? 'bg-background text-foreground shadow-sm ring-1 ring-hairline'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {seg.label}
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${
+                    active ? 'bg-violet-glow/15 text-violet-glow' : 'bg-foreground/[0.06] text-muted-foreground'
+                  }`}
+                >
+                  {seg.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </Reveal>
+
       <Reveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <KPICard
           icon={FileText}
@@ -224,14 +286,14 @@ function InvoicesPageInner() {
           tone="magenta"
         />
         <KPICard
-          icon={Banknote}
-          label={t.pages.invoices.kpi_paid}
+          icon={isConsultantView ? HandCoins : Banknote}
+          label={isConsultantView ? t.pages.invoices.kpi_paid_out : t.pages.invoices.kpi_paid}
           valueText={formatCurrency(totalPaid)}
           tone="emerald"
         />
         <KPICard
           icon={Clock3}
-          label={t.pages.invoices.kpi_pending}
+          label={isConsultantView ? t.pages.invoices.kpi_to_pay : t.pages.invoices.kpi_pending}
           valueText={formatCurrency(totalPending)}
           tone="amber"
         />
@@ -247,6 +309,7 @@ function InvoicesPageInner() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         organizationId={activeOrgId ?? ''}
+        defaultParty={partyView}
         onSaved={() => reload()}
       />
 
@@ -267,9 +330,19 @@ function InvoicesPageInner() {
 
       {!loading && invoices.length === 0 ? (
         <EmptyState
-          icon={Receipt}
-          title={showArchived ? t.pages.invoices.empty_title_archived : t.pages.invoices.empty_title}
-          description={t.pages.invoices.empty_description}
+          icon={isConsultantView ? UserRound : Receipt}
+          title={
+            showArchived
+              ? t.pages.invoices.empty_title_archived
+              : isConsultantView
+                ? t.pages.invoices.empty_title_consultant
+                : t.pages.invoices.empty_title
+          }
+          description={
+            isConsultantView
+              ? t.pages.invoices.empty_description_consultant
+              : t.pages.invoices.empty_description
+          }
           action={
             hasUrlFilter ? (
               <Button variant="outline" onClick={clearUrlFilter}>
@@ -291,7 +364,9 @@ function InvoicesPageInner() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t.forms.invoice.invoice_number}</TableHead>
-                <TableHead>{t.forms.invoice.consultant}</TableHead>
+                <TableHead>
+                  {isConsultantView ? t.forms.invoice.consultant : t.forms.contract.client}
+                </TableHead>
                 <TableHead>{t.forms.timesheet.period}</TableHead>
                 <TableHead>{t.forms.invoice.issue_date}</TableHead>
                 <TableHead>{t.forms.invoice.due_date}</TableHead>
@@ -317,10 +392,11 @@ function InvoicesPageInner() {
                 paginatedInvoices.map((inv, rowIdx) => {
                   // Le consultant peut venir d'une mission liée OU d'un
                   // lien direct sur la facture (cas des factures manuelles).
-                  const c = inv.mission?.consultant ?? inv.consultant ?? null;
+                  const c = inv.consultant ?? inv.mission?.consultant ?? null;
                   const consultantName = c
                     ? `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() || '—'
                     : '—';
+                  const consultantCompany = inv.consultant?.company_name ?? null;
                   return (
                     <motion.tr
                       key={inv.id}
@@ -335,15 +411,38 @@ function InvoicesPageInner() {
                     >
                       <TableCell className="font-mono font-medium">{inv.invoice_number}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          {c ? (
-                            <div className="h-6 w-6 rounded-full bg-qc-gradient ring-1 ring-foreground/10 flex items-center justify-center text-white text-[9px] font-semibold shrink-0">
-                              {(c.first_name?.[0] ?? '?').toUpperCase()}
-                              {(c.last_name?.[0] ?? '').toUpperCase()}
+                        {isConsultantView ? (
+                          <div className="flex items-center gap-2">
+                            {c ? (
+                              <div className="h-6 w-6 rounded-full bg-qc-gradient ring-1 ring-foreground/10 flex items-center justify-center text-white text-[9px] font-semibold shrink-0">
+                                {(c.first_name?.[0] ?? '?').toUpperCase()}
+                                {(c.last_name?.[0] ?? '').toUpperCase()}
+                              </div>
+                            ) : null}
+                            <div className="min-w-0">
+                              <div className="text-sm truncate">{consultantName}</div>
+                              {consultantCompany && (
+                                <div className="text-[11px] text-muted-foreground truncate">
+                                  {consultantCompany}
+                                </div>
+                              )}
                             </div>
-                          ) : null}
-                          <span className="text-sm">{consultantName}</span>
-                        </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="h-6 w-6 rounded-lg bg-foreground/[0.05] ring-1 ring-foreground/10 flex items-center justify-center shrink-0">
+                              <Building2 className="h-3 w-3 text-muted-foreground" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-sm truncate">{inv.company?.name ?? '—'}</div>
+                              {c && (
+                                <div className="text-[11px] text-muted-foreground truncate">
+                                  {consultantName}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>{inv.period_label ?? '—'}</TableCell>
                       <TableCell className="text-xs">{formatDate(inv.issue_date)}</TableCell>

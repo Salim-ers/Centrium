@@ -307,7 +307,13 @@ function formatDate(d: string | Date | null, locale: Locale): string {
 
 async function fetchInvoices(): Promise<Invoice[]> {
   const supabase = createClient();
-  const { data } = await supabase.from('invoices').select('*').order('issue_date', { ascending: false });
+  // CA / encaissements / relances = factures de VENTE uniquement — les
+  // factures consultant (party='consultant') sont un achat de sous-traitance.
+  const { data } = await supabase
+    .from('invoices')
+    .select('*')
+    .eq('party', 'client')
+    .order('issue_date', { ascending: false });
   return (data ?? []) as Invoice[];
 }
 
@@ -556,9 +562,11 @@ async function handleTopClients(locale: Locale): Promise<AssistantBlock[]> {
   const invoices = await fetchInvoices();
   const paid = invoices.filter((i) => i.status === 'paid');
   if (paid.length === 0) return [{ type: 'suggestion', text: L.sugNoClients }];
-  // Group paid invoices by company_id
+  // Group paid invoices by company_id (ignore les factures sans entreprise —
+  // missions libres — qui n'ont pas de "client" à classer).
   const byClient = new Map<string, number>();
   for (const inv of paid) {
+    if (!inv.company_id) continue;
     const cur = byClient.get(inv.company_id) ?? 0;
     byClient.set(inv.company_id, cur + Number(inv.amount_ht));
   }

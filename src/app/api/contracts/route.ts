@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireOrg } from '@/lib/auth/guards';
-import { contractSchema } from '@/lib/validators/contract';
+import { contractBaseSchema, refineContractParty } from '@/lib/validators/contract';
 
 // =========================================================================
 // POST /api/contracts — Crée un contrat (service_role, bypass RLS)
@@ -33,7 +33,9 @@ async function nextContractNumber(
 }
 
 // Version permissive du schéma : contract_number peut être absent (autogénéré)
-const bodySchema = contractSchema.partial({ contract_number: true });
+const bodySchema = contractBaseSchema
+  .partial({ contract_number: true })
+  .superRefine(refineContractParty);
 
 export async function POST(req: NextRequest) {
   const ctx = await requireOrg();

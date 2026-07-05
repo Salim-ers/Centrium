@@ -147,22 +147,42 @@ const optionalUuid = z.preprocess(
   z.string().uuid().nullable(),
 );
 
-export const invoiceSchema = z.object({
-  company_id: z.string().uuid(),
-  consultant_id: optionalUuid.optional(),
-  mission_id: optionalUuid.optional(),
-  job_offer_id: optionalUuid.optional(),
-  timesheet_id: optionalUuid.optional(),
-  invoice_number: z.string().min(1).max(50),
-  issue_date: z.string(),
-  due_date: z.string(),
-  period_label: z.string().max(100).optional().nullable(),
-  amount_ht: z.coerce.number().min(0),
-  vat_rate: z.coerce.number().min(0).max(100).default(20),
-  unit_price: z.coerce.number().min(0).optional().nullable(),
-  quantity: z.coerce.number().min(0).optional().nullable(),
-  notes: z.string().max(2000).optional().nullable(),
-});
+export const invoiceSchema = z
+  .object({
+    // 'client' = facture de vente (entreprise obligatoire) ·
+    // 'consultant' = facture de sous-traitance (consultant obligatoire).
+    party: z.enum(['client', 'consultant']).default('client'),
+    company_id: optionalUuid.optional(),
+    consultant_id: optionalUuid.optional(),
+    mission_id: optionalUuid.optional(),
+    job_offer_id: optionalUuid.optional(),
+    timesheet_id: optionalUuid.optional(),
+    invoice_number: z.string().min(1).max(50),
+    issue_date: z.string(),
+    due_date: z.string(),
+    period_label: z.string().max(100).optional().nullable(),
+    amount_ht: z.coerce.number().min(0),
+    vat_rate: z.coerce.number().min(0).max(100).default(20),
+    unit_price: z.coerce.number().min(0).optional().nullable(),
+    quantity: z.coerce.number().min(0).optional().nullable(),
+    notes: z.string().max(2000).optional().nullable(),
+  })
+  .superRefine((val, ctx) => {
+    if (val.party === 'client' && !val.company_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['company_id'],
+        message: 'Client obligatoire pour une facture client',
+      });
+    }
+    if (val.party === 'consultant' && !val.consultant_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['consultant_id'],
+        message: 'Consultant obligatoire pour une facture consultant',
+      });
+    }
+  });
 
 export type InvoiceInput = z.infer<typeof invoiceSchema>;
 

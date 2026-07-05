@@ -15,6 +15,7 @@ import {
   Clock3,
   CalendarDays,
   Percent,
+  Receipt,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -30,7 +31,7 @@ import {
   type StatusTone,
 } from '@/components/app';
 import { TimesheetFormDialog } from '@/components/timesheets/TimesheetFormDialog';
-import { timesheetService } from '@/lib/services';
+import { timesheetService, invoiceService } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useRealtimeReload } from '@/hooks/useRealtimeReload';
@@ -133,6 +134,31 @@ function TimesheetsPageInner() {
       toast.success(t.forms.timesheet.validated);
     } else {
       toast.success(t.forms.timesheet.validated + ` — ${res.data.invoice.invoice_number}`);
+    }
+  }
+
+  // Pendant de la facture client : génère la facture de SOUS-TRAITANCE du
+  // consultant (jours validés × TJM achat), visible dans son espace perso.
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
+  async function generateConsultantInvoice(ts: Timesheet) {
+    setGeneratingId(ts.id);
+    try {
+      const res = await invoiceService.generateConsultantInvoice(ts.id);
+      if (res.error || !res.data) {
+        toast.error(t.toasts.error_generic + ': ' + (res.error?.message ?? ''));
+        return;
+      }
+      if (res.data.alreadyExists) {
+        toast.info(
+          `${t.pages.timesheets.consultant_invoice_exists} — ${res.data.invoice.invoice_number}`,
+        );
+      } else {
+        toast.success(
+          `${t.pages.timesheets.consultant_invoice_done} — ${res.data.invoice.invoice_number}`,
+        );
+      }
+    } finally {
+      setGeneratingId(null);
     }
   }
 
@@ -309,6 +335,18 @@ function TimesheetsPageInner() {
                           <Button size="sm" variant="ghost" onClick={() => validate(ts.id)}>
                             <CheckCircle2 className="h-3 w-3" />
                             {t.actions.confirm}
+                          </Button>
+                        )}
+                        {ts.status === 'client_validated' && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => generateConsultantInvoice(ts)}
+                            disabled={generatingId === ts.id}
+                            title={t.pages.timesheets.consultant_invoice}
+                          >
+                            <Receipt className="h-3 w-3" />
+                            {t.pages.timesheets.consultant_invoice}
                           </Button>
                         )}
                         <Button
