@@ -348,6 +348,8 @@ function BillingPageInner() {
   return (
     <AppShell>
       <PageHeader
+        backHref="/settings"
+        backLabel={t.pages.settings.back_to_settings}
         eyebrow={t.pages.billing.eyebrow}
         title={
           <>

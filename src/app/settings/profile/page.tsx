@@ -230,6 +230,8 @@ export default function MyProfilePage() {
   return (
     <AppShell>
       <PageHeader
+        backHref="/settings"
+        backLabel="Retour aux paramètres"
         eyebrow="Organisation"
         title={
           <>

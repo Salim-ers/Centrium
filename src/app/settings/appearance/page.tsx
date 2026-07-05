@@ -77,6 +77,8 @@ export default function AppearancePage() {
   return (
     <AppShell>
       <PageHeader
+        backHref="/settings"
+        backLabel="Retour aux paramètres"
         eyebrow="Organisation"
         title={
           <>

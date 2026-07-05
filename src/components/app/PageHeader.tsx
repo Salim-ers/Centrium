@@ -1,5 +1,8 @@
 'use client';
 
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -11,6 +14,13 @@ type Props = {
   description?: React.ReactNode;
   /** Actions à droite (boutons, filtres rapides…) */
   actions?: React.ReactNode;
+  /**
+   * Cible d'un lien "retour" affiché au-dessus de l'eyebrow (flèche + label).
+   * Ex: backHref="/settings" sur une sous-page de Paramètres.
+   */
+  backHref?: string;
+  /** Libellé du lien retour (défaut : "Retour"). */
+  backLabel?: string;
   className?: string;
 };
 
@@ -31,7 +41,15 @@ type Props = {
  *     actions={<Button>Exporter</Button>}
  *   />
  */
-export function PageHeader({ eyebrow, title, description, actions, className }: Props) {
+export function PageHeader({
+  eyebrow,
+  title,
+  description,
+  actions,
+  backHref,
+  backLabel = 'Retour',
+  className,
+}: Props) {
   return (
     <header
       className={cn(
@@ -40,6 +58,15 @@ export function PageHeader({ eyebrow, title, description, actions, className }: 
       )}
     >
       <div className="min-w-0">
+        {backHref && (
+          <Link
+            href={backHref}
+            className="group -ml-1 mb-3 inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-magenta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-magenta/40"
+          >
+            <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+            {backLabel}
+          </Link>
+        )}
         {eyebrow && (
           <div className="text-[10px] sm:text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-2">
             {eyebrow}

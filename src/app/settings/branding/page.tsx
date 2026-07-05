@@ -254,6 +254,8 @@ export default function BrandingSettingsPage() {
   return (
     <AppShell>
       <PageHeader
+        backHref="/settings"
+        backLabel="Retour aux paramètres"
         eyebrow="Organisation"
         title={
           <>

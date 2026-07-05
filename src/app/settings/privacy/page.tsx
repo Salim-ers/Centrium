@@ -100,6 +100,8 @@ export default function PrivacySettingsPage() {
   return (
     <AppShell>
       <PageHeader
+        backHref="/settings"
+        backLabel="Retour aux paramètres"
         eyebrow="Organisation"
         title={
           <>

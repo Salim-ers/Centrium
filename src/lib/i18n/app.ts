@@ -866,6 +866,7 @@ export type AppDict = {
       account_section_title_b: string;
       account_section_description: string;
       logout_button: string;
+      back_to_settings: string;
     };
     team: {
       eyebrow: string;
@@ -1752,6 +1753,7 @@ export const APP_DICT: Record<Locale, AppDict> = {
         account_section_title_b: 'active.',
         account_section_description: 'Déconnectez-vous de Centrium.',
         logout_button: 'Se déconnecter',
+        back_to_settings: 'Retour aux paramètres',
       },
       team: {
         eyebrow: 'ORGANISATION',
@@ -2636,6 +2638,7 @@ export const APP_DICT: Record<Locale, AppDict> = {
         account_section_title_b: 'session.',
         account_section_description: 'Sign out of Centrium.',
         logout_button: 'Sign out',
+        back_to_settings: 'Back to settings',
       },
       team: {
         eyebrow: 'ORGANIZATION',

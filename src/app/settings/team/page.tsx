@@ -234,6 +234,8 @@ export default function TeamSettingsPage() {
       />
 
       <PageHeader
+        backHref="/settings"
+        backLabel={t.pages.settings.back_to_settings}
         eyebrow={t.pages.team.eyebrow}
         title={
           <>
