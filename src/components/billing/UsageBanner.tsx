@@ -59,6 +59,16 @@ function writeCachedUsage(u: Usage) {
   }
 }
 
+/**
+ * Événement global pour forcer le rafraîchissement du compteur de quota.
+ * Émis après toute mutation qui change l'usage (ajout/suppression membre,
+ * invitation envoyée/révoquée, consultant créé/supprimé…) pour que le
+ * compteur soit INSTANTANÉ et RÉEL, sans dépendre du cache sessionStorage.
+ *
+ *   window.dispatchEvent(new Event(USAGE_REFRESH_EVENT))
+ */
+export const USAGE_REFRESH_EVENT = 'centrium:usage-refresh';
+
 export function UsageBanner({ resource, hideUntilWarn = false }: Props) {
   const t = useAppT();
   // Hydratation synchrone depuis sessionStorage : le banner apparaît
@@ -67,18 +77,28 @@ export function UsageBanner({ resource, hideUntilWarn = false }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/billing/usage', { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((body: { data: Usage } | null) => {
-        if (cancelled) return;
-        if (body?.data) {
-          setUsage(body.data);
-          writeCachedUsage(body.data);
-        }
-      })
-      .catch(() => undefined);
+    const refetch = () =>
+      fetch('/api/billing/usage', { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((body: { data: Usage } | null) => {
+          if (cancelled) return;
+          if (body?.data) {
+            setUsage(body.data);
+            writeCachedUsage(body.data);
+          }
+        })
+        .catch(() => undefined);
+
+    refetch();
+    // Rafraîchit à chaque mutation d'usage émise ailleurs (page équipe,
+    // consultants…) et au retour d'onglet (revalidation douce).
+    const onRefresh = () => refetch();
+    window.addEventListener(USAGE_REFRESH_EVENT, onRefresh);
+    window.addEventListener('focus', onRefresh);
     return () => {
       cancelled = true;
+      window.removeEventListener(USAGE_REFRESH_EVENT, onRefresh);
+      window.removeEventListener('focus', onRefresh);
     };
   }, []);
 

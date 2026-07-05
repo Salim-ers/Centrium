@@ -28,10 +28,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import { PlanLimitDialog, type PlanLimitPayload } from '@/components/billing/PlanLimitDialog';
-import { UsageBanner } from '@/components/billing/UsageBanner';
+import { UsageBanner, USAGE_REFRESH_EVENT } from '@/components/billing/UsageBanner';
 import {
   PageHeader,
   SectionHeader,
@@ -95,48 +94,38 @@ export default function TeamSettingsPage() {
 
   const isAdmin = role === 'admin';
 
+  // Source UNIQUE et admin-backed (cohérente avec le compteur de quota) :
+  // la liste ne dépend plus de la RLS client, qui renvoyait 0 selon le
+  // compte alors que le compteur affichait la vraie valeur.
   const load = useCallback(async () => {
     if (!activeOrgId) return;
     setLoading(true);
-    const supabase = createClient();
-
-    // Membres : jointure avec profiles pour récupérer email + nom
-    const { data: membersData } = await supabase
-      .from('organization_members')
-      .select('user_id, role, joined_at, profiles!inner(email, first_name, last_name, is_founder)')
-      .eq('organization_id', activeOrgId)
-      .order('joined_at', { ascending: true });
-
-    const formatted: Member[] = (membersData ?? []).map((m) => {
-      const p = m.profiles as unknown as {
-        email: string | null;
-        first_name: string | null;
-        last_name: string | null;
-        is_founder: boolean | null;
-      } | null;
-      return {
-        user_id: m.user_id,
-        role: m.role,
-        joined_at: m.joined_at,
-        email: p?.email ?? null,
-        first_name: p?.first_name ?? null,
-        last_name: p?.last_name ?? null,
-        is_founder: !!p?.is_founder,
+    try {
+      const res = await fetch('/api/organizations/members', { cache: 'no-store' });
+      if (!res.ok) {
+        setMembers([]);
+        setInvitations([]);
+        return;
+      }
+      const body = (await res.json()) as {
+        data: { members: Member[]; invitations: Invitation[] };
       };
-    });
-    setMembers(formatted);
-
-    // Invitations en cours (non acceptées, non expirées)
-    const { data: invitesData } = await supabase
-      .from('organization_invitations')
-      .select('*')
-      .eq('organization_id', activeOrgId)
-      .is('accepted_at', null)
-      .order('created_at', { ascending: false });
-    setInvitations((invitesData ?? []) as Invitation[]);
-
-    setLoading(false);
+      setMembers(body.data?.members ?? []);
+      setInvitations(body.data?.invitations ?? []);
+    } catch {
+      setMembers([]);
+      setInvitations([]);
+    } finally {
+      setLoading(false);
+    }
   }, [activeOrgId]);
+
+  /** Force le compteur de quota (UsageBanner) à se rafraîchir immédiatement. */
+  function refreshUsageCounter() {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event(USAGE_REFRESH_EVENT));
+    }
+  }
 
   useEffect(() => {
     load();
@@ -173,6 +162,7 @@ export default function TeamSettingsPage() {
         toast.warning(`${t.toasts.error_network} (${email_error ?? ''}) — ${inviteEmail}`, { duration: 8000 });
       }
       setInviteEmail('');
+      refreshUsageCounter(); // une invitation en attente compte dans le quota
       load();
     } finally {
       setInviting(false);
@@ -187,31 +177,40 @@ export default function TeamSettingsPage() {
 
   async function revokeInvitation(id: string) {
     if (!confirm(t.toasts.confirm_delete)) return;
-    const supabase = createClient();
-    const { error } = await supabase.from('organization_invitations').delete().eq('id', id);
-    if (error) {
-      toast.error(error.message);
+    // Optimiste, puis rollback si l'API échoue.
+    const prev = invitations;
+    setInvitations((p) => p.filter((i) => i.id !== id));
+    const res = await fetch(`/api/invitations?id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      setInvitations(prev);
+      const body = await res.json().catch(() => ({}));
+      toast.error(body.message ?? t.toasts.error_generic);
       return;
     }
     toast.success(t.toasts.deleted);
-    setInvitations((prev) => prev.filter((i) => i.id !== id));
+    refreshUsageCounter();
   }
 
   async function removeMember(userId: string) {
     if (!activeOrgId) return;
     if (!confirm(t.toasts.confirm_delete)) return;
-    const supabase = createClient();
-    const { error } = await supabase
-      .from('organization_members')
-      .delete()
-      .eq('organization_id', activeOrgId)
-      .eq('user_id', userId);
-    if (error) {
-      toast.error(error.message);
+    // Optimiste : on retire tout de suite de la liste, rollback si échec.
+    const prev = members;
+    setMembers((p) => p.filter((m) => m.user_id !== userId));
+    const res = await fetch(
+      `/api/organizations/members?userId=${encodeURIComponent(userId)}`,
+      { method: 'DELETE' },
+    );
+    if (!res.ok) {
+      setMembers(prev);
+      const body = await res.json().catch(() => ({}));
+      toast.error(body.message ?? t.toasts.error_generic);
       return;
     }
     toast.success(t.toasts.deleted);
-    setMembers((prev) => prev.filter((m) => m.user_id !== userId));
+    refreshUsageCounter(); // le compteur se met à jour instantanément
   }
 
   // KPI : nb membres, nb admins, invitations en attente
@@ -411,14 +410,17 @@ export default function TeamSettingsPage() {
                       </TableCell>
                       {isAdmin && (
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeMember(m.user_id)}
-                            className="text-red-400 hover:text-red-300"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                          {/* Un fondateur ne se retire pas depuis cet écran. */}
+                          {!m.is_founder && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeMember(m.user_id)}
+                              className="text-red-400 hover:text-red-300"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
                         </TableCell>
                       )}
                     </TableRow>

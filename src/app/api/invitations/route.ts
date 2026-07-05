@@ -21,6 +21,30 @@ import {
 
 export const runtime = 'nodejs';
 
+// DELETE /api/invitations?id=… — révoque une invitation en attente.
+// Admin-backed (miroir de la liste membres) : la révocation persiste et
+// décrémente le quota même si la RLS bloque le DELETE client selon le compte.
+export async function DELETE(req: NextRequest) {
+  const { organizationId, role } = await requireOrg({ skipSubscriptionGate: true });
+  if (role !== 'admin') {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  }
+  const id = new URL(req.url).searchParams.get('id');
+  if (!id) {
+    return NextResponse.json({ error: 'missing_id' }, { status: 400 });
+  }
+  const admin = createAdminClient('team-management');
+  const { error } = await admin
+    .from('organization_invitations')
+    .delete()
+    .eq('id', id)
+    .eq('organization_id', organizationId);
+  if (error) {
+    return NextResponse.json({ error: 'delete_failed', message: error.message }, { status: 500 });
+  }
+  return NextResponse.json({ data: { ok: true } });
+}
+
 export async function POST(req: NextRequest) {
   const { organizationId, role, user } = await requireOrg();
   if (role !== 'admin') {
