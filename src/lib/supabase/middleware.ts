@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { evaluateSubscriptionAccess } from '@/lib/billing/access';
+import { evaluateSubscriptionAccess, type SubscriptionAccessRow } from '@/lib/billing/access';
 import { sharedAuthCookieDomain } from './cookie-domain';
 
 // Paths accessibles sans session (devis public, login, invitations, pricing, landing).
@@ -36,7 +36,18 @@ function sessionOnly(_name: string, options: CookieOptions): CookieOptions {
   return domain ? { ...rest, domain } : rest;
 }
 
-type ProfileCache = { uid: string; role: string | null; orgId: string | null; ts: number };
+// On cache AUSSI la ligne d'abonnement (brute) pour éviter une requête DB
+// par navigation. L'accès est RÉ-ÉVALUÉ à chaque fois avec l'heure courante
+// (evaluateSubscriptionAccess) : l'expiration trial/période reste donc exacte
+// même si le STATUT sous-jacent peut être périmé jusqu'au TTL (5 min) — les
+// routes API (requireOrg) font de toute façon le gating live sur les mutations.
+type ProfileCache = {
+  uid: string;
+  role: string | null;
+  orgId: string | null;
+  sub: SubscriptionAccessRow | null;
+  ts: number;
+};
 
 function readProfileCookie(req: NextRequest, userId: string): ProfileCache | null {
   const raw = req.cookies.get(PROFILE_COOKIE)?.value;
@@ -49,6 +60,11 @@ function readProfileCookie(req: NextRequest, userId: string): ProfileCache | nul
     // nouvel utilisateur du rôle/org caché du précédent pendant 5 min
     // (routing complètement faux : invité traité en admin, etc.).
     if (parsed.uid !== userId) return null;
+    // Cookie d'AVANT l'ajout du champ `sub` (déploiement region/cache) : on
+    // le traite comme un miss pour forcer un refetch + réécriture au nouveau
+    // format. Sinon `sub=undefined` serait lu comme « pas d'abonnement » et
+    // provoquerait un faux refus vers /billing le temps du TTL.
+    if (!('sub' in parsed)) return null;
     return parsed;
   } catch {
     return null;
@@ -160,10 +176,18 @@ export async function updateSession(request: NextRequest) {
   const cached = readProfileCookie(request, user.id);
   let role: string | null;
   let orgId: string | null;
+  // Ligne d'abonnement résolue (cache ou fetch) — sert au gating plus bas
+  // sans re-requêter la DB à chaque navigation.
+  let subRow: SubscriptionAccessRow | null = null;
+  let subResolved = false;
   if (cached && cached.orgId) {
     role = cached.role;
     orgId = cached.orgId;
+    subRow = cached.sub;
+    subResolved = true;
   } else {
+    // Cache miss (1×/5 min) : profil puis abonnement (l'org vient du profil),
+    // puis on cache les deux. Coût amorti sur toute la fenêtre TTL.
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, organization_id')
@@ -171,7 +195,16 @@ export async function updateSession(request: NextRequest) {
       .maybeSingle();
     role = (profile?.role as string | undefined) ?? null;
     orgId = (profile?.organization_id as string | undefined) ?? null;
-    if (orgId) writeProfileCookie(response, { uid: user.id, role, orgId });
+    if (orgId) {
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('status, trial_end, current_period_end, is_exempt_from_billing')
+        .eq('organization_id', orgId)
+        .maybeSingle();
+      subRow = (sub as SubscriptionAccessRow | null) ?? null;
+      subResolved = true;
+      writeProfileCookie(response, { uid: user.id, role, orgId, sub: subRow });
+    }
   }
 
   const isConsultant = role === 'consultant';
@@ -267,15 +300,23 @@ export async function updateSession(request: NextRequest) {
       pathname.startsWith('/settings') ||
       pathname === '/logout';
     if (!billingAllowed) {
-      // 1 row DB par navigation admin — négligeable.
-      const { data: sub } = await supabase
-        .from('subscriptions')
-        .select('status, trial_end, current_period_end, is_exempt_from_billing')
-        .eq('organization_id', orgId!)
-        .maybeSingle();
+      // Abonnement déjà résolu (cookie cache ou fetch du cache-miss) — plus
+      // de requête DB par navigation. Si pour une raison quelconque il ne
+      // l'était pas (ex: cookie sans champ sub d'une ancienne version), on
+      // refetch en filet.
+      if (!subResolved) {
+        const { data: sub } = await supabase
+          .from('subscriptions')
+          .select('status, trial_end, current_period_end, is_exempt_from_billing')
+          .eq('organization_id', orgId!)
+          .maybeSingle();
+        subRow = (sub as SubscriptionAccessRow | null) ?? null;
+        subResolved = true;
+      }
 
-      // Matrice partagée avec requireOrg() (API) — cf. lib/billing/access.ts
-      const access = evaluateSubscriptionAccess(sub ?? null);
+      // Matrice partagée avec requireOrg() (API) — cf. lib/billing/access.ts.
+      // Ré-évaluée avec l'heure courante → expiration trial/période exacte.
+      const access = evaluateSubscriptionAccess(subRow);
       if (!access.allowed) {
         const url = request.nextUrl.clone();
         url.pathname = '/billing';
