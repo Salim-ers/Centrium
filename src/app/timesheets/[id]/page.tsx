@@ -4,7 +4,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { ArrowLeft, Download, CheckCircle2, Receipt, Pencil, XCircle, Loader2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Download,
+  CheckCircle2,
+  Receipt,
+  Pencil,
+  XCircle,
+  Loader2,
+  HandCoins,
+} from 'lucide-react';
 
 import { downloadElementAsPdf } from '@/lib/pdf/download-document';
 
@@ -26,7 +35,7 @@ import {
   TimesheetCalendar,
   type TimesheetDayKind,
 } from '@/components/timesheets/TimesheetCalendar';
-import { timesheetService } from '@/lib/services';
+import { timesheetService, invoiceService } from '@/lib/services';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import type { Timesheet, Mission, Consultant, Company } from '@/types';
@@ -69,7 +78,12 @@ export default function TimesheetDetailPage() {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [linkedInvoiceId, setLinkedInvoiceId] = useState<string | null>(null);
+  // Les DEUX factures que peut porter un CRA validé : la facture de vente
+  // (client) et la facture de sous-traitance (consultant).
+  type LinkedInvoice = { id: string; invoice_number: string };
+  const [clientInvoice, setClientInvoice] = useState<LinkedInvoice | null>(null);
+  const [consultantInvoice, setConsultantInvoice] = useState<LinkedInvoice | null>(null);
+  const [pushingConsultant, setPushingConsultant] = useState(false);
   const docRef = useRef<HTMLDivElement | null>(null);
   // Refus de CRA (boucle de correction consultant)
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -100,18 +114,15 @@ export default function TimesheetDetailPage() {
       setNotFound(true);
     } else {
       setDetail(res.data);
-      // Lookup invoice link to know if "Générer la facture" should appear.
-      // Scopé party='client' : un CRA peut aussi porter une facture
-      // consultant (sous-traitance) — sans le filtre, maybeSingle() plante
-      // dès que les deux existent.
+      // Factures liées au CRA — un seul aller-retour, réparties par party.
       const supabase = createClient();
-      const { data: inv } = await supabase
+      const { data: invs } = await supabase
         .from('invoices')
-        .select('id')
-        .eq('timesheet_id', params.id)
-        .eq('party', 'client')
-        .maybeSingle();
-      setLinkedInvoiceId((inv?.id as string | undefined) ?? null);
+        .select('id, invoice_number, party')
+        .eq('timesheet_id', params.id);
+      const rows = (invs ?? []) as { id: string; invoice_number: string; party: string }[];
+      setClientInvoice(rows.find((r) => r.party === 'client') ?? null);
+      setConsultantInvoice(rows.find((r) => r.party === 'consultant') ?? null);
     }
     setLoading(false);
   }
@@ -138,13 +149,39 @@ export default function TimesheetDetailPage() {
       body: JSON.stringify({ action: 'notify_validated' }),
     }).catch(() => {});
     if (res.data.alreadyInvoiced) {
-      toast.success('CRA validé — facture déjà existante, ouverture…');
+      toast.success('CRA validé — la facture client existait déjà');
     } else {
       toast.success(
-        `CRA validé → facture ${res.data.invoice.invoice_number} générée et marquée payée`,
+        `CRA validé → facture client ${res.data.invoice.invoice_number} générée`,
       );
     }
-    router.push(`/invoices/${res.data.invoice.id}`);
+    // On RESTE sur le CRA : le bouton « Facture consultant » apparaît juste
+    // à côté pour enchaîner le 2e volet du flux (vente → sous-traitance).
+    await reload();
+  }
+
+  // Pousse le CRA validé en facture de SOUS-TRAITANCE (jours validés × TJM
+  // achat du contrat consultant) — le pendant « achat » de la facture client.
+  async function pushConsultantInvoice() {
+    if (!detail) return;
+    setPushingConsultant(true);
+    try {
+      const res = await invoiceService.generateConsultantInvoice(detail.timesheet.id);
+      if (res.error || !res.data) {
+        toast.error('Erreur : ' + (res.error?.message ?? 'inconnue'));
+        return;
+      }
+      if (res.data.alreadyExists) {
+        toast.info(`Facture consultant déjà générée — ${res.data.invoice.invoice_number}`);
+      } else {
+        toast.success(
+          `Facture consultant ${res.data.invoice.invoice_number} générée — visible dans son espace`,
+        );
+      }
+      await reload();
+    } finally {
+      setPushingConsultant(false);
+    }
   }
 
   if (loading) {
@@ -247,17 +284,45 @@ export default function TimesheetDetailPage() {
               Valider &amp; facturer
             </Button>
           )}
-          {timesheet.status === 'client_validated' && !linkedInvoiceId && (
+          {/* Volet 1 — facture CLIENT (vente, à encaisser) */}
+          {timesheet.status === 'client_validated' && !clientInvoice && (
             <Button variant="outline" size="sm" onClick={validateAndInvoice}>
               <Receipt className="h-4 w-4" />
-              Générer la facture
+              Générer la facture client
             </Button>
           )}
-          {linkedInvoiceId && (
+          {clientInvoice && (
             <Button variant="outline" size="sm" asChild>
-              <Link href={`/invoices/${linkedInvoiceId}`}>
+              <Link href={`/invoices/${clientInvoice.id}`}>
                 <Receipt className="h-4 w-4" />
-                Voir la facture
+                Facture client · {clientInvoice.invoice_number}
+              </Link>
+            </Button>
+          )}
+          {/* Volet 2 — facture CONSULTANT (sous-traitance, à payer).
+              Apparaît dès la validation : un clic la génère et l'envoie
+              dans l'espace perso du consultant. */}
+          {timesheet.status === 'client_validated' && !consultantInvoice && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={pushConsultantInvoice}
+              disabled={pushingConsultant}
+              className="border-violet-glow/40 text-violet-glow hover:bg-violet-glow/10"
+            >
+              {pushingConsultant ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <HandCoins className="h-4 w-4" />
+              )}
+              Pousser en facture consultant
+            </Button>
+          )}
+          {consultantInvoice && (
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/invoices/${consultantInvoice.id}`}>
+                <HandCoins className="h-4 w-4" />
+                Facture consultant · {consultantInvoice.invoice_number}
               </Link>
             </Button>
           )}
