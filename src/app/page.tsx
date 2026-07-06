@@ -110,7 +110,7 @@ function HomeContent() {
             {t.home.finalCta.sub}
           </p>
           <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <MagneticButton href="/devis" variant="primary">
+            <MagneticButton href="/essai" variant="primary">
               {t.home.finalCta.primary}
             </MagneticButton>
             <MagneticButton href="/plateforme" variant="ghost">

@@ -373,7 +373,7 @@ export default function TarifsPage() {
             </p>
             <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
               <Link
-                href="/devis"
+                href="/essai"
                 className="qc-cta inline-flex items-center gap-2 rounded-full px-7 py-3 font-semibold text-sm"
               >
                 Demander une démo

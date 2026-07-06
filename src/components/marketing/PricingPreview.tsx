@@ -75,7 +75,7 @@ export function PricingPreview({ t }: { t: LandingDict }) {
             </ul>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <MagneticButton href="/devis" variant="primary">
+              <MagneticButton href="/essai" variant="primary">
                 {plan.ctaLabel}
               </MagneticButton>
               <MagneticButton href="/pricing" variant="ghost">

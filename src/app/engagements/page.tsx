@@ -166,7 +166,7 @@ export default function EngagementsPage() {
           <p className="mt-6 text-white/55 text-[15px]">{e.ctaAuthor}</p>
 
           <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <MagneticButton href="/devis" variant="primary">
+            <MagneticButton href="/essai" variant="primary">
               {e.ctaPrimary}
             </MagneticButton>
             <MagneticButton href="/plateforme" variant="ghost">

@@ -118,7 +118,7 @@ export function Header({ t, locale, onLocaleChange }: Props) {
               {t.nav.login}
             </Link>
             <Link
-              href="/devis"
+              href="/essai"
               className="group relative inline-flex items-center gap-2 h-10 px-5 rounded-full text-white text-[14px] font-semibold tracking-tight overflow-hidden transition-transform hover:-translate-y-0.5 shadow-[0_0_25px_-4px_rgba(225,29,116,0.6),0_0_50px_-12px_rgba(168,85,247,0.5)] hover:shadow-[0_0_32px_-4px_rgba(225,29,116,0.8),0_0_70px_-12px_rgba(168,85,247,0.7)]"
             >
               <span
@@ -202,7 +202,7 @@ export function Header({ t, locale, onLocaleChange }: Props) {
             {/* Toggle FR/EN mobile — pleine largeur, segmented */}
             <LocaleToggle variant="mobile" />
             <Link
-              href="/devis"
+              href="/essai"
               onClick={closeMenu}
               className="block w-full text-center h-12 px-5 rounded-full bg-gradient-to-r from-pink-500 via-magenta to-violet-500 text-white text-[15px] font-semibold leading-[3rem] shadow-[0_0_25px_-4px_rgba(225,29,116,0.6)]"
             >

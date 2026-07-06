@@ -43,7 +43,7 @@ export function Hero({ t }: { t: LandingDict }) {
         </p>
 
         <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3">
-          <MagneticButton href="/devis" variant="primary">
+          <MagneticButton href="/essai" variant="primary">
             {t.hero.ctaPrimary}
             <ArrowRight className="h-4 w-4" />
           </MagneticButton>
