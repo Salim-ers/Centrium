@@ -320,12 +320,12 @@ export default function ContactsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t.pages.contacts.table_contact}</TableHead>
-                <TableHead className="w-[110px]">{t.pages.contacts.table_type}</TableHead>
+                <TableHead className="w-[96px]">{t.pages.contacts.table_type}</TableHead>
                 <TableHead>{t.pages.contacts.table_company}</TableHead>
                 <TableHead>{t.pages.contacts.table_email}</TableHead>
-                <TableHead className="w-[140px]">{t.pages.contacts.table_phone}</TableHead>
-                <TableHead className="w-[140px]">{t.pages.contacts.table_last_contact}</TableHead>
-                <TableHead className="text-right w-[150px] pr-4">{t.pages.contacts.table_actions}</TableHead>
+                <TableHead className="w-[132px]">{t.pages.contacts.table_phone}</TableHead>
+                <TableHead className="w-[104px]">{t.pages.contacts.table_last_contact}</TableHead>
+                <TableHead className="text-right w-[124px] pr-4">{t.pages.contacts.table_actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -394,7 +394,7 @@ export default function ContactsPage() {
                         </StatusBadge>
                       </TableCell>
                       <TableCell
-                        className="text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[240px]"
+                        className="text-xs max-w-[170px] truncate"
                         title={c.source ?? undefined}
                       >
                         {c.source ? (
@@ -405,14 +405,15 @@ export default function ContactsPage() {
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">
+                      <TableCell className="text-xs max-w-[190px]">
                         {c.email ? (
                           <a
                             href={`mailto:${c.email}`}
-                            className="inline-flex items-center gap-1 text-muted-foreground hover:text-violet-glow transition-colors"
+                            className="inline-flex items-center gap-1 max-w-full min-w-0 text-muted-foreground hover:text-violet-glow transition-colors"
+                            title={c.email}
                           >
                             <Mail className="h-3 w-3 shrink-0" />
-                            {c.email}
+                            <span className="truncate">{c.email}</span>
                           </a>
                         ) : (
                           <span className="text-muted-foreground">—</span>

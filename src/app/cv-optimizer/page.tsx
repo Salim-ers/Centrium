@@ -697,6 +697,7 @@ function CVOptimizerPageInner() {
                   onChange={(v) => pickOffer(v)}
                   className="mt-1"
                   placeholder={t.pages.cv_optimizer.manual_entry}
+                  minPanelWidth={560}
                   options={[
                     { value: '', label: t.pages.cv_optimizer.manual_entry },
                     ...offers.map((o) => ({
