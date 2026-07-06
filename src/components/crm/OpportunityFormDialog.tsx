@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { opportunitySchema, type OpportunityInput } from '@/lib/validators';
 import { opportunityService } from '@/lib/services';
 import type { Opportunity } from '@/types';
@@ -69,6 +69,8 @@ export function OpportunityFormDialog({
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<OpportunityInput>({
     resolver: zodResolver(opportunitySchema),
@@ -122,26 +124,46 @@ export function OpportunityFormDialog({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>{t.forms.opportunity.status}</Label>
-              <Select {...register('status')}>
-                <option value="new">{t.badges.opportunity_status.new}</option>
-                <option value="contacted">{t.badges.opportunity_status.contacted}</option>
-                <option value="discussion">{t.badges.opportunity_status.discussion}</option>
-                <option value="cv_sent">{t.badges.opportunity_status.cv_sent}</option>
-                <option value="client_interview">{t.badges.opportunity_status.client_interview}</option>
-                <option value="negotiation">{t.badges.opportunity_status.negotiation}</option>
-                <option value="won">{t.badges.opportunity_status.won}</option>
-                <option value="lost">{t.badges.opportunity_status.lost}</option>
-                <option value="on_hold">{t.badges.opportunity_status.on_hold}</option>
-              </Select>
+              <Combobox
+                ariaLabel={t.forms.opportunity.status}
+                value={watch('status') ?? 'new'}
+                onChange={(v) =>
+                  setValue('status', v as OpportunityInput['status'], {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  })
+                }
+                options={[
+                  { value: 'new', label: t.badges.opportunity_status.new },
+                  { value: 'contacted', label: t.badges.opportunity_status.contacted },
+                  { value: 'discussion', label: t.badges.opportunity_status.discussion },
+                  { value: 'cv_sent', label: t.badges.opportunity_status.cv_sent },
+                  { value: 'client_interview', label: t.badges.opportunity_status.client_interview },
+                  { value: 'negotiation', label: t.badges.opportunity_status.negotiation },
+                  { value: 'won', label: t.badges.opportunity_status.won },
+                  { value: 'lost', label: t.badges.opportunity_status.lost },
+                  { value: 'on_hold', label: t.badges.opportunity_status.on_hold },
+                ]}
+              />
             </div>
             <div>
               <Label>{t.forms.opportunity.priority}</Label>
-              <Select {...register('priority')}>
-                <option value="low">{isEn ? 'Low' : 'Faible'}</option>
-                <option value="medium">{isEn ? 'Medium' : 'Moyenne'}</option>
-                <option value="high">{isEn ? 'High' : 'Haute'}</option>
-                <option value="critical">{isEn ? 'Critical' : 'Critique'}</option>
-              </Select>
+              <Combobox
+                ariaLabel={t.forms.opportunity.priority}
+                value={watch('priority') ?? 'medium'}
+                onChange={(v) =>
+                  setValue('priority', v as OpportunityInput['priority'], {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  })
+                }
+                options={[
+                  { value: 'low', label: isEn ? 'Low' : 'Faible' },
+                  { value: 'medium', label: isEn ? 'Medium' : 'Moyenne' },
+                  { value: 'high', label: isEn ? 'High' : 'Haute' },
+                  { value: 'critical', label: isEn ? 'Critical' : 'Critique' },
+                ]}
+              />
             </div>
           </div>
 

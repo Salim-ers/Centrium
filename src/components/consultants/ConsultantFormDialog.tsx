@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { consultantSchema, type ConsultantInput } from '@/lib/validators';
 import { extractTextSmart } from '@/lib/cv/extract-text';
 import { parseCVSmart } from '@/lib/cv/parse-cv-llm';
@@ -555,14 +555,24 @@ export function ConsultantFormDialog({
           <div className="grid grid-cols-3 gap-3">
             <div>
               <Label>{t.forms.consultant.seniority}</Label>
-              <Select {...register('seniority')}>
-                <option value="junior">{t.seniority.junior}</option>
-                <option value="confirmed">{t.seniority.confirmed}</option>
-                <option value="senior">{t.seniority.senior}</option>
-                <option value="expert">{t.seniority.expert}</option>
-                <option value="lead">{t.seniority.lead}</option>
-                <option value="architect">{t.seniority.architect}</option>
-              </Select>
+              <Combobox
+                ariaLabel={t.forms.consultant.seniority}
+                value={watch('seniority') ?? 'junior'}
+                onChange={(v) =>
+                  setValue('seniority', v as ConsultantInput['seniority'], {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  })
+                }
+                options={[
+                  { value: 'junior', label: t.seniority.junior },
+                  { value: 'confirmed', label: t.seniority.confirmed },
+                  { value: 'senior', label: t.seniority.senior },
+                  { value: 'expert', label: t.seniority.expert },
+                  { value: 'lead', label: t.seniority.lead },
+                  { value: 'architect', label: t.seniority.architect },
+                ]}
+              />
             </div>
             <div>
               <Label>{t.forms.consultant.years_xp}</Label>
@@ -581,12 +591,22 @@ export function ConsultantFormDialog({
             </div>
             <div>
               <Label>{t.forms.opportunity.status}</Label>
-              <Select {...register('status')}>
-                <option value="available">{t.consultant_status.available}</option>
-                <option value="soon_available">{t.consultant_status.soon_available}</option>
-                <option value="on_mission">{t.consultant_status.on_mission}</option>
-                <option value="unavailable">{t.consultant_status.unavailable}</option>
-              </Select>
+              <Combobox
+                ariaLabel={t.forms.opportunity.status}
+                value={watch('status') ?? 'available'}
+                onChange={(v) =>
+                  setValue('status', v as ConsultantInput['status'], {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  })
+                }
+                options={[
+                  { value: 'available', label: t.consultant_status.available },
+                  { value: 'soon_available', label: t.consultant_status.soon_available },
+                  { value: 'on_mission', label: t.consultant_status.on_mission },
+                  { value: 'unavailable', label: t.consultant_status.unavailable },
+                ]}
+              />
             </div>
           </div>
 

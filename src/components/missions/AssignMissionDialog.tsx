@@ -15,7 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { jobOfferService } from '@/lib/services';
 import { consultantService } from '@/lib/services/consultant.service';
 import type { JobOffer, Consultant } from '@/types';
@@ -241,18 +241,17 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
           {!consultantLocked && (
             <div>
               <Label>Consultant à positionner</Label>
-              <Select
+              <Combobox
                 value={selectedConsultantId}
-                onChange={(e) => handleConsultantSelect(e.target.value)}
-              >
-                <option value="">— Sélectionner —</option>
-                {consultantsList.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.last_name.toUpperCase()} {c.first_name}
-                    {c.daily_rate_eur ? ` · TJM ${c.daily_rate_eur}€` : ''}
-                  </option>
-                ))}
-              </Select>
+                onChange={(v) => handleConsultantSelect(v)}
+                options={[
+                  { value: '', label: '— Sélectionner —' },
+                  ...consultantsList.map((c) => ({
+                    value: c.id,
+                    label: `${c.last_name.toUpperCase()} ${c.first_name}${c.daily_rate_eur ? ` · TJM ${c.daily_rate_eur}€` : ''}`,
+                  })),
+                ]}
+              />
               <p className="text-[11px] text-muted-foreground mt-1">
                 Plusieurs consultants peuvent être poussés sur la même offre (1 ligne par
                 proposition dans CV poussés).
@@ -262,18 +261,17 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
           {!offerLocked && (
             <div>
               <Label>Offre client (AO) — optionnel</Label>
-              <Select
+              <Combobox
                 value={selectedOfferId}
-                onChange={(e) => handleOfferSelect(e.target.value)}
-              >
-                <option value="">— Mission libre (sans AO)</option>
-                {offers.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.title}
-                    {o.daily_rate_max ? ` · jusqu'à ${o.daily_rate_max}€/j` : ''}
-                  </option>
-                ))}
-              </Select>
+                onChange={(v) => handleOfferSelect(v)}
+                options={[
+                  { value: '', label: '— Mission libre (sans AO)' },
+                  ...offers.map((o) => ({
+                    value: o.id,
+                    label: `${o.title}${o.daily_rate_max ? ` · jusqu'à ${o.daily_rate_max}€/j` : ''}`,
+                  })),
+                ]}
+              />
               <p className="text-[11px] text-muted-foreground mt-1">
                 Sélectionne une AO ouverte pour pré-remplir, ou laisse vide pour créer une
                 mission libre.

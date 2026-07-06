@@ -5,7 +5,7 @@ import { FileText, Download, Upload, Loader2, Trash2, Lock } from 'lucide-react'
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import {
   SectionHeader,
   AppCard,
@@ -183,13 +183,11 @@ export function ConsultantSelfDocuments({ consultantId, userId, orgId, compact =
               <label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/80 mb-1.5 block">
                 Type
               </label>
-              <Select value={kind} onChange={(e) => setKind(e.target.value)}>
-                {UPLOADABLE_KINDS.map((k) => (
-                  <option key={k} value={k}>
-                    {DOC_KIND_LABEL[k]}
-                  </option>
-                ))}
-              </Select>
+              <Combobox
+                value={kind}
+                onChange={(v) => setKind(v)}
+                options={UPLOADABLE_KINDS.map((k) => ({ value: k, label: DOC_KIND_LABEL[k] }))}
+              />
             </div>
             <Button
               onClick={() => inputRef.current?.click()}

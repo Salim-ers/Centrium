@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { contactSchema, type ContactInput } from '@/lib/validators';
 import { contactService } from '@/lib/services';
 import { CONTACT_TYPE_LABEL } from '@/constants';
@@ -85,6 +85,8 @@ export function ContactFormDialog({
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<ContactInput>({
     resolver: zodResolver(contactSchema),
@@ -163,13 +165,20 @@ export function ContactFormDialog({
 
           <div>
             <Label>{isEn ? 'Type' : 'Type'}</Label>
-            <Select {...register('contact_type')}>
-              {Object.entries(TYPE_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </Select>
+            <Combobox
+              ariaLabel={isEn ? 'Type' : 'Type'}
+              value={watch('contact_type') ?? 'recruiter'}
+              onChange={(v) =>
+                setValue('contact_type', v as ContactInput['contact_type'], {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                })
+              }
+              options={Object.entries(TYPE_LABELS).map(([k, v]) => ({
+                value: k,
+                label: v,
+              }))}
+            />
           </div>
 
           <div>

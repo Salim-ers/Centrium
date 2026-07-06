@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
@@ -1380,7 +1380,7 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
   const [description, setDescription] = useState(todo?.description ?? '');
   const [priority, setPriority] = useState<Todo['priority']>(todo?.priority ?? 'medium');
   const [dueDate, setDueDate] = useState(todo?.due_date ?? '');
-  // "" = pas de ping. On stocke '' au lieu de null pour matcher le <Select>.
+  // "" = pas de ping. On stocke '' au lieu de null pour matcher l'option vide du Combobox.
   const [pingedUserId, setPingedUserId] = useState<string>(todo?.pinged_user_id ?? '');
   const [busy, setBusy] = useState(false);
 
@@ -1516,17 +1516,17 @@ function TodoForm({ todo, userId, orgMembers, onClose, onSaved }: FormProps) {
                 {t.pages.todos.form_ping_optional}
               </span>
             </Label>
-            <Select value={pingedUserId} onChange={(e) => setPingedUserId(e.target.value)}>
-              <option value="">{t.pages.todos.form_ping_none}</option>
-              {pingCandidates.map((m) => {
-                const name = `${m.first_name ?? ''} ${m.last_name ?? ''}`.trim() || m.email;
-                return (
-                  <option key={m.id} value={m.id}>
-                    {name}
-                  </option>
-                );
-              })}
-            </Select>
+            <Combobox
+              value={pingedUserId}
+              onChange={(v) => setPingedUserId(v)}
+              options={[
+                { value: '', label: t.pages.todos.form_ping_none },
+                ...pingCandidates.map((m) => ({
+                  value: m.id,
+                  label: `${m.first_name ?? ''} ${m.last_name ?? ''}`.trim() || m.email,
+                })),
+              ]}
+            />
             <p className="text-[11px] text-muted-foreground">
               {t.pages.todos.form_ping_hint}
             </p>

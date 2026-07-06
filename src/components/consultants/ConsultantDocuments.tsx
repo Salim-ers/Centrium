@@ -6,7 +6,7 @@ import { FileText, Upload, Trash2, Download, Loader2, Sparkles } from 'lucide-re
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { createClient } from '@/lib/supabase/client';
 import { formatDate } from '@/lib/utils';
 import { extractTextFromFile } from '@/lib/cv/extract-text';
@@ -323,13 +323,17 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">
               Type
             </label>
-            <Select value={kind} onChange={(e) => setKind(e.target.value)}>
-              <option value="cv_source">CV source</option>
-              <option value="certification">Certification</option>
-              <option value="id">Pièce d&apos;identité</option>
-              <option value="contract">Contrat</option>
-              <option value="other">Autre</option>
-            </Select>
+            <Combobox
+              value={kind}
+              onChange={(v) => setKind(v)}
+              options={[
+                { value: 'cv_source', label: 'CV source' },
+                { value: 'certification', label: 'Certification' },
+                { value: 'id', label: "Pièce d'identité" },
+                { value: 'contract', label: 'Contrat' },
+                { value: 'other', label: 'Autre' },
+              ]}
+            />
           </div>
           <Button
             onClick={() => inputRef.current?.click()}

@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { useOrganization } from '@/lib/auth/context';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { CentriumMark } from '@/components/brand/CentriumMark';
@@ -336,18 +336,19 @@ export default function OnboardingSetupPage() {
               <Section title="Identité légale">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <Field label="Forme juridique">
-                    <Select
+                    <Combobox
                       value={identity.legal_form}
-                      onChange={(e) => setIdentity({ ...identity, legal_form: e.target.value })}
-                    >
-                      <option value="SAS">SAS</option>
-                      <option value="SASU">SASU</option>
-                      <option value="SARL">SARL</option>
-                      <option value="EURL">EURL</option>
-                      <option value="SA">SA</option>
-                      <option value="EI">EI</option>
-                      <option value="Auto-entrepreneur">Auto-entrepreneur</option>
-                    </Select>
+                      onChange={(v) => setIdentity({ ...identity, legal_form: v })}
+                      options={[
+                        { value: 'SAS', label: 'SAS' },
+                        { value: 'SASU', label: 'SASU' },
+                        { value: 'SARL', label: 'SARL' },
+                        { value: 'EURL', label: 'EURL' },
+                        { value: 'SA', label: 'SA' },
+                        { value: 'EI', label: 'EI' },
+                        { value: 'Auto-entrepreneur', label: 'Auto-entrepreneur' },
+                      ]}
+                    />
                   </Field>
                   <Field label="Capital social (€)">
                     <Input

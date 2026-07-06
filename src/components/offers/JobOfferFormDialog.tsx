@@ -28,7 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { Badge } from '@/components/ui/badge';
 import { jobOfferSchema, type JobOfferInput } from '@/lib/validators';
 import { jobOfferService } from '@/lib/services';
@@ -130,6 +130,7 @@ export function JobOfferFormDialog({
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<JobOfferInput>({
     resolver: zodResolver(jobOfferSchema),
@@ -585,15 +586,25 @@ export function JobOfferFormDialog({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>{t.forms.job_offer.seniority}</Label>
-              <Select {...register('seniority')} defaultValue="">
-                <option value="">—</option>
-                <option value="junior">{t.seniority.junior}</option>
-                <option value="confirmed">{t.seniority.confirmed}</option>
-                <option value="senior">{t.seniority.senior}</option>
-                <option value="expert">{t.seniority.expert}</option>
-                <option value="lead">{t.seniority.lead}</option>
-                <option value="architect">{t.seniority.architect}</option>
-              </Select>
+              <Combobox
+                ariaLabel={t.forms.job_offer.seniority}
+                value={watch('seniority') ?? ''}
+                onChange={(v) =>
+                  setValue('seniority', v as JobOfferInput['seniority'], {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  })
+                }
+                options={[
+                  { value: '', label: '—' },
+                  { value: 'junior', label: t.seniority.junior },
+                  { value: 'confirmed', label: t.seniority.confirmed },
+                  { value: 'senior', label: t.seniority.senior },
+                  { value: 'expert', label: t.seniority.expert },
+                  { value: 'lead', label: t.seniority.lead },
+                  { value: 'architect', label: t.seniority.architect },
+                ]}
+              />
             </div>
             <div>
               <Label>{isEn ? 'Day rate (€)' : 'TJM (€)'}</Label>
@@ -605,10 +616,20 @@ export function JobOfferFormDialog({
           <div className="grid grid-cols-3 gap-3">
             <div>
               <Label>{isEn ? 'Source type' : "Type d'origine"}</Label>
-              <Select {...register('source_kind')} defaultValue="client">
-                <option value="client">{isEn ? 'Direct client' : 'Client direct'}</option>
-                <option value="esn">{isEn ? 'Partner ESN' : 'ESN partenaire'}</option>
-              </Select>
+              <Combobox
+                ariaLabel={isEn ? 'Source type' : "Type d'origine"}
+                value={watch('source_kind') ?? 'client'}
+                onChange={(v) =>
+                  setValue('source_kind', v as JobOfferInput['source_kind'], {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  })
+                }
+                options={[
+                  { value: 'client', label: isEn ? 'Direct client' : 'Client direct' },
+                  { value: 'esn', label: isEn ? 'Partner ESN' : 'ESN partenaire' },
+                ]}
+              />
             </div>
             <div className="col-span-2">
               <Label>{isEn ? 'Client / ESN name' : 'Nom du client / ESN'}</Label>

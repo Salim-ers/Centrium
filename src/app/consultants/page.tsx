@@ -57,7 +57,7 @@ import { CityFilter } from '@/components/consultants/CityFilter';
 import { CsvImportDialog } from '@/components/consultants/CsvImportDialog';
 import { GrantPortalDialog } from '@/components/consultants/GrantPortalDialog';
 import { UsageBanner } from '@/components/billing/UsageBanner';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { cn } from '@/lib/utils';
 import {
   classifyJobFamily,
@@ -697,10 +697,10 @@ function ConsultantsPageInner() {
                           {consultantStatusI18n[c.status as keyof typeof consultantStatusI18n] ?? CONSULTANT_STATUS_LABEL[c.status]}
                         </StatusBadge>
                       ) : (
-                        <Select
+                        <Combobox
                           value={c.status}
-                          onChange={(e) =>
-                            handleStatusChange(c.id, e.target.value as Consultant['status'])
+                          onChange={(v) =>
+                            handleStatusChange(c.id, v as Consultant['status'])
                           }
                           className={cn(
                             // h-8 = plus de chair pour centrer le texte ; px-2 + text-center
@@ -710,13 +710,13 @@ function ConsultantsPageInner() {
                             'h-8 w-[140px] px-2 py-0 text-xs font-medium border text-center leading-none',
                             CONSULTANT_STATUS_STYLE[c.status],
                           )}
-                          title="Changer le statut du consultant"
-                          aria-label={`Statut de ${c.first_name ?? ''} ${c.last_name ?? ''}`}
-                        >
-                          <option value="available">{consultantStatusI18n.available}</option>
-                          <option value="soon_available">{consultantStatusI18n.soon_available}</option>
-                          <option value="unavailable">{consultantStatusI18n.unavailable}</option>
-                        </Select>
+                          ariaLabel={`Statut de ${c.first_name ?? ''} ${c.last_name ?? ''}`}
+                          options={[
+                            { value: 'available', label: consultantStatusI18n.available },
+                            { value: 'soon_available', label: consultantStatusI18n.soon_available },
+                            { value: 'unavailable', label: consultantStatusI18n.unavailable },
+                          ]}
+                        />
                       )}
                     </TableCell>
                     <TableCell className="text-right">

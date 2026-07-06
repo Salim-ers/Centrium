@@ -25,7 +25,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { contactInteractionService } from '@/lib/services';
 import { notifyError } from '@/lib/notify';
 import type { Contact, ContactInteraction, ContactInteractionKind } from '@/types';
@@ -138,16 +138,14 @@ export function ContactInteractionsDialog({
           <div className="grid grid-cols-[140px_1fr] gap-2">
             <div>
               <Label className="text-[10px] uppercase tracking-wider">Type</Label>
-              <Select
+              <Combobox
                 value={kind}
-                onChange={(e) => setKind(e.target.value as ContactInteractionKind)}
-              >
-                {(Object.keys(KIND_META) as ContactInteractionKind[]).map((k) => (
-                  <option key={k} value={k}>
-                    {KIND_META[k].label}
-                  </option>
-                ))}
-              </Select>
+                onChange={(v) => setKind(v as ContactInteractionKind)}
+                options={(Object.keys(KIND_META) as ContactInteractionKind[]).map((k) => ({
+                  value: k,
+                  label: KIND_META[k].label,
+                }))}
+              />
             </div>
             <div>
               <Label className="text-[10px] uppercase tracking-wider">Note *</Label>

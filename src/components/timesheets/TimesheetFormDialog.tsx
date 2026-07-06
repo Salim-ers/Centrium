@@ -19,7 +19,7 @@ import { FormDialogContent } from '@/components/ui/form-dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { timesheetSchema, type TimesheetInput } from '@/lib/validators';
 import { timesheetService } from '@/lib/services';
 import { createClient } from '@/lib/supabase/client';
@@ -83,6 +83,8 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<TimesheetInput>({
     resolver: zodResolver(timesheetSchema),
@@ -139,18 +141,26 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
           <div>
             <Label>{t.forms.timesheet.mission} *</Label>
-            <Select {...register('mission_id')}>
-              <option value="">— {t.forms.timesheet.mission} —</option>
-              {missions.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.consultant
-                    ? `${m.consultant.first_name} ${m.consultant.last_name} — `
-                    : ''}
-                  {m.title}
-                  {m.company ? ` (${m.company.name})` : ''}
-                </option>
-              ))}
-            </Select>
+            <Combobox
+              ariaLabel={t.forms.timesheet.mission}
+              value={watch('mission_id') ?? ''}
+              onChange={(v) =>
+                setValue('mission_id', v as TimesheetInput['mission_id'], {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                })
+              }
+              options={[
+                { value: '', label: `— ${t.forms.timesheet.mission} —` },
+                ...missions.map((m) => ({
+                  value: m.id,
+                  label: `${m.title}${m.company ? ` (${m.company.name})` : ''}`,
+                  sublabel: m.consultant
+                    ? `${m.consultant.first_name} ${m.consultant.last_name}`
+                    : undefined,
+                })),
+              ]}
+            />
             {errors.mission_id && (
               <p className="text-xs text-red-400 mt-1">
                 {isEn ? 'Mission required' : 'Mission obligatoire'}
@@ -168,23 +178,31 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>{isEn ? 'Month *' : 'Mois *'}</Label>
-              <Select {...register('period_month')}>
-                {months.map((m, i) => (
-                  <option key={i} value={i + 1}>
-                    {m}
-                  </option>
-                ))}
-              </Select>
+              <Combobox
+                ariaLabel={isEn ? 'Month' : 'Mois'}
+                value={String(watch('period_month') ?? now.getMonth() + 1)}
+                onChange={(v) =>
+                  setValue('period_month', Number(v), {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  })
+                }
+                options={months.map((m, i) => ({ value: String(i + 1), label: m }))}
+              />
             </div>
             <div>
               <Label>{isEn ? 'Year *' : 'Année *'}</Label>
-              <Select {...register('period_year')}>
-                {years.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </Select>
+              <Combobox
+                ariaLabel={isEn ? 'Year' : 'Année'}
+                value={String(watch('period_year') ?? now.getFullYear())}
+                onChange={(v) =>
+                  setValue('period_year', Number(v), {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  })
+                }
+                options={years.map((y) => ({ value: String(y), label: String(y) }))}
+              />
             </div>
           </div>
 

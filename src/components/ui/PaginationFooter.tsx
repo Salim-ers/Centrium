@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import type { Pagination } from '@/hooks/usePagination';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
@@ -53,17 +53,12 @@ export function PaginationFooter({
       <div className="flex items-center gap-3 flex-wrap">
         <label className="text-xs text-muted-foreground inline-flex items-center gap-2">
           {perPageWord}
-          <Select
+          <Combobox
             value={String(pageSize)}
-            onChange={(e) => changePageSize(Number(e.target.value))}
+            onChange={(v) => changePageSize(Number(v))}
+            options={pageSizes.map((n) => ({ value: String(n), label: String(n) }))}
             className="h-8 w-[80px] text-xs px-2"
-          >
-            {pageSizes.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </Select>
+          />
         </label>
         <div className="flex items-center gap-1">
           <Button

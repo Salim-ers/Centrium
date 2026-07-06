@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { invoiceSchema, type InvoiceInput } from '@/lib/validators';
 import {
   invoiceService,
@@ -347,17 +347,27 @@ export function InvoiceFormDialog({
             {isConsultantInvoice ? (
               <div>
                 <Label>{isEn ? 'Consultant *' : 'Consultant *'}</Label>
-                <Select {...register('consultant_id')}>
-                  <option value="">
-                    {isEn ? '— Pick a consultant —' : '— Choisir un consultant —'}
-                  </option>
-                  {sortedConsultants.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.first_name} {c.last_name}
-                      {c.job_title ? ` — ${c.job_title}` : ''}
-                    </option>
-                  ))}
-                </Select>
+                <Combobox
+                  ariaLabel="Consultant"
+                  value={watch('consultant_id') ?? ''}
+                  onChange={(v) =>
+                    setValue('consultant_id', v as InvoiceInput['consultant_id'], {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                  options={[
+                    {
+                      value: '',
+                      label: isEn ? '— Pick a consultant —' : '— Choisir un consultant —',
+                    },
+                    ...sortedConsultants.map((c) => ({
+                      value: c.id,
+                      label: `${c.first_name} ${c.last_name}`,
+                      sublabel: c.job_title ?? undefined,
+                    })),
+                  ]}
+                />
                 {errors.consultant_id && (
                   <p className="text-xs text-red-400 mt-1">
                     {isEn ? 'Consultant required' : 'Consultant obligatoire'}
@@ -395,14 +405,20 @@ export function InvoiceFormDialog({
                 </div>
                 {!creatingCompany ? (
                   <>
-                    <Select {...register('company_id')}>
-                      <option value="">{isEn ? '— Pick a client —' : '— Choisir un client —'}</option>
-                      {companies.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </Select>
+                    <Combobox
+                      ariaLabel="Client"
+                      value={watch('company_id') ?? ''}
+                      onChange={(v) =>
+                        setValue('company_id', v as InvoiceInput['company_id'], {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        })
+                      }
+                      options={[
+                        { value: '', label: isEn ? '— Pick a client —' : '— Choisir un client —' },
+                        ...companies.map((c) => ({ value: c.id, label: c.name })),
+                      ]}
+                    />
                     {errors.company_id && (
                       <p className="text-xs text-red-400 mt-1">
                         {isEn ? 'Client required' : 'Client obligatoire'}
@@ -459,17 +475,27 @@ export function InvoiceFormDialog({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>{isEn ? 'Billed consultant' : 'Consultant facturé'}</Label>
-                <Select {...register('consultant_id')}>
-                  <option value="">
-                    {isEn ? '— None (free invoice) —' : '— Aucun (facture libre) —'}
-                  </option>
-                  {sortedConsultants.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.first_name} {c.last_name}
-                      {c.job_title ? ` — ${c.job_title}` : ''}
-                    </option>
-                  ))}
-                </Select>
+                <Combobox
+                  ariaLabel={isEn ? 'Billed consultant' : 'Consultant facturé'}
+                  value={watch('consultant_id') ?? ''}
+                  onChange={(v) =>
+                    setValue('consultant_id', v as InvoiceInput['consultant_id'], {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                  options={[
+                    {
+                      value: '',
+                      label: isEn ? '— None (free invoice) —' : '— Aucun (facture libre) —',
+                    },
+                    ...sortedConsultants.map((c) => ({
+                      value: c.id,
+                      label: `${c.first_name} ${c.last_name}`,
+                      sublabel: c.job_title ?? undefined,
+                    })),
+                  ]}
+                />
                 <p className="text-[10px] text-muted-foreground mt-1">
                   {isEn
                     ? 'Optional — useful to track per-consultant billing'
@@ -478,15 +504,24 @@ export function InvoiceFormDialog({
               </div>
               <div>
                 <Label>{isEn ? 'RFP / Opportunity' : "Appel d'offre / Opportunité"}</Label>
-                <Select {...register('job_offer_id')}>
-                  <option value="">{isEn ? '— None —' : '— Aucun —'}</option>
-                  {offers.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.title}
-                      {o.status !== 'open' ? ` · ${o.status}` : ''}
-                    </option>
-                  ))}
-                </Select>
+                <Combobox
+                  ariaLabel={isEn ? 'RFP / Opportunity' : "Appel d'offre / Opportunité"}
+                  value={watch('job_offer_id') ?? ''}
+                  onChange={(v) =>
+                    setValue('job_offer_id', v as InvoiceInput['job_offer_id'], {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                  options={[
+                    { value: '', label: isEn ? '— None —' : '— Aucun —' },
+                    ...offers.map((o) => ({
+                      value: o.id,
+                      label: o.title,
+                      sublabel: o.status !== 'open' ? o.status : undefined,
+                    })),
+                  ]}
+                />
                 <p className="text-[10px] text-muted-foreground mt-1">
                   {isEn
                     ? 'Optional — pre-fills client if the RFP has one'

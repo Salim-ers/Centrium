@@ -29,7 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { MarketingShell } from '@/components/marketing/MarketingShell';
 import { cn } from '@/lib/utils';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
@@ -419,31 +419,31 @@ export default function DevisPage() {
               </div>
               <div>
                 <Label>{t.devis.fields.teamSize}</Label>
-                <Select
+                <Combobox
                   value={form.team_size}
-                  onChange={(e) => update('team_size', e.target.value)}
-                >
-                  <option value="">—</option>
-                  {(['1-5', '6-15', '16-50', '51-200', '200+'] as const).map((v, i) => (
-                    <option key={v} value={v}>
-                      {t.devis.teamSizes[i]}
-                    </option>
-                  ))}
-                </Select>
+                  onChange={(v) => update('team_size', v)}
+                  options={[
+                    { value: '', label: '—' },
+                    ...(['1-5', '6-15', '16-50', '51-200', '200+'] as const).map((v, i) => ({
+                      value: v,
+                      label: t.devis.teamSizes[i],
+                    })),
+                  ]}
+                />
               </div>
               <div>
                 <Label>{t.devis.fields.consultants}</Label>
-                <Select
+                <Combobox
                   value={form.consultants_count}
-                  onChange={(e) => update('consultants_count', e.target.value)}
-                >
-                  <option value="">—</option>
-                  {(['0-10', '10-30', '30-100', '100-500', '500+'] as const).map((v, i) => (
-                    <option key={v} value={v}>
-                      {t.devis.consultantsRanges[i]}
-                    </option>
-                  ))}
-                </Select>
+                  onChange={(v) => update('consultants_count', v)}
+                  options={[
+                    { value: '', label: '—' },
+                    ...(['0-10', '10-30', '30-100', '100-500', '500+'] as const).map((v, i) => ({
+                      value: v,
+                      label: t.devis.consultantsRanges[i],
+                    })),
+                  ]}
+                />
               </div>
             </div>
           </section>

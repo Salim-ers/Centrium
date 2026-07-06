@@ -18,7 +18,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
 import {
   Table,
@@ -311,17 +311,18 @@ export default function TeamSettingsPage() {
                   <Label htmlFor="role" className="text-xs">
                     {t.pages.team.role_label}
                   </Label>
-                  <Select
+                  <Combobox
                     id="role"
                     value={inviteRole}
-                    onChange={(e) => setInviteRole(e.target.value)}
-                  >
-                    <option value="viewer">{t.pages.team.role_viewer}</option>
-                    <option value="recruiter">Recruiter</option>
-                    <option value="business_manager">Business Manager</option>
-                    <option value="finance">{t.pages.team.role_finance}</option>
-                    <option value="admin">{t.pages.team.role_admin}</option>
-                  </Select>
+                    onChange={(v) => setInviteRole(v)}
+                    options={[
+                      { value: 'viewer', label: t.pages.team.role_viewer },
+                      { value: 'recruiter', label: 'Recruiter' },
+                      { value: 'business_manager', label: 'Business Manager' },
+                      { value: 'finance', label: t.pages.team.role_finance },
+                      { value: 'admin', label: t.pages.team.role_admin },
+                    ]}
+                  />
                 </div>
                 <Button
                   type="submit"

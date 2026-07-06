@@ -27,7 +27,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -268,24 +268,22 @@ export default function ResponsesPage() {
                 <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
                   Sélectionner
                 </Label>
-                <Select
+                <Combobox
                   value={selectedOfferId}
-                  onChange={(e) => setSelectedOfferId(e.target.value)}
+                  onChange={(v) => setSelectedOfferId(v)}
                   disabled={loadingOffers}
-                >
-                  <option value="">
-                    {loadingOffers
-                      ? 'Chargement…'
-                      : offers.length === 0
-                        ? 'Aucune offre ouverte'
-                        : 'Choisir une offre ouverte'}
-                  </option>
-                  {offers.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.title}
-                    </option>
-                  ))}
-                </Select>
+                  options={[
+                    {
+                      value: '',
+                      label: loadingOffers
+                        ? 'Chargement…'
+                        : offers.length === 0
+                          ? 'Aucune offre ouverte'
+                          : 'Choisir une offre ouverte',
+                    },
+                    ...offers.map((o) => ({ value: o.id, label: o.title })),
+                  ]}
+                />
               </div>
 
               {selectedOffer && (
@@ -495,16 +493,14 @@ export default function ResponsesPage() {
                       <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
                         Template
                       </Label>
-                      <Select
+                      <Combobox
                         value={templateId}
-                        onChange={(e) => setTemplateId(e.target.value as CVTemplateId)}
-                      >
-                        {Object.entries(CV_TEMPLATE_LABEL).map(([id, label]) => (
-                          <option key={id} value={id}>
-                            {label}
-                          </option>
-                        ))}
-                      </Select>
+                        onChange={(v) => setTemplateId(v as CVTemplateId)}
+                        options={Object.entries(CV_TEMPLATE_LABEL).map(([id, label]) => ({
+                          value: id,
+                          label,
+                        }))}
+                      />
                     </div>
                     <Button
                       variant="outline"
@@ -572,14 +568,15 @@ export default function ResponsesPage() {
                       <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
                         Ton
                       </Label>
-                      <Select
+                      <Combobox
                         value={tone}
-                        onChange={(e) => setTone(e.target.value as typeof tone)}
-                      >
-                        <option value="sobre">Sobre et factuel</option>
-                        <option value="direct">Direct et concis</option>
-                        <option value="chaleureux">Chaleureux mais pro</option>
-                      </Select>
+                        onChange={(v) => setTone(v as typeof tone)}
+                        options={[
+                          { value: 'sobre', label: 'Sobre et factuel' },
+                          { value: 'direct', label: 'Direct et concis' },
+                          { value: 'chaleureux', label: 'Chaleureux mais pro' },
+                        ]}
+                      />
                     </div>
                     <Button
                       onClick={generateEmail}

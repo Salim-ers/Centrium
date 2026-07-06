@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Badge } from '@/components/ui/badge';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { Label } from '@/components/ui/label';
 import {
   PageHeader,
@@ -199,14 +199,14 @@ function MatchingInner() {
           <div className="grid gap-4 md:grid-cols-[1fr_auto_auto] items-end">
             <div>
               <Label>{t.pages.matching.offer_select}</Label>
-              <Select value={offerId} onChange={(e) => setOfferId(e.target.value)}>
-                <option value="">{t.pages.matching.pick_offer_placeholder}</option>
-                {offers.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.title}
-                  </option>
-                ))}
-              </Select>
+              <Combobox
+                value={offerId}
+                onChange={(v) => setOfferId(v)}
+                options={[
+                  { value: '', label: t.pages.matching.pick_offer_placeholder },
+                  ...offers.map((o) => ({ value: o.id, label: o.title })),
+                ]}
+              />
               {selectedOffer && (
                 <div className="mt-2 flex gap-2 flex-wrap">
                   {selectedOffer.required_skills.map((s) => (

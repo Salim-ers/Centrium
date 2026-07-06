@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { consultantService } from '@/lib/services/consultant.service';
 import type { Language } from '@/types';
 
@@ -95,17 +95,12 @@ export function LanguagesEditDialog({
             maxLength={2}
             className="w-16 uppercase text-center"
           />
-          <Select
+          <Combobox
             value={newLevel}
-            onChange={(e) => setNewLevel(e.target.value as Language['level'])}
+            onChange={(v) => setNewLevel(v as Language['level'])}
             className="flex-1"
-          >
-            {LEVELS.map((lv) => (
-              <option key={lv} value={lv}>
-                {lv}
-              </option>
-            ))}
-          </Select>
+            options={LEVELS.map((lv) => ({ value: lv, label: lv }))}
+          />
           <Button type="submit">
             <Plus className="h-4 w-4" />
             Ajouter
@@ -121,17 +116,12 @@ export function LanguagesEditDialog({
                 <span className="uppercase w-10 text-xs font-semibold text-muted-foreground">
                   {l.code}
                 </span>
-                <Select
+                <Combobox
                   value={l.level}
-                  onChange={(e) => updateLevel(l.code, e.target.value as Language['level'])}
+                  onChange={(v) => updateLevel(l.code, v as Language['level'])}
                   className="flex-1"
-                >
-                  {LEVELS.map((lv) => (
-                    <option key={lv} value={lv}>
-                      {lv}
-                    </option>
-                  ))}
-                </Select>
+                  options={LEVELS.map((lv) => ({ value: lv, label: lv }))}
+                />
                 <Button
                   type="button"
                   variant="ghost"

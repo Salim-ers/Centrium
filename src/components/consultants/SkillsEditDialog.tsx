@@ -15,7 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { Badge } from '@/components/ui/badge';
 import { consultantService } from '@/lib/services/consultant.service';
 import type { ConsultantSkill } from '@/types';
@@ -118,13 +118,12 @@ export function SkillsEditDialog({
         </DialogHeader>
 
         <form onSubmit={add} className="flex flex-col sm:flex-row gap-2 py-3 border-b border-hairline">
-          <Select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="sm:max-w-[180px]">
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </Select>
+          <Combobox
+            value={newCategory}
+            onChange={(v) => setNewCategory(v)}
+            className="sm:max-w-[180px]"
+            options={CATEGORIES.map((c) => ({ value: c, label: c }))}
+          />
           <Input
             placeholder="Nouvelle compétence (ex: Playwright)"
             value={newName}

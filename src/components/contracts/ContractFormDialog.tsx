@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { contractSchema, type ContractInput } from '@/lib/validators/contract';
 import { contractService } from '@/lib/services/contract.service';
 import { consultantService } from '@/lib/services/consultant.service';
@@ -461,13 +461,20 @@ export function ContractFormDialog({
               </div>
               <div>
                 <Label>{t.forms.contract.kind}</Label>
-                <Select {...register('kind')}>
-                  {KIND_OPTIONS[party].map((k) => (
-                    <option key={k.value} value={k.value}>
-                      {isEn ? k.en : k.fr}
-                    </option>
-                  ))}
-                </Select>
+                <Combobox
+                  ariaLabel={t.forms.contract.kind}
+                  value={watch('kind') ?? KIND_OPTIONS[party][0]?.value ?? ''}
+                  onChange={(v) =>
+                    setValue('kind', v as ContractInput['kind'], {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                  options={KIND_OPTIONS[party].map((k) => ({
+                    value: k.value,
+                    label: isEn ? k.en : k.fr,
+                  }))}
+                />
               </div>
             </div>
             <div className="mt-3">
@@ -495,23 +502,27 @@ export function ContractFormDialog({
                   ? 'Link to existing mission (optional)'
                   : 'Lier à une mission existante (optionnel)'}
               </h3>
-              <Select
+              <Combobox
+                ariaLabel={isEn ? 'Link to existing mission' : 'Lier à une mission existante'}
                 value={selectedMissionId}
-                onChange={(e) => applyMission(e.target.value)}
-              >
-                <option value="">
-                  {isEn ? '— No mission linked —' : '— Aucune mission rattachée —'}
-                </option>
-                {missions.map((m) => {
-                  const consultant = consultants.find((c) => c.id === m.consultant_id);
-                  return (
-                    <option key={m.id} value={m.id}>
-                      [{m.status}] {m.title}
-                      {consultant ? ` — ${consultant.first_name} ${consultant.last_name}` : ''}
-                    </option>
-                  );
-                })}
-              </Select>
+                onChange={(v) => applyMission(v)}
+                options={[
+                  {
+                    value: '',
+                    label: isEn ? '— No mission linked —' : '— Aucune mission rattachée —',
+                  },
+                  ...missions.map((m) => {
+                    const consultant = consultants.find((c) => c.id === m.consultant_id);
+                    return {
+                      value: m.id,
+                      label: `[${m.status}] ${m.title}`,
+                      sublabel: consultant
+                        ? `${consultant.first_name} ${consultant.last_name}`
+                        : undefined,
+                    };
+                  }),
+                ]}
+              />
               <p className="text-[10px] text-muted-foreground mt-2">
                 {isEn
                   ? 'Selecting a mission pre-fills consultant, day rate and dates below.'
@@ -529,17 +540,27 @@ export function ContractFormDialog({
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <Label>{isEn ? 'Company (from contacts)' : 'Entreprise (carnet clients)'}</Label>
-                  <Select {...register('company_id')}>
-                    <option value="">
-                      {isEn ? '— Pick a company —' : '— Choisir une entreprise —'}
-                    </option>
-                    {companies.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                        {c.city ? ` (${c.city})` : ''}
-                      </option>
-                    ))}
-                  </Select>
+                  <Combobox
+                    ariaLabel={isEn ? 'Company (from contacts)' : 'Entreprise (carnet clients)'}
+                    value={watch('company_id') ?? ''}
+                    onChange={(v) =>
+                      setValue('company_id', v as ContractInput['company_id'], {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                    }
+                    options={[
+                      {
+                        value: '',
+                        label: isEn ? '— Pick a company —' : '— Choisir une entreprise —',
+                      },
+                      ...companies.map((c) => ({
+                        value: c.id,
+                        label: c.name,
+                        sublabel: c.city ?? undefined,
+                      })),
+                    ]}
+                  />
                   <p className="text-[10px] text-muted-foreground mt-1">
                     {isEn
                       ? 'Fills the legal name below — adjust freely.'
@@ -559,14 +580,24 @@ export function ContractFormDialog({
                 </div>
                 <div className="col-span-2">
                   <Label>{isEn ? 'Consultant assigned (optional)' : 'Consultant positionné (optionnel)'}</Label>
-                  <Select {...register('consultant_id')}>
-                    <option value="">{isEn ? '— None —' : '— Aucun —'}</option>
-                    {consultants.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.first_name} {c.last_name} — {c.job_title}
-                      </option>
-                    ))}
-                  </Select>
+                  <Combobox
+                    ariaLabel={isEn ? 'Consultant assigned' : 'Consultant positionné'}
+                    value={watch('consultant_id') ?? ''}
+                    onChange={(v) =>
+                      setValue('consultant_id', v as ContractInput['consultant_id'], {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                    }
+                    options={[
+                      { value: '', label: isEn ? '— None —' : '— Aucun —' },
+                      ...consultants.map((c) => ({
+                        value: c.id,
+                        label: `${c.first_name} ${c.last_name}`,
+                        sublabel: c.job_title ?? undefined,
+                      })),
+                    ]}
+                  />
                   <p className="text-[10px] text-muted-foreground mt-1">
                     {isEn
                       ? 'Linked for tracking — never visible in their portal.'
@@ -583,14 +614,24 @@ export function ContractFormDialog({
                   {isEn ? 'Consultant' : 'Consultant concerné'}
                 </h3>
                 <Label>{t.forms.contract.consultant}</Label>
-                <Select {...register('consultant_id')}>
-                  <option value="">{isEn ? '— None —' : '— Aucun —'}</option>
-                  {consultants.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.first_name} {c.last_name} — {c.job_title}
-                    </option>
-                  ))}
-                </Select>
+                <Combobox
+                  ariaLabel={t.forms.contract.consultant}
+                  value={watch('consultant_id') ?? ''}
+                  onChange={(v) =>
+                    setValue('consultant_id', v as ContractInput['consultant_id'], {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                  options={[
+                    { value: '', label: isEn ? '— None —' : '— Aucun —' },
+                    ...consultants.map((c) => ({
+                      value: c.id,
+                      label: `${c.first_name} ${c.last_name}`,
+                      sublabel: c.job_title ?? undefined,
+                    })),
+                  ]}
+                />
               </section>
 
               {/* Section 3 : Fournisseur */}
@@ -607,9 +648,11 @@ export function ContractFormDialog({
                     <Label className="text-magenta text-[10px] uppercase tracking-wider font-semibold">
                       {isEn ? 'Reuse an existing supplier' : 'Reprendre un fournisseur existant'}
                     </Label>
-                    <Select
-                      onChange={(e) => {
-                        const key = e.target.value;
+                    <Combobox
+                      ariaLabel={isEn ? 'Reuse an existing supplier' : 'Reprendre un fournisseur existant'}
+                      value=""
+                      onChange={(v) => {
+                        const key = v;
                         if (!key) return;
                         const s = suppliers.find((x) => x.key === key);
                         if (!s) return;
@@ -625,25 +668,25 @@ export function ContractFormDialog({
                             ? `Supplier "${s.company_name}" pre-filled`
                             : `Fournisseur « ${s.company_name} » pré-rempli`,
                         );
-                        e.target.value = ''; // reset select pour pouvoir le re-sélectionner
                       }}
                       className="mt-1.5"
-                    >
-                      <option value="">
-                        {isEn
-                          ? '— Choose an existing supplier —'
-                          : '— Choisir un fournisseur déjà saisi —'}
-                      </option>
-                      {suppliers.map((s) => (
-                        <option key={s.key} value={s.key}>
-                          {s.company_name}
-                          {s.city ? ` (${s.city})` : ''}
-                          {s.usageCount > 1
-                            ? ` · ${s.usageCount} ${isEn ? 'contracts' : 'contrats'}`
-                            : ''}
-                        </option>
-                      ))}
-                    </Select>
+                      options={[
+                        {
+                          value: '',
+                          label: isEn
+                            ? '— Choose an existing supplier —'
+                            : '— Choisir un fournisseur déjà saisi —',
+                        },
+                        ...suppliers.map((s) => ({
+                          value: s.key,
+                          label: `${s.company_name}${s.city ? ` (${s.city})` : ''}`,
+                          sublabel:
+                            s.usageCount > 1
+                              ? `${s.usageCount} ${isEn ? 'contracts' : 'contrats'}`
+                              : undefined,
+                        })),
+                      ]}
+                    />
                     <p className="mt-2 text-[10.5px] text-muted-foreground">
                       {isEn
                         ? '💡 You can then adjust the fields below case by case.'

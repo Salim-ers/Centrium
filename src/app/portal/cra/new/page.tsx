@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
 import { useBrandName } from '@/components/brand/BrandingStyles';
@@ -138,19 +138,19 @@ export default function PortalCraNewPage() {
                 <div className="h-10 rounded-md bg-white/[0.02] animate-pulse" />
               ) : (
                 <>
-                  <Select
+                  <Combobox
                     value={missionId}
-                    onChange={(e) => setMissionId(e.target.value)}
-                    required
-                  >
-                    {missions.length === 0 && <option value="">Aucune mission active</option>}
-                    {missions.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.title}
-                        {m.company ? ` (${m.company.name})` : ''}
-                      </option>
-                    ))}
-                  </Select>
+                    onChange={(v) => setMissionId(v)}
+                    options={[
+                      ...(missions.length === 0
+                        ? [{ value: '', label: 'Aucune mission active' }]
+                        : []),
+                      ...missions.map((m) => ({
+                        value: m.id,
+                        label: `${m.title}${m.company ? ` (${m.company.name})` : ''}`,
+                      })),
+                    ]}
+                  />
                   {missions.length === 0 && (
                     <p className="text-xs text-amber-400 mt-1">
                       Aucune mission active n&apos;est rattachée à ton profil. Contacte ton
@@ -164,23 +164,19 @@ export default function PortalCraNewPage() {
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label>Mois *</Label>
-                <Select value={String(month)} onChange={(e) => setMonth(Number(e.target.value))}>
-                  {MONTHS.map((m, i) => (
-                    <option key={i} value={i + 1}>
-                      {m}
-                    </option>
-                  ))}
-                </Select>
+                <Combobox
+                  value={String(month)}
+                  onChange={(v) => setMonth(Number(v))}
+                  options={MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))}
+                />
               </div>
               <div>
                 <Label>Année *</Label>
-                <Select value={String(year)} onChange={(e) => setYear(Number(e.target.value))}>
-                  {years.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </Select>
+                <Combobox
+                  value={String(year)}
+                  onChange={(v) => setYear(Number(v))}
+                  options={years.map((y) => ({ value: String(y), label: String(y) }))}
+                />
               </div>
               <div>
                 <Label>Jours travaillés *</Label>
