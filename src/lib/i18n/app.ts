@@ -839,6 +839,100 @@ export type AppDict = {
       no_billing: string;
       founder_description: string;
       permanent_active_status: string;
+      // Status labels
+      status_trialing: string;
+      status_past_due: string;
+      status_canceled: string;
+      status_incomplete: string;
+      status_incomplete_expired: string;
+      status_unpaid: string;
+      status_paused: string;
+      status_no_subscription: string;
+      // KPI cards
+      kpi_current_plan: string;
+      per_month_ht: string;
+      kpi_access_until: string;
+      kpi_trial_end: string;
+      kpi_next_invoice: string;
+      kpi_access: string;
+      cancel_scheduled: string;
+      auto_renew: string;
+      kpi_status: string;
+      access_permanent: string;
+      access_inactive: string;
+      hint_update_cb: string;
+      hint_resume: string;
+      hint_subscribe: string;
+      // Payment-failed banner
+      banner_payment_failed_title: string;
+      banner_payment_failed_body: string;
+      cta_update_cb: string;
+      // Canceling banner
+      banner_canceling_title: string;
+      banner_canceling_body: string;
+      cta_reactivate: string;
+      // Plans grid
+      plans_change_title: string;
+      plans_choose_title: string;
+      // Cancel card
+      cancel_card_title_trial: string;
+      cancel_card_title_paid: string;
+      cancel_card_desc_trial: string;
+      cancel_card_desc_paid: string;
+      cancel_btn_trial: string;
+      cancel_btn_paid: string;
+      // Advanced / portal
+      advanced_title: string;
+      advanced_desc: string;
+      open_portal: string;
+      // Non-admin
+      non_admin_note: string;
+      // Cancel dialog
+      dialog_cancel_title_trial: string;
+      dialog_cancel_title_paid: string;
+      dialog_cancel_desc_trial: string;
+      dialog_cancel_desc_paid: string;
+      dialog_go_back: string;
+      dialog_confirm_trial: string;
+      dialog_confirm_paid: string;
+      // Checkout dialog
+      checkout_title: string;
+      checkout_desc: string;
+      // No active org
+      no_org_title: string;
+      no_org_desc: string;
+      create_org: string;
+      // Toasts
+      toast_sub_activated: string;
+      toast_checkout_canceled: string;
+      toast_portal_unavailable: string;
+      toast_sub_failed: string;
+      toast_stripe_unavailable: string;
+      toast_payment_confirmed: string;
+      toast_payment_invalid: string;
+      toast_payment_unavailable: string;
+      toast_cancel_failed: string;
+      toast_cancel_done: string;
+      toast_reactivate_failed: string;
+      toast_reactivate_done: string;
+      // Middleware error messages
+      err_trial_expired: string;
+      err_subscription_expired: string;
+      err_payment_failed: string;
+      err_checkout_incomplete: string;
+      err_paused: string;
+      err_no_subscription: string;
+      // Plan card
+      plan_current_badge: string;
+      plan_per_month: string;
+      plan_on_quote: string;
+      plan_users_admin: string;
+      plan_up_to_consultants: string;
+      plan_unlimited_users: string;
+      plan_unlimited_crm: string;
+      plan_current_btn: string;
+      plan_contact_sales: string;
+      plan_subscribe: string;
     };
     settings: {
       eyebrow: string;
@@ -1726,6 +1820,100 @@ export const APP_DICT: Record<Locale, AppDict> = {
         no_billing: 'Aucune facturation',
         founder_description: "Cette organisation est exemptée de facturation. Accès illimité à toutes les fonctionnalités de la plateforme, sans limite de consultants ni d'utilisateurs, sans abonnement Stripe.",
         permanent_active_status: 'Statut actif · permanent',
+        status_trialing: 'Essai gratuit',
+        status_past_due: 'Paiement en retard',
+        status_canceled: 'Résilié',
+        status_incomplete: 'Checkout incomplet',
+        status_incomplete_expired: 'Checkout expiré',
+        status_unpaid: 'Impayé',
+        status_paused: 'Suspendu',
+        status_no_subscription: 'Aucun abonnement',
+        kpi_current_plan: 'Plan actuel',
+        per_month_ht: 'HT/mois',
+        kpi_access_until: "Accès garanti jusqu'au",
+        kpi_trial_end: "Fin d'essai",
+        kpi_next_invoice: 'Prochaine facture',
+        kpi_access: 'Accès',
+        cancel_scheduled: 'Résiliation programmée',
+        auto_renew: 'Renouvellement auto',
+        kpi_status: 'Statut',
+        access_permanent: 'permanent',
+        access_inactive: 'accès non actif',
+        hint_update_cb: 'Action requise : mettre à jour la CB',
+        hint_resume: 'Action requise : reprendre un abonnement',
+        hint_subscribe: 'Action requise : souscrire',
+        banner_payment_failed_title: 'Paiement échoué',
+        banner_payment_failed_body:
+          "Ton dernier renouvellement n'a pas pu être encaissé. Mets à jour ton moyen de paiement pour rétablir ton accès.",
+        cta_update_cb: 'Mettre à jour la CB',
+        banner_canceling_title: 'Abonnement en cours de résiliation',
+        banner_canceling_body:
+          "Tu gardes ton accès complet jusqu'au {date}. Après cette date, ton accès sera coupé sauf si tu réactives l'abonnement.",
+        cta_reactivate: "Réactiver l'abonnement",
+        plans_change_title: 'Changer de plan',
+        plans_choose_title: 'Choisir un plan',
+        cancel_card_title_trial: "Arrêter l'essai",
+        cancel_card_title_paid: "Résilier l'abonnement",
+        cancel_card_desc_trial:
+          "Tu peux arrêter ton essai à tout moment. Tu gardes l'accès jusqu'à la fin de la période d'essai, et aucune carte n'est débitée.",
+        cancel_card_desc_paid:
+          "La résiliation prend effet à la fin de la période en cours. Tu conserves ton accès complet jusque-là, puis tu peux réactiver à tout moment avant l'échéance.",
+        cancel_btn_trial: 'Arrêter mon essai',
+        cancel_btn_paid: 'Résilier mon abonnement',
+        advanced_title: 'Gestion avancée',
+        advanced_desc: "Factures passées, CB, mise à jour d'adresse de facturation.",
+        open_portal: 'Ouvrir le portail Stripe',
+        non_admin_note:
+          "Seul un admin de l'organisation peut souscrire, changer de plan ou résilier.",
+        dialog_cancel_title_trial: 'Arrêter mon essai ?',
+        dialog_cancel_title_paid: 'Confirmer la résiliation',
+        dialog_cancel_desc_trial:
+          "Ton essai sera arrêté. Tu conserves l'accès jusqu'au {date}, puis il sera coupé — aucune carte ne sera débitée. Tu peux réactiver à tout moment avant cette date.",
+        dialog_cancel_desc_paid:
+          "Ton abonnement sera résilié à la fin de la période en cours ({date}). Tu conserves l'accès complet jusque-là, puis il sera coupé. Tu peux réactiver à tout moment avant cette date.",
+        dialog_go_back: 'Revenir en arrière',
+        dialog_confirm_trial: 'Arrêter mon essai',
+        dialog_confirm_paid: 'Confirmer la résiliation',
+        checkout_title: 'Paiement sécurisé',
+        checkout_desc:
+          'Règle ton abonnement sans quitter Centrium — paiement traité par Stripe.',
+        no_org_title: 'Aucune organisation active',
+        no_org_desc:
+          "Ton compte n'est rattaché à aucune organisation. Si tu as reçu une invitation, reclique le lien de l'email d'invitation ; sinon demande à ton administrateur de t'inviter, ou crée ton organisation.",
+        create_org: 'Créer mon organisation',
+        toast_sub_activated: 'Abonnement activé ! Bienvenue.',
+        toast_checkout_canceled: 'Checkout annulé.',
+        toast_portal_unavailable: 'Portail indisponible',
+        toast_sub_failed: 'Souscription impossible (HTTP {status})',
+        toast_stripe_unavailable: 'Stripe indisponible — réessaie.',
+        toast_payment_confirmed: 'Paiement confirmé — activation de ton abonnement…',
+        toast_payment_invalid: 'Réponse de paiement invalide — réessaie.',
+        toast_payment_unavailable: 'Paiement indisponible — réessaie.',
+        toast_cancel_failed: 'Annulation impossible',
+        toast_cancel_done:
+          "Annulation prise en compte. Tu gardes ton accès jusqu'à la fin de la période.",
+        toast_reactivate_failed: 'Réactivation impossible',
+        toast_reactivate_done: 'Abonnement réactivé. Le renouvellement automatique est repris.',
+        err_trial_expired:
+          "Ta période d'essai est terminée. Choisis un plan pour continuer à utiliser Centrium.",
+        err_subscription_expired:
+          'Ton abonnement est terminé. Souscris à nouveau pour retrouver ton accès.',
+        err_payment_failed:
+          'Un paiement a échoué. Mets à jour ton moyen de paiement pour retrouver ton accès.',
+        err_checkout_incomplete:
+          "Ton dernier checkout n'a pas abouti. Reprends la souscription pour continuer.",
+        err_paused: 'Ton abonnement est en pause. Reprends-le pour retrouver ton accès.',
+        err_no_subscription: 'Aucun abonnement actif. Choisis un plan pour commencer.',
+        plan_current_badge: 'Actuel',
+        plan_per_month: 'HT / mois',
+        plan_on_quote: 'Sur devis',
+        plan_users_admin: '{n} utilisateurs admin',
+        plan_up_to_consultants: "Jusqu'à {n} consultants",
+        plan_unlimited_users: 'Utilisateurs & consultants illimités',
+        plan_unlimited_crm: 'Opportunités, contacts & missions illimités',
+        plan_current_btn: 'Plan actuel',
+        plan_contact_sales: 'Contacter les ventes',
+        plan_subscribe: 'Souscrire',
       },
       settings: {
         eyebrow: 'Organisation',
@@ -2611,6 +2799,100 @@ export const APP_DICT: Record<Locale, AppDict> = {
         no_billing: 'No billing',
         founder_description: 'This organization is exempt from billing. Unlimited access to all platform features, no consultant or user limit, no Stripe subscription.',
         permanent_active_status: 'Active status · permanent',
+        status_trialing: 'Free trial',
+        status_past_due: 'Payment overdue',
+        status_canceled: 'Canceled',
+        status_incomplete: 'Checkout incomplete',
+        status_incomplete_expired: 'Checkout expired',
+        status_unpaid: 'Unpaid',
+        status_paused: 'Paused',
+        status_no_subscription: 'No subscription',
+        kpi_current_plan: 'Current plan',
+        per_month_ht: 'excl. VAT/mo',
+        kpi_access_until: 'Access guaranteed until',
+        kpi_trial_end: 'Trial ends',
+        kpi_next_invoice: 'Next invoice',
+        kpi_access: 'Access',
+        cancel_scheduled: 'Cancellation scheduled',
+        auto_renew: 'Auto-renewal',
+        kpi_status: 'Status',
+        access_permanent: 'permanent',
+        access_inactive: 'access inactive',
+        hint_update_cb: 'Action required: update your card',
+        hint_resume: 'Action required: resume a subscription',
+        hint_subscribe: 'Action required: subscribe',
+        banner_payment_failed_title: 'Payment failed',
+        banner_payment_failed_body:
+          "Your last renewal couldn't be charged. Update your payment method to restore your access.",
+        cta_update_cb: 'Update card',
+        banner_canceling_title: 'Subscription being canceled',
+        banner_canceling_body:
+          'You keep full access until {date}. After that date, your access will be cut off unless you reactivate the subscription.',
+        cta_reactivate: 'Reactivate subscription',
+        plans_change_title: 'Change plan',
+        plans_choose_title: 'Choose a plan',
+        cancel_card_title_trial: 'Stop the trial',
+        cancel_card_title_paid: 'Cancel subscription',
+        cancel_card_desc_trial:
+          'You can stop your trial at any time. You keep access until the end of the trial period, and no card is charged.',
+        cancel_card_desc_paid:
+          'Cancellation takes effect at the end of the current period. You keep full access until then, and can reactivate any time before the due date.',
+        cancel_btn_trial: 'Stop my trial',
+        cancel_btn_paid: 'Cancel my subscription',
+        advanced_title: 'Advanced management',
+        advanced_desc: 'Past invoices, card, billing address update.',
+        open_portal: 'Open Stripe portal',
+        non_admin_note:
+          'Only an organization admin can subscribe, change plan or cancel.',
+        dialog_cancel_title_trial: 'Stop my trial?',
+        dialog_cancel_title_paid: 'Confirm cancellation',
+        dialog_cancel_desc_trial:
+          'Your trial will be stopped. You keep access until {date}, then it will be cut off — no card will be charged. You can reactivate any time before that date.',
+        dialog_cancel_desc_paid:
+          'Your subscription will be canceled at the end of the current period ({date}). You keep full access until then, then it will be cut off. You can reactivate any time before that date.',
+        dialog_go_back: 'Go back',
+        dialog_confirm_trial: 'Stop my trial',
+        dialog_confirm_paid: 'Confirm cancellation',
+        checkout_title: 'Secure payment',
+        checkout_desc:
+          'Pay for your subscription without leaving Centrium — payment handled by Stripe.',
+        no_org_title: 'No active organization',
+        no_org_desc:
+          "Your account isn't linked to any organization. If you received an invitation, click the invitation email link again; otherwise ask your administrator to invite you, or create your organization.",
+        create_org: 'Create my organization',
+        toast_sub_activated: 'Subscription activated! Welcome.',
+        toast_checkout_canceled: 'Checkout canceled.',
+        toast_portal_unavailable: 'Portal unavailable',
+        toast_sub_failed: 'Subscription failed (HTTP {status})',
+        toast_stripe_unavailable: 'Stripe unavailable — try again.',
+        toast_payment_confirmed: 'Payment confirmed — activating your subscription…',
+        toast_payment_invalid: 'Invalid payment response — try again.',
+        toast_payment_unavailable: 'Payment unavailable — try again.',
+        toast_cancel_failed: 'Cancellation failed',
+        toast_cancel_done:
+          'Cancellation registered. You keep your access until the end of the period.',
+        toast_reactivate_failed: 'Reactivation failed',
+        toast_reactivate_done: 'Subscription reactivated. Auto-renewal is resumed.',
+        err_trial_expired:
+          'Your trial period has ended. Choose a plan to keep using Centrium.',
+        err_subscription_expired:
+          'Your subscription has ended. Subscribe again to regain access.',
+        err_payment_failed:
+          'A payment failed. Update your payment method to regain access.',
+        err_checkout_incomplete:
+          "Your last checkout didn't complete. Resume the subscription to continue.",
+        err_paused: 'Your subscription is paused. Resume it to regain access.',
+        err_no_subscription: 'No active subscription. Choose a plan to get started.',
+        plan_current_badge: 'Current',
+        plan_per_month: 'excl. VAT / mo',
+        plan_on_quote: 'On quote',
+        plan_users_admin: '{n} admin users',
+        plan_up_to_consultants: 'Up to {n} consultants',
+        plan_unlimited_users: 'Unlimited users & consultants',
+        plan_unlimited_crm: 'Unlimited opportunities, contacts & missions',
+        plan_current_btn: 'Current plan',
+        plan_contact_sales: 'Contact sales',
+        plan_subscribe: 'Subscribe',
       },
       settings: {
         eyebrow: 'Organization',

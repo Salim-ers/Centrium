@@ -17,7 +17,8 @@ import {
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
+import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 import {
   Card,
   CardContent,
@@ -44,6 +45,12 @@ import { useOrganization } from '@/lib/auth/context';
 // Souscription, upgrade/downgrade, annulation (in-app), réactivation, accès
 // portail Stripe pour les moyens de paiement / factures. Tout en local, un
 // seul écran.
+//
+// i18n : TOUT le contenu passe par t.pages.billing.* (FR/EN via le toggle du
+// header). Les PRIX passent par useCurrency().format() : montants stockés en
+// EUR en DB, convertis à l'affichage (€/$) selon la préférence utilisateur.
+// Seuls restent en langue-DB : le nom du plan (plans.name) et les puces de
+// features (plans.features) — contenu éditable en base, pas des libellés UI.
 //
 // SOURCES DE DONNÉES
 //   - GET /api/billing/subscription : état enrichi (status, dates,
@@ -87,29 +94,18 @@ type Plan = {
   sort_order: number;
 };
 
-const STATUS_LABEL: Record<string, { label: string; tone: StatusTone }> = {
-  trialing: { label: 'Essai gratuit', tone: 'violet' },
-  active: { label: 'Actif', tone: 'success' },
-  past_due: { label: 'Paiement en retard', tone: 'warning' },
-  canceled: { label: 'Résilié', tone: 'neutral' },
-  incomplete: { label: 'Checkout incomplet', tone: 'neutral' },
-  incomplete_expired: { label: 'Checkout expiré', tone: 'neutral' },
-  unpaid: { label: 'Impayé', tone: 'danger' },
-  paused: { label: 'Suspendu', tone: 'warning' },
-  no_subscription: { label: 'Aucun abonnement', tone: 'neutral' },
-};
-
-const ERROR_MESSAGES: Record<string, string> = {
-  trial_expired:
-    'Ta période d\'essai est terminée. Choisis un plan pour continuer à utiliser Centrium.',
-  subscription_expired:
-    'Ton abonnement est terminé. Souscris à nouveau pour retrouver ton accès.',
-  payment_failed:
-    'Un paiement a échoué. Mets à jour ton moyen de paiement pour retrouver ton accès.',
-  checkout_incomplete:
-    'Ton dernier checkout n\'a pas abouti. Reprends la souscription pour continuer.',
-  paused: 'Ton abonnement est en pause. Reprends-le pour retrouver ton accès.',
-  no_subscription: 'Aucun abonnement actif. Choisis un plan pour commencer.',
+// Les TONES (couleurs) ne se traduisent pas ; les libellés viennent de l'i18n
+// (billing.status_*). Voir statusLabel() dans le composant.
+const STATUS_TONE: Record<string, StatusTone> = {
+  trialing: 'violet',
+  active: 'success',
+  past_due: 'warning',
+  canceled: 'neutral',
+  incomplete: 'neutral',
+  incomplete_expired: 'neutral',
+  unpaid: 'danger',
+  paused: 'warning',
+  no_subscription: 'neutral',
 };
 
 export default function BillingPage() {
@@ -126,6 +122,10 @@ type EmbeddedCheckoutInstance = { mount: (sel: string | HTMLElement) => void; de
 function BillingPageInner() {
   const { activeOrgId, role, loading: orgLoading } = useOrganization();
   const t = useAppT();
+  const { locale } = useLocale();
+  const { format } = useCurrency();
+  const tb = t.pages.billing;
+  const dateLocale = locale === 'en' ? 'en-US' : 'fr-FR';
   const searchParams = useSearchParams();
   const [sub, setSub] = useState<Subscription | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -135,6 +135,22 @@ function BillingPageInner() {
   // Paiement intégré : dialog + instance embedded checkout à détruire au close.
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const embeddedRef = useRef<EmbeddedCheckoutInstance | null>(null);
+
+  // Libellé de statut traduit (fallback : la clé brute).
+  const statusLabel = (s: string): string =>
+    (
+      {
+        trialing: tb.status_trialing,
+        active: tb.status_active,
+        past_due: tb.status_past_due,
+        canceled: tb.status_canceled,
+        incomplete: tb.status_incomplete,
+        incomplete_expired: tb.status_incomplete_expired,
+        unpaid: tb.status_unpaid,
+        paused: tb.status_paused,
+        no_subscription: tb.status_no_subscription,
+      } as Record<string, string>
+    )[s] ?? s;
 
   const closeCheckout = useCallback(() => {
     setCheckoutOpen(false);
@@ -178,14 +194,22 @@ function BillingPageInner() {
     load();
     // Toasts après retour de Stripe Checkout
     if (searchParams.get('success') === '1') {
-      toast.success('Abonnement activé ! Bienvenue.');
+      toast.success(tb.toast_sub_activated);
     } else if (searchParams.get('canceled') === '1') {
-      toast.info('Checkout annulé.');
+      toast.info(tb.toast_checkout_canceled);
     }
     // Erreur remontée depuis le middleware (redirect vers /billing?error=…)
     const err = searchParams.get('error');
-    if (err && ERROR_MESSAGES[err]) {
-      toast.error(ERROR_MESSAGES[err], { duration: 8000 });
+    const errMap: Record<string, string> = {
+      trial_expired: tb.err_trial_expired,
+      subscription_expired: tb.err_subscription_expired,
+      payment_failed: tb.err_payment_failed,
+      checkout_incomplete: tb.err_checkout_incomplete,
+      paused: tb.err_paused,
+      no_subscription: tb.err_no_subscription,
+    };
+    if (err && errMap[err]) {
+      toast.error(errMap[err], { duration: 8000 });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load]);
@@ -214,7 +238,7 @@ function BillingPageInner() {
       const res = await fetch('/api/billing/portal', { method: 'POST' });
       const body = await res.json();
       if (!res.ok) {
-        toast.error(body.message ?? 'Portail indisponible');
+        toast.error(body.message ?? tb.toast_portal_unavailable);
         return;
       }
       window.location.href = body.url;
@@ -243,7 +267,7 @@ function BillingPageInner() {
       // le clic semblait mort. On veut TOUJOURS un feedback.
       const body = await res.json().catch(() => ({}) as Record<string, string>);
       if (!res.ok) {
-        toast.error(body.message ?? `Souscription impossible (HTTP ${res.status})`);
+        toast.error(body.message ?? tb.toast_sub_failed.replace('{status}', String(res.status)));
         return;
       }
 
@@ -251,7 +275,7 @@ function BillingPageInner() {
         const { loadStripe } = await import('@stripe/stripe-js');
         const stripe = await loadStripe(publishableKey!);
         if (!stripe) {
-          toast.error('Stripe indisponible — réessaie.');
+          toast.error(tb.toast_stripe_unavailable);
           return;
         }
         // Ouvre le dialog d'abord pour que le conteneur existe au mount.
@@ -260,7 +284,7 @@ function BillingPageInner() {
           clientSecret: body.client_secret as string,
           onComplete: () => {
             closeCheckout();
-            toast.success('Paiement confirmé — activation de ton abonnement…');
+            toast.success(tb.toast_payment_confirmed);
             // Le webhook Stripe met la DB à jour ; petit délai puis refresh.
             setTimeout(() => {
               void load();
@@ -285,13 +309,13 @@ function BillingPageInner() {
       if (body.url) {
         window.location.href = body.url;
       } else {
-        toast.error('Réponse de paiement invalide — réessaie.');
+        toast.error(tb.toast_payment_invalid);
       }
     } catch (e) {
       // Sans catch, toute exception (réseau, Stripe.js) rendait le clic
       // muet. L'utilisateur DOIT toujours voir pourquoi rien ne s'ouvre.
       toast.error(
-        e instanceof Error ? `Paiement indisponible : ${e.message}` : 'Paiement indisponible — réessaie.',
+        e instanceof Error ? `${tb.toast_payment_unavailable} (${e.message})` : tb.toast_payment_unavailable,
       );
     } finally {
       setBusy(null);
@@ -305,10 +329,10 @@ function BillingPageInner() {
       const res = await fetch('/api/billing/cancel', { method: 'POST' });
       const body = await res.json();
       if (!res.ok) {
-        toast.error(body.message ?? 'Annulation impossible');
+        toast.error(body.message ?? tb.toast_cancel_failed);
         return;
       }
-      toast.success('Annulation prise en compte. Tu gardes ton accès jusqu\'à la fin de la période.');
+      toast.success(tb.toast_cancel_done);
       await load();
     } finally {
       setBusy(null);
@@ -321,10 +345,10 @@ function BillingPageInner() {
       const res = await fetch('/api/billing/reactivate', { method: 'POST' });
       const body = await res.json();
       if (!res.ok) {
-        toast.error(body.message ?? 'Réactivation impossible');
+        toast.error(body.message ?? tb.toast_reactivate_failed);
         return;
       }
-      toast.success('Abonnement réactivé. Le renouvellement automatique est repris.');
+      toast.success(tb.toast_reactivate_done);
       await load();
     } finally {
       setBusy(null);
@@ -333,16 +357,16 @@ function BillingPageInner() {
 
   const statusBadge = (() => {
     if (!sub) return null;
-    const m = STATUS_LABEL[sub.status] ?? { label: sub.status, tone: 'neutral' as StatusTone };
-    return <StatusBadge tone={m.tone}>{m.label}</StatusBadge>;
+    const tone = STATUS_TONE[sub.status] ?? ('neutral' as StatusTone);
+    return <StatusBadge tone={tone}>{statusLabel(sub.status)}</StatusBadge>;
   })();
 
   const accessLabel = (() => {
     if (!sub) return '—';
-    if (sub.accessGrantedUntil === 'permanent') return 'permanent';
+    if (sub.accessGrantedUntil === 'permanent') return tb.access_permanent;
     if (sub.accessGrantedUntil)
-      return new Date(sub.accessGrantedUntil).toLocaleDateString('fr-FR');
-    return 'accès non actif';
+      return new Date(sub.accessGrantedUntil).toLocaleDateString(dateLocale);
+    return tb.access_inactive;
   })();
 
   return (
@@ -350,16 +374,14 @@ function BillingPageInner() {
       <PageHeader
         backHref="/settings"
         backLabel={t.pages.settings.back_to_settings}
-        eyebrow={t.pages.billing.eyebrow}
+        eyebrow={tb.eyebrow}
         title={
           <>
-            {t.pages.billing.title_a}{' '}
-            <span className="qc-italic-accent font-editorial italic">
-              {t.pages.billing.title_b}
-            </span>
+            {tb.title_a}{' '}
+            <span className="qc-italic-accent font-editorial italic">{tb.title_b}</span>
           </>
         }
-        description={t.pages.billing.description}
+        description={tb.description}
         actions={
           <div className="flex items-center gap-2">
             <CreditCard className="h-4 w-4 text-violet-glow" />
@@ -380,16 +402,12 @@ function BillingPageInner() {
                 <AlertTriangle className="h-6 w-6 text-amber-400" />
               </div>
             </div>
-            <CardTitle>Aucune organisation active</CardTitle>
-            <CardDescription>
-              Ton compte n&apos;est rattaché à aucune organisation. Si tu as reçu une
-              invitation, reclique le lien de l&apos;email d&apos;invitation ; sinon
-              demande à ton administrateur de t&apos;inviter, ou crée ton organisation.
-            </CardDescription>
+            <CardTitle>{tb.no_org_title}</CardTitle>
+            <CardDescription>{tb.no_org_desc}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild className="w-full">
-              <a href="/onboarding">Créer mon organisation</a>
+              <a href="/onboarding">{tb.create_org}</a>
             </Button>
           </CardContent>
         </Card>
@@ -401,12 +419,12 @@ function BillingPageInner() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <KPICard
               icon={Sparkles}
-              label="Plan actuel"
+              label={tb.kpi_current_plan}
               valueText={sub?.planName ?? '—'}
               tone="magenta"
               hint={
                 sub?.priceMonthly != null && sub.priceMonthly > 0
-                  ? `${sub.priceMonthly} € HT/mois`
+                  ? `${format(sub.priceMonthly, { maximumFractionDigits: 2 })} ${tb.per_month_ht}`
                   : undefined
               }
             />
@@ -414,27 +432,27 @@ function BillingPageInner() {
               icon={CalendarClock}
               label={
                 sub?.cancelAtPeriodEnd
-                  ? 'Accès garanti jusqu\'au'
+                  ? tb.kpi_access_until
                   : sub?.status === 'trialing'
-                    ? 'Fin d\'essai'
+                    ? tb.kpi_trial_end
                     : sub?.status === 'active'
-                      ? 'Prochaine facture'
-                      : 'Accès'
+                      ? tb.kpi_next_invoice
+                      : tb.kpi_access
               }
               valueText={accessLabel}
               tone="cyan"
               hint={
                 sub?.cancelAtPeriodEnd
-                  ? 'Résiliation programmée'
+                  ? tb.cancel_scheduled
                   : sub?.status === 'active'
-                    ? 'Renouvellement auto'
+                    ? tb.auto_renew
                     : undefined
               }
             />
             <KPICard
               icon={Users}
-              label="Statut"
-              valueText={STATUS_LABEL[sub?.status ?? '']?.label ?? sub?.status ?? '—'}
+              label={tb.kpi_status}
+              valueText={sub ? statusLabel(sub.status) : '—'}
               tone={
                 sub?.needsAction === 'update_payment'
                   ? 'rose'
@@ -444,11 +462,11 @@ function BillingPageInner() {
               }
               hint={
                 sub?.needsAction === 'update_payment'
-                  ? 'Action requise : mettre à jour la CB'
+                  ? tb.hint_update_cb
                   : sub?.needsAction === 'renew'
-                    ? 'Action requise : reprendre un abonnement'
+                    ? tb.hint_resume
                     : sub?.needsAction === 'checkout'
-                      ? 'Action requise : souscrire'
+                      ? tb.hint_subscribe
                       : undefined
               }
             />
@@ -459,8 +477,8 @@ function BillingPageInner() {
             <ActionBanner
               tone="danger"
               icon={AlertTriangle}
-              title="Paiement échoué"
-              body="Ton dernier renouvellement n'a pas pu être encaissé. Mets à jour ton moyen de paiement pour rétablir ton accès."
+              title={tb.banner_payment_failed_title}
+              body={tb.banner_payment_failed_body}
               cta={
                 <Button onClick={openPortal} disabled={busy === 'portal'}>
                   {busy === 'portal' ? (
@@ -468,7 +486,7 @@ function BillingPageInner() {
                   ) : (
                     <ExternalLink className="h-4 w-4" />
                   )}
-                  Mettre à jour la CB
+                  {tb.cta_update_cb}
                 </Button>
               }
             />
@@ -478,8 +496,8 @@ function BillingPageInner() {
             <ActionBanner
               tone="warning"
               icon={XCircle}
-              title="Abonnement en cours de résiliation"
-              body={`Tu gardes ton accès complet jusqu'au ${accessLabel}. Après cette date, ton accès sera coupé sauf si tu réactives l'abonnement.`}
+              title={tb.banner_canceling_title}
+              body={tb.banner_canceling_body.replace('{date}', accessLabel)}
               cta={
                 isAdmin && (
                   <Button onClick={reactivate} disabled={busy === 'reactivate'}>
@@ -488,7 +506,7 @@ function BillingPageInner() {
                     ) : (
                       <RotateCcw className="h-4 w-4" />
                     )}
-                    Réactiver l'abonnement
+                    {tb.cta_reactivate}
                   </Button>
                 )
               }
@@ -500,8 +518,8 @@ function BillingPageInner() {
             <div className="mb-8">
               <h2 className="text-lg font-semibold mb-4">
                 {sub?.hasStripeSubscription && sub.status === 'active'
-                  ? 'Changer de plan'
-                  : 'Choisir un plan'}
+                  ? tb.plans_change_title
+                  : tb.plans_choose_title}
               </h2>
               <div className="grid md:grid-cols-3 gap-4">
                 {plans.map((p) => (
@@ -512,6 +530,8 @@ function BillingPageInner() {
                     onSubscribe={() => subscribe(p.id)}
                     busy={busy === `checkout:${p.id}`}
                     disabled={busy !== null}
+                    t={t}
+                    format={format}
                   />
                 ))}
               </div>
@@ -533,12 +553,14 @@ function BillingPageInner() {
               <Card className="mb-8 border-red-500/20">
                 <CardHeader>
                   <CardTitle className="text-base">
-                    {sub.status === 'trialing' ? "Arrêter l'essai" : 'Résilier l\'abonnement'}
+                    {sub.status === 'trialing'
+                      ? tb.cancel_card_title_trial
+                      : tb.cancel_card_title_paid}
                   </CardTitle>
                   <CardDescription className="text-xs">
                     {sub.status === 'trialing'
-                      ? 'Tu peux arrêter ton essai à tout moment. Tu gardes l\'accès jusqu\'à la fin de la période d\'essai, et aucune carte n\'est débitée.'
-                      : 'La résiliation prend effet à la fin de la période en cours. Tu conserves ton accès complet jusque-là, puis tu peux réactiver à tout moment avant l\'échéance.'}
+                      ? tb.cancel_card_desc_trial
+                      : tb.cancel_card_desc_paid}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -549,7 +571,7 @@ function BillingPageInner() {
                     disabled={busy !== null}
                   >
                     <XCircle className="h-4 w-4" />
-                    {sub.status === 'trialing' ? 'Arrêter mon essai' : 'Résilier mon abonnement'}
+                    {sub.status === 'trialing' ? tb.cancel_btn_trial : tb.cancel_btn_paid}
                   </Button>
                 </CardContent>
               </Card>
@@ -559,10 +581,8 @@ function BillingPageInner() {
           {isAdmin && sub?.hasStripeCustomer && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Gestion avancée</CardTitle>
-                <CardDescription className="text-xs">
-                  Factures passées, CB, mise à jour d'adresse de facturation.
-                </CardDescription>
+                <CardTitle className="text-base">{tb.advanced_title}</CardTitle>
+                <CardDescription className="text-xs">{tb.advanced_desc}</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={openPortal} disabled={busy === 'portal'}>
@@ -571,7 +591,7 @@ function BillingPageInner() {
                   ) : (
                     <ExternalLink className="h-4 w-4" />
                   )}
-                  Ouvrir le portail Stripe
+                  {tb.open_portal}
                 </Button>
               </CardContent>
             </Card>
@@ -580,7 +600,7 @@ function BillingPageInner() {
           {!isAdmin && (
             <Card>
               <CardContent className="p-6 text-xs text-muted-foreground">
-                Seul un admin de l'organisation peut souscrire, changer de plan ou résilier.
+                {tb.non_admin_note}
               </CardContent>
             </Card>
           )}
@@ -592,25 +612,24 @@ function BillingPageInner() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {sub?.status === 'trialing' ? 'Arrêter mon essai ?' : 'Confirmer la résiliation'}
+              {sub?.status === 'trialing'
+                ? tb.dialog_cancel_title_trial
+                : tb.dialog_cancel_title_paid}
             </DialogTitle>
             <DialogDescription>
-              {sub?.status === 'trialing'
-                ? `Ton essai sera arrêté. Tu conserves l'accès jusqu'au ${accessLabel}, puis il sera coupé — aucune carte ne sera débitée. Tu peux réactiver à tout moment avant cette date.`
-                : `Ton abonnement sera résilié à la fin de la période en cours (${accessLabel}). Tu conserves l'accès complet jusque-là, puis il sera coupé. Tu peux réactiver à tout moment avant cette date.`}
+              {(sub?.status === 'trialing'
+                ? tb.dialog_cancel_desc_trial
+                : tb.dialog_cancel_desc_paid
+              ).replace('{date}', accessLabel)}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-row gap-2 sm:justify-between">
             <Button variant="ghost" onClick={() => setCancelOpen(false)}>
-              Revenir en arrière
+              {tb.dialog_go_back}
             </Button>
-            <Button
-              variant="destructive"
-              onClick={cancel}
-              disabled={busy === 'cancel'}
-            >
+            <Button variant="destructive" onClick={cancel} disabled={busy === 'cancel'}>
               {busy === 'cancel' && <Loader2 className="h-4 w-4 animate-spin" />}
-              {sub?.status === 'trialing' ? 'Arrêter mon essai' : 'Confirmer la résiliation'}
+              {sub?.status === 'trialing' ? tb.dialog_confirm_trial : tb.dialog_confirm_paid}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -627,10 +646,8 @@ function BillingPageInner() {
       >
         <DialogContent className="max-w-3xl p-0 overflow-hidden">
           <DialogHeader className="px-6 pt-5 pb-0">
-            <DialogTitle>Paiement sécurisé</DialogTitle>
-            <DialogDescription>
-              Règle ton abonnement sans quitter Centrium — paiement traité par Stripe.
-            </DialogDescription>
+            <DialogTitle>{tb.checkout_title}</DialogTitle>
+            <DialogDescription>{tb.checkout_desc}</DialogDescription>
           </DialogHeader>
           <div
             id="embedded-checkout-container"
@@ -658,9 +675,7 @@ function ExemptCard({ t }: { t: ReturnType<typeof useAppT> }) {
             <div className="text-xs font-semibold tracking-widest text-magenta">
               {t.pages.billing.founder_account_title}
             </div>
-            <h2 className="font-display text-2xl font-bold">
-              {t.pages.billing.no_billing}
-            </h2>
+            <h2 className="font-display text-2xl font-bold">{t.pages.billing.no_billing}</h2>
           </div>
         </div>
         <p className="text-sm text-white/70 leading-relaxed max-w-xl">
@@ -719,13 +734,18 @@ function PlanCard({
   onSubscribe,
   busy,
   disabled,
+  t,
+  format,
 }: {
   plan: Plan;
   currentPlanId: string | null;
   onSubscribe: () => void;
   busy: boolean;
   disabled: boolean;
+  t: ReturnType<typeof useAppT>;
+  format: (amountInEur: number | null, opts?: { maximumFractionDigits?: number }) => string;
 }) {
+  const tb = t.pages.billing;
   const isCurrent = plan.id === currentPlanId;
   // 'enterprise' = plan Illimité (display "Illimité"), désormais souscriptible
   // en self-service comme les autres. Le libellé "Sur devis" ne subsiste que
@@ -739,18 +759,18 @@ function PlanCard({
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base">{plan.name}</CardTitle>
-          {isCurrent && <StatusBadge tone="violet">Actuel</StatusBadge>}
+          {isCurrent && <StatusBadge tone="violet">{tb.plan_current_badge}</StatusBadge>}
         </div>
         <CardDescription>
           {hasPrice ? (
             <>
               <span className="text-lg font-semibold text-foreground">
-                {plan.price_monthly_eur} €
+                {format(plan.price_monthly_eur, { maximumFractionDigits: 2 })}
               </span>
-              <span className="text-xs"> HT / mois</span>
+              <span className="text-xs"> {tb.plan_per_month}</span>
             </>
           ) : (
-            <span className="text-lg font-semibold text-foreground">Sur devis</span>
+            <span className="text-lg font-semibold text-foreground">{tb.plan_on_quote}</span>
           )}
         </CardDescription>
       </CardHeader>
@@ -759,24 +779,24 @@ function PlanCard({
           {plan.max_users != null && (
             <li className="flex items-start gap-2">
               <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-emerald-400" />
-              <span>{plan.max_users} utilisateur{plan.max_users > 1 ? 's' : ''} admin</span>
+              <span>{tb.plan_users_admin.replace('{n}', String(plan.max_users))}</span>
             </li>
           )}
           {plan.max_consultants != null && (
             <li className="flex items-start gap-2">
               <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-emerald-400" />
-              <span>Jusqu'à {plan.max_consultants} consultants</span>
+              <span>{tb.plan_up_to_consultants.replace('{n}', String(plan.max_consultants))}</span>
             </li>
           )}
           {isUnlimited && (
             <>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-emerald-400" />
-                <span>Utilisateurs & consultants illimités</span>
+                <span>{tb.plan_unlimited_users}</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-emerald-400" />
-                <span>Opportunités, contacts & missions illimités</span>
+                <span>{tb.plan_unlimited_crm}</span>
               </li>
             </>
           )}
@@ -789,18 +809,18 @@ function PlanCard({
         </ul>
         {isCurrent ? (
           <Button variant="outline" className="w-full" disabled>
-            Plan actuel
+            {tb.plan_current_btn}
           </Button>
         ) : !hasPrice ? (
           <Button variant="outline" className="w-full" asChild>
             <a href="mailto:contact@centrium-platform.com?subject=Devis Centrium">
-              Contacter les ventes
+              {tb.plan_contact_sales}
             </a>
           </Button>
         ) : (
           <Button className="w-full" onClick={onSubscribe} disabled={disabled || busy}>
             {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            Souscrire
+            {tb.plan_subscribe}
           </Button>
         )}
       </CardContent>
