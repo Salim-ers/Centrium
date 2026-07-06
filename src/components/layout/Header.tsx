@@ -204,7 +204,7 @@ export function Header() {
                     côté serveur (layout /admin + routes API). */}
                 {isFounder && (
                   <Link
-                    href="/admin/clients"
+                    href="/admin/organizations"
                     onClick={() => setMenuOpen(false)}
                     className="flex items-center gap-2 px-4 py-2.5 text-sm text-violet-glow hover:bg-violet-glow/10 transition border-t border-hairline"
                   >

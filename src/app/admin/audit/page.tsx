@@ -1,11 +1,11 @@
-import Link from 'next/link';
-import { ArrowLeft, Activity, AlertTriangle, ShieldAlert, Users as UsersIcon, LogOut } from 'lucide-react';
+import { Activity, AlertTriangle, Users as UsersIcon } from 'lucide-react';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getSuperAdminContext } from '@/lib/auth/super-admin';
 import { redirect } from 'next/navigation';
 
 import { AuditTable } from './AuditTable';
+import { AdminConsoleHeader } from '@/components/admin/AdminConsoleHeader';
 import {
   PageHeader,
   SectionHeader,
@@ -45,39 +45,10 @@ export default async function AdminAuditPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-hairline bg-card/40 backdrop-blur-xl sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <ShieldAlert className="h-6 w-6 text-magenta" />
-            <div>
-              <h1 className="font-display text-lg font-bold tracking-tight">
-                Audit &amp; conformité
-              </h1>
-              <p className="text-[11px] text-muted-foreground">
-                Journal des actions sensibles · multi-tenant
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/admin/clients"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Console admin
-            </Link>
-            <form action="/api/auth/logout" method="POST" className="inline">
-              <button
-                type="submit"
-                className="inline-flex items-center gap-1.5 rounded-md border border-red-500/30 px-2.5 py-1.5 text-xs font-medium text-red-500 hover:bg-red-500/10 transition"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                Déconnexion
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
+      <AdminConsoleHeader
+        title="Audit & conformité"
+        subtitle="Journal des actions sensibles · multi-tenant"
+      />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         <PageHeader

@@ -22,7 +22,7 @@ export default function AdminLoading() {
             <div>
               <h1 className="font-display text-lg font-bold tracking-tight">Console super-admin</h1>
               <p className="text-[11px] text-muted-foreground">
-                Demandes de devis · Provisioning clients
+                Supervision · abonnements · activité
               </p>
             </div>
           </div>

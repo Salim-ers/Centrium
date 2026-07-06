@@ -230,9 +230,9 @@ export async function updateSession(request: NextRequest) {
   // à la console.
   if (isSuperAdmin) {
     if (isAdminRoute || pathname.startsWith('/auth/')) return response;
-    // Toute autre URL → on l'envoie sur sa home admin.
+    // Toute autre URL → home de la super-console (supervision des orgs).
     const url = request.nextUrl.clone();
-    url.pathname = '/admin/clients';
+    url.pathname = '/admin/organizations';
     return NextResponse.redirect(url);
   }
   if (isAdminRoute && !isSuperAdmin && !isFounder) {

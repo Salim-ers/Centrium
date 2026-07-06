@@ -11,8 +11,6 @@ import {
   CheckCircle2,
   XCircle,
   ArrowRight,
-  ArrowLeft,
-  LogOut,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -25,6 +23,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ProvisionClientDialog } from '@/components/admin/ProvisionClientDialog';
+import { AdminConsoleHeader } from '@/components/admin/AdminConsoleHeader';
 import { notifyDestructive, notifyError } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import {
@@ -169,56 +168,23 @@ export default function AdminClientsPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-hairline bg-card/40 backdrop-blur-xl sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Sparkles className="h-6 w-6 text-magenta" />
-            <div>
-              <h1 className="font-display text-lg font-bold tracking-tight">
-                Console super-admin
-              </h1>
-              <p className="text-[11px] text-muted-foreground">
-                Demandes de devis · Provisioning clients
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Retour à l'app : utile pour les fondateurs (comptes admin
-                quotidiens). Les comptes au rôle super_admin dédié sont
-                reroutés vers /admin/clients par le middleware — sans effet
-                pour eux, jamais bloquant. */}
-            <Button variant="outline" size="sm" asChild>
-              <a href="/dashboard" className="inline-flex items-center gap-1.5">
-                <ArrowLeft className="h-3.5 w-3.5" />
-                Retour à l&apos;app
-              </a>
-            </Button>
+      <AdminConsoleHeader
+        title="Console super-admin"
+        subtitle="Demandes de devis · Provisioning clients"
+        actions={
+          <>
             <Button size="sm" asChild className="qc-cta">
               <a href="/admin/new-org" className="inline-flex items-center gap-1.5">
                 <Sparkles className="h-3.5 w-3.5" />
                 Nouvelle organisation
               </a>
             </Button>
-            <Button variant="outline" size="sm" asChild>
-              <a href="/admin/audit">Audit &amp; conformité</a>
-            </Button>
             <Button variant="outline" size="sm" onClick={load}>
               Rafraîchir
             </Button>
-            <form action="/api/auth/logout" method="POST" className="inline">
-              <Button
-                type="submit"
-                variant="outline"
-                size="sm"
-                className="text-red-500 border-red-500/30 hover:bg-red-500/10 hover:text-red-500"
-              >
-                <LogOut className="h-3.5 w-3.5 mr-1.5" />
-                Déconnexion
-              </Button>
-            </form>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         <PageHeader

@@ -79,6 +79,23 @@ const schema = z.object({
     .default('trial_7d'),
 });
 
+// =========================================================================
+// GET /api/admin/organizations — supervision : TOUTES les organisations
+// (nouvelles, anciennes, actives ou non) avec leurs stats agrégées.
+// Une seule requête (RPC admin_org_overview). Super_admin only.
+// =========================================================================
+export async function GET() {
+  const user = await requireSuperAdmin();
+  if (!user) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+
+  const admin = createAdminClient('cross-org-query');
+  const { data, error } = await admin.rpc('admin_org_overview');
+  if (error) {
+    return NextResponse.json({ error: 'list_failed', message: error.message }, { status: 500 });
+  }
+  return NextResponse.json({ data: data ?? [] });
+}
+
 export async function POST(req: NextRequest) {
   const user = await requireSuperAdmin();
   if (!user) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
