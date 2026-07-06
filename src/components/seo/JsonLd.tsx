@@ -77,7 +77,7 @@ export function JsonLd() {
         description: 'Custom quote within 48h. No public grid. EU-hosted, GDPR-compliant.',
       },
       availability: 'https://schema.org/InStock',
-      url: `${SITE.url}/devis`,
+      url: `${SITE.url}/essai`,
     },
     featureList: [
       'Consultant library with AI CV parsing',

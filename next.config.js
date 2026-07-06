@@ -104,6 +104,16 @@ const nextConfig = {
         destination: 'https://www.centrium-platform.com/:path*',
         permanent: true,
       },
+      // L'ancien tunnel devis (demande → validation manuelle → email de
+      // paiement) est remplacé par le self-signup carte-à-l'inscription
+      // (/essai). On redirige tout lien résiduel (favori, footer, lien
+      // externe) vers le nouveau parcours. Temporaire (307) le temps que
+      // le funnel se stabilise.
+      {
+        source: '/devis',
+        destination: '/essai',
+        permanent: false,
+      },
     ];
   },
 };

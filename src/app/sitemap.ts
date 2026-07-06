@@ -28,7 +28,7 @@ const PAGES: Page[] = [
   { path: '/plateforme', changeFrequency: 'monthly', priority: 0.9 },
   { path: '/engagements', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/pricing', changeFrequency: 'monthly', priority: 0.9 },
-  { path: '/devis', changeFrequency: 'monthly', priority: 0.7 },
+  { path: '/essai', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/legal/mentions', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/legal/privacy', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/legal/cgu', changeFrequency: 'yearly', priority: 0.3 },
