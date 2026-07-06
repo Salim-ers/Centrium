@@ -9,6 +9,7 @@ import {
   type StripePlanId,
 } from '@/lib/billing/config';
 import { slugify } from '@/lib/utils';
+import { rateLimit, callerIp } from '@/lib/security/rate-limit';
 
 // =========================================================================
 // POST /api/demo/signup — Self-signup « Demander une démo » (public).
@@ -59,6 +60,24 @@ async function uniqueSlug(
 }
 
 export async function POST(req: NextRequest) {
+  // Anti-abus : endpoint public de création de compte. Limite par IP
+  // (5 / heure) et par email (3 / heure) — large pour un usage légitime,
+  // bloque la création en masse de comptes junk. Défense en profondeur
+  // (un attaquant déterminé peut varier l'IP) — pour un blocage dur,
+  // activer aussi le rate limit Supabase Auth.
+  const ip = callerIp(req);
+  const ipLimit = await rateLimit(`demo:signup:ip:${ip}`, { limit: 5, windowSec: 3600 });
+  if (!ipLimit.ok) {
+    const retryAfter = Math.ceil((ipLimit.resetAt - Date.now()) / 1000);
+    return NextResponse.json(
+      {
+        error: 'rate_limited',
+        message: 'Trop de tentatives depuis cette connexion. Réessaie dans quelques minutes.',
+      },
+      { status: 429, headers: { 'Retry-After': String(retryAfter) } },
+    );
+  }
+
   const parsed = schema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json(
@@ -68,6 +87,17 @@ export async function POST(req: NextRequest) {
   }
   const data = parsed.data;
   const email = data.email.trim().toLowerCase();
+
+  const emailLimit = await rateLimit(`demo:signup:email:${email}`, { limit: 3, windowSec: 3600 });
+  if (!emailLimit.ok) {
+    return NextResponse.json(
+      {
+        error: 'rate_limited',
+        message: 'Trop de tentatives avec cet email. Réessaie dans quelques minutes ou connecte-toi.',
+      },
+      { status: 429 },
+    );
+  }
 
   // Vérifie le plan AVANT de créer quoi que ce soit (fail fast si Stripe
   // n'est pas configuré).

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -20,6 +20,7 @@ import {
   Trash2,
   AlertTriangle,
   Loader2,
+  Ban,
 } from 'lucide-react';
 
 import { AdminConsoleHeader } from '@/components/admin/AdminConsoleHeader';
@@ -224,24 +225,26 @@ export default function AdminOrganizationDetailPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!params?.id) return;
-    (async () => {
-      try {
-        const res = await fetch(`/api/admin/organizations/${params.id}`, { cache: 'no-store' });
-        if (!res.ok) {
-          setNotFound(true);
-          return;
-        }
-        const body = (await res.json()) as { data: Detail };
-        setDetail(body.data);
-      } catch {
+    try {
+      const res = await fetch(`/api/admin/organizations/${params.id}`, { cache: 'no-store' });
+      if (!res.ok) {
         setNotFound(true);
-      } finally {
-        setLoading(false);
+        return;
       }
-    })();
+      const body = (await res.json()) as { data: Detail };
+      setDetail(body.data);
+    } catch {
+      setNotFound(true);
+    } finally {
+      setLoading(false);
+    }
   }, [params?.id]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -279,14 +282,14 @@ export default function AdminOrganizationDetailPage() {
             </Button>
           </div>
         ) : (
-          <OrgDetail detail={detail} />
+          <OrgDetail detail={detail} onChanged={load} />
         )}
       </main>
     </div>
   );
 }
 
-function OrgDetail({ detail }: { detail: Detail }) {
+function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => void | Promise<void> }) {
   const router = useRouter();
   const { org, subscription, usage, members, counts, activities } = detail;
   const status = deriveOrgStatus({
@@ -297,11 +300,34 @@ function OrgDetail({ detail }: { detail: Detail }) {
   });
   const cityLine = [org.postal_code, org.city].filter(Boolean).join(' ');
   const isExempt = !!subscription?.is_exempt_from_billing;
+  // Suspendable = non exempt et pas déjà coupé.
+  const canSuspend =
+    !isExempt && !!subscription && !['canceled', 'paused'].includes(subscription.status ?? '');
 
   // Suppression définitive — confirmation par saisie du nom exact.
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [suspending, setSuspending] = useState(false);
+
+  async function handleSuspend() {
+    if (!window.confirm(`Suspendre l'accès de « ${org.name} » ? L'abonnement est résilié (aucun débit) et l'accès coupé. Les données sont conservées.`)) {
+      return;
+    }
+    setSuspending(true);
+    try {
+      const res = await fetch(`/api/admin/organizations/${org.id}/suspend`, { method: 'POST' });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(body.message ?? 'Suspension impossible');
+        return;
+      }
+      toast.success(`Accès de « ${org.name} » suspendu`);
+      await onChanged();
+    } finally {
+      setSuspending(false);
+    }
+  }
 
   async function handleDelete() {
     setDeleting(true);
@@ -375,6 +401,22 @@ function OrgDetail({ detail }: { detail: Detail }) {
           </div>
         </AppCardBody>
       </AppCard>
+
+      {/* Barre d'oversight : suspendre l'accès (garde les données). */}
+      {canSuspend && (
+        <div className="flex justify-end -mt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSuspend}
+            disabled={suspending}
+            className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10 hover:text-amber-400"
+          >
+            {suspending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
+            Suspendre l&apos;accès
+          </Button>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Abonnement */}
