@@ -17,6 +17,7 @@ const FORCED_DARK_PATHS = [
   '/register',
   '/forgot-password',
   '/devis',
+  '/essai',
   '/pricing',
   '/tarifs',
   '/plateforme',

@@ -211,7 +211,7 @@ function EssaiInner() {
         <Button
           type="submit"
           disabled={submitting}
-          className="w-full h-11 bg-gradient-to-r from-violet-glow to-magenta-neon hover:opacity-95 text-white"
+          className="w-full h-11 bg-qc-gradient hover:opacity-90 shadow-glow-magenta text-white"
         >
           {submitting ? (
             <Loader2 className="h-4 w-4 animate-spin" />
