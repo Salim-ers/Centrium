@@ -157,7 +157,9 @@ async function extractPdfText(buf: Buffer): Promise<string> {
     const { default: Anthropic } = await import('@anthropic-ai/sdk');
     const client = new Anthropic({ apiKey });
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      // OCR de secours (PDF scanné / image) : Haiku 4.5 est vision-capable et
+      // nettement plus rapide que Sonnet pour de la transcription texte.
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 8000,
       messages: [
         {
