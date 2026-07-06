@@ -18,7 +18,7 @@ import { claimPendingInvitation } from '@/lib/auth/claim-invitation';
 export const runtime = 'nodejs';
 
 const schema = z.object({
-  password: z.string().min(8, '8 caractères minimum').max(256),
+  password: z.string().min(12, '12 caractères minimum').max(256),
 });
 
 export async function POST(req: NextRequest) {

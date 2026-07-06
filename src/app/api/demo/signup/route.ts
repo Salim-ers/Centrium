@@ -37,7 +37,7 @@ const schema = z.object({
   first_name: z.string().min(1, 'Prénom requis').max(80),
   last_name: z.string().min(1, 'Nom requis').max(80),
   email: z.string().email('Email invalide'),
-  password: z.string().min(8, '8 caractères minimum').max(256),
+  password: z.string().min(12, '12 caractères minimum').max(256),
   plan_id: z.enum(['starter', 'growth', 'enterprise']).default('starter'),
 });
 

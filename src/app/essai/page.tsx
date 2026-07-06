@@ -148,8 +148,8 @@ function EssaiInner() {
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="8 caractères minimum"
-              minLength={8}
+              placeholder="12 caractères minimum"
+              minLength={12}
               required
               className="pl-9"
             />

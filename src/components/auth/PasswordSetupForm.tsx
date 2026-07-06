@@ -147,8 +147,8 @@ export function PasswordSetupForm({ mode }: { mode: Mode }) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (password.length < 8) {
-      notifyError('Mot de passe : 8 caractères minimum');
+    if (password.length < 12) {
+      notifyError('Mot de passe : 12 caractères minimum');
       return;
     }
     if (password !== confirm) {
@@ -302,7 +302,8 @@ export function PasswordSetupForm({ mode }: { mode: Mode }) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-9"
-                  placeholder="8 caractères minimum"
+                  placeholder="12 caractères minimum"
+                  minLength={12}
                   autoComplete="new-password"
                   required
                 />

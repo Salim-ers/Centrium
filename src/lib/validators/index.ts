@@ -214,7 +214,7 @@ export type LoginInput = z.infer<typeof loginSchema>;
 
 export const signupSchema = z.object({
   email: z.string().email('Email invalide'),
-  password: z.string().min(8, 'Mot de passe : 8 caractères minimum'),
+  password: z.string().min(12, 'Mot de passe : 12 caractères minimum'),
   first_name: z.string().min(1, 'Prénom requis').max(100),
   last_name: z.string().min(1, 'Nom requis').max(100),
 });
