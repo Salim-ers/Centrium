@@ -83,6 +83,20 @@ export default function LoginPage() {
     window.history.replaceState(null, '', '/login');
   }, []);
 
+  // Retour du paiement Stripe après le self-signup (/essai) : essai démarré.
+  // On pré-remplit l'email et on souhaite la bienvenue.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('welcome') !== 'trial') return;
+    const email = params.get('email');
+    if (email) setValue('email', email);
+    toast.success('🎉 Ton essai a démarré ! Connecte-toi pour accéder à ton espace.', {
+      duration: 9000,
+    });
+    window.history.replaceState(null, '', '/login');
+  }, [setValue]);
+
   async function onSubmit(values: LoginInput) {
     setLoading(true);
 
