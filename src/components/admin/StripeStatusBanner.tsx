@@ -1,7 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { CheckCircle2, AlertTriangle, Loader2, CreditCard } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { CheckCircle2, AlertTriangle, Loader2, CreditCard, Sparkles } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
 
 type PriceInfo = {
   set: boolean;
@@ -35,14 +38,39 @@ const MODE_LABEL: Record<string, string> = {
 export function StripeStatusBanner() {
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
+  const [setup, setSetup] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch('/api/admin/stripe-status', { cache: 'no-store' });
+      const b = r.ok ? ((await r.json()) as { data: Status }) : null;
+      setStatus(b?.data ?? null);
+    } catch {
+      setStatus(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    fetch('/api/admin/stripe-status', { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((b: { data: Status } | null) => setStatus(b?.data ?? null))
-      .catch(() => setStatus(null))
-      .finally(() => setLoading(false));
-  }, []);
+    void load();
+  }, [load]);
+
+  async function createLivePrices() {
+    setSetup(true);
+    try {
+      const res = await fetch('/api/admin/stripe-setup-prices', { method: 'POST' });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(body.message ?? 'Création des prix impossible');
+        return;
+      }
+      toast.success(body.data?.message ?? 'Prix créés');
+      await load();
+    } finally {
+      setSetup(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -94,6 +122,25 @@ export function StripeStatusBanner() {
             <Line label="Prix Medium" value={priceBadge(status.prices.medium ?? { set: false })} good={status.prices.medium?.livemode === true} />
             <Line label="Prix Illimité" value={priceBadge(status.prices.enterprise ?? { set: false })} good={status.prices.enterprise?.livemode === true} />
           </div>
+
+          {/* Clé live mais prix pas encore live → on les crée en 1 clic. */}
+          {status.secretKeyMode === 'live' && !ok && (
+            <div className="mt-3">
+              <Button
+                size="sm"
+                onClick={createLivePrices}
+                disabled={setup}
+                className="bg-qc-gradient hover:opacity-90 text-white"
+              >
+                {setup ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                Créer les prix en LIVE
+              </Button>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                Crée les 3 prix (Starter/Medium/Illimité) dans ton compte Stripe live et les
+                enregistre — aucune variable Vercel à changer.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

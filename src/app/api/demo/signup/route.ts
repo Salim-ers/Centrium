@@ -4,10 +4,10 @@ import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getStripe } from '@/lib/billing/stripe';
 import {
-  requireStripePriceId,
   StripeConfigError,
   type StripePlanId,
 } from '@/lib/billing/config';
+import { resolveStripePriceId } from '@/lib/billing/resolve-price';
 import { slugify } from '@/lib/utils';
 import { rateLimit, callerIp } from '@/lib/security/rate-limit';
 
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
   }
   let priceId: string;
   try {
-    priceId = requireStripePriceId(data.plan_id);
+    priceId = await resolveStripePriceId(data.plan_id);
   } catch (e) {
     if (e instanceof StripeConfigError) {
       console.error(`[demo/signup] ${e.envVar} ${e.kind} — plan=${data.plan_id}`);

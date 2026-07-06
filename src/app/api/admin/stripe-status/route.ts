@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 
 import { getSuperAdminContext } from '@/lib/auth/super-admin';
 import { getStripe } from '@/lib/billing/stripe';
+import { resolveStripePriceId } from '@/lib/billing/resolve-price';
+import type { StripePlanId } from '@/lib/billing/config';
 
 // =========================================================================
 // GET /api/admin/stripe-status — Diagnostic de configuration Stripe.
@@ -39,28 +41,31 @@ export async function GET() {
   );
   const webhookSecretSet = !!process.env.STRIPE_WEBHOOK_SECRET?.startsWith('whsec_');
 
-  const priceEnv: Record<string, string | undefined> = {
-    starter: process.env.STRIPE_STARTER_PRICE_ID,
-    medium: process.env.STRIPE_MEDIUM_PRICE_ID,
-    enterprise: process.env.STRIPE_ENTERPRISE_PRICE_ID,
-  };
-
-  // Interroge Stripe pour chaque prix : révèle livemode + montant. Échoue si
-  // le prix n'appartient pas au mode de la clé (test vs live) → info précieuse.
+  // Résout le prix RÉELLEMENT utilisé par le checkout (base d'abord, env en
+  // fallback) puis l'interroge chez Stripe : révèle livemode + montant.
+  // Échoue si le prix n'est pas du même mode que la clé → info précieuse.
+  const PLAN_KEYS: { key: string; plan: StripePlanId }[] = [
+    { key: 'starter', plan: 'starter' },
+    { key: 'medium', plan: 'growth' },
+    { key: 'enterprise', plan: 'enterprise' },
+  ];
   const prices: Record<string, unknown> = {};
   const stripeReady = secretKeyMode === 'live' || secretKeyMode === 'test';
-  for (const [plan, id] of Object.entries(priceEnv)) {
-    if (!id) {
-      prices[plan] = { set: false };
+  for (const { key, plan } of PLAN_KEYS) {
+    let id: string;
+    try {
+      id = await resolveStripePriceId(plan);
+    } catch {
+      prices[key] = { set: false };
       continue;
     }
     if (!stripeReady) {
-      prices[plan] = { set: true, id_prefix: id.slice(0, 8), checked: false };
+      prices[key] = { set: true, id_prefix: id.slice(0, 8), checked: false };
       continue;
     }
     try {
       const price = await getStripe().prices.retrieve(id);
-      prices[plan] = {
+      prices[key] = {
         set: true,
         found: true,
         livemode: price.livemode, // true = prix LIVE, false = prix TEST
@@ -69,7 +74,7 @@ export async function GET() {
         recurring: !!price.recurring,
       };
     } catch (e) {
-      prices[plan] = {
+      prices[key] = {
         set: true,
         found: false,
         error: e instanceof Error ? e.message : 'retrieve_failed',

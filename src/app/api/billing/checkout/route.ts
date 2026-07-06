@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/billing/stripe';
 import {
-  requireStripePriceId,
   StripeConfigError,
   type StripePlanId,
 } from '@/lib/billing/config';
+import { resolveStripePriceId } from '@/lib/billing/resolve-price';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireOrg } from '@/lib/auth/guards';
 
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
   // 4) Résout le Price ID depuis env vars. Erreur claire si absent/mal formé.
   let priceId: string;
   try {
-    priceId = requireStripePriceId(planId as StripePlanId);
+    priceId = await resolveStripePriceId(planId as StripePlanId);
   } catch (e) {
     if (e instanceof StripeConfigError) {
       // Log côté serveur pour l'ops, réponse générique côté client
