@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import {
   ArrowLeft,
   Building2,
-  CreditCard,
   Users,
   Activity,
   Receipt,
@@ -17,10 +17,22 @@ import {
   ClipboardCheck,
   Banknote,
   ShieldCheck,
+  Trash2,
+  AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 
 import { AdminConsoleHeader } from '@/components/admin/AdminConsoleHeader';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import {
   SectionHeader,
   AppCard,
@@ -275,6 +287,7 @@ export default function AdminOrganizationDetailPage() {
 }
 
 function OrgDetail({ detail }: { detail: Detail }) {
+  const router = useRouter();
   const { org, subscription, usage, members, counts, activities } = detail;
   const status = deriveOrgStatus({
     status: subscription?.status,
@@ -283,6 +296,32 @@ function OrgDetail({ detail }: { detail: Detail }) {
     is_exempt_from_billing: subscription?.is_exempt_from_billing,
   });
   const cityLine = [org.postal_code, org.city].filter(Boolean).join(' ');
+  const isExempt = !!subscription?.is_exempt_from_billing;
+
+  // Suppression définitive — confirmation par saisie du nom exact.
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/organizations/${org.id}`, { method: 'DELETE' });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(body.message ?? 'Suppression impossible');
+        return;
+      }
+      const extra =
+        body.data?.authAccountsDeleted > 0
+          ? ` · ${body.data.authAccountsDeleted} compte(s) supprimé(s)`
+          : '';
+      toast.success(`« ${org.name} » supprimée${extra}`);
+      router.push('/admin/organizations');
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -510,6 +549,101 @@ function OrgDetail({ detail }: { detail: Detail }) {
           </AppCard>
         </section>
       </div>
+
+      {/* ===== Zone de danger ===== */}
+      <section>
+        <SectionHeader
+          eyebrow="Zone de danger"
+          title={<>Supprimer <span className="qc-italic-accent font-editorial italic">l'organisation.</span></>}
+          description="Action définitive et irréversible."
+        />
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/[0.04] p-4 sm:p-5">
+          {isExempt ? (
+            <div className="flex items-start gap-3 text-sm text-muted-foreground">
+              <ShieldCheck className="h-5 w-5 text-violet-400 shrink-0 mt-0.5" />
+              <div>
+                <div className="font-medium text-foreground">Organisation protégée</div>
+                Cette organisation est exemptée de facturation (compte fondateur/interne) et ne
+                peut pas être supprimée depuis la console.
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="flex items-start gap-3 text-sm">
+                <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+                <div className="max-w-xl">
+                  <div className="font-medium text-foreground">
+                    Supprimer définitivement « {org.name} »
+                  </div>
+                  <p className="text-muted-foreground mt-0.5">
+                    Toutes les données de l'organisation (consultants, missions, factures,
+                    contrats, CRA, membres…) seront <strong>effacées</strong> et les comptes
+                    utilisateurs associés supprimés. L'abonnement Stripe est annulé. La demande de
+                    devis liée, elle, est conservée. Cette action est irréversible.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                className="border-red-500/40 text-red-400 hover:bg-red-500/10 hover:text-red-400"
+                onClick={() => {
+                  setConfirmText('');
+                  setConfirmOpen(true);
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+                Supprimer
+              </Button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Dialog de confirmation — saisie du nom exact */}
+      <Dialog open={confirmOpen} onOpenChange={(o) => !deleting && setConfirmOpen(o)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-400" />
+              Supprimer « {org.name} » ?
+            </DialogTitle>
+            <DialogDescription>
+              Cette action est <strong>définitive</strong>. Pour confirmer, saisis le nom exact de
+              l'organisation ci-dessous.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input
+              autoFocus
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder={org.name}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && confirmText.trim() === org.name.trim() && !deleting) {
+                  void handleDelete();
+                }
+              }}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Tape <span className="font-mono text-foreground">{org.name}</span> pour activer le
+              bouton.
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={deleting}>
+              Annuler
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={deleting || confirmText.trim() !== org.name.trim()}
+              onClick={handleDelete}
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Supprimer définitivement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

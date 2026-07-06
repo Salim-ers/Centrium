@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getSuperAdminContext } from '@/lib/auth/super-admin';
 import { getQuotaUsage } from '@/lib/billing/enforce';
+import { getStripe } from '@/lib/billing/stripe';
 
 // =========================================================================
 // GET /api/admin/organizations/:id — fiche complète de supervision d'une org
@@ -153,4 +154,85 @@ function buildCount(admin: ReturnType<typeof createAdminClient>, table: string, 
     .from(table)
     .select('id', { count: 'exact', head: true })
     .eq('organization_id', orgId);
+}
+
+// =========================================================================
+// DELETE /api/admin/organizations/:id — suppression DÉFINITIVE d'une org.
+// -------------------------------------------------------------------------
+// Super_admin only. Garde-fous :
+//   - refus si l'org est exemptée (protège l'org fondateur QuadCore)
+//   - annule l'abonnement Stripe (immédiat) pour ne pas continuer à facturer
+//   - supprime la ligne organizations → CASCADE sur toutes les données
+//     org-scopées (profils, consultants, missions, factures, contrats…)
+//   - nettoie les comptes auth.users devenus orphelins (membres + consultants
+//     portail), en épargnant le fondateur / super_admin et l'appelant
+// La demande de devis liée (quote_requests) est dé-liée (SET NULL) → elle
+// réapparaît comme convertible.
+// =========================================================================
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  const ctx = await getSuperAdminContext();
+  if (!ctx) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+
+  const orgId = params.id;
+  const admin = createAdminClient('org-deletion');
+
+  const { data: org } = await admin
+    .from('organizations')
+    .select('id, name')
+    .eq('id', orgId)
+    .maybeSingle();
+  if (!org) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+
+  const { data: sub } = await admin
+    .from('subscriptions')
+    .select('stripe_subscription_id, is_exempt_from_billing')
+    .eq('organization_id', orgId)
+    .maybeSingle();
+
+  // Garde-fou : on ne supprime jamais une org exemptée (fondateurs / interne).
+  if (sub?.is_exempt_from_billing) {
+    return NextResponse.json(
+      {
+        error: 'exempt_protected',
+        message:
+          'Cette organisation est exemptée de facturation (compte fondateur/interne) et ne peut pas être supprimée depuis la console.',
+      },
+      { status: 400 },
+    );
+  }
+
+  // Comptes auth à nettoyer APRÈS la cascade : on capture avant suppression.
+  // On épargne les fondateurs, les super_admin et l'appelant lui-même.
+  const { data: orgProfiles } = await admin
+    .from('profiles')
+    .select('id, role, is_founder')
+    .eq('organization_id', orgId);
+  const authUserIds = (orgProfiles ?? [])
+    .filter((p) => !p.is_founder && p.role !== 'super_admin' && p.id !== ctx.user.id)
+    .map((p) => p.id as string);
+
+  // Annulation Stripe immédiate (best-effort — ne bloque jamais la suppression).
+  if (sub?.stripe_subscription_id) {
+    try {
+      await getStripe().subscriptions.cancel(sub.stripe_subscription_id);
+    } catch {
+      /* subscription test/déjà annulée/inexistante — on continue */
+    }
+  }
+
+  // Suppression de l'org → CASCADE sur toutes les tables org-scopées.
+  const { error: delErr } = await admin.from('organizations').delete().eq('id', orgId);
+  if (delErr) {
+    return NextResponse.json({ error: 'delete_failed', message: delErr.message }, { status: 500 });
+  }
+
+  // Nettoyage des comptes auth orphelins (best-effort, en parallèle).
+  const cleanup = await Promise.allSettled(
+    authUserIds.map((uid) => admin.auth.admin.deleteUser(uid)),
+  );
+  const authDeleted = cleanup.filter((r) => r.status === 'fulfilled').length;
+
+  return NextResponse.json({
+    data: { deleted: true, name: org.name, authAccountsDeleted: authDeleted },
+  });
 }

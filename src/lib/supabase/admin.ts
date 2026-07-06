@@ -29,7 +29,8 @@ type AdminReason =
   | 'billing-reactivate' // POST /api/billing/reactivate
   | 'billing-subscription' // GET /api/billing/subscription state snapshot
   | 'password-set' // POST /api/auth/update-password → profiles.password_set
-  | 'team-management'; // liste / suppression membres + invitations (settings/team)
+  | 'team-management' // liste / suppression membres + invitations (settings/team)
+  | 'org-deletion'; // suppression d'une organisation depuis la super-console
 
 export function createAdminClient(reason: AdminReason): SupabaseClient {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
