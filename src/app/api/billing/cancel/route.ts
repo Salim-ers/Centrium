@@ -28,7 +28,9 @@ export async function POST() {
   const admin = createAdminClient('billing-cancel');
   const { data: sub } = await admin
     .from('subscriptions')
-    .select('stripe_subscription_id, is_exempt_from_billing')
+    .select(
+      'stripe_subscription_id, is_exempt_from_billing, status, trial_end, current_period_end',
+    )
     .eq('organization_id', ctx.organizationId)
     .maybeSingle();
 
@@ -39,11 +41,46 @@ export async function POST() {
     );
   }
 
-  if (!sub?.stripe_subscription_id) {
+  if (!sub) {
     return NextResponse.json(
       { error: 'no_active_subscription', message: 'Aucune subscription active à annuler.' },
       { status: 400 },
     );
+  }
+
+  // --- Cas essai / abonnement provisionné SANS Stripe (aucune carte) --------
+  // Ces comptes (créés via la super console, ou essai posé sans checkout) n'ont
+  // pas de subscription Stripe à annuler. On résilie directement en base : on
+  // pose cancel_at_period_end=true et on garde l'accès jusqu'à la fin d'essai /
+  // période. Aucune carte à débiter → l'accès tombe simplement à l'échéance.
+  if (!sub.stripe_subscription_id) {
+    const now = new Date();
+    const trialEnd = sub.trial_end ? new Date(sub.trial_end) : null;
+    const periodEnd = sub.current_period_end ? new Date(sub.current_period_end) : null;
+    const accessEnd =
+      trialEnd && trialEnd > now ? trialEnd : periodEnd && periodEnd > now ? periodEnd : null;
+
+    const { error: updErr } = await admin
+      .from('subscriptions')
+      .update({
+        cancel_at_period_end: true,
+        // Pas d'échéance future → on coupe tout de suite (statut canceled).
+        ...(accessEnd ? {} : { status: 'canceled' }),
+      })
+      .eq('organization_id', ctx.organizationId);
+
+    if (updErr) {
+      return NextResponse.json(
+        { error: 'db_error', message: updErr.message },
+        { status: 500 },
+      );
+    }
+    return NextResponse.json({
+      data: {
+        cancel_at_period_end: true,
+        current_period_end: accessEnd?.toISOString() ?? null,
+      },
+    });
   }
 
   const stripe = getStripe();

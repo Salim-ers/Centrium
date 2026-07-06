@@ -36,7 +36,7 @@ export async function POST() {
     );
   }
 
-  if (!sub?.stripe_subscription_id) {
+  if (!sub) {
     return NextResponse.json(
       {
         error: 'no_subscription',
@@ -52,6 +52,31 @@ export async function POST() {
       { error: 'not_canceled', message: 'La subscription n\'est pas en cours d\'annulation.' },
       { status: 400 },
     );
+  }
+
+  // Cas essai / abonnement sans Stripe : la résiliation a été posée en base
+  // (cf. /api/billing/cancel). Réactiver = simplement lever le flag en base.
+  // Si le statut avait été coupé (canceled) sans échéance future, il faut
+  // repasser par un checkout — on refuse proprement.
+  if (!sub.stripe_subscription_id) {
+    if (sub.status === 'canceled') {
+      return NextResponse.json(
+        {
+          error: 'no_subscription',
+          message:
+            'Ton accès est terminé. Reprends un abonnement via la page /billing.',
+        },
+        { status: 400 },
+      );
+    }
+    const { error: updErr } = await admin
+      .from('subscriptions')
+      .update({ cancel_at_period_end: false })
+      .eq('organization_id', ctx.organizationId);
+    if (updErr) {
+      return NextResponse.json({ error: 'db_error', message: updErr.message }, { status: 500 });
+    }
+    return NextResponse.json({ data: { reactivated: true } });
   }
 
   const stripe = getStripe();

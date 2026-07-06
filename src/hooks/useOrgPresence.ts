@@ -95,6 +95,14 @@ export function useOrgPresence(): {
   const orgId = org?.activeOrgId ?? null;
   const userId = org?.user?.id ?? null;
   const userEmail = org?.user?.email ?? '';
+  // Prénom/nom viennent du CONTEXTE auth (déjà résolu — c'est ce qu'affiche le
+  // menu profil : "Alphonse CHIEN"). On ne dépend plus du fetch `profiles`
+  // ci-dessous pour les initiales : il était racé et, tant qu'il n'avait pas
+  // répondu, on retombait sur les initiales dérivées de l'email — d'où un
+  // "SE" (salim.eljc+2@…) au lieu de "AC" sur les comptes dont l'email est un
+  // alias. Le fetch ne sert donc plus qu'à récupérer l'avatar.
+  const userFirst = org?.user?.firstName ?? null;
+  const userLast = org?.user?.lastName ?? null;
 
   const [users, setUsers] = useState<PresentUser[]>([]);
   const profileRef = useRef<{ first: string | null; last: string | null; avatar: string | null }>({
@@ -161,8 +169,8 @@ export function useOrgPresence(): {
           const payload: TrackedPayload = {
             user_id: userId,
             email: userEmail,
-            first_name: profileRef.current.first,
-            last_name: profileRef.current.last,
+            first_name: userFirst ?? profileRef.current.first,
+            last_name: userLast ?? profileRef.current.last,
             avatar_url: profileRef.current.avatar,
             online_at: new Date().toISOString(),
           };
@@ -201,15 +209,18 @@ export function useOrgPresence(): {
       const payload: TrackedPayload = {
         user_id: userId,
         email: userEmail,
-        first_name: profileRef.current.first,
-        last_name: profileRef.current.last,
+        first_name: userFirst ?? profileRef.current.first,
+        last_name: userLast ?? profileRef.current.last,
         avatar_url: profileRef.current.avatar,
         online_at: new Date().toISOString(),
       };
       s.channel.track(payload).catch(() => {});
     }, 800);
     return () => clearTimeout(handle);
-  }, [orgId, userId, userEmail]);
+    // userFirst/userLast : re-track quand le nom du contexte arrive (ou change)
+    // pour corriger les initiales sans recréer la channel.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId, userId, userEmail, userFirst, userLast]);
 
   const me = useMemo(() => users.find((u) => u.userId === userId) ?? null, [users, userId]);
   const others = useMemo(() => users.filter((u) => u.userId !== userId), [users, userId]);

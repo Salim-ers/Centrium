@@ -518,6 +518,43 @@ function BillingPageInner() {
             </div>
           )}
 
+          {/* Résiliation — TOUJOURS accessible à l'admin quand l'abo est actif
+              ou en essai, indépendamment d'un client Stripe. Les essais
+              provisionnés (super console) n'ont pas de client Stripe : avant,
+              ce bouton vivait dans la carte "Gestion avancée" conditionnée à
+              hasStripeCustomer → elle n'apparaissait jamais et on ne pouvait
+              PAS résilier. La route /api/billing/cancel gère aussi le cas sans
+              subscription Stripe (résiliation en base). */}
+          {isAdmin &&
+            sub &&
+            !sub.isExempt &&
+            !sub.cancelAtPeriodEnd &&
+            (sub.status === 'active' || sub.status === 'trialing') && (
+              <Card className="mb-8 border-red-500/20">
+                <CardHeader>
+                  <CardTitle className="text-base">
+                    {sub.status === 'trialing' ? "Arrêter l'essai" : 'Résilier l\'abonnement'}
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    {sub.status === 'trialing'
+                      ? 'Tu peux arrêter ton essai à tout moment. Tu gardes l\'accès jusqu\'à la fin de la période d\'essai, et aucune carte n\'est débitée.'
+                      : 'La résiliation prend effet à la fin de la période en cours. Tu conserves ton accès complet jusque-là, puis tu peux réactiver à tout moment avant l\'échéance.'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    variant="outline"
+                    className="text-red-400 hover:text-red-300 border-red-500/30 hover:border-red-400/60"
+                    onClick={() => setCancelOpen(true)}
+                    disabled={busy !== null}
+                  >
+                    <XCircle className="h-4 w-4" />
+                    {sub.status === 'trialing' ? 'Arrêter mon essai' : 'Résilier mon abonnement'}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
           {/* Gestion Stripe portal */}
           {isAdmin && sub?.hasStripeCustomer && (
             <Card>
@@ -536,19 +573,6 @@ function BillingPageInner() {
                   )}
                   Ouvrir le portail Stripe
                 </Button>
-                {sub.hasStripeSubscription &&
-                  (sub.status === 'active' || sub.status === 'trialing') &&
-                  !sub.cancelAtPeriodEnd && (
-                    <Button
-                      variant="ghost"
-                      className="text-red-400 hover:text-red-300"
-                      onClick={() => setCancelOpen(true)}
-                      disabled={busy !== null}
-                    >
-                      <XCircle className="h-4 w-4" />
-                      {sub.status === 'trialing' ? "Arrêter l'essai / résilier" : "Annuler l'abonnement"}
-                    </Button>
-                  )}
               </CardContent>
             </Card>
           )}
@@ -567,11 +591,13 @@ function BillingPageInner() {
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Confirmer l'annulation</DialogTitle>
+            <DialogTitle>
+              {sub?.status === 'trialing' ? 'Arrêter mon essai ?' : 'Confirmer la résiliation'}
+            </DialogTitle>
             <DialogDescription>
-              Ton abonnement sera résilié à la fin de la période en cours (
-              {accessLabel}). Tu conserves l'accès complet jusque-là, puis il sera coupé.
-              Tu peux réactiver à tout moment avant cette date.
+              {sub?.status === 'trialing'
+                ? `Ton essai sera arrêté. Tu conserves l'accès jusqu'au ${accessLabel}, puis il sera coupé — aucune carte ne sera débitée. Tu peux réactiver à tout moment avant cette date.`
+                : `Ton abonnement sera résilié à la fin de la période en cours (${accessLabel}). Tu conserves l'accès complet jusque-là, puis il sera coupé. Tu peux réactiver à tout moment avant cette date.`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-row gap-2 sm:justify-between">
@@ -584,7 +610,7 @@ function BillingPageInner() {
               disabled={busy === 'cancel'}
             >
               {busy === 'cancel' && <Loader2 className="h-4 w-4 animate-spin" />}
-              Confirmer l'annulation
+              {sub?.status === 'trialing' ? 'Arrêter mon essai' : 'Confirmer la résiliation'}
             </Button>
           </DialogFooter>
         </DialogContent>
