@@ -474,7 +474,7 @@ function BillingPageInner() {
             />
           )}
 
-          {sub?.cancelAtPeriodEnd && sub.status === 'active' && (
+          {sub?.cancelAtPeriodEnd && (sub.status === 'active' || sub.status === 'trialing') && (
             <ActionBanner
               tone="warning"
               icon={XCircle}
@@ -537,7 +537,7 @@ function BillingPageInner() {
                   Ouvrir le portail Stripe
                 </Button>
                 {sub.hasStripeSubscription &&
-                  sub.status === 'active' &&
+                  (sub.status === 'active' || sub.status === 'trialing') &&
                   !sub.cancelAtPeriodEnd && (
                     <Button
                       variant="ghost"
@@ -546,7 +546,7 @@ function BillingPageInner() {
                       disabled={busy !== null}
                     >
                       <XCircle className="h-4 w-4" />
-                      Annuler l'abonnement
+                      {sub.status === 'trialing' ? "Arrêter l'essai / résilier" : "Annuler l'abonnement"}
                     </Button>
                   )}
               </CardContent>

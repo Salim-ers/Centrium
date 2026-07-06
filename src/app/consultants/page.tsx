@@ -56,7 +56,7 @@ import { JobFamilyFilter } from '@/components/consultants/JobFamilyFilter';
 import { CityFilter } from '@/components/consultants/CityFilter';
 import { CsvImportDialog } from '@/components/consultants/CsvImportDialog';
 import { GrantPortalDialog } from '@/components/consultants/GrantPortalDialog';
-import { UsageBanner } from '@/components/billing/UsageBanner';
+import { UsageBanner, USAGE_REFRESH_EVENT } from '@/components/billing/UsageBanner';
 import { Combobox } from '@/components/ui/Combobox';
 import { cn } from '@/lib/utils';
 import {
@@ -220,6 +220,12 @@ function ConsultantsPageInner() {
   const bulkSel = useBulkSelection(paginated.map((c) => c.id));
   const [bulkBusy, setBulkBusy] = useState(false);
 
+  /** Rafraîchit le compteur de quota (« X / 20 consultants ») instantanément
+   *  après toute mutation qui change le nombre de consultants. */
+  function bumpUsage() {
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event(USAGE_REFRESH_EVENT));
+  }
+
   async function handleBulkArchive() {
     if (bulkSel.selectedCount === 0) return;
     if (!confirm(`Archiver ${bulkSel.selectedCount} consultant${bulkSel.selectedCount > 1 ? 's' : ''} ?`)) return;
@@ -233,6 +239,7 @@ function ConsultantsPageInner() {
     }
     notifyCreated(`${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} archivé${(res.data ?? ids.length) > 1 ? 's' : ''}`);
     bulkSel.clear();
+    bumpUsage();
     void reload();
   }
 
@@ -248,6 +255,7 @@ function ConsultantsPageInner() {
     }
     notifyCreated(`${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} restauré${(res.data ?? ids.length) > 1 ? 's' : ''}`);
     bulkSel.clear();
+    bumpUsage();
     void reload();
   }
 
@@ -269,6 +277,7 @@ function ConsultantsPageInner() {
     }
     notifyDestructive(`${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} supprimé${(res.data ?? ids.length) > 1 ? 's' : ''}`);
     bulkSel.clear();
+    bumpUsage();
     void reload();
   }
 
@@ -321,6 +330,7 @@ function ConsultantsPageInner() {
       return;
     }
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
+    bumpUsage();
   }
 
   async function unarchiveConsultant(consultant: Consultant) {
@@ -330,6 +340,7 @@ function ConsultantsPageInner() {
       return;
     }
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
+    bumpUsage();
   }
 
   async function hardDeleteConsultant(consultant: Consultant) {
@@ -358,6 +369,7 @@ function ConsultantsPageInner() {
     }
     notifyDestructive(`${fullName} supprimé définitivement`);
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
+    bumpUsage();
   }
 
   const headerSub = showArchived
@@ -467,7 +479,10 @@ function ConsultantsPageInner() {
         }}
         organizationId={activeOrgId ?? ''}
         consultant={editingConsultant}
-        onSaved={() => reload()}
+        onSaved={() => {
+          reload();
+          bumpUsage();
+        }}
       />
 
       <AssignMissionDialog
@@ -494,7 +509,10 @@ function ConsultantsPageInner() {
       <CsvImportDialog
         open={csvOpen}
         onOpenChange={setCsvOpen}
-        onImported={() => reload()}
+        onImported={() => {
+          reload();
+          bumpUsage();
+        }}
       />
 
       <GrantPortalDialog
@@ -702,12 +720,12 @@ function ConsultantsPageInner() {
                           onChange={(v) =>
                             handleStatusChange(c.id, v as Consultant['status'])
                           }
-                          className={cn(
-                            // h-8 = plus de chair pour centrer le texte ; px-2 + text-center
-                            // pour que la valeur soit verticalement et horizontalement
-                            // centrée dans la pastille colorée (la flèche native du
-                            // <select> reste à droite, mais le texte est bien lisible).
-                            'h-8 w-[140px] px-2 py-0 text-xs font-medium border text-center leading-none',
+                          className="w-[140px]"
+                          // La couleur du statut va sur le BOUTON (triggerClassName),
+                          // pas sur le conteneur — sinon la pastille verte débordait
+                          // du cadre (le bouton du Combobox est h-10 par défaut).
+                          triggerClassName={cn(
+                            'h-8 px-2.5 text-xs font-medium leading-none',
                             CONSULTANT_STATUS_STYLE[c.status],
                           )}
                           ariaLabel={`Statut de ${c.first_name ?? ''} ${c.last_name ?? ''}`}
