@@ -688,11 +688,17 @@ function ActionBanner({
   body: string;
   cta?: React.ReactNode;
 }) {
+  // Texte SOMBRE en thème clair (text-*-900) / clair en thème sombre
+  // (dark:text-*-100). Avant : text-*-100 fixe -> jaune/rouge pâle illisible
+  // sur le fond clair de la page (thème light).
   const styles =
     tone === 'danger'
-      ? 'border-red-500/40 bg-red-500/10 text-red-100'
-      : 'border-amber-500/40 bg-amber-500/10 text-amber-100';
-  const iconColor = tone === 'danger' ? 'text-red-300' : 'text-amber-300';
+      ? 'border-red-500/50 bg-red-500/10 text-red-900 dark:text-red-100'
+      : 'border-amber-500/50 bg-amber-500/15 text-amber-900 dark:text-amber-100';
+  const iconColor =
+    tone === 'danger'
+      ? 'text-red-600 dark:text-red-300'
+      : 'text-amber-600 dark:text-amber-300';
   return (
     <div className={`mb-8 rounded-xl border ${styles} p-5`}>
       <div className="flex items-start gap-4 flex-wrap">
