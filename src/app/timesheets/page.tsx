@@ -31,7 +31,7 @@ import {
   type StatusTone,
 } from '@/components/app';
 import { TimesheetFormDialog } from '@/components/timesheets/TimesheetFormDialog';
-import { timesheetService, invoiceService } from '@/lib/services';
+import { timesheetService, invoiceService, type TimesheetListItem } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useRealtimeReload } from '@/hooks/useRealtimeReload';
@@ -72,7 +72,7 @@ function TimesheetsPageInner() {
     loading,
     reload,
     setData: setTimesheets,
-  } = useCachedQuery<Timesheet[]>(
+  } = useCachedQuery<TimesheetListItem[]>(
     `timesheets:${activeOrgId ?? 'none'}`,
     async () => {
       const res = await timesheetService.list();
@@ -281,6 +281,7 @@ function TimesheetsPageInner() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>{t.forms.invoice.consultant}</TableHead>
                 <TableHead>{t.forms.timesheet.period}</TableHead>
                 <TableHead>{t.forms.timesheet.days_worked}</TableHead>
                 <TableHead>{t.forms.timesheet.days_validated}</TableHead>
@@ -292,7 +293,7 @@ function TimesheetsPageInner() {
               {loading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={5}>
+                    <TableCell colSpan={6}>
                       <div
                         className="h-10 surface-1 animate-pulse rounded-lg"
                         style={{ animationDelay: `${i * 120}ms` }}
@@ -313,6 +314,28 @@ function TimesheetsPageInner() {
                     }}
                     className="group border-b border-hairline transition-colors hover-surface"
                   >
+                    <TableCell>
+                      {ts.consultant ? (
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="h-6 w-6 rounded-full bg-qc-gradient ring-1 ring-foreground/10 flex items-center justify-center text-white text-[9px] font-semibold shrink-0">
+                            {(ts.consultant.first_name?.[0] ?? '?').toUpperCase()}
+                            {(ts.consultant.last_name?.[0] ?? '').toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium truncate">
+                              {ts.consultant.first_name} {ts.consultant.last_name}
+                            </div>
+                            {ts.mission?.title && (
+                              <div className="text-[11px] text-muted-foreground truncate">
+                                {ts.mission.title}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">
                       {MONTHS[ts.period_month - 1]} {ts.period_year}
                     </TableCell>

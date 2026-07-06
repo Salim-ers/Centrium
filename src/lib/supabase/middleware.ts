@@ -180,6 +180,10 @@ export async function updateSession(request: NextRequest) {
   // sans re-requêter la DB à chaque navigation.
   let subRow: SubscriptionAccessRow | null = null;
   let subResolved = false;
+  // Fail-open : si la lecture de l'abonnement échoue (hiccup réseau), on
+  // n'a PAS le droit de bloquer l'utilisateur sur /billing ni de cacher ce
+  // faux « no_subscription » pendant 5 min. false → on laisse passer ce nav.
+  let subFetchOk = true;
   if (cached && cached.orgId) {
     role = cached.role;
     orgId = cached.orgId;
@@ -196,14 +200,21 @@ export async function updateSession(request: NextRequest) {
     role = (profile?.role as string | undefined) ?? null;
     orgId = (profile?.organization_id as string | undefined) ?? null;
     if (orgId) {
-      const { data: sub } = await supabase
+      const { data: sub, error: subErr } = await supabase
         .from('subscriptions')
         .select('status, trial_end, current_period_end, is_exempt_from_billing')
         .eq('organization_id', orgId)
         .maybeSingle();
-      subRow = (sub as SubscriptionAccessRow | null) ?? null;
-      subResolved = true;
-      writeProfileCookie(response, { uid: user.id, role, orgId, sub: subRow });
+      if (subErr) {
+        // Échec transitoire : ne rien cacher (retry au prochain nav) et
+        // laisser passer ce nav (fail-open) au lieu de rediriger /billing.
+        subFetchOk = false;
+        subResolved = true;
+      } else {
+        subRow = (sub as SubscriptionAccessRow | null) ?? null;
+        subResolved = true;
+        writeProfileCookie(response, { uid: user.id, role, orgId, sub: subRow });
+      }
     }
   }
 
@@ -305,18 +316,24 @@ export async function updateSession(request: NextRequest) {
       // l'était pas (ex: cookie sans champ sub d'une ancienne version), on
       // refetch en filet.
       if (!subResolved) {
-        const { data: sub } = await supabase
+        const { data: sub, error: subErr } = await supabase
           .from('subscriptions')
           .select('status, trial_end, current_period_end, is_exempt_from_billing')
           .eq('organization_id', orgId!)
           .maybeSingle();
+        if (subErr) subFetchOk = false;
         subRow = (sub as SubscriptionAccessRow | null) ?? null;
         subResolved = true;
       }
 
       // Matrice partagée avec requireOrg() (API) — cf. lib/billing/access.ts.
       // Ré-évaluée avec l'heure courante → expiration trial/période exacte.
-      const access = evaluateSubscriptionAccess(subRow);
+      // FAIL-OPEN : si la lecture de l'abonnement a échoué (réseau), on
+      // laisse passer — jamais bloquer une page sur une erreur transitoire
+      // (les routes API restent gated par requireOrg côté serveur).
+      const access = subFetchOk
+        ? evaluateSubscriptionAccess(subRow)
+        : ({ allowed: true } as const);
       if (!access.allowed) {
         const url = request.nextUrl.clone();
         url.pathname = '/billing';

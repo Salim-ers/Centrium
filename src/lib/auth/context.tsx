@@ -349,6 +349,26 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
             .catch(() => {
               /* best-effort, /settings re-essaiera */
             });
+
+          // Pré-charge aussi le quota d'usage (compteur consultants/membres)
+          // et l'écrit dans le MÊME cache que UsageBanner (`qc_usage_banner`).
+          // Résultat : le bandeau « X / illimité consultants » s'affiche
+          // INSTANTANÉMENT en arrivant sur /consultants, sans attendre son
+          // propre fetch. Best-effort silencieux.
+          fetch('/api/billing/usage', { credentials: 'include', cache: 'no-store' })
+            .then((r) => (r.ok ? r.json() : null))
+            .then((body: { data: unknown } | null) => {
+              if (body?.data) {
+                try {
+                  window.sessionStorage.setItem('qc_usage_banner', JSON.stringify(body.data));
+                } catch {
+                  /* mode incognito strict */
+                }
+              }
+            })
+            .catch(() => {
+              /* best-effort, le bandeau re-essaie au mount */
+            });
         }
       }
     },

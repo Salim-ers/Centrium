@@ -54,10 +54,13 @@ export function PaginationFooter({
         <label className="text-xs text-muted-foreground inline-flex items-center gap-2">
           {perPageWord}
           <Combobox
+            ariaLabel={perPageWord}
             value={String(pageSize)}
             onChange={(v) => changePageSize(Number(v))}
             options={pageSizes.map((n) => ({ value: String(n), label: String(n) }))}
-            className="h-8 w-[80px] text-xs px-2"
+            className="w-[76px]"
+            triggerClassName="h-8 text-xs px-2.5"
+            minPanelWidth={76}
           />
         </label>
         <div className="flex items-center gap-1">

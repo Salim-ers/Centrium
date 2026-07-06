@@ -841,16 +841,25 @@ export const invoiceService = {
 // Timesheets
 // =========================================================================
 
+export type TimesheetListItem = Timesheet & {
+  consultant: { first_name: string; last_name: string; job_title: string | null } | null;
+  mission: { title: string } | null;
+};
+
 export const timesheetService = {
-  async list(): Promise<ServiceResult<Timesheet[]>> {
+  async list(): Promise<ServiceResult<TimesheetListItem[]>> {
     const supabase = createClient();
+    // Jointure consultant + mission : le tableau CRA affiche le nom du
+    // consultant (indispensable quand l'org en a beaucoup).
     const { data, error } = await supabase
       .from('timesheets')
-      .select('*')
+      .select(
+        '*, consultant:consultants(first_name, last_name, job_title), mission:missions(title)',
+      )
       .order('period_year', { ascending: false })
       .order('period_month', { ascending: false });
     if (error) return { data: null, error };
-    return { data: data as Timesheet[], error: null };
+    return { data: (data ?? []) as unknown as TimesheetListItem[], error: null };
   },
 
   async create(input: TimesheetInput, organizationId: string): Promise<ServiceResult<Timesheet>> {

@@ -49,6 +49,8 @@ type Props = {
   clearable?: boolean;
   disabled?: boolean;
   className?: string;
+  /** Classes ajoutées au bouton déclencheur (ex: hauteur/typo compactes). */
+  triggerClassName?: string;
   ariaLabel?: string;
   /** Largeur mini du panneau en px (débordement à droite). Défaut : 320. */
   minPanelWidth?: number;
@@ -65,6 +67,7 @@ export function Combobox({
   clearable = false,
   disabled = false,
   className,
+  triggerClassName,
   ariaLabel,
   minPanelWidth = 320,
   id,
@@ -202,6 +205,7 @@ export function Combobox({
           'flex h-10 w-full items-center gap-2 rounded-md border border-hairline surface-1 px-3 text-sm text-left',
           'focus-visible:outline-none focus-visible:border-violet-glow/60 focus-visible:ring-1 focus-visible:ring-violet-glow/30',
           'disabled:cursor-not-allowed disabled:opacity-50 transition-colors',
+          triggerClassName,
         )}
       >
         <span className={cn('flex-1 min-w-0 truncate', !selected && 'text-muted-foreground/70')}>
