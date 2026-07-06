@@ -911,6 +911,9 @@ function TodoRow({
   const t = useAppT();
   const PRIORITY_LABEL = buildPriorityLabel(t);
   const isMine = todo.user_id === currentUserId;
+  // Tâche équipe partagée : éditable/supprimable par tout membre (RLS le
+  // garantit aussi côté DB). Le partage/dé-partage reste au créateur.
+  const canManage = isMine || todo.shared;
   const ownerColor = owner ? presenceColor(owner.id) : null;
   const ownerInitials = owner
     ? presenceInitials(owner.first_name, owner.last_name, owner.email)
@@ -1074,22 +1077,25 @@ function TodoRow({
         )}
       </button>
 
-      {isMine && (
+      {canManage && (
         <div className="flex shrink-0 items-center gap-0.5 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
-          <button
-            type="button"
-            onClick={() => onToggleShare(todo)}
-            className={cn(
-              'inline-flex h-7 w-7 items-center justify-center rounded-lg transition',
-              todo.shared
-                ? 'bg-violet-glow/15 text-violet-glow hover:bg-violet-glow/25'
-                : 'text-muted-foreground hover:bg-violet-glow/10 hover:text-violet-glow',
-            )}
-            title={todo.shared ? t.pages.todos.back_to_private : t.pages.todos.share_with_team}
-            aria-label={todo.shared ? t.pages.todos.back_to_private : t.pages.todos.share_with_team}
-          >
-            {todo.shared ? <Lock className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />}
-          </button>
+          {/* Partage/dé-partage : réservé au créateur. */}
+          {isMine && (
+            <button
+              type="button"
+              onClick={() => onToggleShare(todo)}
+              className={cn(
+                'inline-flex h-7 w-7 items-center justify-center rounded-lg transition',
+                todo.shared
+                  ? 'bg-violet-glow/15 text-violet-glow hover:bg-violet-glow/25'
+                  : 'text-muted-foreground hover:bg-violet-glow/10 hover:text-violet-glow',
+              )}
+              title={todo.shared ? t.pages.todos.back_to_private : t.pages.todos.share_with_team}
+              aria-label={todo.shared ? t.pages.todos.back_to_private : t.pages.todos.share_with_team}
+            >
+              {todo.shared ? <Lock className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => onEdit(todo)}
@@ -1149,6 +1155,8 @@ function TodoDetailDialog({
   const PRIORITY_LABEL = buildPriorityLabel(t);
   if (!todo) return null;
   const isMine = currentUserId !== null && todo.user_id === currentUserId;
+  // Tâche équipe partagée : gérable par tout membre (édition/suppression).
+  const canManage = isMine || todo.shared;
   const ownerColor = owner ? presenceColor(owner.id) : null;
   const ownerInitials = owner
     ? presenceInitials(owner.first_name, owner.last_name, owner.email)
@@ -1296,26 +1304,29 @@ function TodoDetailDialog({
             )}
           </Button>
 
-          {isMine && (
+          {canManage && (
             <>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onToggleShare(todo)}
-                className="border-violet-glow/40 text-violet-glow hover:bg-violet-glow/10"
-              >
-                {todo.shared ? (
-                  <>
-                    <Lock className="h-4 w-4" />
-                    {t.pages.todos.back_to_private}
-                  </>
-                ) : (
-                  <>
-                    <Users className="h-4 w-4" />
-                    {t.pages.todos.share_with_team}
-                  </>
-                )}
-              </Button>
+              {/* Partage/dé-partage : réservé au créateur. */}
+              {isMine && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onToggleShare(todo)}
+                  className="border-violet-glow/40 text-violet-glow hover:bg-violet-glow/10"
+                >
+                  {todo.shared ? (
+                    <>
+                      <Lock className="h-4 w-4" />
+                      {t.pages.todos.back_to_private}
+                    </>
+                  ) : (
+                    <>
+                      <Users className="h-4 w-4" />
+                      {t.pages.todos.share_with_team}
+                    </>
+                  )}
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="outline"
