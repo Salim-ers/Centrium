@@ -313,7 +313,9 @@ export default function ContactsPage() {
       ) : (
       <Reveal delay={0.1}>
       <AppCard>
-        <div className="p-0">
+        {/* overflow-x-auto : sur écran étroit le tableau défile au lieu de
+            clipper la colonne Actions (carte en overflow-hidden arrondi). */}
+        <div className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -323,7 +325,7 @@ export default function ContactsPage() {
                 <TableHead>{t.pages.contacts.table_email}</TableHead>
                 <TableHead className="w-[140px]">{t.pages.contacts.table_phone}</TableHead>
                 <TableHead className="w-[140px]">{t.pages.contacts.table_last_contact}</TableHead>
-                <TableHead className="text-right w-[180px]">{t.pages.contacts.table_actions}</TableHead>
+                <TableHead className="text-right w-[150px] pr-4">{t.pages.contacts.table_actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -440,7 +442,7 @@ export default function ContactsPage() {
                           </span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right pr-4">
                         <div className="flex items-center justify-end gap-0.5 whitespace-nowrap">
                           <IconButton
                             onClick={() => markContacted(c)}

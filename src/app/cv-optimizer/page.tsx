@@ -634,6 +634,7 @@ function CVOptimizerPageInner() {
                 onChange={setSelectedId}
                 placeholder="— —"
                 ariaLabel={t.pages.cv_optimizer.consultant_label}
+                minPanelWidth={560}
               />
 
               {loadingData && (

@@ -20,6 +20,8 @@ type Props = {
   disabled?: boolean;
   className?: string;
   ariaLabel?: string;
+  /** Largeur mini du panneau (px). Défaut 380. */
+  minPanelWidth?: number;
 };
 
 /**
@@ -37,6 +39,7 @@ export function ConsultantCombobox({
   disabled = false,
   className,
   ariaLabel,
+  minPanelWidth = 380,
 }: Props) {
   const options = useMemo<ComboboxOption[]>(
     () =>
@@ -60,7 +63,7 @@ export function ConsultantCombobox({
       ariaLabel={ariaLabel}
       searchable
       clearable
-      minPanelWidth={380}
+      minPanelWidth={minPanelWidth}
     />
   );
 }
