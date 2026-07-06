@@ -17,6 +17,7 @@ import {
 
 import { Input } from '@/components/ui/input';
 import { AdminConsoleHeader } from '@/components/admin/AdminConsoleHeader';
+import { StripeStatusBanner } from '@/components/admin/StripeStatusBanner';
 import { PageHeader, KPICard, AppCard, AppCardBody, StatusBadge, EmptyState } from '@/components/app';
 import { deriveOrgStatus, type OrgStatusCategory } from '@/lib/admin/org-status';
 
@@ -121,6 +122,8 @@ export default function AdminOrganizationsPage() {
           }
           description="Tous vos clients — nouveaux, anciens, actifs ou dormants. Cliquez une organisation pour sa fiche complète : abonnement, effectifs et activité."
         />
+
+        <StripeStatusBanner />
 
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
           <KPICard label="Total" value={counts.all} icon={Building2} tone="magenta" />
