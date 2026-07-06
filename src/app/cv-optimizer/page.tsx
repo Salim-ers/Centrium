@@ -32,7 +32,7 @@ import { PageHeader, AppCard } from '@/components/app';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/Combobox';
 import { Badge } from '@/components/ui/badge';
 import { ConsultantCombobox } from '@/components/ui/ConsultantCombobox';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
@@ -662,14 +662,16 @@ function CVOptimizerPageInner() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Select
+              <Combobox
+                ariaLabel="Modèle de CV"
                 value={templateId}
-                onChange={(e) => handleTemplateChange(e.target.value as CVTemplateId)}
-              >
-                <option value="standard">{CV_TEMPLATE_LABEL.standard}</option>
-                <option value="dense">{CV_TEMPLATE_LABEL.dense}</option>
-                <option value="executive">{CV_TEMPLATE_LABEL.executive}</option>
-              </Select>
+                onChange={(v) => handleTemplateChange(v as CVTemplateId)}
+                options={[
+                  { value: 'standard', label: CV_TEMPLATE_LABEL.standard },
+                  { value: 'dense', label: CV_TEMPLATE_LABEL.dense },
+                  { value: 'executive', label: CV_TEMPLATE_LABEL.executive },
+                ]}
+              />
             </CardContent>
           </Card>
 
@@ -688,21 +690,24 @@ function CVOptimizerPageInner() {
             <CardContent className="space-y-3">
               <div>
                 <Label className="text-xs">{t.pages.cv_optimizer.pick_existing}</Label>
-                <Select
+                <Combobox
+                  ariaLabel={t.pages.cv_optimizer.pick_existing}
                   value={selectedOfferId}
-                  onChange={(e) => pickOffer(e.target.value)}
-                  className="mt-1 text-sm"
-                >
-                  <option value="">{t.pages.cv_optimizer.manual_entry}</option>
-                  {offers.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.title}
-                      {o.required_skills?.length > 0
-                        ? ` · ${o.required_skills.slice(0, 3).join(', ')}${o.required_skills.length > 3 ? '…' : ''}`
-                        : ''}
-                    </option>
-                  ))}
-                </Select>
+                  onChange={(v) => pickOffer(v)}
+                  className="mt-1"
+                  placeholder={t.pages.cv_optimizer.manual_entry}
+                  options={[
+                    { value: '', label: t.pages.cv_optimizer.manual_entry },
+                    ...offers.map((o) => ({
+                      value: o.id,
+                      label: o.title,
+                      sublabel:
+                        o.required_skills?.length > 0
+                          ? `${o.required_skills.slice(0, 3).join(', ')}${o.required_skills.length > 3 ? '…' : ''}`
+                          : undefined,
+                    })),
+                  ]}
+                />
               </div>
 
               <div>
