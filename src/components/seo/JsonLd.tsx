@@ -103,20 +103,15 @@ export function JsonLd() {
     publisher: { '@id': `${SITE.url}#organization` },
   };
 
+  // Échappe "<" → < : empêche toute rupture de balise </script> si une
+  // valeur dynamique venait un jour à être injectée dans le JSON-LD (XSS).
+  const ld = (obj: unknown) => JSON.stringify(obj).replace(/</g, '\\u003c');
+
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organization) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(software) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(website) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld(organization) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld(software) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld(website) }} />
     </>
   );
 }

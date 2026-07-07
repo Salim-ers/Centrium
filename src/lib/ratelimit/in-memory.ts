@@ -90,9 +90,16 @@ export function rateLimit(input: RateLimitInput): RateLimitResult {
  * bucket (sécurité acceptable côté MVP).
  */
 export function clientIp(req: Request): string {
+  // x-vercel-forwarded-for / x-real-ip = posés par Vercel (non spoofables).
+  // x-forwarded-for est forgeable côté client (valeur de gauche) → on ne
+  // retient que la valeur de DROITE, ajoutée par le proxy de confiance.
+  const trusted =
+    req.headers.get('x-vercel-forwarded-for') ?? req.headers.get('x-real-ip');
+  if (trusted) return trusted.split(',')[0]!.trim();
   const xff = req.headers.get('x-forwarded-for');
-  if (xff) return xff.split(',')[0]!.trim();
-  const real = req.headers.get('x-real-ip');
-  if (real) return real.trim();
+  if (xff) {
+    const parts = xff.split(',').map((s) => s.trim()).filter(Boolean);
+    if (parts.length) return parts[parts.length - 1]!;
+  }
   return 'unknown';
 }

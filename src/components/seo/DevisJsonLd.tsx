@@ -36,7 +36,7 @@ export function DevisJsonLd() {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(webPage) }}
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(webPage).replace(/</g, '\\u003c') }}
     />
   );
 }

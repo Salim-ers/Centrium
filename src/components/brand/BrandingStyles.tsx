@@ -11,10 +11,19 @@ import { useOrganizationSafe } from '@/lib/auth/context';
  *
  * Fallback = palette QuadCore (violet / magenta).
  */
+/** Couleur hex stricte (#rgb ou #rrggbb) sinon fallback. Garde-fou anti-XSS
+ *  au RENDU : même si une couleur non valide était stockée en base (autre
+ *  writer que l'API branding, qui valide déjà), on n'injecte jamais de CSS
+ *  arbitraire dans le <style>. */
+const HEX_COLOR = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+function safeColor(value: string | null | undefined, fallback: string): string {
+  return value && HEX_COLOR.test(value) ? value : fallback;
+}
+
 export function BrandingStyles() {
   const org = useOrganizationSafe();
-  const primary = org?.branding?.primaryColor ?? '#6d28d9';
-  const accent = org?.branding?.accentColor ?? '#e11d74';
+  const primary = safeColor(org?.branding?.primaryColor, '#6d28d9');
+  const accent = safeColor(org?.branding?.accentColor, '#e11d74');
 
   return (
     <style

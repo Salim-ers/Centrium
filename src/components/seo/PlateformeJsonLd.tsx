@@ -98,11 +98,11 @@ export function PlateformeJsonLd() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(webPage) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(webPage).replace(/</g, '\\u003c') }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(modulesItemList) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(modulesItemList).replace(/</g, '\\u003c') }}
       />
     </>
   );

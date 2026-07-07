@@ -99,10 +99,21 @@ export async function rateLimit(
  * Helper pour identifier le caller : IP réelle derrière proxies Vercel/Cloudflare.
  */
 export function callerIp(req: Request): string {
-  const fwd =
-    req.headers.get('x-forwarded-for') ??
+  // Sur Vercel, x-vercel-forwarded-for et x-real-ip sont posés par la
+  // plateforme et NON spoofables. x-forwarded-for est forgeable par le client
+  // (la valeur de GAUCHE) → un attaquant qui la fait tourner obtient un bucket
+  // de rate-limit neuf à chaque requête. On lit d'abord les en-têtes de
+  // confiance ; en dernier recours on prend la valeur de DROITE de XFF (celle
+  // ajoutée par le proxy de confiance), jamais celle de gauche.
+  const trusted =
+    req.headers.get('x-vercel-forwarded-for') ??
     req.headers.get('x-real-ip') ??
-    req.headers.get('cf-connecting-ip') ??
-    'unknown';
-  return fwd.split(',')[0]!.trim();
+    req.headers.get('cf-connecting-ip');
+  if (trusted) return trusted.split(',')[0]!.trim();
+  const xff = req.headers.get('x-forwarded-for');
+  if (xff) {
+    const parts = xff.split(',').map((s) => s.trim()).filter(Boolean);
+    if (parts.length) return parts[parts.length - 1]!;
+  }
+  return 'unknown';
 }
