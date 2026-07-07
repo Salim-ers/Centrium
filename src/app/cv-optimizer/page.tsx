@@ -244,9 +244,29 @@ function CVOptimizerPageInner() {
   //     dans le preview ET on l'embarque dans le PDF sans aller-retour
   //     réseau côté react-pdf.
   //   - si 404 → on passe simplement undefined, aucun crash, pas de QR.
+  // Le QR "carte de visite" est RÉSERVÉ à QuadCore (les comptes fondateurs).
+  // Sur instruction : on ne le met PAS sur les CV des organisations clientes.
+  // Statut vérifié côté serveur (getSuperAdminContext) via founder-status.
+  const [isFounder, setIsFounder] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/auth/founder-status')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((b) => {
+        if (!cancelled) setIsFounder(!!b?.data?.isFounder);
+      })
+      .catch(() => {
+        if (!cancelled) setIsFounder(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [qrSrc, setQrSrc] = useState<string | null>(null);
   useEffect(() => {
-    if (!brand.qrCodeUrl || typeof window === 'undefined') {
+    // Non-fondateur → jamais de QR (ni preview, ni PDF).
+    if (!isFounder || !brand.qrCodeUrl || typeof window === 'undefined') {
       setQrSrc(null);
       return;
     }
@@ -268,7 +288,7 @@ function CVOptimizerPageInner() {
     return () => {
       cancelled = true;
     };
-  }, [brand.qrCodeUrl]);
+  }, [brand.qrCodeUrl, isFounder]);
 
   const parsedOffer: JobOffer | null = useMemo(() => {
     if (!offerTitle && !offerDescription && !offerSkills) return null;

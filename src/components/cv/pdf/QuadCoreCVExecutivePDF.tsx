@@ -59,14 +59,20 @@ function buildStyles(primary: string, _accent: string) {
     color: N.neutral900,
     marginTop: 24,
     letterSpacing: -0.7,
+    // lineHeight EXPLICITE obligatoire : sans lui, la combinaison
+    // grande fontSize + letterSpacing négatif + lineHeight héritée de la Page
+    // fait mal mesurer la hauteur du bloc dans @react-pdf → le nom chevauche
+    // l'intitulé de poste. (Le template Standard, qui fonctionne, le fixe.)
+    lineHeight: 1.1,
   },
   jobTitle: {
     fontSize: 13,
     color: primary,
     marginTop: 2,
     fontFamily: 'Helvetica-Bold',
+    lineHeight: 1.2,
   },
-  subTitle: { fontSize: 10, color: N.neutral700, marginTop: 2 },
+  subTitle: { fontSize: 10, color: N.neutral700, marginTop: 2, lineHeight: 1.3 },
   metaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',

@@ -64,14 +64,24 @@ function buildStyles(primary: string, accent: string) {
     fontFamily: 'Helvetica-Bold',
     color: N.white,
     letterSpacing: -0.5,
+    // lineHeight EXPLICITE obligatoire (cf. Standard) : sinon la grande
+    // fontSize + letterSpacing négatif + lineHeight héritée de la Page fait
+    // chevaucher le nom et l'intitulé dans @react-pdf.
+    lineHeight: 1.1,
   },
   jobTitle: {
     fontSize: 11,
     color: accent,
     marginTop: 2,
     fontFamily: 'Helvetica-Bold',
+    lineHeight: 1.2,
   },
-  subTitle: { fontSize: 8.5, color: 'rgba(255,255,255,0.7)', marginTop: 1 },
+  subTitle: {
+    fontSize: 8.5,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 1,
+    lineHeight: 1.3,
+  },
   metaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
