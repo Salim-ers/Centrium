@@ -57,7 +57,7 @@ function buildStyles(primary: string, accent: string) {
       alignItems: 'flex-start',
       marginBottom: 4,
     },
-    logo: { width: 54, height: 54, objectFit: 'contain', borderRadius: 6 },
+    logo: { width: 72, height: 72, objectFit: 'contain', borderRadius: 6 },
     confidential: {
       fontSize: 7,
       color: N.neutral400,

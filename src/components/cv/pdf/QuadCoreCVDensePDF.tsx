@@ -51,7 +51,7 @@ function buildStyles(primary: string, accent: string) {
     color: N.white,
     marginBottom: 10,
   },
-  logo: { width: 70, height: 22, objectFit: 'contain' },
+  logo: { width: 104, height: 40, objectFit: 'contain' },
   confidential: {
     fontSize: 7,
     color: 'rgba(255,255,255,0.5)',

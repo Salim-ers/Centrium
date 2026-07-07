@@ -45,7 +45,7 @@ function buildStyles(primary: string, _accent: string) {
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  logo: { width: 90, height: 28, objectFit: 'contain' },
+  logo: { width: 128, height: 48, objectFit: 'contain' },
   confidential: {
     fontSize: 7,
     color: N.neutral400,

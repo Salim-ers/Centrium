@@ -44,7 +44,7 @@ export function QuadCoreCVDense({
       >
         <div className="flex items-start justify-between gap-6 text-white">
           <div className="flex items-start gap-3">
-            <QuadCoreLogo size="md" variant="dark" src={b.logoUrl} alt={b.brandName} />
+            <QuadCoreLogo size="lg" variant="dark" src={b.logoUrl} alt={b.brandName} />
             {qrSrc && (
               <div className="flex flex-col items-center gap-1">
                 <div
