@@ -406,6 +406,8 @@ export type Timesheet = {
   rejected_at: string | null;
   rejection_reason: string | null;
   notes: string | null;
+  archived: boolean;
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
 };

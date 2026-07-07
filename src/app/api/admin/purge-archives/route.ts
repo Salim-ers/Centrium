@@ -188,6 +188,7 @@ function renderPurgeEmail(args: {
     contacts: 'contact(s)',
     invoices: 'facture(s)',
     contracts: 'contrat(s)',
+    timesheets: 'CRA',
   };
 
   const summary = Object.entries(args.counts)

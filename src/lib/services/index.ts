@@ -847,7 +847,7 @@ export type TimesheetListItem = Timesheet & {
 };
 
 export const timesheetService = {
-  async list(): Promise<ServiceResult<TimesheetListItem[]>> {
+  async list(showArchived = false): Promise<ServiceResult<TimesheetListItem[]>> {
     const supabase = createClient();
     // Jointure consultant + mission : le tableau CRA affiche le nom du
     // consultant (indispensable quand l'org en a beaucoup).
@@ -856,10 +856,40 @@ export const timesheetService = {
       .select(
         '*, consultant:consultants(first_name, last_name, job_title), mission:missions(title)',
       )
+      .eq('archived', showArchived)
       .order('period_year', { ascending: false })
       .order('period_month', { ascending: false });
     if (error) return { data: null, error };
     return { data: (data ?? []) as unknown as TimesheetListItem[], error: null };
+  },
+
+  /**
+   * Archive / désarchive un CRA. On N'EFFACE PAS (artefact de facturation) :
+   * on le sort des listes actives ; il reste restaurable 30 jours avant purge
+   * automatique. `archived_at` est posé/effacé par le trigger DB sync_archived_at.
+   */
+  async archive(id: string): Promise<ServiceResult<Timesheet>> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('timesheets')
+      .update({ archived: true })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) return { data: null, error };
+    return { data: data as Timesheet, error: null };
+  },
+
+  async unarchive(id: string): Promise<ServiceResult<Timesheet>> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('timesheets')
+      .update({ archived: false })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) return { data: null, error };
+    return { data: data as Timesheet, error: null };
   },
 
   async create(input: TimesheetInput, organizationId: string): Promise<ServiceResult<Timesheet>> {

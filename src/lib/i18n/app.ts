@@ -654,6 +654,18 @@ export type AppDict = {
       consultant_invoice: string;
       consultant_invoice_done: string;
       consultant_invoice_exists: string;
+      see_archived: string;
+      see_active: string;
+      archived_title_a: string;
+      archived_title_b: string;
+      empty_archived_title: string;
+      empty_archived_description: string;
+      action_archive: string;
+      action_restore: string;
+      confirm_archive: string;
+      toast_archived: string;
+      toast_restored: string;
+      purge_notice: string;
     };
     invoices: {
       eyebrow: string;
@@ -1635,6 +1647,19 @@ export const APP_DICT: Record<Locale, AppDict> = {
         consultant_invoice: 'Facture consultant',
         consultant_invoice_done: 'Facture consultant générée',
         consultant_invoice_exists: 'Facture consultant déjà générée',
+        see_archived: 'Voir archivés',
+        see_active: 'Voir actifs',
+        archived_title_a: 'CRA',
+        archived_title_b: 'archivés.',
+        empty_archived_title: 'Aucun CRA archivé',
+        empty_archived_description: 'Les CRA que tu archives apparaissent ici pendant 30 jours.',
+        action_archive: 'Archiver',
+        action_restore: 'Restaurer',
+        confirm_archive: 'Archiver le CRA {period} ?',
+        toast_archived: 'CRA archivé',
+        toast_restored: 'CRA restauré',
+        purge_notice:
+          'Les CRA archivés sont supprimés définitivement 30 jours après leur archivage (nettoyage automatique le 1er de chaque mois).',
       },
       invoices: {
         eyebrow: 'Facturation',
@@ -2614,6 +2639,19 @@ export const APP_DICT: Record<Locale, AppDict> = {
         consultant_invoice: 'Consultant invoice',
         consultant_invoice_done: 'Consultant invoice generated',
         consultant_invoice_exists: 'Consultant invoice already generated',
+        see_archived: 'Show archived',
+        see_active: 'Show active',
+        archived_title_a: 'Archived',
+        archived_title_b: 'timesheets.',
+        empty_archived_title: 'No archived timesheet',
+        empty_archived_description: 'Timesheets you archive appear here for 30 days.',
+        action_archive: 'Archive',
+        action_restore: 'Restore',
+        confirm_archive: 'Archive timesheet {period}?',
+        toast_archived: 'Timesheet archived',
+        toast_restored: 'Timesheet restored',
+        purge_notice:
+          'Archived timesheets are permanently deleted 30 days after archiving (automatic cleanup on the 1st of each month).',
       },
       invoices: {
         eyebrow: 'Billing',

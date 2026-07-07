@@ -16,6 +16,8 @@ import {
   CalendarDays,
   Percent,
   Receipt,
+  Archive,
+  ArchiveRestore,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -30,6 +32,7 @@ import {
   StatusBadge,
   type StatusTone,
 } from '@/components/app';
+import { ArchivePurgeNotice } from '@/components/app/ArchivePurgeNotice';
 import { TimesheetFormDialog } from '@/components/timesheets/TimesheetFormDialog';
 import { timesheetService, invoiceService, type TimesheetListItem } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
@@ -66,6 +69,7 @@ function TimesheetsPageInner() {
   const t = useAppT();
   const tsLabels = useTimesheetStatusLabels();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   const {
     data: timesheetsData,
@@ -73,9 +77,9 @@ function TimesheetsPageInner() {
     reload,
     setData: setTimesheets,
   } = useCachedQuery<TimesheetListItem[]>(
-    `timesheets:${activeOrgId ?? 'none'}`,
+    `timesheets:${activeOrgId ?? 'none'}:${showArchived ? 'arch' : 'live'}`,
     async () => {
-      const res = await timesheetService.list();
+      const res = await timesheetService.list(showArchived);
       return res.data ?? [];
     },
     { enabled: !!activeOrgId },
@@ -111,6 +115,29 @@ function TimesheetsPageInner() {
     }
     setTimesheets((prev) => (prev ?? []).filter((x) => x.id !== ts.id));
     toast.success(`${period}${t.pages.todos.toast_deleted_suffix}`);
+  }
+
+  async function archiveTimesheet(ts: Timesheet) {
+    const period = `${MONTHS[ts.period_month - 1]} ${ts.period_year}`;
+    if (!confirm(t.pages.timesheets.confirm_archive.replace('{period}', period))) return;
+    const res = await timesheetService.archive(ts.id);
+    if (res.error) {
+      toast.error(res.error.message);
+      return;
+    }
+    // Le CRA passe dans les archives → on le retire de la liste active affichée.
+    setTimesheets((prev) => (prev ?? []).filter((x) => x.id !== ts.id));
+    toast.success(t.pages.timesheets.toast_archived);
+  }
+
+  async function restoreTimesheet(ts: Timesheet) {
+    const res = await timesheetService.unarchive(ts.id);
+    if (res.error) {
+      toast.error(res.error.message);
+      return;
+    }
+    setTimesheets((prev) => (prev ?? []).filter((x) => x.id !== ts.id));
+    toast.success(t.pages.timesheets.toast_restored);
   }
 
   async function validate(id: string) {
@@ -191,17 +218,47 @@ function TimesheetsPageInner() {
       <PageHeader
         eyebrow={t.pages.timesheets.eyebrow}
         title={
-          <>
-            {t.pages.timesheets.title_a}{' '}
-            <span className="qc-italic-accent font-editorial italic">{t.pages.timesheets.title_b}</span>
-          </>
+          showArchived ? (
+            <>
+              {t.pages.timesheets.archived_title_a}{' '}
+              <span className="qc-italic-accent font-editorial italic">
+                {t.pages.timesheets.archived_title_b}
+              </span>
+            </>
+          ) : (
+            <>
+              {t.pages.timesheets.title_a}{' '}
+              <span className="qc-italic-accent font-editorial italic">{t.pages.timesheets.title_b}</span>
+            </>
+          )
         }
         description={t.pages.timesheets.description}
         actions={
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="h-4 w-4" />
-            {t.pages.timesheets.new}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowArchived((v) => !v)}
+              title={showArchived ? t.pages.timesheets.see_active : t.pages.timesheets.see_archived}
+            >
+              {showArchived ? (
+                <>
+                  <ArchiveRestore className="h-4 w-4" />
+                  {t.pages.timesheets.see_active}
+                </>
+              ) : (
+                <>
+                  <Archive className="h-4 w-4" />
+                  {t.pages.timesheets.see_archived}
+                </>
+              )}
+            </Button>
+            {!showArchived && (
+              <Button onClick={() => setDialogOpen(true)}>
+                <Plus className="h-4 w-4" />
+                {t.pages.timesheets.new}
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -256,13 +313,24 @@ function TimesheetsPageInner() {
         </div>
       )}
 
+      {showArchived && <ArchivePurgeNotice message={t.pages.timesheets.purge_notice} />}
+
       {!loading && timesheets.length === 0 ? (
         <EmptyState
           icon={ClipboardCheck}
-          title={t.pages.timesheets.empty_title}
-          description={t.pages.timesheets.empty_description}
+          title={showArchived ? t.pages.timesheets.empty_archived_title : t.pages.timesheets.empty_title}
+          description={
+            showArchived
+              ? t.pages.timesheets.empty_archived_description
+              : t.pages.timesheets.empty_description
+          }
           action={
-            hasUrlFilter ? (
+            showArchived ? (
+              <Button variant="outline" onClick={() => setShowArchived(false)}>
+                <ArchiveRestore className="h-4 w-4" />
+                {t.pages.timesheets.see_active}
+              </Button>
+            ) : hasUrlFilter ? (
               <Button variant="outline" onClick={clearUrlFilter}>
                 {t.actions.remove_filter}
               </Button>
@@ -354,13 +422,13 @@ function TimesheetsPageInner() {
                             {t.pages.alerts.view}
                           </Link>
                         </Button>
-                        {ts.status !== 'client_validated' && (
+                        {!showArchived && ts.status !== 'client_validated' && (
                           <Button size="sm" variant="ghost" onClick={() => validate(ts.id)}>
                             <CheckCircle2 className="h-3 w-3" />
                             {t.actions.confirm}
                           </Button>
                         )}
-                        {ts.status === 'client_validated' && (
+                        {!showArchived && ts.status === 'client_validated' && (
                           <Button
                             size="sm"
                             variant="ghost"
@@ -370,6 +438,27 @@ function TimesheetsPageInner() {
                           >
                             <Receipt className="h-3 w-3" />
                             {t.pages.timesheets.consultant_invoice}
+                          </Button>
+                        )}
+                        {showArchived ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => restoreTimesheet(ts)}
+                            title={t.pages.timesheets.action_restore}
+                          >
+                            <ArchiveRestore className="h-3 w-3" />
+                            {t.pages.timesheets.action_restore}
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => archiveTimesheet(ts)}
+                            title={t.pages.timesheets.action_archive}
+                            className="text-muted-foreground"
+                          >
+                            <Archive className="h-3 w-3" />
                           </Button>
                         )}
                         <Button
