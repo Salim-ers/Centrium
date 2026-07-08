@@ -69,10 +69,10 @@ export async function downloadElementAsPdf(
     if (contentHeightMm <= usableHeight) {
       pdf.addImage(dataUrl, 'JPEG', margin, margin, usableWidth, contentHeightMm);
     }
-    // Cas 2 — léger débord (≤ 30% au-delà d'une page). C'est le cas typique
-    // des documents A4 capturés au pixel près qui débordent de quelques mm.
-    // On scale-to-fit pour tenir sur 1 page sans page blanche supplémentaire.
-    else if (contentHeightMm <= usableHeight * 1.3) {
+    // Cas 2 — léger débord (≤ 40% au-delà d'une page). C'est le cas typique
+    // des documents A4 (facture, fiche) capturés au pixel près qui débordent
+    // d'un peu. On scale-to-fit pour tenir sur 1 page sans page blanche.
+    else if (contentHeightMm <= usableHeight * 1.4) {
       const fitWidth = (canvas.width * usableHeight) / canvas.height;
       const offsetX = margin + (usableWidth - fitWidth) / 2;
       pdf.addImage(dataUrl, 'JPEG', offsetX, margin, fitWidth, usableHeight);

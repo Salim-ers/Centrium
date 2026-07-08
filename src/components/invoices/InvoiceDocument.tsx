@@ -92,7 +92,7 @@ export function InvoiceDocument({
       className="qc-print-doc bg-white text-neutral-900 shadow-2xl mx-auto"
       style={{ width: '210mm', minHeight: '297mm', fontFamily: 'Georgia, serif' }}
     >
-      <header className="px-12 pt-10 pb-6">
+      <header className="px-12 pt-6 pb-3">
         <div className="flex items-start justify-between gap-6">
           <QuadCoreLogo size="md" src={iss.logoUrl} alt={iss.brandName} />
           <div className="text-right">
@@ -103,13 +103,13 @@ export function InvoiceDocument({
           </div>
         </div>
         <div
-          className="mt-5 h-[2px] w-full"
+          className="mt-3 h-[2px] w-full"
           style={{ background: `linear-gradient(90deg, ${primary} 0%, ${accent} 55%, transparent 100%)` }}
         />
       </header>
 
       {isSub ? (
-        <section className="px-12 py-6 grid grid-cols-2 gap-8">
+        <section className="px-12 py-3 grid grid-cols-2 gap-6">
           <div>
             <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
               Émetteur — Prestataire
@@ -171,7 +171,7 @@ export function InvoiceDocument({
           </div>
         </section>
       ) : (
-        <section className="px-12 py-6 grid grid-cols-2 gap-8">
+        <section className="px-12 py-3 grid grid-cols-2 gap-6">
           <div>
             <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">Émetteur</div>
             <div className="text-sm font-semibold text-neutral-900">{iss.legalName}</div>
@@ -216,7 +216,7 @@ export function InvoiceDocument({
       )}
 
       {isSub && (
-        <section className="px-12 pb-4">
+        <section className="px-12 pb-2">
           <div
             className="rounded-md px-4 py-2.5 text-[10px] leading-relaxed text-neutral-600 border"
             style={{ borderColor: `${primary}33`, background: `${primary}0a` }}
@@ -229,7 +229,7 @@ export function InvoiceDocument({
         </section>
       )}
 
-      <section className="px-12 pb-4 grid grid-cols-3 gap-6 text-xs">
+      <section className="px-12 pb-3 grid grid-cols-3 gap-4 text-xs">
         <InvoiceField label="Date d'émission" value={formatDate(invoice.issue_date)} />
         <InvoiceField label="Date d'échéance" value={formatDate(invoice.due_date)} />
         <InvoiceField label="Période" value={invoice.period_label ?? '—'} />
@@ -262,7 +262,7 @@ export function InvoiceDocument({
         const isPerDay = !!(manualQty && manualUnit) || !!tsQty;
         const unitLabel = isPerDay ? 'jour' : 'forfait';
         return (
-          <section className="px-12 py-4">
+          <section className="px-12 py-2.5">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr style={{ backgroundColor: '#0f1119' }} className="text-white">
@@ -285,7 +285,7 @@ export function InvoiceDocument({
               </thead>
               <tbody>
                 <tr className="border-b border-neutral-200 align-top">
-                  <td className="px-3 py-3">
+                  <td className="px-3 py-2">
                     <div className="font-medium text-neutral-900">
                       {mission?.title ?? (isSub ? 'Prestation de sous-traitance IT' : 'Prestation de services IT')}
                     </div>
@@ -301,20 +301,20 @@ export function InvoiceDocument({
                       </div>
                     )}
                   </td>
-                  <td className="px-3 py-3 text-right text-neutral-800">
+                  <td className="px-3 py-2 text-right text-neutral-800">
                     {qty}
                     <span className="text-[10px] text-neutral-500 ml-1">{unitLabel === 'jour' ? 'j' : ''}</span>
                   </td>
-                  <td className="px-3 py-3 text-right text-neutral-800 font-mono">
+                  <td className="px-3 py-2 text-right text-neutral-800 font-mono">
                     {formatCurrency(unitPrice)}
                   </td>
-                  <td className="px-3 py-3 text-right text-neutral-800">
+                  <td className="px-3 py-2 text-right text-neutral-800">
                     {Number(invoice.vat_rate).toLocaleString('fr-FR', {
                       maximumFractionDigits: 2,
                     })}
                     %
                   </td>
-                  <td className="px-3 py-3 text-right font-semibold text-neutral-900 font-mono">
+                  <td className="px-3 py-2 text-right font-semibold text-neutral-900 font-mono">
                     {formatCurrency(ht)}
                   </td>
                 </tr>
@@ -324,7 +324,7 @@ export function InvoiceDocument({
         );
       })()}
 
-      <section className="px-12 py-4 flex justify-end">
+      <section className="px-12 py-2.5 flex justify-end">
         <div className="w-72 space-y-2 text-sm">
           <div className="flex justify-between py-1">
             <span className="text-neutral-600">Total HT</span>
@@ -350,7 +350,7 @@ export function InvoiceDocument({
       </section>
 
       {invoice.notes && (
-        <section className="px-12 py-4">
+        <section className="px-12 py-2.5">
           <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-1">Notes</div>
           <p className="text-xs text-neutral-700 whitespace-pre-line">{invoice.notes}</p>
         </section>
@@ -361,8 +361,8 @@ export function InvoiceDocument({
           Facture consultant : compte du PRESTATAIRE (l'ESN paie le freelance). */}
       {isSub
         ? (consultant?.iban || consultant?.bic) && (
-            <section className="px-12 py-4">
-              <div className="rounded-md border border-neutral-200 bg-white p-4">
+            <section className="px-12 py-2.5">
+              <div className="rounded-md border border-neutral-200 bg-white p-3">
                 <div
                   className="font-semibold mb-2 tracking-[0.18em] uppercase text-[10px]"
                   style={{ color: primary }}
@@ -391,8 +391,8 @@ export function InvoiceDocument({
             </section>
           )
         : (iss.iban || iss.bic || iss.bankName) && (
-            <section className="px-12 py-4">
-              <div className="rounded-md border border-neutral-200 bg-white p-4">
+            <section className="px-12 py-2.5">
+              <div className="rounded-md border border-neutral-200 bg-white p-3">
                 <div
                   className="font-semibold mb-2 tracking-[0.18em] uppercase text-[10px]"
                   style={{ color: primary }}
@@ -429,8 +429,8 @@ export function InvoiceDocument({
             </section>
           )}
 
-      <section className="px-12 py-6 border-t border-neutral-100 bg-neutral-50/40">
-        <div className="grid grid-cols-2 gap-8 items-start">
+      <section className="px-12 py-3 border-t border-neutral-100 bg-neutral-50/40">
+        <div className="grid grid-cols-2 gap-6 items-start">
           <div className="text-[10px] text-neutral-500 leading-relaxed">
             <div className="font-semibold text-neutral-700 mb-1">Modalités de paiement</div>
             <p>
@@ -468,7 +468,7 @@ export function InvoiceDocument({
         </div>
       </section>
 
-      <footer className="px-12 py-4 text-center">
+      <footer className="px-12 py-3 text-center">
         <div
           className="h-[2px] w-full mb-3"
           style={{ background: `linear-gradient(90deg, transparent 0%, ${accent} 45%, ${primary} 100%)` }}
