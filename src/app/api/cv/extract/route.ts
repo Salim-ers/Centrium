@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { guardLlmRoute } from '@/lib/auth/llm-guard';
 import { ensureFileSafe } from '@/lib/security/virustotal';
+import { logger } from '@/lib/logger';
 
 // =========================================================================
 // /api/cv/extract — Extraction texte brut depuis PDF / DOCX / TXT
@@ -116,7 +117,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ text, chars: text.length });
   } catch (e) {
-    console.error('[cv/extract] error', e);
+    logger.error('[cv/extract] error', e);
     return NextResponse.json(
       {
         error: 'extract_failed',
@@ -137,7 +138,7 @@ async function extractPdfText(buf: Buffer): Promise<string> {
     const { text } = await extractText(pdf, { mergePages: true });
     nativeText = Array.isArray(text) ? text.join('\n\n') : text;
   } catch (e) {
-    console.warn('[cv/extract] unpdf failed', e);
+    logger.warn('[cv/extract] unpdf failed', e);
   }
 
   // 2) Si le texte natif est insuffisant (PDF scanné/image, layout exotique,
@@ -149,7 +150,7 @@ async function extractPdfText(buf: Buffer): Promise<string> {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    console.warn('[cv/extract] PDF text vide et ANTHROPIC_API_KEY absente — pas de fallback OCR');
+    logger.warn('[cv/extract] PDF text vide et ANTHROPIC_API_KEY absente — pas de fallback OCR');
     return nativeText;
   }
 
@@ -191,7 +192,7 @@ async function extractPdfText(buf: Buffer): Promise<string> {
       .trim();
     return ocrText.length > nativeText.length ? ocrText : nativeText;
   } catch (e) {
-    console.warn('[cv/extract] Claude PDF fallback failed', e);
+    logger.warn('[cv/extract] Claude PDF fallback failed', e);
     return nativeText;
   }
 }

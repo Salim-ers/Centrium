@@ -8,6 +8,7 @@ import {
 } from '@/lib/billing/config';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email/send';
+import { logger } from '@/lib/logger';
 
 // =========================================================================
 // POST /api/billing/webhook — Source de vérité pour l'état des abonnements
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
     webhookSecret = requireStripeWebhookSecret();
   } catch (e) {
     if (e instanceof StripeConfigError) {
-      console.error(`[stripe/webhook] ${e.envVar} ${e.kind}`);
+      logger.error(`[stripe/webhook] ${e.envVar} ${e.kind}`);
       return NextResponse.json(
         { error: 'webhook_secret_missing', message: 'Webhook non configuré.' },
         { status: 500 },
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
   } catch (err) {
-    console.error('[stripe/webhook] invalid signature', err);
+    logger.error('[stripe/webhook] invalid signature', err);
     return NextResponse.json({ error: 'invalid_signature' }, { status: 400 });
   }
 
@@ -148,7 +149,7 @@ export async function POST(req: NextRequest) {
         const trialEndIso = sub.trial_end
           ? new Date(sub.trial_end * 1000).toISOString()
           : null;
-        console.info('[stripe/webhook] trial_will_end for org', orgId, 'trial_end', trialEndIso);
+        logger.info('[stripe/webhook] trial_will_end for org', { orgId, trialEnd: trialEndIso });
         if (orgId) {
           const [{ data: org }, { data: admins }] = await Promise.all([
             admin.from('organizations').select('name, brand_name').eq('id', orgId).maybeSingle(),
@@ -202,7 +203,7 @@ export async function POST(req: NextRequest) {
             const sub = await stripe.subscriptions.retrieve(subId);
             await upsertSubscription(admin, sub);
           } catch (e) {
-            console.warn('[stripe/webhook] invoice.paid retrieve failed', e);
+            logger.warn('[stripe/webhook] invoice.paid retrieve failed', e);
             // Fallback : au moins on ne bloque pas past_due
             await admin
               .from('subscriptions')
@@ -234,7 +235,7 @@ export async function POST(req: NextRequest) {
       }
     }
   } catch (err) {
-    console.error('[stripe/webhook] handler error', event.type, err);
+    logger.error('[stripe/webhook] handler error', { eventType: event.type, err });
     // On return 200 pour éviter les retries infinis Stripe sur une erreur
     // idempotente. Tout est loggé pour investigation post-mortem.
   }
@@ -247,7 +248,7 @@ type AdminClient = ReturnType<typeof createAdminClient>;
 async function upsertSubscription(admin: AdminClient, sub: Stripe.Subscription) {
   const organizationId = sub.metadata?.organization_id;
   if (!organizationId) {
-    console.warn(
+    logger.warn(
       '[stripe/webhook] subscription without organization_id metadata',
       sub.id,
     );

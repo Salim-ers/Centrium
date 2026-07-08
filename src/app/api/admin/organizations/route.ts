@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getSuperAdminContext } from '@/lib/auth/super-admin';
 import { sendEmail } from '@/lib/email/send';
+import { logger } from '@/lib/logger';
 
 // =========================================================================
 // POST /api/admin/organizations — Provisionne un nouvel espace client.
@@ -256,7 +257,7 @@ export async function POST(req: NextRequest) {
       .then(({ error }) => {
         // 23505 = unique_violation → déjà membre, safe à ignorer
         if (error && error.code !== '23505') {
-          console.error(
+          logger.error(
             '[admin/organizations] failed to insert organization_members',
             { organizationId: org.id, userId: invite.user.id, error: error.message },
           );
@@ -291,7 +292,7 @@ export async function POST(req: NextRequest) {
     .from('subscriptions')
     .upsert(subConfig, { onConflict: 'organization_id' });
   if (subErr) {
-    console.error('[admin/organizations] subscription config failed', {
+    logger.error('[admin/organizations] subscription config failed', {
       organizationId: org.id,
       error: subErr.message,
     });

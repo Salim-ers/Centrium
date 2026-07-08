@@ -5,6 +5,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 import type { Consultant, JobOffer, ConsultantSkill } from '@/types';
+import { logger } from '@/lib/logger';
 
 /**
  * Module LLM pour la JUSTIFICATION du matching consultant ↔ mission.
@@ -135,8 +136,7 @@ Produis le JSON maintenant.`;
         : [],
     };
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.warn('[matching-llm] failed', (e as Error).message);
+    logger.warn('[matching-llm] failed', (e as Error).message);
     return null;
   }
 }

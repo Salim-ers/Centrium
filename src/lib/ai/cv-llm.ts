@@ -6,6 +6,7 @@
 // pour les imports dynamiques, cassant le build du Client Component qui
 // transite par cv-generator.
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
 
 import type {
   Consultant,
@@ -113,8 +114,7 @@ Produis le résumé exécutif maintenant.`;
     const text = msg.content[0]?.type === 'text' ? msg.content[0].text : '';
     return text.trim() || null;
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.warn('[cv-llm] reformulateSummary failed', (e as Error).message);
+    logger.warn('[cv-llm] reformulateSummary failed', (e as Error).message);
     return null;
   }
 }
@@ -189,8 +189,7 @@ Retourne le JSON array maintenant.`;
 
     return cleaned.length === sourceBullets.length ? cleaned : null;
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.warn('[cv-llm] reformulateExperienceBullets failed', (e as Error).message);
+    logger.warn('[cv-llm] reformulateExperienceBullets failed', (e as Error).message);
     return null;
   }
 }

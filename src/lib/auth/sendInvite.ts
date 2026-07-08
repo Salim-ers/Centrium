@@ -2,6 +2,7 @@ import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
 
 // =========================================================================
 // Helper partagé d'envoi d'invitation Supabase Auth.
@@ -137,7 +138,7 @@ async function findExistingUserId(
       page += 1;
     } catch (e) {
       const message = (e as Error).message ?? 'listUsers_threw';
-      console.error('[sendPortalInvite] findExistingUserId threw', { message });
+      logger.error('[sendPortalInvite] findExistingUserId threw', { message });
       return { status: 'error', message };
     }
   }
@@ -174,8 +175,8 @@ export async function sendPortalInvite(
     };
   }
   if (lookup.status === 'error') {
-    console.error('[sendPortalInvite] pre-check failed, refusing to continue', {
-      email: emailLower,
+    logger.error('[sendPortalInvite] pre-check failed, refusing to continue', {
+      emailDomain: emailLower.split('@')[1] ?? 'unknown',
       msg: lookup.message,
     });
     return {
@@ -219,8 +220,8 @@ export async function sendPortalInvite(
   // Race condition : entre notre pré-check et l'inviteUserByEmail, un autre
   // process peut avoir créé l'user. On respecte la même politique : refuse.
   if (inviteErr && ALREADY_REGISTERED_REGEX.test(inviteErr.message)) {
-    console.error('[sendPortalInvite] race detected: user created between pre-check and invite', {
-      email: emailLower,
+    logger.error('[sendPortalInvite] race detected: user created between pre-check and invite', {
+      emailDomain: emailLower.split('@')[1] ?? 'unknown',
     });
     return {
       user_id: null,
@@ -235,8 +236,8 @@ export async function sendPortalInvite(
   // === 2. Other error (SMTP rate-limit, redirect non whitelisté, bounce,
   //         network) → generateLink invite pour récupérer le lien utilisable
   //         manuellement. Crée l'user (qui n'existe pas — pré-check fait). ===
-  console.error('[sendPortalInvite] invite failed, falling back to generateLink', {
-    email: emailLower,
+  logger.error('[sendPortalInvite] invite failed, falling back to generateLink', {
+    emailDomain: emailLower.split('@')[1] ?? 'unknown',
     status: inviteErr?.status,
     msg: inviteErr?.message,
   });
@@ -309,7 +310,7 @@ export function buildRedirectTo(
   //    whitelisté côté Supabase Auth)
   if (!appUrl && isProd) {
     appUrl = PROD_APP_URL;
-    console.warn(
+    logger.warn(
       '[sendInvite] NEXT_PUBLIC_APP_URL manquant en prod — fallback sur ' +
         PROD_APP_URL +
         '. Configure-la dans Vercel pour éviter ce log.',

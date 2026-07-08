@@ -10,6 +10,7 @@ import {
   planLimitResponse,
 } from '@/lib/billing/enforce';
 import { sendPortalInvite, buildRedirectTo } from '@/lib/auth/sendInvite';
+import { logger } from '@/lib/logger';
 
 // =========================================================================
 // POST /api/consultants/create
@@ -162,8 +163,8 @@ export async function POST(req: NextRequest) {
   if (!invite.user_id) {
     // Échec total — ni invite, ni link de secours. On rollback.
     // Log le message brut côté serveur, ne le renvoie PAS à l'UI.
-    console.error('[consultants/create] sendPortalInvite total failure', {
-      email: portal_access.email,
+    logger.error('[consultants/create] sendPortalInvite total failure', {
+      emailDomain: portal_access.email.split('@')[1] ?? 'unknown',
       code: invite.email_error_code,
       raw: invite.email_error_raw,
     });

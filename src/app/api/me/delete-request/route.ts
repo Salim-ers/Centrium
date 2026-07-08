@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth/guards';
 import { logAudit } from '@/lib/audit/log';
 import { callerIp } from '@/lib/security/rate-limit';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
     ip: callerIp(req),
   });
   if (reqErr) {
-    console.error('[me/delete-request] insert failed', reqErr.message);
+    logger.error('[me/delete-request] insert failed', reqErr.message);
     return NextResponse.json(
       {
         error: 'internal',

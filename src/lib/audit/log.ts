@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
 
 /**
  * Helper d'audit serveur.
@@ -58,12 +59,10 @@ export async function logAudit(input: AuditInput): Promise<void> {
       details: input.details ?? null,
     });
     if (error) {
-      // eslint-disable-next-line no-console
-      console.warn('[audit] insert failed', error.message);
+      logger.warn('[audit] insert failed', error.message);
     }
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.warn('[audit] unexpected error', (e as Error).message);
+    logger.warn('[audit] unexpected error', (e as Error).message);
   }
 }
 

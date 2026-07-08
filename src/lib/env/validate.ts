@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { logger } from '@/lib/logger';
+
 /**
  * Validation des variables d'environnement au DÉMARRAGE du serveur.
  *
@@ -49,14 +51,14 @@ export function validateEnv(): void {
   const missingOptional = Object.keys(OPTIONAL).filter((k) => !present(k));
 
   if (missingOptional.length) {
-    console.info(
+    logger.info(
       `[env] Optionnelles manquantes : ${missingOptional
         .map((k) => `${k} (${OPTIONAL[k]})`)
         .join(', ')}`,
     );
   }
   if (missingRecommended.length) {
-    console.warn(
+    logger.warn(
       `[env] RECOMMANDÉES manquantes (fonctionnalités dégradées) : ${missingRecommended
         .map((k) => `${k} (${RECOMMENDED[k]})`)
         .join(', ')}`,
@@ -64,7 +66,7 @@ export function validateEnv(): void {
   }
   if (missingRequired.length) {
     const msg = `[env] REQUISES manquantes : ${missingRequired.join(', ')}`;
-    console.error(msg);
+    logger.error(msg);
     // Fail-fast uniquement en production ; en dev/preview on laisse démarrer.
     if (process.env.NODE_ENV === 'production') {
       throw new Error(msg);

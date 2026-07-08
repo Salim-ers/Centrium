@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { logger } from '@/lib/logger';
+
 /**
  * Rate limiting basé sur Upstash Redis.
  *
@@ -67,8 +69,7 @@ async function upstashHit(
   });
 
   if (!res.ok) {
-    // eslint-disable-next-line no-console
-    console.warn('[rate-limit] upstash error', res.status, await res.text());
+    logger.warn('[rate-limit] upstash error', { status: res.status, body: await res.text() });
     return null;
   }
 

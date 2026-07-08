@@ -27,6 +27,7 @@ import type {
   Language,
 } from '@/types';
 import { SENIORITY_LABEL } from '@/constants';
+import { logger } from '@/lib/logger';
 
 // ---------- Input / Output ----------
 
@@ -321,8 +322,7 @@ export async function generateCVContent(input: GenerateCVInput): Promise<Generat
       llmSummary = summaryResult;
       llmBulletsByExpIndex = bulletResults;
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn('[cv-generator] LLM call failed, falling back to deterministic engine', (e as Error).message);
+      logger.warn('[cv-generator] LLM call failed, falling back to deterministic engine', (e as Error).message);
     }
   }
 

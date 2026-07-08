@@ -13,6 +13,8 @@
 // fiable, brancher un LLM (Claude API) en V1.
 // =========================================================================
 
+import { logger } from '@/lib/logger';
+
 export type ParsedCV = {
   /** Identité extraite du CV — tous les champs sont nullables (best-effort). */
   identity?: {
@@ -577,8 +579,8 @@ export function parseCVText(text: string): ParsedCV {
 
   // Debug log pour diagnostic utilisateur
   if (typeof window !== 'undefined' && (window as unknown as { __QC_DEBUG?: boolean }).__QC_DEBUG) {
-    console.log('[QC parse-cv] sections détectées :', Object.keys(sections));
-    console.log('[QC parse-cv] résultat :', {
+    logger.info('[QC parse-cv] sections détectées :', Object.keys(sections));
+    logger.info('[QC parse-cv] résultat :', {
       summary: !!summary,
       skills: skills.length,
       experiences: experiences.length,

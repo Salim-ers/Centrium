@@ -4,6 +4,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod/v4';
 import { createClient } from '@/lib/supabase/server';
 import { guardLlmRoute } from '@/lib/auth/llm-guard';
+import { logger } from '@/lib/logger';
 
 // =========================================================================
 // /api/cv/skills/suggest — Analyse de plausibilité des compétences manquantes
@@ -198,7 +199,7 @@ Pour chacune des ${missingSkills.length} compétences ci-dessus, rends un verdic
         { status: e.status ?? 500 },
       );
     }
-    console.error('[cv/skills/suggest] unexpected error', e);
+    logger.error('[cv/skills/suggest] unexpected error', e);
     return NextResponse.json(
       {
         error: 'unknown',

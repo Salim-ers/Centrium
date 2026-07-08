@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/client';
 import type { ParsedCV } from './parse-cv';
 import type { Consultant } from '@/types';
+import { logger } from '@/lib/logger';
 
 export type ApplyResult = {
   skillsAdded: number;
@@ -69,7 +70,7 @@ export async function applyParsedCV(
       .from('consultant_skills')
       .insert(newSkills.map((s) => ({ ...s, consultant_id: consultantId })));
     if (error) {
-      console.error('[applyParsedCV] skills insert failed', error);
+      logger.error('[applyParsedCV] skills insert failed', error);
       result.warnings.push(`Compétences non importées : ${error.message}`);
     } else {
       result.skillsAdded = newSkills.length;
@@ -128,7 +129,7 @@ export async function applyParsedCV(
       })),
     );
     if (error) {
-      console.error('[applyParsedCV] experiences insert failed', error);
+      logger.error('[applyParsedCV] experiences insert failed', error);
       result.warnings.push(`Expériences non importées : ${error.message}`);
     } else {
       result.experiencesAdded = newExps.length;
@@ -147,7 +148,7 @@ export async function applyParsedCV(
       .from('consultant_educations')
       .insert(newEdus.map((ed) => ({ ...ed, consultant_id: consultantId })));
     if (error) {
-      console.error('[applyParsedCV] educations insert failed', error);
+      logger.error('[applyParsedCV] educations insert failed', error);
       result.warnings.push(`Formations non importées : ${error.message}`);
     } else {
       result.educationsAdded = newEdus.length;

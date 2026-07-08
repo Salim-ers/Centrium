@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { logger } from '@/lib/logger';
+
 // =========================================================================
 // Envoi d'emails transactionnels via Resend — helper partagé
 // -------------------------------------------------------------------------
@@ -95,9 +97,11 @@ export async function sendEmail(
 ): Promise<{ sent: boolean; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
-    console.info(
-      `[email] RESEND_API_KEY absente — email non envoyé.\n  to: ${Array.isArray(input.to) ? input.to.join(', ') : input.to}\n  subject: ${input.subject}${input.cta ? `\n  cta: ${input.cta.url}` : ''}`,
-    );
+    logger.info('[email] RESEND_API_KEY absente — email non envoyé.', {
+      recipients: Array.isArray(input.to) ? input.to.length : 1,
+      subject: input.subject,
+      hasCta: Boolean(input.cta),
+    });
     return { sent: false, error: 'missing_api_key' };
   }
 
@@ -118,12 +122,12 @@ export async function sendEmail(
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => '');
-      console.error(`[email] Resend ${res.status} — ${detail.slice(0, 300)}`);
+      logger.error(`[email] Resend ${res.status} — ${detail.slice(0, 300)}`);
       return { sent: false, error: `resend_${res.status}` };
     }
     return { sent: true };
   } catch (e) {
-    console.error('[email] envoi échoué', e);
+    logger.error('[email] envoi échoué', e);
     return { sent: false, error: 'network' };
   }
 }

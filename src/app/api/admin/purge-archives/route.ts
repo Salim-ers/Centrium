@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { reportError } from '@/lib/observability/report-error';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -154,8 +155,7 @@ async function notifyAdminsBeforePurge(
 
     for (const { email, firstName } of emails) {
       if (!resendKey) {
-        // eslint-disable-next-line no-console
-        console.log(
+        logger.info(
           '[purge-archives] (dry-run, RESEND_API_KEY missing) would email a recipient',
         );
         continue;
@@ -177,8 +177,7 @@ async function notifyAdminsBeforePurge(
           signal: AbortSignal.timeout(5000),
         });
       } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn('[purge-archives] email failed', (e as Error).message);
+        logger.warn('[purge-archives] email failed', (e as Error).message);
       }
     }
   }

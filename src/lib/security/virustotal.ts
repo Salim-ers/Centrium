@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { reportSecurityEvent } from './sentry';
+import { logger } from '@/lib/logger';
 
 /**
  * Scan antivirus d'un fichier via l'API VirusTotal.
@@ -86,8 +87,7 @@ export async function scanFileWithVirusTotal(
     }
     return await pollAnalysis(apiKey, sha256, analysisId);
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.warn('[virustotal] scan error', (e as Error).message);
+    logger.warn('[virustotal] scan error', (e as Error).message);
     return { status: 'unknown', sha256, reason: (e as Error).message };
   }
 }

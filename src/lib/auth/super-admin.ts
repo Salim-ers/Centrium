@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logger';
 
 // =========================================================================
 // Accès super-console — STRICTEMENT réservé aux comptes fondateurs
@@ -72,7 +73,7 @@ export async function getSuperAdminContext(): Promise<SuperAdminContext | null> 
 
   if (profile?.role === 'super_admin') {
     if (allowlist && !allowlisted) {
-      console.warn(
+      logger.warn(
         `[super-admin] role=super_admin mais email hors FOUNDER_EMAILS — accès refusé (user=${user.id})`,
       );
       return null;

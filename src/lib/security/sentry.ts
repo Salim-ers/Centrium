@@ -11,6 +11,8 @@
 
 import * as Sentry from '@sentry/nextjs';
 
+import { logger } from '@/lib/logger';
+
 type SecurityEventType =
   | 'rls.error' // erreur Postgres liée à RLS (potentiel trou)
   | 'service_role.unexpected' // appel admin client en dehors d'une raison whitelistée
@@ -48,10 +50,9 @@ export function reportSecurityEvent(event: SecurityEvent): void {
   };
 
   // Log structuré toujours (visible dans Vercel Logs même sans Sentry)
-  // eslint-disable-next-line no-console
-  console.error(
+  logger.error(
     `[SECURITY] ${event.severity.toUpperCase()} ${event.type}: ${event.message}`,
-    JSON.stringify(enriched),
+    enriched,
   );
 
   // Si Sentry est configuré (DSN posé), capture l'event avec contexte enrichi

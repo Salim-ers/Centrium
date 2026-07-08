@@ -4,6 +4,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod/v4';
 import { createClient } from '@/lib/supabase/server';
 import { guardLlmRoute } from '@/lib/auth/llm-guard';
+import { logger } from '@/lib/logger';
 
 // =========================================================================
 // /api/responses/generate-email — Pitch commercial IA pour une offre + consultant
@@ -189,7 +190,7 @@ Rédige le pitch commercial selon le schéma.`;
         { status: e.status ?? 500 },
       );
     }
-    console.error('[responses/generate-email] unexpected error', e);
+    logger.error('[responses/generate-email] unexpected error', e);
     return NextResponse.json(
       { error: 'unknown', message: e instanceof Error ? e.message : 'Erreur inconnue' },
       { status: 500 },

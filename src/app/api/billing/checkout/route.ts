@@ -7,6 +7,7 @@ import {
 import { resolveStripePriceId } from '@/lib/billing/resolve-price';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireOrg } from '@/lib/auth/guards';
+import { logger } from '@/lib/logger';
 
 // =========================================================================
 // POST /api/billing/checkout — Crée une Stripe Checkout Session
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
       // Log côté serveur pour l'ops, réponse générique côté client
       // (on ne fuit pas le nom d'env manquante à l'utilisateur final,
       // mais on la garde dans les logs Vercel).
-      console.error(
+      logger.error(
         `[billing/checkout] ${e.envVar} ${e.kind} — plan=${planId}`,
       );
       return NextResponse.json(
@@ -176,7 +177,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (e) {
     if (e instanceof StripeConfigError) {
-      console.error(`[billing/checkout] ${e.envVar} ${e.kind}`);
+      logger.error(`[billing/checkout] ${e.envVar} ${e.kind}`);
       return NextResponse.json(
         {
           error: 'stripe_not_configured',
@@ -187,7 +188,7 @@ export async function POST(req: NextRequest) {
       );
     }
     const message = e instanceof Error ? e.message : 'Erreur Stripe inconnue';
-    console.error('[billing/checkout] stripe error', message);
+    logger.error('[billing/checkout] stripe error', message);
     return NextResponse.json(
       { error: 'stripe_error', message: `Paiement indisponible : ${message}` },
       { status: 502 },

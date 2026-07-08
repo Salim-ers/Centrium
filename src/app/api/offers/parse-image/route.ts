@@ -4,6 +4,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod/v4';
 
 import { guardLlmRoute } from '@/lib/auth/llm-guard';
+import { logger } from '@/lib/logger';
 
 // =========================================================================
 // /api/offers/parse-image — Extraction structurée d'une offre / mission
@@ -255,7 +256,7 @@ export async function POST(req: NextRequest) {
         { status: e.status ?? 500 },
       );
     }
-    console.error('[offers/parse-image] unexpected error', e);
+    logger.error('[offers/parse-image] unexpected error', e);
     return NextResponse.json(
       { error: 'unknown', message: e instanceof Error ? e.message : 'Erreur inconnue' },
       { status: 500 },

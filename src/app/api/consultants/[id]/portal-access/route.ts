@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireOrg } from '@/lib/auth/guards';
 import { sendPortalInvite, buildRedirectTo } from '@/lib/auth/sendInvite';
+import { logger } from '@/lib/logger';
 
 // =========================================================================
 // POST /api/consultants/:id/portal-access
@@ -116,8 +117,8 @@ export async function POST(
   }
 
   if (!invite.user_id) {
-    console.error('[consultants/portal-access] sendPortalInvite total failure', {
-      email: parsed.data.email,
+    logger.error('[consultants/portal-access] sendPortalInvite total failure', {
+      emailDomain: parsed.data.email.split('@')[1] ?? 'unknown',
       code: invite.email_error_code,
       raw: invite.email_error_raw,
     });

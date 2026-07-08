@@ -4,6 +4,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod/v4';
 
 import { guardLlmRoute } from '@/lib/auth/llm-guard';
+import { logger } from '@/lib/logger';
 
 // =========================================================================
 // /api/cv/parse — Extraction structurée de CV via Claude API
@@ -276,7 +277,7 @@ export async function POST(req: NextRequest) {
         { status: e.status ?? 500 },
       );
     }
-    console.error('[cv/parse] unexpected error', e);
+    logger.error('[cv/parse] unexpected error', e);
     return NextResponse.json(
       {
         error: 'unknown',

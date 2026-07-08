@@ -1,6 +1,8 @@
 import 'server-only';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
+import { logger } from '@/lib/logger';
+
 /**
  * Client Supabase admin (service_role).
  *
@@ -44,8 +46,7 @@ export function createAdminClient(reason: AdminReason): SupabaseClient {
   // Trace systématique pour faciliter l'audit ex-post.
   // En prod, ces logs partent dans Vercel Logs / Sentry (à brancher).
   if (process.env.NODE_ENV !== 'test') {
-    // eslint-disable-next-line no-console
-    console.log(
+    logger.info(
       `[supabase.admin] service_role used — reason=${reason} ts=${new Date().toISOString()}`,
     );
   }

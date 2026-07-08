@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
 
 /**
  * Détection de nouvelle device à la connexion.
@@ -73,8 +74,7 @@ export async function trackLoginEvent(
     .single();
 
   if (error) {
-    // eslint-disable-next-line no-console
-    console.warn('[device-tracking] insert failed', error.message);
+    logger.warn('[device-tracking] insert failed', error.message);
     return { isNewDevice, eventId: null };
   }
 
@@ -99,8 +99,9 @@ export async function notifyNewDevice(args: {
   const text = renderNewDeviceEmail(args);
 
   if (!apiKey) {
-    // eslint-disable-next-line no-console
-    console.log(`[notify-new-device] (no RESEND_API_KEY) would email ${args.email}`);
+    logger.info(
+      `[notify-new-device] (no RESEND_API_KEY) would email domain=${args.email.split('@')[1] ?? 'unknown'}`,
+    );
     return;
   }
 
@@ -128,8 +129,7 @@ export async function notifyNewDevice(args: {
         .eq('id', args.eventId);
     }
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.warn('[notify-new-device] resend error', (e as Error).message);
+    logger.warn('[notify-new-device] resend error', (e as Error).message);
   }
 }
 

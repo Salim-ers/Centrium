@@ -10,6 +10,7 @@ import {
 import { resolveStripePriceId } from '@/lib/billing/resolve-price';
 import { slugify } from '@/lib/utils';
 import { rateLimit, callerIp } from '@/lib/security/rate-limit';
+import { logger } from '@/lib/logger';
 
 // =========================================================================
 // POST /api/demo/signup — Self-signup « Demander une démo » (public).
@@ -119,7 +120,7 @@ export async function POST(req: NextRequest) {
     priceId = await resolveStripePriceId(data.plan_id);
   } catch (e) {
     if (e instanceof StripeConfigError) {
-      console.error(`[demo/signup] ${e.envVar} ${e.kind} — plan=${data.plan_id}`);
+      logger.error(`[demo/signup] ${e.envVar} ${e.kind} — plan=${data.plan_id}`);
       return NextResponse.json(
         {
           error: 'stripe_not_configured',
@@ -212,7 +213,7 @@ export async function POST(req: NextRequest) {
     .insert({ organization_id: org.id, user_id: userId, role: 'admin', invited_by: null })
     .then(({ error }) => {
       if (error && error.code !== '23505') {
-        console.error('[demo/signup] membership insert failed', error.message);
+        logger.error('[demo/signup] membership insert failed', error.message);
       }
     });
 
@@ -230,7 +231,7 @@ export async function POST(req: NextRequest) {
       user_agent: req.headers.get('user-agent'),
     })
     .then(({ error }) => {
-      if (error) console.error('[demo/signup] legal_acceptances insert failed', error.message);
+      if (error) logger.error('[demo/signup] legal_acceptances insert failed', error.message);
     });
 
   // 4) Client Stripe + abonnement en 'incomplete' (pas d'accès tant que la
@@ -280,7 +281,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ data: { url: session.url, organization: org.name } }, { status: 201 });
   } catch (e) {
     if (e instanceof StripeConfigError) {
-      console.error(`[demo/signup] ${e.envVar} ${e.kind}`);
+      logger.error(`[demo/signup] ${e.envVar} ${e.kind}`);
       return NextResponse.json(
         {
           error: 'stripe_not_configured',
@@ -291,7 +292,7 @@ export async function POST(req: NextRequest) {
       );
     }
     const message = e instanceof Error ? e.message : 'Erreur Stripe';
-    console.error('[demo/signup] stripe error', message);
+    logger.error('[demo/signup] stripe error', message);
     // Le compte existe déjà : on renvoie une erreur claire, le prospect
     // pourra relancer le paiement depuis /billing après connexion.
     return NextResponse.json(
