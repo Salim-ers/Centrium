@@ -251,7 +251,22 @@ export function Combobox({
         createPortal(
           <div
             ref={dropdownRef as unknown as React.RefObject<HTMLDivElement>}
-            style={{ position: 'fixed', top: rect.top, left: rect.left, width: rect.width }}
+            style={{
+              position: 'fixed',
+              top: rect.top,
+              left: rect.left,
+              width: rect.width,
+              // CRITIQUE : le panneau est porté dans document.body. Quand le
+              // Combobox est DANS un Dialog Radix (modal), Radix pose
+              // pointer-events:none sur tout ce qui est hors du contenu du
+              // dialog → le panneau (frère dans body) devenait NON CLIQUABLE à
+              // la souris (seul le clavier marchait). On rétablit la cliquabilité.
+              pointerEvents: 'auto',
+            }}
+            // Empêche le pointerdown sur le panneau d'atteindre le
+            // DismissableLayer de Radix (qui, le voyant « hors dialog »,
+            // fermerait le dialog au clic d'une option).
+            onPointerDown={(e) => e.stopPropagation()}
             className="z-[100] rounded-xl border border-hairline bg-popover shadow-2xl p-1.5 animate-in fade-in-0 zoom-in-95"
           >
             {isSearchable && (
