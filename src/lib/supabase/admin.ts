@@ -21,6 +21,7 @@ type AdminReason =
   | 'cross-org-query' // ex: super_admin dashboard
   | 'audit-log-write' // logAudit() qui doit traverser RLS
   | 'rgpd-export' // export RGPD utilisateur self-service
+  | 'rgpd-deletion' // demande de suppression de compte (art. 17)
   | 'invitation' // création membership cross-org
   | 'onboarding' // création initiale org + first member
   | 'system-cron' // jobs planifiés

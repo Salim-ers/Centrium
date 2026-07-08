@@ -32,6 +32,11 @@ export const runtime = 'nodejs';
 const TRIAL_DAYS = 7;
 const CHECKOUTABLE = new Set<StripePlanId>(['starter', 'growth', 'enterprise']);
 
+// Version des documents légaux acceptés au signup. À incrémenter à chaque
+// révision substantielle des CGU / Confidentialité / DPA — sert de preuve
+// opposable (quelle version l'utilisateur a acceptée, et quand).
+const LEGAL_DOCS_VERSION = '2026-07-08';
+
 const schema = z.object({
   company_name: z.string().min(2, 'Nom de société requis').max(120),
   first_name: z.string().min(1, 'Prénom requis').max(80),
@@ -39,6 +44,11 @@ const schema = z.object({
   email: z.string().email('Email invalide'),
   password: z.string().min(12, '12 caractères minimum').max(256),
   plan_id: z.enum(['starter', 'growth', 'enterprise']).default('starter'),
+  // Clickwrap OBLIGATOIRE : sans acceptation, le DPA (Art. 28, incorporé aux
+  // CGU) n'est pas conclu → on refuse la création.
+  accept_terms: z.boolean().refine((v) => v === true, {
+    message: 'Vous devez accepter les CGU, la Politique de confidentialité et la DPA.',
+  }),
 });
 
 /** Slug unique : slugify + suffixe incrémental si collision. */
@@ -204,6 +214,23 @@ export async function POST(req: NextRequest) {
       if (error && error.code !== '23505') {
         console.error('[demo/signup] membership insert failed', error.message);
       }
+    });
+
+  // Preuve d'acceptation légale (clickwrap) — horodatée, versionnée, IP + UA.
+  // Non bloquant sur échec DB (le consentement a bien été donné et validé par
+  // le schéma), mais on log pour investigation.
+  await admin
+    .from('legal_acceptances')
+    .insert({
+      organization_id: org.id,
+      user_id: userId,
+      documents: ['cgu', 'privacy', 'dpa'],
+      version: LEGAL_DOCS_VERSION,
+      ip,
+      user_agent: req.headers.get('user-agent'),
+    })
+    .then(({ error }) => {
+      if (error) console.error('[demo/signup] legal_acceptances insert failed', error.message);
     });
 
   // 4) Client Stripe + abonnement en 'incomplete' (pas d'accès tant que la

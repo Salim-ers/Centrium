@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth/guards';
 import { logAudit } from '@/lib/audit/log';
+import { callerIp } from '@/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -51,17 +52,38 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const admin = createAdminClient('rgpd-export');
+  const admin = createAdminClient('rgpd-deletion');
 
-  // Récupère l'organisation pour pouvoir loguer dans activities (col NOT NULL).
-  // Si pas d'org (super_admin), on log dans activities sans org_id pourrait
-  // violer la contrainte → fallback : on accepte la demande sans log.
   const { data: profile } = await admin
     .from('profiles')
     .select('organization_id')
     .eq('id', user.id)
     .maybeSingle();
 
+  // Enregistrement DURABLE de la demande, quelle que soit la présence d'org
+  // (avant : un compte super_admin sans org recevait « reçu » sans qu'aucune
+  // trace ne soit gardée → demande perdue). Ce registre est la source de
+  // vérité pour le traitement RGPD (30 j).
+  const { error: reqErr } = await admin.from('account_deletion_requests').insert({
+    user_id: user.id,
+    email: user.email,
+    organization_id: profile?.organization_id ?? null,
+    reason: parsed.data.reason ?? null,
+    ip: callerIp(req),
+  });
+  if (reqErr) {
+    console.error('[me/delete-request] insert failed', reqErr.message);
+    return NextResponse.json(
+      {
+        error: 'internal',
+        message:
+          'Impossible d’enregistrer votre demande pour le moment. Réessaie, ou écris à contact@centrium-platform.com.',
+      },
+      { status: 500 },
+    );
+  }
+
+  // Audit riche additionnel quand il y a une org (activities exige org_id).
   if (profile?.organization_id) {
     await logAudit({
       organizationId: profile.organization_id,

@@ -5,6 +5,9 @@
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
+    // Validation des env au boot (fail-fast en prod si REQUISES manquantes).
+    const { validateEnv } = await import('./lib/env/validate');
+    validateEnv();
     await import('../sentry.server.config');
   }
 

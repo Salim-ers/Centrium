@@ -38,6 +38,7 @@ function EssaiInner() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailTaken, setEmailTaken] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -55,6 +56,7 @@ function EssaiInner() {
           email,
           password,
           plan_id: planId,
+          accept_terms: acceptTerms,
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -208,10 +210,36 @@ function EssaiInner() {
           </div>
         )}
 
+        {/* Clickwrap RGPD obligatoire : acceptation CGU + Confidentialité + DPA */}
+        <label className="flex items-start gap-2.5 text-[12px] text-white/55 leading-relaxed cursor-pointer">
+          <input
+            type="checkbox"
+            checked={acceptTerms}
+            onChange={(e) => setAcceptTerms(e.target.checked)}
+            required
+            className="mt-0.5 h-4 w-4 shrink-0 accent-magenta"
+          />
+          <span>
+            J&apos;accepte les{' '}
+            <Link href="/legal/cgu" target="_blank" className="text-magenta hover:text-magenta-neon underline">
+              CGU
+            </Link>
+            , la{' '}
+            <Link href="/legal/privacy" target="_blank" className="text-magenta hover:text-magenta-neon underline">
+              Politique de confidentialité
+            </Link>{' '}
+            et l&apos;
+            <Link href="/legal/dpa" target="_blank" className="text-magenta hover:text-magenta-neon underline">
+              Accord de traitement des données (DPA)
+            </Link>
+            .
+          </span>
+        </label>
+
         <Button
           type="submit"
-          disabled={submitting}
-          className="w-full h-11 bg-qc-gradient hover:opacity-90 shadow-glow-magenta text-white"
+          disabled={submitting || !acceptTerms}
+          className="w-full h-11 bg-qc-gradient hover:opacity-90 shadow-glow-magenta text-white disabled:opacity-50"
         >
           {submitting ? (
             <Loader2 className="h-4 w-4 animate-spin" />
