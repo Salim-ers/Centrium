@@ -13,10 +13,16 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  // Les specs « UI » (utilisant `page`) ont besoin du serveur dev ; les specs
+  // « API/RLS » (isolation, consultant, CRA→facture) tapent Supabase en direct
+  // et n'en ont pas besoin. PLAYWRIGHT_NO_SERVER=1 désactive le webServer pour
+  // les faire tourner en CI sans booter toute l'app.
+  webServer: process.env.PLAYWRIGHT_NO_SERVER
+    ? undefined
+    : {
+        command: 'npm run dev',
+        url: 'http://localhost:3000',
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+      },
 });
