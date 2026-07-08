@@ -148,6 +148,111 @@ const RAW: RawEquiv[] = [
   // ── Tests / QA ──────────────────────────────────────────────────────
   { parent: 'Tests automatisés', full: ['Playwright', 'Cypress', 'Selenium', 'Jest', 'Vitest', 'JUnit', 'TestNG', 'Robot Framework'] },
   { parent: 'QA', full: ['Playwright', 'Cypress', 'Selenium', 'JUnit', 'Postman', 'Jira', 'TestRail'], partial: ['CI/CD'] },
+
+  // ── Cybersécurité ───────────────────────────────────────────────────
+  {
+    parent: 'Cybersécurité',
+    full: ['SOC', 'SIEM', 'EDR', 'XDR', 'Pentest', "Test d'intrusion", 'IAM', 'DLP', 'WAF', 'ISO 27001', 'SOAR', 'PKI', 'Vulnerability Management'],
+    partial: ['Firewall', 'Pare-feu', 'Antivirus', 'Sécurité réseau', 'RGPD'],
+  },
+  { parent: 'Sécurité', full: ['SOC', 'SIEM', 'EDR', 'Pentest', 'IAM', 'Firewall', 'WAF', 'ISO 27001'], partial: ['Antivirus', 'VPN', 'RGPD'] },
+  { parent: 'SIEM', full: ['Splunk', 'QRadar', 'ArcSight', 'Microsoft Sentinel', 'Sentinel', 'Elastic Security', 'LogRhythm', 'Wazuh'] },
+  { parent: 'SOC', full: ['SIEM', 'EDR', 'SOAR', 'Threat Hunting', 'Incident Response', 'Splunk', 'Microsoft Sentinel'] },
+  { parent: 'Pentest', full: ['Kali', 'Metasploit', 'Burp Suite', 'Nmap', 'Nessus', 'OWASP', 'Cobalt Strike', 'BloodHound'] },
+  { parent: "Test d'intrusion", full: ['Kali', 'Metasploit', 'Burp Suite', 'Nmap', 'Nessus', 'OWASP'] },
+  { parent: 'IAM', full: ['Active Directory', 'Microsoft Entra ID', 'Okta', 'SailPoint', 'CyberArk', 'Keycloak', 'Ping Identity', 'ForgeRock'], partial: ['SSO', 'LDAP'] },
+  { parent: 'EDR', full: ['CrowdStrike', 'SentinelOne', 'Microsoft Defender', 'Cortex XDR', 'Carbon Black', 'Cybereason'] },
+  { parent: 'GRC', full: ['ISO 27001', 'NIST', 'RGPD', 'Risk Management', 'Compliance', 'Audit sécurité'] },
+
+  // ── Data Engineering / Big Data / BI ────────────────────────────────
+  {
+    parent: 'Data Engineering',
+    full: ['Spark', 'Apache Spark', 'Hadoop', 'Kafka', 'Airflow', 'dbt', 'Snowflake', 'Databricks', 'ETL', 'PySpark'],
+    partial: ['SQL', 'Python', 'Scala'],
+  },
+  { parent: 'Big Data', full: ['Hadoop', 'Spark', 'Hive', 'HBase', 'Kafka', 'Databricks', 'Cloudera', 'MapReduce'], partial: ['Scala', 'Python'] },
+  { parent: 'BI', full: ['Power BI', 'Tableau', 'Qlik', 'QlikView', 'Qlik Sense', 'Looker', 'SSRS', 'SSAS', 'SSIS', 'Cognos', 'MicroStrategy'], partial: ['Excel', 'SQL'] },
+  { parent: 'Business Intelligence', full: ['Power BI', 'Tableau', 'Qlik', 'Looker', 'SSRS', 'SSAS', 'SSIS', 'Cognos'], partial: ['Excel', 'SQL'] },
+  { parent: 'ETL', full: ['Talend', 'Informatica', 'SSIS', 'dbt', 'Airflow', 'DataStage', 'Pentaho', 'Matillion'] },
+  { parent: 'Data Warehouse', full: ['Snowflake', 'BigQuery', 'Redshift', 'Synapse', 'Azure Synapse', 'Teradata', 'Databricks'] },
+  { parent: 'Dataviz', full: ['Power BI', 'Tableau', 'Qlik', 'Looker', 'Grafana', 'D3.js'] },
+
+  // ── Data Science / ML / IA ──────────────────────────────────────────
+  { parent: 'Machine Learning', full: ['TensorFlow', 'PyTorch', 'scikit-learn', 'Keras', 'XGBoost', 'MLflow'], partial: ['Python', 'Data Science', 'R'] },
+  { parent: 'Data Science', full: ['Python', 'R', 'Pandas', 'NumPy', 'scikit-learn', 'Jupyter', 'Machine Learning'], partial: ['SQL', 'Spark'] },
+  { parent: 'MLOps', full: ['MLflow', 'Kubeflow', 'SageMaker', 'Vertex AI', 'BentoML'], partial: ['Docker', 'Kubernetes', 'CI/CD'] },
+  { parent: 'Intelligence artificielle', full: ['Machine Learning', 'Deep Learning', 'NLP', 'LLM', 'TensorFlow', 'PyTorch', 'Computer Vision'] },
+  { parent: 'IA', full: ['Machine Learning', 'Deep Learning', 'NLP', 'LLM', 'TensorFlow', 'PyTorch'] },
+
+  // ── Langages / backend ──────────────────────────────────────────────
+  { parent: 'Python', full: ['Django', 'Flask', 'FastAPI', 'Pandas', 'NumPy', 'PySpark'] },
+  { parent: 'Go', full: ['Golang'] },
+  { parent: 'Golang', full: ['Go'] },
+  { parent: 'PHP', full: ['Symfony', 'Laravel', 'WordPress', 'Drupal', 'Magento'] },
+  { parent: 'Ruby', full: ['Ruby on Rails', 'Rails'] },
+  { parent: 'Node.js', full: ['Express', 'NestJS', 'Express.js'], partial: ['JavaScript', 'TypeScript'] },
+  { parent: 'Backend', full: ['Java', 'Python', 'Node.js', 'PHP', 'C#', 'Go', 'Ruby', 'Spring', 'Django', '.NET'], partial: ['SQL', 'API'] },
+
+  // ── Mobile ──────────────────────────────────────────────────────────
+  { parent: 'Mobile', full: ['iOS', 'Android', 'Swift', 'Kotlin', 'React Native', 'Flutter', 'Objective-C', 'SwiftUI'] },
+  { parent: 'iOS', full: ['Swift', 'Objective-C', 'SwiftUI', 'Xcode'] },
+  { parent: 'Android', full: ['Kotlin', 'Android SDK', 'Jetpack Compose'], partial: ['Java'] },
+
+  // ── API / Intégration / Middleware / Messaging ──────────────────────
+  { parent: 'API', full: ['REST', 'RESTful', 'REST API', 'GraphQL', 'SOAP', 'OpenAPI', 'Swagger', 'gRPC'] },
+  { parent: 'Intégration', full: ['MuleSoft', 'Talend', 'Apache Camel', 'ESB', 'Kafka', 'RabbitMQ', 'Boomi', 'Dell Boomi'] },
+  { parent: 'Middleware', full: ['WebLogic', 'JBoss', 'WildFly', 'Tomcat', 'IIS', 'WebSphere', 'Apache'] },
+  { parent: 'Messaging', full: ['Kafka', 'RabbitMQ', 'ActiveMQ', 'IBM MQ', 'Azure Service Bus', 'SQS', 'Pub/Sub'] },
+
+  // ── ERP / CRM / SAP ─────────────────────────────────────────────────
+  { parent: 'SAP', full: ['SAP HANA', 'ABAP', 'SAP FICO', 'SAP MM', 'SAP SD', 'SAP S/4HANA', 'S/4HANA', 'SAP BW', 'SAP Fiori'] },
+  { parent: 'ERP', full: ['SAP', 'Oracle ERP', 'Microsoft Dynamics', 'Dynamics 365', 'Sage', 'Odoo', 'SAP S/4HANA'] },
+  { parent: 'CRM', full: ['Salesforce', 'Microsoft Dynamics', 'Dynamics 365', 'HubSpot', 'SugarCRM', 'Pega'] },
+  { parent: 'Salesforce', full: ['Apex', 'Visualforce', 'Lightning', 'SOQL', 'Salesforce CRM'] },
+
+  // ── Méthodologies / gestion de projet ───────────────────────────────
+  { parent: 'Agile', full: ['Scrum', 'Kanban', 'SAFe', 'XP', 'Extreme Programming'], partial: ['Jira'] },
+  { parent: 'Scrum', full: ['Scrum Master', 'Product Owner', 'Sprint'], partial: ['Agile', 'Jira'] },
+  { parent: 'ITIL', full: ['ITSM', 'Change Management', 'Incident Management', 'Problem Management', 'CMDB'] },
+  { parent: 'Gestion de projet', full: ['PMP', 'Prince2', 'MS Project', 'Scrum', 'SAFe', 'Planning', 'PMO'] },
+
+  // ── Version control ─────────────────────────────────────────────────
+  { parent: 'Git', full: ['GitHub', 'GitLab', 'Bitbucket', 'GitFlow'] },
+  { parent: 'Contrôle de version', full: ['Git', 'GitHub', 'GitLab', 'Bitbucket', 'SVN', 'Subversion', 'Mercurial', 'TFS'] },
+
+  // ── Stockage / sauvegarde ───────────────────────────────────────────
+  { parent: 'Stockage', full: ['SAN', 'NAS', 'NetApp', 'EMC', 'Pure Storage', 'Ceph', 'Dell EMC'], partial: ['RAID', 'iSCSI'] },
+  { parent: 'Sauvegarde', full: ['Veeam', 'Commvault', 'NetBackup', 'Rubrik', 'Acronis', 'Networker'] },
+  { parent: 'Backup', full: ['Veeam', 'Commvault', 'NetBackup', 'Rubrik', 'Acronis'] },
+
+  // ── RPA / Low-code ──────────────────────────────────────────────────
+  { parent: 'RPA', full: ['UiPath', 'Blue Prism', 'Automation Anywhere', 'Power Automate'] },
+  { parent: 'Low-code', full: ['Power Platform', 'PowerApps', 'Power Automate', 'OutSystems', 'Mendix', 'Appian'] },
+  { parent: 'Power Platform', full: ['PowerApps', 'Power Automate', 'Power BI', 'Power Virtual Agents'] },
+
+  // ── Web / CMS / e-commerce ──────────────────────────────────────────
+  { parent: 'CMS', full: ['WordPress', 'Drupal', 'Joomla', 'TYPO3', 'AEM', 'Adobe Experience Manager', 'Contentful'] },
+  { parent: 'E-commerce', full: ['Magento', 'PrestaShop', 'Shopify', 'WooCommerce', 'SAP Commerce', 'Hybris', 'Salesforce Commerce'] },
+
+  // ── CSS / frontend ──────────────────────────────────────────────────
+  { parent: 'CSS', full: ['Sass', 'SCSS', 'Tailwind', 'Tailwind CSS', 'Bootstrap', 'Less'] },
+
+  // ── Poste de travail / MDM ──────────────────────────────────────────
+  { parent: 'Poste de travail', full: ['Windows 10', 'Windows 11', 'Intune', 'SCCM', 'MDT', 'Autopilot', 'macOS', 'Jamf'], partial: ['Active Directory'] },
+  { parent: 'MDM', full: ['Intune', 'Jamf', 'Workspace ONE', 'MobileIron', 'SCCM'] },
+
+  // ── Téléphonie / communications unifiées ────────────────────────────
+  { parent: 'Téléphonie', full: ['VoIP', 'SIP', 'Asterisk', 'Avaya', 'Cisco CallManager', 'Teams Voice', '3CX'] },
+
+  // ── Observabilité ───────────────────────────────────────────────────
+  { parent: 'Observabilité', full: ['Prometheus', 'Grafana', 'Datadog', 'ELK', 'Splunk', 'Jaeger', 'OpenTelemetry', 'Dynatrace', 'New Relic'] },
+
+  // ── Embarqué / IoT ──────────────────────────────────────────────────
+  { parent: 'Embarqué', full: ['C', 'C++', 'RTOS', 'FreeRTOS', 'STM32', 'Yocto', 'Embedded Linux', 'Microcontrôleur'] },
+  { parent: 'IoT', full: ['MQTT', 'Arduino', 'Raspberry Pi', 'LoRa', 'LoRaWAN', 'Zigbee', 'Embedded Linux'] },
+
+  // ── Télécom ─────────────────────────────────────────────────────────
+  { parent: 'Télécom', full: ['5G', '4G', 'LTE', 'VoLTE', 'Core Network', 'RAN', 'GSM'] },
 ];
 
 type EquivEntry = { full: Set<string>; partial: Set<string> };
