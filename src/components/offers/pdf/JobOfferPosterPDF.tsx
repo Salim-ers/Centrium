@@ -44,18 +44,18 @@ function buildStyles(primary: string, accent: string) {
       backgroundColor: N.white,
       color: N.inkText,
       fontFamily: 'Helvetica',
-      paddingTop: mm(10),
-      paddingBottom: mm(20), // place pour le footer fixé
-      paddingHorizontal: mm(10),
-      fontSize: 9.5,
-      lineHeight: 1.4,
+      paddingTop: mm(7.5),
+      paddingBottom: mm(12), // place pour le footer fixé
+      paddingHorizontal: mm(9),
+      fontSize: 9,
+      lineHeight: 1.35,
     },
 
     // ============ HERO (logo panel + title panel) ============
     hero: {
       flexDirection: 'row',
-      height: mm(32),
-      marginBottom: mm(6),
+      height: mm(25),
+      marginBottom: mm(4),
     },
     heroLogo: {
       backgroundColor: primary,
@@ -72,9 +72,9 @@ function buildStyles(primary: string, accent: string) {
     heroBody: {
       backgroundColor: primary,
       flex: 1,
-      paddingTop: mm(5.5),
-      paddingBottom: mm(5.5),
-      paddingHorizontal: mm(9),
+      paddingTop: mm(4),
+      paddingBottom: mm(4),
+      paddingHorizontal: mm(8),
       justifyContent: 'center',
     },
     heroTag: {
@@ -85,11 +85,11 @@ function buildStyles(primary: string, accent: string) {
       marginBottom: mm(1.8),
     },
     heroTitle: {
-      fontSize: 20,
+      fontSize: 17,
       fontFamily: 'Helvetica-Bold',
       color: N.white,
-      lineHeight: 1.1,
-      marginBottom: mm(1.5),
+      lineHeight: 1.08,
+      marginBottom: mm(1.2),
     },
     heroSubtitle: {
       fontSize: 9.5,
@@ -104,7 +104,7 @@ function buildStyles(primary: string, accent: string) {
     // ============ INFO BANNER (4 cells avec top-border accent) ============
     infoBanner: {
       flexDirection: 'row',
-      marginBottom: mm(6.5),
+      marginBottom: mm(4),
     },
     bannerCell: {
       backgroundColor: N.sand,
@@ -145,9 +145,9 @@ function buildStyles(primary: string, accent: string) {
     sectionTitle: {
       flexDirection: 'row',
       alignItems: 'stretch',
-      marginTop: mm(5.5),
-      marginBottom: mm(2.2),
-      height: mm(5.5),
+      marginTop: mm(3.3),
+      marginBottom: mm(1.5),
+      height: mm(4.6),
     },
     sectionAccent: {
       width: mm(1.3),
@@ -183,10 +183,10 @@ function buildStyles(primary: string, accent: string) {
     // ============ 02 FINALITÉ (callout dark + left border accent) ============
     callout: {
       backgroundColor: primary,
-      paddingTop: mm(4),
-      paddingBottom: mm(4),
-      paddingHorizontal: mm(5.5),
-      borderLeftWidth: mm(2.2),
+      paddingTop: mm(3),
+      paddingBottom: mm(3),
+      paddingHorizontal: mm(5),
+      borderLeftWidth: mm(2),
       borderLeftColor: accent,
       borderLeftStyle: 'solid',
     },
@@ -228,8 +228,8 @@ function buildStyles(primary: string, accent: string) {
     },
     colBody: {
       backgroundColor: N.sand,
-      paddingTop: mm(4),
-      paddingBottom: mm(4.5),
+      paddingTop: mm(3),
+      paddingBottom: mm(3.2),
       paddingHorizontal: mm(5),
     },
 
@@ -237,8 +237,8 @@ function buildStyles(primary: string, accent: string) {
     bulletItem: {
       flexDirection: 'row',
       alignItems: 'flex-start',
-      paddingTop: mm(0.6),
-      paddingBottom: mm(0.6),
+      paddingTop: mm(0.45),
+      paddingBottom: mm(0.45),
     },
     bullet: {
       color: accent,
@@ -427,16 +427,33 @@ export function JobOfferPosterPDF({
     durationLabel,
   ].filter(Boolean);
 
-  // === Sections data ===
-  const tasks = offer.tasks?.length ? offer.tasks : [];
+  // === Sections data — BORNÉES pour tenir sur 1 page (« que l'utile ») ===
+  // Au-delà de ces limites la fiche débordait sur une 2e page mal cadrée. On
+  // coupe les textes trop longs et on plafonne le nombre de puces.
+  const clamp = (s: string, max: number) =>
+    s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s;
+  const contextText = clamp((offer.context || offer.description || '').trim(), 520);
+  const purposeText = offer.mission_purpose ? clamp(offer.mission_purpose.trim(), 300) : '';
+  const tasks = (offer.tasks?.length ? offer.tasks : [])
+    .slice(0, 6)
+    .map((t) => clamp(t, 160));
   // profile_requirements > required_skills (fallback pour les vieux AO)
-  const profile = offer.profile_requirements?.length
-    ? offer.profile_requirements
-    : offer.required_skills?.length
-      ? offer.required_skills
-      : [];
-  const conditions = offer.working_conditions?.length ? offer.working_conditions : [];
-  const tech = offer.tech_stack?.length ? offer.tech_stack : offer.required_skills ?? [];
+  const profile = (
+    offer.profile_requirements?.length
+      ? offer.profile_requirements
+      : offer.required_skills?.length
+        ? offer.required_skills
+        : []
+  )
+    .slice(0, 6)
+    .map((p) => clamp(p, 160));
+  const conditions = (offer.working_conditions?.length ? offer.working_conditions : [])
+    .slice(0, 4)
+    .map((c) => clamp(c, 160));
+  const tech = (offer.tech_stack?.length ? offer.tech_stack : offer.required_skills ?? []).slice(
+    0,
+    7,
+  );
 
   // === Info banner (4 cellules) ===
   const banner: { label: string; value: string }[] = [
@@ -488,7 +505,7 @@ export function JobOfferPosterPDF({
         </View>
 
         {/* ============ 01 CONTEXTE ============ */}
-        {(offer.context || offer.description) && (
+        {contextText && (
           <>
             <View style={styles.sectionTitle}>
               <View style={styles.sectionAccent} />
@@ -497,12 +514,12 @@ export function JobOfferPosterPDF({
                 <Text>{L.sec01}</Text>
               </View>
             </View>
-            <Text style={styles.contexte}>{offer.context || offer.description}</Text>
+            <Text style={styles.contexte}>{contextText}</Text>
           </>
         )}
 
         {/* ============ 02 FINALITÉ ============ */}
-        {offer.mission_purpose && (
+        {purposeText && (
           <View wrap={false}>
             <View style={styles.sectionTitle}>
               <View style={styles.sectionAccent} />
@@ -513,7 +530,7 @@ export function JobOfferPosterPDF({
             </View>
             <View style={styles.callout}>
               <Text style={styles.calloutLabel}>{L.sec02Label}</Text>
-              <Text style={styles.calloutText}>{offer.mission_purpose}</Text>
+              <Text style={styles.calloutText}>{purposeText}</Text>
             </View>
           </View>
         )}
@@ -582,7 +599,7 @@ export function JobOfferPosterPDF({
               </View>
             </View>
             <View style={styles.techRow}>
-              {tech.slice(0, 8).map((t, i, arr) => (
+              {tech.map((t, i, arr) => (
                 <Text
                   key={t}
                   style={i === arr.length - 1 ? styles.techBadgeLast : styles.techBadge}
