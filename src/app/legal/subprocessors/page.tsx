@@ -14,7 +14,7 @@ const SUBPROCESSORS = [
     name: 'Supabase Inc.',
     purpose: 'Hébergement de la base de données PostgreSQL, authentification, stockage des fichiers.',
     data: 'Toutes les données de l\'application (consultants, contacts, factures, fichiers).',
-    location: 'Union Européenne (Francfort, Allemagne)',
+    location: 'Union Européenne (Stockholm, Suède — région eu-north-1)',
     transfer: 'Aucun transfert hors UE.',
     dpa: 'https://supabase.com/legal/dpa',
     cert: 'SOC 2 Type II · ISO 27001',
@@ -23,8 +23,8 @@ const SUBPROCESSORS = [
     name: 'Vercel Inc.',
     purpose: 'Hébergement de l\'application web (frontend Next.js + Edge Functions).',
     data: 'Logs d\'accès (IP, user-agent), métadonnées des requêtes. Pas de données métier persistées.',
-    location: 'Union Européenne (Paris, FR — région CDG1)',
-    transfer: 'Aucun transfert hors UE pour le traitement applicatif.',
+    location: 'États-Unis (Vercel Inc.) — réseau edge mondial, calcul primaire en région européenne.',
+    transfer: 'Transfert hors UE possible via le réseau edge, encadré par des Clauses Contractuelles Types (CCT/SCC).',
     dpa: 'https://vercel.com/legal/dpa',
     cert: 'SOC 2 Type II · ISO 27001',
   },
@@ -54,6 +54,24 @@ const SUBPROCESSORS = [
     transfer: 'Transfert hors UE encadré par CCT.',
     dpa: 'https://resend.com/legal/dpa',
     cert: 'SOC 2 Type II',
+  },
+  {
+    name: 'Functional Software, Inc. (Sentry)',
+    purpose: 'Supervision des erreurs et observabilité applicative (monitoring, performance).',
+    data: 'Rapports d\'erreurs techniques (traces, métadonnées de requête). Les PII sont expurgées avant envoi (e-mails, cookies, en-têtes d\'authentification, tokens) et l\'option sendDefaultPii est désactivée.',
+    location: 'États-Unis',
+    transfer: 'Transfert hors UE encadré par des Clauses Contractuelles Types (CCT/SCC).',
+    dpa: 'https://sentry.io/legal/dpa/',
+    cert: 'SOC 2 Type II · ISO 27001',
+  },
+  {
+    name: 'Formspree, Inc.',
+    purpose: 'Réception et acheminement des messages du formulaire de contact.',
+    data: 'Nom, e-mail professionnel, société et message saisis dans le formulaire de contact.',
+    location: 'États-Unis',
+    transfer: 'Transfert hors UE encadré par des Clauses Contractuelles Types (CCT/SCC).',
+    dpa: 'https://formspree.io/legal/dpa/',
+    cert: 'Conformité RGPD · Chiffrement TLS',
   },
 ];
 
@@ -111,9 +129,9 @@ export default function SubprocessorsPage() {
 
       <h2>Notre engagement</h2>
       <p>
-        Tous nos sous-traitants présentent des garanties de sécurité au moins
-        équivalentes à celles que nous offrons à nos clients (SOC 2, ISO 27001,
-        chiffrement au repos et en transit, audit régulier). Aucun de nos
+        Tous nos sous-traitants présentent des garanties de sécurité appropriées
+        à la sensibilité des données traitées (selon le prestataire : SOC 2,
+        ISO 27001, chiffrement au repos et en transit, audits réguliers). Aucun de nos
         sous-traitants n&apos;accède aux données pour autre chose que la
         fourniture de son service strictement défini ci-dessus.
       </p>

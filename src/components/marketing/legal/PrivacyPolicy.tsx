@@ -75,11 +75,13 @@ export function PrivacyPolicy() {
         <li>Les équipes internes habilitées de QUADCORE (support, facturation, produit)</li>
         <li>Nos <strong>sous-traitants techniques</strong> listés dans la DPA, notamment :
           <ul>
-            <li><strong>Supabase</strong> (Inc., Singapour — hébergement base de données, stockage, auth — région UE)</li>
-            <li><strong>Vercel</strong> (Inc., États-Unis — hébergement applicatif edge)</li>
+            <li><strong>Supabase</strong> (Inc., Singapour — hébergement base de données, stockage, auth — région UE : Stockholm, eu-north-1)</li>
+            <li><strong>Vercel</strong> (Inc., États-Unis — hébergement applicatif edge, transferts hors UE encadrés par CCT/SCC)</li>
             <li><strong>Stripe</strong> (Payments Europe Ltd., Irlande — paiement)</li>
             <li><strong>Anthropic</strong> (PBC, États-Unis — modèles IA pour CV Optimizer, sous CCT)</li>
             <li><strong>Resend / Postmark</strong> (envoi d&apos;e-mails transactionnels)</li>
+            <li><strong>Sentry</strong> (Functional Software, Inc., États-Unis — supervision des erreurs et observabilité ; PII expurgées avant envoi, sous CCT/SCC)</li>
+            <li><strong>Formspree</strong> (Formspree, Inc., États-Unis — réception du formulaire de contact, sous CCT/SCC)</li>
           </ul>
         </li>
         <li>Les autorités compétentes sur réquisition légale</li>
@@ -105,6 +107,7 @@ export function PrivacyPolicy() {
         <li><strong>Données de prospection B2B :</strong> 3 ans à compter du dernier contact</li>
         <li><strong>Logs techniques / sécurité :</strong> 12 mois maximum</li>
         <li><strong>Données consultants & clients traitées pour votre compte :</strong> selon les instructions du Client, avec une durée maximale de 30 jours après résiliation pour la restitution, puis suppression</li>
+        <li><strong>Éléments archivés :</strong> purge automatique et définitive 30 jours après leur archivage (traitement mensuel, en cours de contrat) — mécanisme distinct de la période de restitution de 30 jours applicable à la résiliation</li>
       </ul>
 
       <h2>8. Vos droits</h2>

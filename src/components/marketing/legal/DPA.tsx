@@ -6,7 +6,8 @@ export function DPA() {
         Agreement</em>) encadre les traitements de données personnelles effectués par{' '}
         <strong>QuadCore SAS</strong>, immatriculée au RCS de Compiègne sous le numéro 101 694 016, dont le siège
         social est situé 5 Rue du Docteur Roux, 60180 Nogent-sur-Oise (« le Sous-traitant »), pour le compte du
-        Client (« le Responsable de traitement ») dans le cadre de la fourniture de la plateforme SaaS QuadCore.
+        Client (« le Responsable de traitement ») dans le cadre de la fourniture de la plateforme SaaS Centrium
+        (éditée par QuadCore SAS).
       </p>
       <p>
         Il fait partie intégrante des <strong>Conditions Générales d&apos;Utilisation et de Services</strong> et est
@@ -72,11 +73,13 @@ export function DPA() {
           </tr>
         </thead>
         <tbody className="text-white/75">
-          <tr className="border-b border-hairline"><td className="py-2 pr-4">Supabase, Inc.</td><td className="py-2 pr-4">Base de données, Auth, Storage</td><td className="py-2">UE (eu-west)</td></tr>
-          <tr className="border-b border-hairline"><td className="py-2 pr-4">Vercel, Inc.</td><td className="py-2 pr-4">Hébergement applicatif</td><td className="py-2">UE / US (CCT)</td></tr>
+          <tr className="border-b border-hairline"><td className="py-2 pr-4">Supabase, Inc.</td><td className="py-2 pr-4">Base de données, Auth, Storage</td><td className="py-2">UE (Stockholm, Suède — eu-north-1)</td></tr>
+          <tr className="border-b border-hairline"><td className="py-2 pr-4">Vercel, Inc.</td><td className="py-2 pr-4">Hébergement applicatif</td><td className="py-2">US / edge UE (CCT)</td></tr>
           <tr className="border-b border-hairline"><td className="py-2 pr-4">Stripe Payments Europe Ltd.</td><td className="py-2 pr-4">Paiement abonnements</td><td className="py-2">UE (Irlande)</td></tr>
           <tr className="border-b border-hairline"><td className="py-2 pr-4">Anthropic PBC</td><td className="py-2 pr-4">Moteur IA CV Optimizer</td><td className="py-2">US (CCT + DPF)</td></tr>
-          <tr><td className="py-2 pr-4">Resend / Postmark</td><td className="py-2 pr-4">E-mails transactionnels</td><td className="py-2">UE / US (CCT)</td></tr>
+          <tr className="border-b border-hairline"><td className="py-2 pr-4">Resend / Postmark</td><td className="py-2 pr-4">E-mails transactionnels</td><td className="py-2">UE / US (CCT)</td></tr>
+          <tr className="border-b border-hairline"><td className="py-2 pr-4">Functional Software, Inc. (Sentry)</td><td className="py-2 pr-4">Supervision erreurs / observabilité</td><td className="py-2">US (CCT/SCC)</td></tr>
+          <tr><td className="py-2 pr-4">Formspree, Inc.</td><td className="py-2 pr-4">Formulaire de contact</td><td className="py-2">US (CCT/SCC)</td></tr>
         </tbody>
       </table>
 
@@ -112,6 +115,13 @@ export function DPA() {
         l&apos;intégralité de ses données via les outils natifs de la Plateforme. À l&apos;issue de cette période,
         QUADCORE procède à la <strong>suppression sécurisée</strong> des données, sauf obligation légale de conservation
         (facturation, logs de sécurité).
+      </p>
+      <p>
+        <strong>Purge automatique des éléments archivés (en cours de contrat).</strong> Indépendamment de la restitution
+        de fin de contrat décrite ci-dessus, la Plateforme applique une purge automatique mensuelle : les éléments
+        archivés par le Client sont <strong>définitivement supprimés 30 jours après leur archivage</strong>. Ce mécanisme
+        d&apos;hygiène des données, appliqué tout au long de la vie du compte, est distinct de la période de restitution
+        de 30 jours applicable à la résiliation.
       </p>
 
       <h2>9. Audit</h2>

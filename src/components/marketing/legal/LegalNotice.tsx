@@ -4,13 +4,17 @@ export function LegalNotice() {
       <p>
         Conformément aux dispositions des articles 6-III et 19 de la{' '}
         <strong>Loi n° 2004-575 du 21 juin 2004 pour la Confiance dans l&apos;Économie Numérique (LCEN)</strong>,
-        il est précisé aux utilisateurs de la plateforme <strong>QuadCore</strong> (ci-après « la Plateforme »)
+        il est précisé aux utilisateurs de la plateforme <strong>Centrium</strong> (ci-après « la Plateforme »)
         l&apos;identité des différents intervenants dans le cadre de sa réalisation et de son suivi.
+      </p>
+      <p>
+        <strong>Centrium</strong> est une marque et une plateforme SaaS éditée par <strong>QuadCore SAS</strong>.
       </p>
 
       <h2>1. Éditeur de la Plateforme</h2>
       <ul>
-        <li><strong>Dénomination sociale :</strong> QuadCore</li>
+        <li><strong>Marque / plateforme :</strong> Centrium est une marque éditée par QuadCore SAS</li>
+        <li><strong>Dénomination sociale :</strong> QuadCore SAS</li>
         <li><strong>Forme juridique :</strong> Société par Actions Simplifiée (SAS)</li>
         <li><strong>Capital social :</strong> 1 000,00 €</li>
         <li><strong>Siège social :</strong> 5 Rue du Docteur Roux, 60180 Nogent-sur-Oise, France</li>
@@ -29,11 +33,12 @@ export function LegalNotice() {
       <ul>
         <li>
           <strong>Frontend applicatif :</strong> Vercel Inc., 340 S Lemon Ave #4133, Walnut, CA 91789, États-Unis —
-          hébergement des fonctions edge et CDN dans la région européenne.
+          hébergement des fonctions edge et CDN (réseau mondial, calcul primaire en région européenne). Société
+          américaine : les éventuels transferts hors UE sont encadrés par les Clauses Contractuelles Types (CCT/SCC).
         </li>
         <li>
           <strong>Base de données & authentification :</strong> Supabase, Inc., 970 Toa Payoh N, Singapore —
-          instances et données stockées en région <strong>eu-west (UE)</strong>.
+          instances et données stockées en région <strong>eu-north-1 (Stockholm, Suède — UE)</strong>.
         </li>
         <li>
           <strong>Stockage fichiers (CV, documents) :</strong> Supabase Storage, région UE.
@@ -50,7 +55,7 @@ export function LegalNotice() {
 
       <h2>3. Propriété intellectuelle</h2>
       <p>
-        L&apos;ensemble des éléments de la Plateforme (marque <strong>QuadCore</strong>, logo, charte graphique,
+        L&apos;ensemble des éléments de la Plateforme (marque <strong>Centrium</strong>, logo, charte graphique,
         templates CV propriétaires, interfaces, textes, illustrations, code source, bases de données) est la propriété
         exclusive de QUADCORE SAS ou fait l&apos;objet d&apos;une licence d&apos;usage régulière.
       </p>

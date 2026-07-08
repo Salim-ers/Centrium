@@ -3,7 +3,7 @@ export function TermsOfService() {
     <div>
       <p>
         Les présentes <strong>Conditions Générales d&apos;Utilisation et de Services</strong> (« CGU/CGS ») régissent
-        l&apos;accès et l&apos;utilisation de la plateforme SaaS <strong>QuadCore</strong> éditée par
+        l&apos;accès et l&apos;utilisation de la plateforme SaaS <strong>Centrium</strong> éditée par
         <strong> QUADCORE SAS</strong> (ci-après « QUADCORE »), par toute personne morale abonnée (ci-après « le
         Client ») et ses utilisateurs autorisés.
       </p>

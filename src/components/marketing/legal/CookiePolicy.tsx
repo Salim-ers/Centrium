@@ -3,7 +3,7 @@ export function CookiePolicy() {
     <div>
       <p>
         La présente <strong>Politique de cookies</strong> décrit les traceurs utilisés sur la plateforme
-        <strong> QuadCore</strong>, éditée par QUADCORE SAS, ainsi que les choix dont vous disposez pour les gérer,
+        <strong> Centrium</strong>, éditée par QuadCore SAS, ainsi que les choix dont vous disposez pour les gérer,
         conformément à l&apos;<strong>article 82 de la Loi Informatique et Libertés</strong> et aux recommandations de
         la <strong>CNIL</strong>.
       </p>
@@ -15,7 +15,7 @@ export function CookiePolicy() {
         authentifiée ou de mémoriser certaines préférences.
       </p>
 
-      <h2>2. Cookies utilisés par QuadCore</h2>
+      <h2>2. Cookies utilisés par Centrium</h2>
 
       <h3>2.1 Cookies strictement nécessaires (exemptés de consentement)</h3>
       <p>
@@ -24,14 +24,18 @@ export function CookiePolicy() {
       </p>
       <ul>
         <li><strong>sb-access-token / sb-refresh-token</strong> (Supabase) — authentification. Durée : session + 7 jours.</li>
-        <li><strong>quadcore-landing-locale</strong> — mémorisation de la langue choisie (FR/EN). Durée : 1 an.</li>
-        <li><strong>__cf_bm</strong> (Cloudflare) — protection contre les bots. Durée : 30 minutes.</li>
-        <li><strong>__stripe_mid / __stripe_sid</strong> (Stripe, si paiement) — prévention de la fraude. Durée : 1 an / 30 minutes.</li>
+        <li><strong>__stripe_mid / __stripe_sid</strong> (Stripe, uniquement lors d&apos;un paiement) — prévention de la fraude. Durée : 1 an / 30 minutes.</li>
       </ul>
+      <p>
+        La protection contre les abus (limitation de débit) est assurée côté serveur, <strong>sans dépôt de cookie de
+        traçage</strong>. Vos préférences de langue et vos choix de consentement ne sont pas des cookies : ils sont
+        stockés dans le <strong>stockage local (localStorage)</strong> de votre navigateur, sous les clés{' '}
+        <code>centrium-landing-locale</code> et <code>centrium-cookie-consent</code>.
+      </p>
 
       <h3>2.2 Cookies de mesure d&apos;audience (soumis au consentement si non anonymisés)</h3>
       <p>
-        Lorsqu&apos;ils sont activés, ces cookies permettent d&apos;établir des statistiques de fréquentation. QuadCore
+        Lorsqu&apos;ils sont activés, ces cookies permettent d&apos;établir des statistiques de fréquentation. Centrium
         privilégie des outils de mesure d&apos;audience <strong>exemptés de consentement</strong> (configuration
         anonymisée, durée de vie courte, absence de croisement, pas de transfert hors UE) conformément à la
         recommandation CNIL.
@@ -46,8 +50,9 @@ export function CookiePolicy() {
       <h2>3. Gestion de vos préférences</h2>
       <p>
         Au premier accès, un bandeau vous permet d&apos;accepter ou de refuser les cookies non essentiels, ou de
-        personnaliser vos choix. Vos préférences sont mémorisées <strong>6 mois</strong> et modifiables à tout moment
-        depuis le lien « Gérer mes cookies » du pied de page.
+        personnaliser vos choix. Vos préférences sont enregistrées dans le stockage local de votre navigateur pour une
+        durée maximale de <strong>13 mois</strong> (recommandation CNIL) et sont modifiables à tout moment depuis le lien
+        « Gérer mes cookies » du pied de page.
       </p>
       <p>Vous pouvez également contrôler les cookies directement depuis votre navigateur :</p>
       <ul>
