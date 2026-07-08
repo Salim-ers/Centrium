@@ -959,6 +959,8 @@ export type AppDict = {
       card_team_description: string;
       card_billing_title: string;
       card_billing_description: string;
+      card_facturation_title: string;
+      card_facturation_description: string;
       card_data_title: string;
       card_data_description: string;
       card_appearance_title: string;
@@ -1953,6 +1955,8 @@ export const APP_DICT: Record<Locale, AppDict> = {
         card_team_description: "Membres, invitations et rôles de l'organisation.",
         card_billing_title: 'Abonnement',
         card_billing_description: 'Plan, facturation et consommation de ton espace Centrium.',
+        card_facturation_title: 'Facturation & société',
+        card_facturation_description: 'RIB, coordonnées bancaires et mentions légales imprimées sur vos factures et contrats.',
         card_data_title: 'Mes données & confidentialité',
         card_data_description: 'Exportez vos données, gérez vos cookies, exercez vos droits RGPD.',
         card_appearance_title: 'Apparence & design',
@@ -2945,6 +2949,8 @@ export const APP_DICT: Record<Locale, AppDict> = {
         card_team_description: "Members, invitations and roles of the organization.",
         card_billing_title: 'Subscription',
         card_billing_description: 'Plan, billing and usage of your Centrium workspace.',
+        card_facturation_title: 'Billing details & company',
+        card_facturation_description: 'Bank details (RIB) and legal information printed on your invoices and contracts.',
         card_data_title: 'My data & privacy',
         card_data_description: 'Export your data, manage cookies, exercise your GDPR rights.',
         card_appearance_title: 'Appearance & design',

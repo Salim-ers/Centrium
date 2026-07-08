@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { LogOut, Palette, Users, User, ShieldCheck, Building2, Sparkles, CreditCard } from 'lucide-react';
+import { LogOut, Palette, Users, User, ShieldCheck, Building2, Sparkles, CreditCard, Landmark } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { useAppT } from '@/lib/i18n/LocaleProvider';
@@ -28,7 +28,7 @@ type IdentityRow = {
 
 type SectionTone = 'magenta' | 'violet' | 'emerald' | 'amber' | 'cyan' | 'rose';
 
-type SectionKey = 'profile' | 'branding' | 'team' | 'billing' | 'data' | 'appearance';
+type SectionKey = 'profile' | 'branding' | 'team' | 'billing' | 'facturation' | 'data' | 'appearance';
 
 // Hub unique "Paramètres" : Équipe et Abonnement vivent ici (le menu
 // latéral n'a plus qu'une seule entrée Organisation → Paramètres).
@@ -42,6 +42,7 @@ const SECTIONS: Array<{
   { key: 'branding', href: '/settings/branding', icon: Palette, tone: 'violet' },
   { key: 'team', href: '/settings/team', icon: Users, tone: 'cyan' },
   { key: 'billing', href: '/billing', icon: CreditCard, tone: 'rose' },
+  { key: 'facturation', href: '/settings/facturation', icon: Landmark, tone: 'violet' },
   { key: 'data', href: '/settings/privacy', icon: ShieldCheck, tone: 'emerald' },
   { key: 'appearance', href: '/settings/appearance', icon: Sparkles, tone: 'amber' },
 ];
@@ -152,6 +153,7 @@ export default function SettingsPage() {
             branding: t.pages.settings.card_branding_title,
             team: t.pages.settings.card_team_title,
             billing: t.pages.settings.card_billing_title,
+            facturation: t.pages.settings.card_facturation_title,
             data: t.pages.settings.card_data_title,
             appearance: t.pages.settings.card_appearance_title,
           };
@@ -160,6 +162,7 @@ export default function SettingsPage() {
             branding: t.pages.settings.card_branding_description,
             team: t.pages.settings.card_team_description,
             billing: t.pages.settings.card_billing_description,
+            facturation: t.pages.settings.card_facturation_description,
             data: t.pages.settings.card_data_description,
             appearance: t.pages.settings.card_appearance_description,
           };
