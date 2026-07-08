@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { reportError } from '@/lib/observability/report-error';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -38,6 +39,10 @@ export async function POST(req: NextRequest) {
     .select('entity_type, organization_id, label, archived_at');
 
   if (previewErr) {
+    await reportError(previewErr, {
+      route: '/api/admin/purge-archives',
+      extra: { phase: 'preview' },
+    });
     return NextResponse.json(
       { error: 'preview_failed', message: previewErr.message },
       { status: 500 },
@@ -68,6 +73,10 @@ export async function POST(req: NextRequest) {
   );
 
   if (purgeErr) {
+    await reportError(purgeErr, {
+      route: '/api/admin/purge-archives',
+      extra: { phase: 'purge' },
+    });
     return NextResponse.json(
       { error: 'purge_failed', message: purgeErr.message },
       { status: 500 },
@@ -147,7 +156,7 @@ async function notifyAdminsBeforePurge(
       if (!resendKey) {
         // eslint-disable-next-line no-console
         console.log(
-          `[purge-archives] (dry-run, RESEND_API_KEY missing) would email ${email}`,
+          '[purge-archives] (dry-run, RESEND_API_KEY missing) would email a recipient',
         );
         continue;
       }
@@ -169,7 +178,7 @@ async function notifyAdminsBeforePurge(
         });
       } catch (e) {
         // eslint-disable-next-line no-console
-        console.warn('[purge-archives] email failed', email, (e as Error).message);
+        console.warn('[purge-archives] email failed', (e as Error).message);
       }
     }
   }

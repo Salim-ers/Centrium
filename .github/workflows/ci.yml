@@ -129,7 +129,10 @@ jobs:
     name: E2E isolation cross-tenant
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ false }}  # à activer quand les secrets E2E_* sont posés en repo settings
+    # Activer en posant la variable repo E2E_ENABLED=true (Settings → Variables)
+    # ET les secrets E2E_* (Settings → Secrets). Le job tourne alors sur chaque
+    # push/PR et protège l'isolation multi-tenant (le risque #1 d'un SaaS).
+    if: ${{ vars.E2E_ENABLED == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
