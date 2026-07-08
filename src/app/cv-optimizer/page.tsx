@@ -47,6 +47,7 @@ import { exportCVToPdf } from '@/lib/cv/export-pdf';
 import { applyOverrides, type CVOverrides } from '@/lib/cv/overrides';
 import { resolveBrand } from '@/lib/cv/branding';
 import { useOrganization } from '@/lib/auth/context';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import type {
   Consultant,
   ConsultantSkill,
@@ -77,16 +78,32 @@ function CVOptimizerPageInner() {
   const params = useSearchParams();
   const initialId = params?.get('consultantId') ?? '';
   const initialOfferId = params?.get('offerId') ?? '';
-  const { branding } = useOrganization();
+  const { branding, activeOrgId } = useOrganization();
   const t = useAppT();
   const brand = useMemo(() => resolveBrand(branding), [branding]);
 
-  const [consultants, setConsultants] = useState<Consultant[]>([]);
+  // Consultants + offres via cache SWR : affichage INSTANTANÉ depuis le cache
+  // au retour sur la page, revalidation en fond, et surtout stale-on-empty
+  // avec retry → si le fetch part avant que la session/org soit prête (au
+  // remount après navigation) et revient vide, on GARDE l'affichage et on
+  // retente au lieu de montrer « Aucun résultat ». Gated sur activeOrgId pour
+  // ne pas fetcher avant que l'org soit connue.
+  const { data: consultantsData } = useCachedQuery<Consultant[]>(
+    `cv-optimizer:consultants:${activeOrgId ?? 'none'}`,
+    async () => (await consultantService.list({ is_prospect: 'all' })).data ?? [],
+    { enabled: !!activeOrgId },
+  );
+  const consultants = consultantsData ?? [];
   const [selectedId, setSelectedId] = useState<string>(initialId);
   const [loaded, setLoaded] = useState<LoadedConsultant | null>(null);
   const [loadingData, setLoadingData] = useState(false);
 
-  const [offers, setOffers] = useState<JobOffer[]>([]);
+  const { data: offersData } = useCachedQuery<JobOffer[]>(
+    `cv-optimizer:offers:${activeOrgId ?? 'none'}`,
+    async () => (await jobOfferService.list('open')).data ?? [],
+    { enabled: !!activeOrgId },
+  );
+  const offers = offersData ?? [];
   const [selectedOfferId, setSelectedOfferId] = useState<string>(initialOfferId);
   const [offerTitle, setOfferTitle] = useState('');
   const [offerDescription, setOfferDescription] = useState('');
@@ -191,15 +208,8 @@ function CVOptimizerPageInner() {
     [loaded],
   );
 
-  useEffect(() => {
-    consultantService.list({ is_prospect: 'all' }).then((res) => {
-      if (res.data) setConsultants(res.data);
-    });
-    // Offres ouvertes — pour pouvoir aligner le wording du CV dessus
-    jobOfferService.list('open').then((res) => {
-      if (res.data) setOffers(res.data);
-    });
-  }, []);
+  // (Consultants & offres sont chargés plus haut via useCachedQuery — SWR
+  //  avec cache instantané, garde org, stale-on-empty + retry.)
 
   // Quand on sélectionne une offre existante, on pré-remplit les 3 champs
   function pickOffer(id: string) {
