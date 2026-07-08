@@ -26,6 +26,7 @@ import type {
   SeniorityLevel,
 } from '@/types';
 import { normalizeSkill, normalizeSkillList, type NormalizedSkill } from './normalize';
+import { findEquivalence } from './equivalences';
 
 const SENIORITY_ORDER: Record<SeniorityLevel, number> = {
   junior: 1,
@@ -47,6 +48,12 @@ export type ScoreBreakdown = {
   matchedSkills: string[];
   /** Skills requis non couverts par le consultant (forme originale offre). */
   missingSkills: string[];
+  /** Skills requis matchés par ÉQUIVALENCE forte (⊂ matchedSkills) — ex.
+   *  « Microsoft » prouvé par Active Directory + Windows. */
+  equivalentSkills: string[];
+  /** Skills requis avec un INDICE partiel (à renforcer/confirmer) — ni matché
+   *  dur, ni manquant dur. Ex. « Windows Server » avec seulement Windows 10/11. */
+  partialSkills: Array<{ skill: string; evidence: string[] }>;
   /** Détail des 7 composants. */
   components: {
     skillsRequired: { points: number; max: 50; ratio: number };
@@ -93,8 +100,16 @@ export function computeMatchingV2(
   // ─── 1) Skills requis (50 pts) ──────────────────────────────────────
   const matched: string[] = [];
   const missing: string[] = [];
+  const equivalent: string[] = []; // matchés par équivalence forte
+  const partial: Array<{ skill: string; evidence: string[] }> = [];
   let requiredScore = 0;
   let requiredMax = 0;
+
+  // Compétences du consultant sous la forme attendue par findEquivalence.
+  const consultantForEquiv = consultantNorm.map((s) => ({
+    canonical: s.norm.canonical,
+    raw: s.raw,
+  }));
 
   requiredNorm.forEach((req, idx) => {
     // Critique = premier tiers des requis (must-have)
@@ -110,9 +125,29 @@ export function computeMatchingV2(
       const highlightBonus = hit.highlighted ? 1.05 : 1.0;
       requiredScore += matchQuality * levelFactor * highlightBonus * weight;
       matched.push(req.raw);
-    } else {
-      missing.push(req.raw);
+      return;
     }
+
+    // Pas de match exact : on cherche une ÉQUIVALENCE technique parent→enfant
+    // (ex. « Microsoft » prouvé par Active Directory/Windows/Entra ID).
+    const eq = findEquivalence(req.canonical, consultantForEquiv);
+    if (eq.strength === 'full') {
+      // Équivalence FORTE : compte comme matché mais légèrement décoté (0.85)
+      // pour qu'un match explicite reste supérieur à une équivalence.
+      requiredScore += 0.85 * weight;
+      matched.push(req.raw);
+      equivalent.push(req.raw);
+      return;
+    }
+    if (eq.strength === 'partial') {
+      // Indice PARTIEL : demi-crédit, listé « à renforcer » — on ne le compte
+      // ni comme matché dur ni comme manquant dur (évite le faux manque sans
+      // gonfler artificiellement le score).
+      requiredScore += 0.45 * weight;
+      partial.push({ skill: req.raw, evidence: eq.evidence });
+      return;
+    }
+    missing.push(req.raw);
   });
 
   const requiredRatio = requiredMax > 0 ? clamp(requiredScore / requiredMax, 0, 1) : 0.5;
@@ -195,6 +230,8 @@ export function computeMatchingV2(
     confidence,
     matchedSkills: matched,
     missingSkills: missing,
+    equivalentSkills: equivalent,
+    partialSkills: partial,
     components: {
       skillsRequired: { points: round1(requiredPoints), max: 50, ratio: round2(requiredRatio) },
       skillsNice: { points: round1(nicePoints), max: 10, ratio: round2(niceRatio) },

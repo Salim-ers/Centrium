@@ -6,6 +6,7 @@ import Anthropic from '@anthropic-ai/sdk';
 
 import type { Consultant, JobOffer, ConsultantSkill } from '@/types';
 import { logger } from '@/lib/logger';
+import { categorizeRequiredSkills } from './matching/equivalences';
 
 /**
  * Module LLM pour la JUSTIFICATION du matching consultant ↔ mission.
@@ -52,30 +53,51 @@ export async function generateMatchingJustification(args: {
   const client = getClient();
   if (!client) return null;
 
-  const { consultant, consultantSkills, offer, scoreRaw, matchedSkills, missingSkills } =
-    args;
+  // matchedSkills/missingSkills restent dans le contrat d'entrée (la route les
+  // envoie) mais on ne s'en sert plus directement : la catégorisation ci-dessous
+  // (synonymes + équivalences) est plus fiable que le brut du client.
+  const { consultant, consultantSkills, offer, scoreRaw } = args;
 
+  const allSkillNames = consultantSkills.map((s) => s.name);
   const topSkills = consultantSkills
     .filter((s) => s.is_highlighted)
-    .slice(0, 8)
+    .slice(0, 10)
     .map((s) => s.name)
     .join(', ');
+  const allSkillsStr = allSkillNames.slice(0, 40).join(', ');
 
-  const systemPrompt = `Tu es un Business Manager senior d'ESN française avec 10+ ans d'expérience en staffing technique.
+  // Catégorisation FIABLE (synonymes + équivalences parent→enfant) des skills
+  // requis vs le profil → on la donne au LLM pour qu'il ne signale pas de faux
+  // manques (« Microsoft » couvert par Active Directory, etc.).
+  const cat = categorizeRequiredSkills(offer.required_skills ?? [], allSkillNames);
+  const fmtEvid = (list: Array<{ skill: string; evidence: string[] }>) =>
+    list.map((e) => `${e.skill} ⇐ ${e.evidence.join(', ') || '—'}`).join(' | ');
+  const analyseSkills = [
+    `- EXPLICITES (${cat.explicit.length}) : ${cat.explicit.join(', ') || '—'}`,
+    `- ÉQUIVALENTES, preuve forte (${cat.equivalent.length}) : ${fmtEvid(cat.equivalent) || '—'}`,
+    `- PARTIELLES, à renforcer (${cat.partial.length}) : ${fmtEvid(cat.partial) || '—'}`,
+    `- ABSENTES (${cat.missing.length}) : ${cat.missing.join(', ') || '—'}`,
+  ].join('\n');
 
-Ta mission : analyser le matching entre un consultant et une offre client, et produire en français :
-1. Un PITCH de 2-3 phrases qui explique pourquoi ce profil est pertinent (à destination du BM qui va le présenter au client)
-2. Une CONFIANCE globale (high / medium / low) qui synthétise le matching
-3. Une liste de RISQUES résiduels à anticiper (compétences manquantes, écart séniorité, etc.)
+  const systemPrompt = `Tu es un Business Manager senior d'ESN française (10+ ans en staffing IT). Tu analyses le matching consultant ↔ offre avec une LOGIQUE MÉTIER, jamais une comparaison mot-à-mot.
+
+RAISONNEMENT PAR ÉQUIVALENCE (une catégorisation fiable t'est fournie plus bas — appuie-toi dessus) :
+- Une compétence requise est EXPLICITE (écrite telle quelle), ÉQUIVALENTE (prouvée par une techno/produit du même écosystème : Microsoft ⇐ Active Directory/Entra ID/Windows/O365 ; Linux ⇐ Ubuntu/Debian/RHEL ; Réseaux ⇐ routage/switching/VPN/Fortinet), PARTIELLE (indice à renforcer : Windows Server avec seulement Windows 10/11), ou ABSENTE.
+- Ne signale JAMAIS comme manquante une compétence classée EXPLICITE ou ÉQUIVALENTE.
+- N'assimile pas un produit proche à une équivalence complète (MongoDB ≠ SQL Server ; Windows 10 ≠ Windows Server) : ceux-là restent ABSENTS ou PARTIELS.
 
 RÈGLES ABSOLUES :
-- INTERDICTION d'inventer une compétence, expérience, certification ou client non présents dans le profil source
-- Reste factuel : ne dis pas "expert" si la séniorité est junior, ne dis pas "très expérimenté" si 2 ans d'XP
-- Ton mesuré, pas commercial creux : pas de "excellent profil", "candidat exceptionnel"
-- Si le matching est faible (< 50), assume-le et explique pourquoi
-- Privilégie les faits chiffrés ("8 ans d'XP", "maîtrise 5/6 skills requis") aux adjectifs
+- INTERDICTION d'inventer une compétence, expérience, certification ou client non présents dans le profil.
+- Factuel : pas d'« expert » si séniorité junior, pas de superlatifs creux (« excellent profil », « candidat exceptionnel »).
+- Chiffre quand tu peux (« 8 ans d'XP », « 5/6 skills requis couverts explicitement ou par équivalence »).
+- Si le matching est faible, assume-le et explique pourquoi.
 
-FORMAT DE SORTIE : JSON strict, sans markdown, sans explication autour :
+CE QUE TU PRODUIS (en français) :
+1. PITCH : 2-3 phrases utiles au BM qui présentera le profil — points forts RÉELS + angle commercial, en valorisant les équivalences pertinentes.
+2. RISQUES : uniquement les vrais manques — compétences ABSENTES critiques, compétences seulement PARTIELLES à sécuriser, écart de séniorité, ou disponibilité. N'invente pas de risque et NE liste PAS comme risque une compétence déjà couverte (explicite/équivalente).
+3. CONFIANCE : "high" = beaucoup de preuves explicites ; "medium" = beaucoup d'équivalences/partiels ou profil peu détaillé ; "low" = peu de preuves ou score bas.
+
+FORMAT DE SORTIE : JSON strict, sans markdown, sans texte autour :
 {
   "pitch": "texte 2-3 phrases en français",
   "confidence": "high" | "medium" | "low",
@@ -95,13 +117,15 @@ FORMAT DE SORTIE : JSON strict, sans markdown, sans explication autour :
 - Séniorité : ${consultant.seniority}
 - Années d'XP : ${consultant.years_experience}
 - Disponibilité : ${consultant.status}
-- Compétences highlighted : ${topSkills || '—'}
-- Résumé : ${consultant.summary?.slice(0, 300) ?? '—'}
+- Compétences mises en avant : ${topSkills || '—'}
+- Toutes les compétences déclarées : ${allSkillsStr || '—'}
+- Résumé : ${consultant.summary?.slice(0, 400) ?? '—'}
+
+## ANALYSE DES COMPÉTENCES REQUISES (pré-calculée, fiable — respecte-la)
+${analyseSkills}
 
 ## MATCHING BRUT CALCULÉ
 - Score : ${scoreRaw} / 100
-- Compétences matchées (${matchedSkills.length}) : ${matchedSkills.join(', ') || '—'}
-- Compétences manquantes (${missingSkills.length}) : ${missingSkills.join(', ') || '—'}
 
 Produis le JSON maintenant.`;
 
