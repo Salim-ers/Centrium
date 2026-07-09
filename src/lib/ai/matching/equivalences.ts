@@ -68,6 +68,14 @@ const RAW: RawEquiv[] = [
     parent: 'Office 365',
     full: ['Microsoft 365', 'M365', 'O365', 'Exchange Online', 'SharePoint Online', 'Teams'],
   },
+  {
+    // « Windows » demandé est prouvé par n'importe quelle variante Windows du CV.
+    parent: 'Windows',
+    full: [
+      'Microsoft Windows', 'Windows 10', 'Windows 11', 'Windows 10/11', 'Windows Server',
+      'Windows Client', 'Windows 7', 'Windows Desktop', 'Windows Pro',
+    ],
+  },
 
   // ── Linux / Unix ────────────────────────────────────────────────────
   {
@@ -135,6 +143,9 @@ const RAW: RawEquiv[] = [
   { parent: 'ITSM', full: ['ServiceNow', 'GLPI', 'Jira Service Management', 'Zendesk', 'Ivanti', 'BMC Remedy', 'EasyVista'] },
   { parent: 'Ticketing', full: ['ServiceNow', 'GLPI', 'Jira', 'Zendesk', 'Ivanti', 'OTRS'] },
   { parent: 'Support N1/N2', full: ['ServiceNow', 'GLPI', 'Support technique', 'Helpdesk'], partial: ['Active Directory', 'Windows'] },
+  { parent: 'Support Niveau 1', full: ['Support N1', 'Support utilisateur N1', 'Support utilisateur N1/N2', 'Support N1/N2', 'Helpdesk', 'Support de proximité', 'Support technique', 'Hotline'] },
+  { parent: 'Support Niveau 2', full: ['Support N2', 'Support utilisateur N2', 'Support utilisateur N1/N2', 'Support N1/N2', 'Support technique'] },
+  { parent: 'Support VIP', full: ['Support prioritaire VIP', 'Support prioritaire', 'VIP', 'Support VIP'] },
 
   // ── Scripting / langages ────────────────────────────────────────────
   { parent: 'Scripting', full: ['PowerShell', 'Bash', 'Python', 'Shell', 'Perl', 'VBScript'] },

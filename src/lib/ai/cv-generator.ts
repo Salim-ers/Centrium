@@ -88,7 +88,7 @@ export type GenerateCVOutput = {
 
 // ---------- Matching local ----------
 
-import { normalizeSkill } from './matching/normalize';
+import { categorizeRequiredSkills } from './matching/equivalences';
 
 /**
  * Matching skills-only (compat historique).
@@ -115,27 +115,35 @@ export function computeMatching(
 
   const required = offer.required_skills ?? [];
   const niceToHave = offer.nice_to_have ?? [];
+  const skillNames = consultantSkills.map((s) => s.name);
 
-  // Normalisation intelligente : "K8s" → "kubernetes", "JS" → "javascript",
-  // "Postgrs" → "postgresql" (fuzzy), accents/ponctuation/case insensibles.
-  const skillCanonicals = new Set(
-    consultantSkills.map((s) => normalizeSkill(s.name).canonical),
-  );
+  // Catégorisation INTELLIGENTE : normalisation (K8s→kubernetes, fuzzy, accents)
+  // + ÉQUIVALENCES parent→enfant. Ainsi « Windows » demandé est reconnu via
+  // « Microsoft Windows / Windows 10-11 / Windows Server » ; « Microsoft » via
+  // « Active Directory / Entra ID / Office 365 » ; « Linux » via « Ubuntu »… →
+  // fini les faux manques quand la preuve existe sous une autre forme.
+  const req = categorizeRequiredSkills(required, skillNames);
+  // Tout ce qui a une preuve (explicite, équivalence forte OU indice partiel)
+  // n'est PAS « manquant ». Seul le réellement absent l'est.
+  const matched: string[] = [
+    ...req.explicit,
+    ...req.equivalent.map((e) => e.skill),
+    ...req.partial.map((p) => p.skill),
+  ];
+  const missing: string[] = req.missing;
 
-  const matched: string[] = [];
-  const missing: string[] = [];
+  // Couverture pondérée : explicite plein, équivalence quasi-plein (0.9),
+  // indice partiel demi (0.45) — réaliste, sans gonfler artificiellement.
+  const coverage =
+    required.length === 0
+      ? 0.5
+      : (req.explicit.length + req.equivalent.length * 0.9 + req.partial.length * 0.45) /
+        required.length;
 
-  for (const req of required) {
-    if (skillCanonicals.has(normalizeSkill(req).canonical)) matched.push(req);
-    else missing.push(req);
-  }
-
-  const matchedNice = niceToHave.filter((s) =>
-    skillCanonicals.has(normalizeSkill(s).canonical),
-  );
-
-  const coverage = required.length === 0 ? 0.5 : matched.length / required.length;
-  const bonus = niceToHave.length === 0 ? 0 : (matchedNice.length / niceToHave.length) * 0.15;
+  const nice = categorizeRequiredSkills(niceToHave, skillNames);
+  const niceHit =
+    nice.explicit.length + nice.equivalent.length + nice.partial.length * 0.5;
+  const bonus = niceToHave.length === 0 ? 0 : (niceHit / niceToHave.length) * 0.15;
 
   const score = Math.min(100, Math.round((coverage * 0.85 + bonus) * 100));
 
