@@ -913,7 +913,20 @@ export const timesheetService = {
       })
       .select()
       .single();
-    if (error) return { data: null, error };
+    if (error) {
+      // Contrainte d'unicité (mission + mois + année) : un CRA existe déjà pour
+      // cette période. On renvoie un message clair plutôt que l'erreur Postgres
+      // brute (« duplicate key value violates unique constraint… »).
+      if ((error as { code?: string }).code === '23505') {
+        return {
+          data: null,
+          error: new Error(
+            'Un CRA existe déjà pour cette mission sur ce mois. Ouvre-le, ou choisis un autre mois.',
+          ),
+        };
+      }
+      return { data: null, error };
+    }
     return { data: data as Timesheet, error: null };
   },
 
