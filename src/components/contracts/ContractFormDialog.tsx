@@ -26,6 +26,7 @@ import { contractService } from '@/lib/services/contract.service';
 import { consultantService } from '@/lib/services/consultant.service';
 import { companyService } from '@/lib/services';
 import { createClient } from '@/lib/supabase/client';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import type { Company, Consultant, Contract, DocumentParty } from '@/types';
 
 type MissionOption = {
@@ -98,13 +99,54 @@ export function ContractFormDialog({
   const t = useAppT();
   const { locale } = useLocale();
   const isEn = locale === 'en';
-  const [consultants, setConsultants] = useState<Consultant[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [missions, setMissions] = useState<MissionOption[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
   const [selectedMissionId, setSelectedMissionId] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const isEdit = !!contract;
+
+  // Listes de référence via cache SWR : hydratation instantanée depuis
+  // sessionStorage à la réouverture du dialog → plus de dropdowns
+  // « aucun consultant / aucune mission » le temps du fetch. Keyé sur l'org.
+  const { data: consultantsData } = useCachedQuery<Consultant[]>(
+    `contract-consultants:${organizationId}`,
+    async () => {
+      const res = await consultantService.list();
+      if (res.error) throw res.error;
+      return res.data ?? [];
+    },
+    { enabled: open && !!organizationId },
+  );
+  const consultants = consultantsData ?? [];
+
+  const { data: companiesData } = useCachedQuery<Company[]>(
+    `contract-companies:${organizationId}`,
+    async () => {
+      const res = await companyService.list();
+      if (res.error) throw res.error;
+      return res.data ?? [];
+    },
+    { enabled: open && !!organizationId },
+  );
+  const companies = companiesData ?? [];
+
+  const { data: missionsData } = useCachedQuery<MissionOption[]>(
+    `contract-missions:${organizationId}`,
+    async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('missions')
+        .select(
+          `id, title, consultant_id, daily_rate_eur, start_date, end_date, status,
+           company:companies (id, name, address, city),
+           job_offer:job_offers (id, location, remote_days)`,
+        )
+        .in('status', ['proposed', 'active'])
+        .order('start_date', { ascending: false });
+      return (data as MissionOption[] | null) ?? [];
+    },
+    { enabled: open && !!organizationId },
+  );
+  const missions = missionsData ?? [];
 
   const {
     register,
@@ -147,31 +189,10 @@ export function ContractFormDialog({
 
   useEffect(() => {
     if (open) {
-      consultantService.list().then((res) => {
-        if (res.data) setConsultants(res.data);
-      });
-      companyService.list().then((res) => {
-        if (res.data) setCompanies(res.data);
-      });
-      // Charge les missions actives + proposées (pour pre-fill du contrat),
-      // avec le client final et l'AO source pour pré-remplir lieu / remote.
-      const supabase = createClient();
-      supabase
-        .from('missions')
-        .select(
-          `id, title, consultant_id, daily_rate_eur, start_date, end_date, status,
-           company:companies (id, name, address, city),
-           job_offer:job_offers (id, location, remote_days)`,
-        )
-        .in('status', ['proposed', 'active'])
-        .order('start_date', { ascending: false })
-        .then(({ data }) => {
-          setMissions((data as MissionOption[] | null) ?? []);
-        });
-
       // Charge tous les fournisseurs déjà saisis sur les contrats précédents,
       // dédupliqués par raison sociale (+ RCS si dispo) pour permettre la
       // sélection rapide depuis un dropdown.
+      const supabase = createClient();
       supabase
         .from('contracts')
         .select(

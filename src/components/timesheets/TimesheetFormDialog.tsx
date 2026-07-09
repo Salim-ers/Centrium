@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,6 +23,7 @@ import { Combobox } from '@/components/ui/Combobox';
 import { timesheetSchema, type TimesheetInput } from '@/lib/validators';
 import { timesheetService } from '@/lib/services';
 import { createClient } from '@/lib/supabase/client';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import type { Timesheet } from '@/types';
 
 type MissionRow = {
@@ -76,8 +77,27 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
   const isEn = locale === 'en';
   const months = isEn ? MONTHS_EN : MONTHS_FR;
   const [saving, setSaving] = useState(false);
-  const [missions, setMissions] = useState<MissionRow[]>([]);
   const now = new Date();
+
+  // Missions actives via cache SWR : instantané depuis sessionStorage à la
+  // réouverture du dialog (fini le « aucune mission » qui clignote pendant le
+  // fetch). Keyé sur l'org, actif seulement quand le dialog est ouvert.
+  const { data: missionsData, loading: missionsLoading } = useCachedQuery<MissionRow[]>(
+    `timesheet-missions:${organizationId}`,
+    async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('missions')
+        .select(
+          'id, title, daily_rate_eur, consultant:consultants(first_name, last_name), company:companies(name)',
+        )
+        .eq('status', 'active')
+        .order('start_date', { ascending: false });
+      return (data ?? []) as unknown as MissionRow[];
+    },
+    { enabled: open && !!organizationId },
+  );
+  const missions = missionsData ?? [];
 
   const {
     register,
@@ -93,21 +113,6 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
       period_year: now.getFullYear(),
     },
   });
-
-  useEffect(() => {
-    if (!open) return;
-    (async () => {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from('missions')
-        .select(
-          'id, title, daily_rate_eur, consultant:consultants(first_name, last_name), company:companies(name)',
-        )
-        .eq('status', 'active')
-        .order('start_date', { ascending: false });
-      setMissions((data ?? []) as unknown as MissionRow[]);
-    })();
-  }, [open]);
 
   async function onSubmit(values: TimesheetInput) {
     setSaving(true);
@@ -166,7 +171,7 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
                 {isEn ? 'Mission required' : 'Mission obligatoire'}
               </p>
             )}
-            {missions.length === 0 && (
+            {!missionsLoading && missions.length === 0 && (
               <p className="text-xs text-amber-400 mt-1">
                 {isEn
                   ? 'No active mission. Create a mission first.'

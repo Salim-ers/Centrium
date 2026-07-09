@@ -27,6 +27,7 @@ import {
   jobOfferService,
 } from '@/lib/services';
 import { consultantService } from '@/lib/services/consultant.service';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { notifyError } from '@/lib/notify';
 import type { Company, Consultant, DocumentParty, Invoice, JobOffer } from '@/types';
 
@@ -70,9 +71,41 @@ export function InvoiceFormDialog({
   const { locale } = useLocale();
   const isEn = locale === 'en';
   const [saving, setSaving] = useState(false);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [consultants, setConsultants] = useState<Consultant[]>([]);
-  const [offers, setOffers] = useState<JobOffer[]>([]);
+
+  // Listes de référence via cache SWR : instantané à la réouverture du dialog
+  // (fini les dropdowns « aucun client / consultant » le temps du fetch).
+  const { data: companiesData, setData: setCompaniesCache } = useCachedQuery<Company[]>(
+    `invoice-companies:${organizationId}`,
+    async () => {
+      const res = await companyService.list();
+      if (res.error) throw res.error;
+      return res.data ?? [];
+    },
+    { enabled: open && !!organizationId },
+  );
+  const companies = companiesData ?? [];
+
+  const { data: consultantsData } = useCachedQuery<Consultant[]>(
+    `invoice-consultants:${organizationId}`,
+    async () => {
+      const res = await consultantService.list({ is_prospect: false });
+      if (res.error) throw res.error;
+      return res.data ?? [];
+    },
+    { enabled: open && !!organizationId },
+  );
+  const consultants = consultantsData ?? [];
+
+  const { data: offersData } = useCachedQuery<JobOffer[]>(
+    `invoice-offers:${organizationId}`,
+    async () => {
+      const res = await jobOfferService.list('all');
+      if (res.error) throw res.error;
+      return res.data ?? [];
+    },
+    { enabled: open && !!organizationId },
+  );
+  const offers = offersData ?? [];
 
   // Inline "+ Nouveau client" — évite de quitter le dialog facture pour
   // créer un client manquant (cas typique : on facture une nouvelle ESN
@@ -181,24 +214,6 @@ export function InvoiceFormDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedConsultantId, isConsultantInvoice, consultants]);
 
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    Promise.all([
-      companyService.list(),
-      consultantService.list({ is_prospect: false }),
-      jobOfferService.list('all'),
-    ]).then(([companiesRes, consultantsRes, offersRes]) => {
-      if (cancelled) return;
-      if (companiesRes.data) setCompanies(companiesRes.data);
-      if (consultantsRes.data) setConsultants(consultantsRes.data);
-      if (offersRes.data) setOffers(offersRes.data);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [open]);
-
   // Tri / dédoublonnage des consultants pour l'affichage : ordre alpha
   // sur "nom prénom — intitulé".
   const sortedConsultants = useMemo(
@@ -234,8 +249,8 @@ export function InvoiceFormDialog({
         );
         return;
       }
-      // Insère en haut de la liste, sélectionne, replie l'inline form.
-      setCompanies((prev) => [res.data!, ...prev]);
+      // Insère en haut de la liste (cache SWR), sélectionne, replie l'inline form.
+      setCompaniesCache((prev) => [res.data!, ...(prev ?? [])]);
       setValue('company_id', res.data.id, { shouldValidate: true });
       setNewCompanyName('');
       setNewCompanyCity('');

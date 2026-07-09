@@ -103,7 +103,13 @@ import { categorizeRequiredSkills } from './matching/equivalences';
  */
 export function computeMatching(
   consultantSkills: ConsultantSkill[],
-  offer: JobOffer | null | undefined
+  offer: JobOffer | null | undefined,
+  /**
+   * Preuves supplémentaires issues de l'« Environnement technique » des
+   * expériences (Active Directory, Intune, ServiceNow…). Traitées comme des
+   * compétences détenues → réduit les faux manques sans appeler l'IA.
+   */
+  extraSkillNames: string[] = []
 ): {
   score: number;
   matchedSkills: string[];
@@ -115,7 +121,12 @@ export function computeMatching(
 
   const required = offer.required_skills ?? [];
   const niceToHave = offer.nice_to_have ?? [];
-  const skillNames = consultantSkills.map((s) => s.name);
+  // Skills déclarés + tokens d'environnement des expériences : une techno citée
+  // dans l'environnement d'une mission est une preuve d'usage réel.
+  const skillNames = [
+    ...consultantSkills.map((s) => s.name),
+    ...extraSkillNames,
+  ].filter((n): n is string => !!n && n.trim().length > 0);
 
   // Catégorisation INTELLIGENTE : normalisation (K8s→kubernetes, fuzzy, accents)
   // + ÉQUIVALENCES parent→enfant. Ainsi « Windows » demandé est reconnu via
@@ -304,7 +315,11 @@ function auditNoInvention(
 export async function generateCVContent(input: GenerateCVInput): Promise<GenerateCVOutput> {
   const { consultant, skills, experiences, educations, jobOffer, templateId } = input;
 
-  const matching = computeMatching(skills, jobOffer);
+  // « Environnement technique » de chaque expérience = preuve d'usage réel :
+  // on le fournit au matching pour ne plus signaler « manquant » un outil
+  // pourtant utilisé en mission (Active Directory, Intune, ServiceNow…).
+  const environmentEvidence = experiences.flatMap((e) => e.environment ?? []);
+  const matching = computeMatching(skills, jobOffer, environmentEvidence);
 
   // ─── 1. Tente de reformuler le summary via Claude (parallélisé avec les bullets) ───
   // Import dynamique pour éviter de charger le SDK Anthropic côté client

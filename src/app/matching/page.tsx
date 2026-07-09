@@ -23,6 +23,7 @@ import {
 } from '@/components/app';
 
 import { createClient } from '@/lib/supabase/client';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { matchingService, type MatchResult } from '@/lib/services/matching.service';
 import { JobOfferFormDialog } from '@/components/offers/JobOfferFormDialog';
 import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
@@ -39,7 +40,6 @@ function MatchingInner() {
   const { locale } = useLocale();
   const { format: formatCurrency } = useCurrency();
   const searchParams = useSearchParams();
-  const [offers, setOffers] = useState<JobOffer[]>([]);
   const [offerId, setOfferId] = useState<string>('');
   const [results, setResults] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -57,8 +57,12 @@ function MatchingInner() {
     consultant: Pick<Consultant, 'id' | 'first_name' | 'last_name' | 'daily_rate_eur'> | null;
   }>({ open: false, consultant: null });
 
-  async function loadOffers() {
-    try {
+  // Offres chargées via cache SWR : hydratation instantanée depuis
+  // sessionStorage (plus de dropdown vide au retour sur la page) + refetch en
+  // arrière-plan. Keyé sur l'org → se recharge au changement d'organisation.
+  const { data: offersData, reload: loadOffers } = useCachedQuery<JobOffer[]>(
+    `matching:offers:${activeOrgId ?? 'none'}`,
+    async () => {
       const supabase = createClient();
       const { data, error } = await supabase
         .from('job_offers')
@@ -66,19 +70,12 @@ function MatchingInner() {
         .eq('status', 'open')
         .eq('archived', false)
         .order('updated_at', { ascending: false });
-      if (error) {
-        console.warn('[matching] loadOffers failed', error);
-        return;
-      }
-      setOffers((data ?? []) as JobOffer[]);
-    } catch (e) {
-      console.warn('[matching] loadOffers exception', e);
-    }
-  }
-
-  useEffect(() => {
-    loadOffers();
-  }, []);
+      if (error) throw error;
+      return (data ?? []) as JobOffer[];
+    },
+    { enabled: !!activeOrgId },
+  );
+  const offers = offersData ?? [];
 
   // Pré-sélection depuis ?offerId=...
   useEffect(() => {

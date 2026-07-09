@@ -18,6 +18,8 @@ import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/Combobox';
 import { jobOfferService } from '@/lib/services';
 import { consultantService } from '@/lib/services/consultant.service';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { useOrganization } from '@/lib/auth/context';
 import type { JobOffer, Consultant } from '@/types';
 
 type ConsultantPick = Pick<Consultant, 'id' | 'first_name' | 'last_name' | 'daily_rate_eur'>;
@@ -37,50 +39,52 @@ type Props = {
 };
 
 export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onAssigned }: Props) {
+  const { activeOrgId } = useOrganization();
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
   const [tjm, setTjm] = useState<string>('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [offers, setOffers] = useState<JobOffer[]>([]);
   const [selectedOfferId, setSelectedOfferId] = useState<string>('');
-  const [consultantsList, setConsultantsList] = useState<ConsultantPick[]>([]);
   const [selectedConsultantId, setSelectedConsultantId] = useState<string>('');
 
   const offerLocked = !!offer;
   const consultantLocked = !!consultant;
+
+  // Offres & consultants via cache SWR (instantané à la réouverture, keyé sur
+  // l'org → aucune fuite inter-organisation). Chargés seulement dans les flows
+  // où l'utilisateur doit choisir (offre ou consultant non verrouillé).
+  const { data: offersData } = useCachedQuery<JobOffer[]>(
+    `assign-offers:${activeOrgId ?? 'none'}`,
+    async () => {
+      const res = await jobOfferService.list('open');
+      if (res.error) throw res.error;
+      return res.data ?? [];
+    },
+    { enabled: open && !offer && !!activeOrgId },
+  );
+  const offers = offersData ?? [];
+
+  const { data: consultantsData } = useCachedQuery<ConsultantPick[]>(
+    `assign-consultants:${activeOrgId ?? 'none'}`,
+    async () => {
+      const res = await consultantService.list({ is_prospect: 'all', archived: false });
+      if (res.error) throw res.error;
+      return (res.data ?? [])
+        .filter((c) => !c.is_prospect)
+        .map((c) => ({
+          id: c.id,
+          first_name: c.first_name,
+          last_name: c.last_name,
+          daily_rate_eur: c.daily_rate_eur ?? null,
+        }));
+    },
+    { enabled: open && !consultant && !!activeOrgId },
+  );
+  const consultantsList = consultantsData ?? [];
   const activeOffer = offer ?? offers.find((o) => o.id === selectedOfferId) ?? null;
   const activeConsultant =
     consultant ?? consultantsList.find((c) => c.id === selectedConsultantId) ?? null;
-
-  useEffect(() => {
-    if (!open) return;
-    if (offerLocked) return;
-    jobOfferService.list('open').then((res) => {
-      if (res.data) setOffers(res.data);
-    });
-  }, [open, offerLocked]);
-
-  // Fetch des consultants quand on est en mode "consultant à choisir".
-  // On ne montre que les profils actifs (non archivés, non prospects).
-  useEffect(() => {
-    if (!open || consultantLocked) return;
-    consultantService
-      .list({ is_prospect: 'all', archived: false })
-      .then((res) => {
-        if (!res.data) return;
-        setConsultantsList(
-          res.data
-            .filter((c) => !c.is_prospect)
-            .map((c) => ({
-              id: c.id,
-              first_name: c.first_name,
-              last_name: c.last_name,
-              daily_rate_eur: c.daily_rate_eur ?? null,
-            })),
-        );
-      });
-  }, [open, consultantLocked]);
 
   useEffect(() => {
     if (!open) return;
