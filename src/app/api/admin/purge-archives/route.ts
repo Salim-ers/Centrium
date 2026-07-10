@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { reportError } from '@/lib/observability/report-error';
+import { recordHeartbeat } from '@/lib/observability/heartbeat';
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (!toPurge || toPurge.length === 0) {
+    await recordHeartbeat(admin, 'purge-archives', 'ok', { purged: 0 });
     return NextResponse.json(
       { data: { purged: 0, message: 'Aucune archive à purger ce mois-ci.' } },
       { status: 200 },
@@ -83,6 +85,11 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     );
   }
+
+  await recordHeartbeat(admin, 'purge-archives', 'ok', {
+    purged: toPurge.length,
+    orgs_notified: byOrg.size,
+  });
 
   return NextResponse.json(
     {

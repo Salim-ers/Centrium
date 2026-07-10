@@ -5,6 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email/send';
 import { sendSms } from '@/lib/sms/send';
+import { recordHeartbeat } from '@/lib/observability/heartbeat';
 import { logger } from '@/lib/logger';
 import type { Alert, AlertPriority, AlertType } from '@/types';
 
@@ -827,5 +828,13 @@ export async function runAlertsEngine(now: Date = new Date()): Promise<EngineRep
       });
     }
   }
+
+  // Battement de cœur : /api/health signalera l'absence de run.
+  const hadErrors = report.orgs.some((o) => o.errors.length > 0);
+  await recordHeartbeat(admin, 'alerts-engine', hadErrors ? 'error' : 'ok', {
+    orgs: report.orgs.length,
+    created: report.orgs.reduce((s, o) => s + o.created, 0),
+  });
+
   return report;
 }
