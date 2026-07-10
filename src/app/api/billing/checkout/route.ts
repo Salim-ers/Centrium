@@ -5,6 +5,7 @@ import {
   type StripePlanId,
 } from '@/lib/billing/config';
 import { resolveStripePriceId } from '@/lib/billing/resolve-price';
+import { resolveTax } from '@/lib/billing/tax';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireOrg } from '@/lib/auth/guards';
 import { logger } from '@/lib/logger';
@@ -177,19 +178,19 @@ export async function POST(req: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
-    // TVA : activée UNIQUEMENT si STRIPE_TAX_ENABLED=true ET Stripe Tax
-    // configuré dans le dashboard. Sans le flag, comportement historique
-    // inchangé (aucune régression : activer automatic_tax sans Stripe Tax
-    // configuré ferait échouer le checkout). Collecte aussi le n° TVA
-    // intracom (autoliquidation UE) et met à jour l'adresse du client.
-    const taxEnabled = process.env.STRIPE_TAX_ENABLED === 'true';
-    const taxParams = taxEnabled
-      ? ({
-          automatic_tax: { enabled: true },
-          tax_id_collection: { enabled: true },
-          customer_update: { address: 'auto', name: 'auto' },
-        } as const)
-      : {};
+    // TVA — deux modes exclusifs (voir resolveTax ci-dessous) :
+    //   1. STRIPE_TAX_ENABLED=true → Stripe Tax (automatic_tax), pour un parc
+    //      client varié (UE, hors-UE, autoliquidation). Nécessite Stripe Tax
+    //      configuré au dashboard (payant).
+    //   2. STRIPE_VAT_RATE_ID=txr_… → taux de TVA FIXE (gratuit), idéal pour
+    //      des clients 100 % français à 20 %. On applique le taux comme
+    //      default_tax_rates de l'abonnement.
+    //   3. Aucun des deux → pas de TVA (prix débités tels quels).
+    const { sessionTax, subscriptionTax, addressRequired } = resolveTax();
+    const subscription_data = {
+      metadata: { organization_id: ctx.organizationId, plan_id: planId },
+      ...subscriptionTax,
+    };
 
     if (ui === 'embedded') {
       // Paiement DANS l'app : pas de success/cancel_url, pas de redirection —
@@ -201,12 +202,10 @@ export async function POST(req: NextRequest) {
         redirect_on_completion: 'never',
         customer: customerId,
         line_items: [{ price: priceId, quantity: 1 }],
-        subscription_data: {
-          metadata: { organization_id: ctx.organizationId, plan_id: planId },
-        },
+        subscription_data,
         allow_promotion_codes: true,
-        billing_address_collection: taxEnabled ? 'required' : 'auto',
-        ...taxParams,
+        billing_address_collection: addressRequired ? 'required' : 'auto',
+        ...sessionTax,
       });
       return NextResponse.json({ client_secret: session.client_secret });
     }
@@ -217,12 +216,10 @@ export async function POST(req: NextRequest) {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${appUrl}/billing?success=1`,
       cancel_url: `${appUrl}/billing?canceled=1`,
-      subscription_data: {
-        metadata: { organization_id: ctx.organizationId, plan_id: planId },
-      },
+      subscription_data,
       allow_promotion_codes: true,
-      billing_address_collection: taxEnabled ? 'required' : 'auto',
-      ...taxParams,
+      billing_address_collection: addressRequired ? 'required' : 'auto',
+      ...sessionTax,
     });
 
     return NextResponse.json({ url: session.url });

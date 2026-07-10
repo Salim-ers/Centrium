@@ -8,6 +8,7 @@ import {
   type StripePlanId,
 } from '@/lib/billing/config';
 import { resolveStripePriceId } from '@/lib/billing/resolve-price';
+import { resolveTax } from '@/lib/billing/tax';
 import { slugify } from '@/lib/utils';
 import { rateLimit, callerIp } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
@@ -263,16 +264,9 @@ export async function POST(req: NextRequest) {
     // 5) Checkout : essai 7 j, carte OBLIGATOIRE, 0 € maintenant, débit
     //    auto à la fin de l'essai. metadata.organization_id → le webhook
     //    saura relier la sub à l'org.
-    // TVA : activée seulement si STRIPE_TAX_ENABLED=true (+ Stripe Tax
-    // configuré dans le dashboard). Off par défaut = comportement inchangé.
-    const taxEnabled = process.env.STRIPE_TAX_ENABLED === 'true';
-    const taxParams = taxEnabled
-      ? ({
-          automatic_tax: { enabled: true },
-          tax_id_collection: { enabled: true },
-          customer_update: { address: 'auto', name: 'auto' },
-        } as const)
-      : {};
+    // TVA : Stripe Tax (STRIPE_TAX_ENABLED) OU taux fixe (STRIPE_VAT_RATE_ID)
+    // OU rien — voir resolveTax(). Off par défaut = comportement inchangé.
+    const { sessionTax, subscriptionTax, addressRequired } = resolveTax();
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customer.id,
@@ -280,11 +274,12 @@ export async function POST(req: NextRequest) {
       subscription_data: {
         trial_period_days: TRIAL_DAYS,
         metadata: { organization_id: org.id, plan_id: data.plan_id },
+        ...subscriptionTax,
       },
       payment_method_collection: 'always',
       allow_promotion_codes: true,
-      billing_address_collection: taxEnabled ? 'required' : 'auto',
-      ...taxParams,
+      billing_address_collection: addressRequired ? 'required' : 'auto',
+      ...sessionTax,
       success_url: `${appUrl}/login?welcome=trial&email=${encodeURIComponent(email)}`,
       cancel_url: `${appUrl}/essai?canceled=1&email=${encodeURIComponent(email)}`,
     });
