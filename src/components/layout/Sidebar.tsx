@@ -76,6 +76,7 @@ function buildGroups(t: AppDict): NavGroup[] {
         { label: t.nav.matching, href: '/matching', icon: Target },
         { label: t.nav.pipeline, href: '/crm', icon: Kanban },
         { label: t.nav.contacts, href: '/contacts', icon: UserCircle },
+        { label: t.nav.companies, href: '/companies', icon: Building2 },
       ],
     },
     {
