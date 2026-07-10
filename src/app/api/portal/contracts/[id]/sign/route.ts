@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 
 import { createClient } from '@/lib/supabase/server';
@@ -103,6 +104,27 @@ export async function POST(
   }
 
   const now = new Date().toISOString();
+
+  // Dossier de preuve : contexte de signature + empreinte d'intégrité.
+  // Le hash scelle l'ensemble (id + n° + nom + image + horodatage) — toute
+  // altération ultérieure du contrat invalide cette empreinte.
+  const ip =
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip') ||
+    null;
+  const userAgent = req.headers.get('user-agent')?.slice(0, 400) ?? null;
+  const signatureHash = createHash('sha256')
+    .update(
+      [
+        contract.id,
+        contract.contract_number,
+        parsed.data.signed_name,
+        parsed.data.signature_data,
+        now,
+      ].join('|'),
+    )
+    .digest('hex');
+
   const { data: updated, error: updErr } = await admin
     .from('contracts')
     .update({
@@ -111,6 +133,9 @@ export async function POST(
       consultant_signed_at: now,
       signed_at: now,
       status: 'signed',
+      signature_ip: ip,
+      signature_user_agent: userAgent,
+      signature_hash: signatureHash,
     })
     .eq('id', contract.id)
     .select('*')
