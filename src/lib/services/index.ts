@@ -502,6 +502,33 @@ export const companyService = {
     if (error) return { data: null, error };
     return { data: data as Company, error: null };
   },
+
+  /** Met à jour une société (fiche /companies). */
+  async update(
+    id: string,
+    patch: Partial<{
+      name: string;
+      kind: 'client' | 'esn_partner' | 'prospect';
+      industry: string | null;
+      size: string | null;
+      website: string | null;
+      linkedin_url: string | null;
+      address: string | null;
+      city: string | null;
+      country: string | null;
+      notes: string | null;
+    }>,
+  ): Promise<ServiceResult<Company>> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('companies')
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) return { data: null, error };
+    return { data: data as Company, error: null };
+  },
 };
 
 // =========================================================================

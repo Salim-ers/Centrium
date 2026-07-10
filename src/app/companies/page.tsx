@@ -28,6 +28,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Plus, Pencil } from 'lucide-react';
+import { CompanyFormDialog } from '@/components/companies/CompanyFormDialog';
+import type { Company } from '@/types';
 import { PageHeader, AppCard, AppCardBody, EmptyState, StatusBadge } from '@/components/app';
 
 // =========================================================================
@@ -44,8 +48,13 @@ type CompanyRow = {
   name: string;
   kind: string | null;
   industry: string | null;
+  size: string | null;
   city: string | null;
+  country: string | null;
+  address: string | null;
   website: string | null;
+  linkedin_url: string | null;
+  notes: string | null;
 };
 type ContactRow = { id: string; first_name: string; last_name: string; company_id: string | null; job_title: string | null };
 type MissionRow = { id: string; title: string | null; company_id: string | null; status: string | null };
@@ -69,13 +78,15 @@ export default function CompaniesPage() {
   const { format: formatCurrency } = useCurrency();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<CompanyRow | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Company | null>(null);
 
-  const { data, loading } = useCachedQuery<Loaded>(
+  const { data, loading, reload } = useCachedQuery<Loaded>(
     `companies-overview:${activeOrgId ?? 'none'}`,
     async () => {
       const supabase = createClient();
       const [companies, contacts, missions, invoices] = await Promise.all([
-        supabase.from('companies').select('id, name, kind, industry, city, website').eq('archived', false).order('name'),
+        supabase.from('companies').select('id, name, kind, industry, size, city, country, address, website, linkedin_url, notes').eq('archived', false).order('name'),
         supabase.from('contacts').select('id, first_name, last_name, company_id, job_title').eq('archived', false),
         supabase.from('missions').select('id, title, company_id, status').eq('archived', false),
         supabase.from('invoices').select('id, invoice_number, company_id, amount_ttc, status, party').eq('archived', false).eq('party', 'client'),
@@ -128,6 +139,25 @@ export default function CompaniesPage() {
           </>
         }
         description="Vue d’ensemble de vos clients et ESN partenaires, avec leurs contacts, missions et facturation."
+        actions={
+          <Button
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            Nouvelle société
+          </Button>
+        }
+      />
+
+      <CompanyFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        organizationId={activeOrgId ?? ''}
+        company={editing}
+        onSaved={() => reload()}
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -210,6 +240,11 @@ export default function CompaniesPage() {
         data={data}
         formatCurrency={formatCurrency}
         onClose={() => setSelected(null)}
+        onEdit={(c) => {
+          setSelected(null);
+          setEditing(c as unknown as Company);
+          setFormOpen(true);
+        }}
       />
     </AppShell>
   );
@@ -239,11 +274,13 @@ function CompanyDetailDialog({
   data,
   formatCurrency,
   onClose,
+  onEdit,
 }: {
   company: CompanyRow | null;
   data: Loaded | null;
   formatCurrency: (n: number) => string;
   onClose: () => void;
+  onEdit: (c: CompanyRow) => void;
 }) {
   if (!company) return null;
   const contacts = (data?.contacts ?? []).filter((c) => c.company_id === company.id);
@@ -299,6 +336,13 @@ function CompanyDetailDialog({
             ))
           )}
         </Section>
+
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={() => onEdit(company)}>
+            <Pencil className="h-3.5 w-3.5" />
+            Éditer la fiche
+          </Button>
+        </div>
 
         <Section title={`Factures (${invoices.length})`} icon={Receipt}>
           {invoices.length === 0 ? (
