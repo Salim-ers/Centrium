@@ -43,6 +43,7 @@ import {
 import type { Consultant } from '@/types';
 import { useOrganization } from '@/lib/auth/context';
 import { KycDocuments } from '@/components/consultants/KycDocuments';
+import { ConsultantCompleteness } from '@/components/consultants/ConsultantCompleteness';
 import { ConsultantSelfDocuments } from '@/components/portal/ConsultantSelfDocuments';
 import { usePortalConsultant } from '../portal-context';
 
@@ -560,7 +561,12 @@ export default function PortalProfilePage() {
       {/* ---- Documents légaux & administratifs ---- */}
       {activeOrgId && (
         <Reveal delay={0.28}>
-          <div className="mb-8">
+          <div className="mb-8 space-y-4">
+            <ConsultantCompleteness
+              consultantId={consultantId}
+              organizationId={activeOrgId}
+              asConsultant
+            />
             <KycDocuments
               consultantId={consultantId}
               organizationId={activeOrgId}

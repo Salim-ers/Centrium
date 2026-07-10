@@ -31,6 +31,7 @@ import { consultantService } from '@/lib/services/consultant.service';
 import { ConsultantDocuments } from '@/components/consultants/ConsultantDocuments';
 import { ConsultantActivityPanel } from '@/components/consultants/ConsultantActivityPanel';
 import { KycDocuments } from '@/components/consultants/KycDocuments';
+import { ConsultantCompleteness } from '@/components/consultants/ConsultantCompleteness';
 import { ConsultantFormDialog } from '@/components/consultants/ConsultantFormDialog';
 import { ConsultantMissionsList } from '@/components/missions/ConsultantMissionsList';
 import { ExperienceEditDialog } from '@/components/consultants/ExperienceEditDialog';
@@ -569,6 +570,11 @@ export default function ConsultantDetailPage() {
           <ConsultantMissionsList consultantId={c.id} canManage />
 
           <ConsultantActivityPanel consultantId={c.id} />
+
+          <ConsultantCompleteness
+            consultantId={c.id}
+            organizationId={c.organization_id}
+          />
 
           <KycDocuments
             consultantId={c.id}

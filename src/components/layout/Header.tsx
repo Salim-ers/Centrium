@@ -50,12 +50,18 @@ export function Header() {
     }
     let cancelled = false;
     const supabase = createClient();
+    // Le badge compte les alertes RÉELLES du centre (RPC count_org_alerts :
+    // calculées + matérialisées actives) — critiques + importantes seulement,
+    // sinon la pastille serait allumée en permanence. L'ancien comptage sur la
+    // table alerts (status='new') restait à 0 car rien ne l'alimentait.
     const load = async () => {
-      const { count } = await supabase
-        .from('alerts')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'new');
-      if (!cancelled) setUnreadAlerts(count ?? 0);
+      const { data } = await supabase.rpc('count_org_alerts', { org_id: org.activeOrgId });
+      if (cancelled) return;
+      const rows = (data ?? []) as Array<{ priority: string; total: number }>;
+      const important = rows
+        .filter((r) => r.priority === 'critical' || r.priority === 'high')
+        .reduce((s, r) => s + Number(r.total), 0);
+      setUnreadAlerts(important);
     };
     load();
     const channel = supabase
@@ -148,9 +154,11 @@ export function Header() {
               <Bell className="h-4 w-4" />
               {unreadAlerts > 0 && (
                 <span
-                  aria-label={`${unreadAlerts} alerte${unreadAlerts > 1 ? 's' : ''} non lue${unreadAlerts > 1 ? 's' : ''}`}
-                  className="absolute top-2 right-2 h-2 w-2 rounded-full bg-magenta shadow-glow-magenta"
-                />
+                  aria-label={`${unreadAlerts} alerte${unreadAlerts > 1 ? 's' : ''} à traiter`}
+                  className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-magenta px-1 text-[9px] font-bold leading-none text-white shadow-glow-magenta"
+                >
+                  {unreadAlerts > 99 ? '99+' : unreadAlerts}
+                </span>
               )}
             </Link>
           </Button>

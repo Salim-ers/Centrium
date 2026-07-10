@@ -68,7 +68,17 @@ type DocRow = {
   size_bytes: number | null;
   uploaded_by: string | null;
   uploaded_at: string;
+  /** Date d'expiration (migration 084) — alimente les alertes de renouvellement. */
+  expires_at: string | null;
 };
+
+/** Jours restants avant expiration (négatif = expiré). */
+function daysLeft(expiresAt: string): number {
+  const d = new Date(expiresAt + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((d.getTime() - today.getTime()) / 86_400_000);
+}
 
 type Props = {
   consultantId: string;
@@ -174,6 +184,19 @@ export function KycDocuments({
     }
   }
 
+  async function setExpiry(d: DocRow, dateIso: string | null) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('consultant_documents')
+      .update({ expires_at: dateIso })
+      .eq('id', d.id);
+    if (error) {
+      toast.error("Impossible d'enregistrer la date d'expiration : " + error.message);
+      return;
+    }
+    setDocs((prev) => prev.map((x) => (x.id === d.id ? { ...x, expires_at: dateIso } : x)));
+  }
+
   async function downloadDoc(d: DocRow) {
     const supabase = createClient();
     const { data, error } = await supabase.storage
@@ -264,10 +287,38 @@ export function KycDocuments({
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">{slot.hint}</p>
                       {doc ? (
-                        <div className="text-[11px] text-white/70 mt-2 truncate">
-                          📄 {doc.file_name}{' '}
-                          <span className="text-white/40">· {formatDate(doc.uploaded_at)}</span>
-                        </div>
+                        <>
+                          <div className="text-[11px] text-white/70 mt-2 truncate">
+                            📄 {doc.file_name}{' '}
+                            <span className="text-white/40">· {formatDate(doc.uploaded_at)}</span>
+                          </div>
+                          {doc.expires_at && (
+                            <div
+                              className={cn(
+                                'text-[11px] mt-1 font-medium',
+                                daysLeft(doc.expires_at) < 0
+                                  ? 'text-red-400'
+                                  : daysLeft(doc.expires_at) <= 30
+                                    ? 'text-amber-300'
+                                    : 'text-white/50',
+                              )}
+                            >
+                              {daysLeft(doc.expires_at) < 0
+                                ? `⚠ Expiré le ${formatDate(doc.expires_at)}`
+                                : `Expire le ${formatDate(doc.expires_at)} (${daysLeft(doc.expires_at)} j)`}
+                            </div>
+                          )}
+                          <label className="mt-1.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                            Expiration :
+                            <input
+                              type="date"
+                              value={doc.expires_at ?? ''}
+                              onChange={(e) => setExpiry(doc, e.target.value || null)}
+                              className="rounded border border-hairline bg-transparent px-1.5 py-0.5 text-[10px] text-foreground [color-scheme:dark]"
+                              aria-label={`Date d'expiration — ${slot.label}`}
+                            />
+                          </label>
+                        </>
                       ) : (
                         <div className="text-[11px] text-amber-300/80 mt-2">Manquant</div>
                       )}

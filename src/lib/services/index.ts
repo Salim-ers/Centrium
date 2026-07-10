@@ -9,6 +9,9 @@ import type {
   InvoiceStatus,
   Alert,
   AlertStatus,
+  AlertComment,
+  AppNotification,
+  NotificationDelivery,
   ServiceResult,
   Company,
   Timesheet,
@@ -1285,7 +1288,7 @@ export const timesheetService = {
 // Alerts
 // =========================================================================
 
-/** Forme renvoyée par la RPC `compute_org_alerts` côté client. */
+/** Forme renvoyée par la RPC `compute_org_alerts` (v2 — migration 085). */
 export type ComputedAlert = {
   id: string;
   kind: string;
@@ -1297,6 +1300,16 @@ export type ComputedAlert = {
   entity_kind: string | null;
   entity_id: string | null;
   created_at: string;
+  /** 'new' | 'in_progress' | 'snoozed' — cycle de vie (v2). */
+  status: string;
+  /** 'computed' = calculée en live (dismiss only) ; 'engine'/'manual' = table alerts. */
+  source: 'computed' | 'engine' | 'manual';
+  assignee_id: string | null;
+  read_at: string | null;
+  snoozed_until: string | null;
+  reminder_count: number;
+  next_reminder_at: string | null;
+  consultant_id: string | null;
 };
 
 export const alertService = {
@@ -1392,6 +1405,242 @@ export const alertService = {
       .single();
     if (error) return { data: null, error };
     return { data: data as Alert, error: null };
+  },
+
+  /**
+   * Compteurs par priorité (RPC count_org_alerts) — badge de navigation.
+   * Ne rapatrie pas les lignes : une seule agrégation SQL.
+   */
+  async counts(orgId: string): Promise<ServiceResult<Record<string, number>>> {
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc('count_org_alerts', { org_id: orgId });
+    if (error) return { data: null, error };
+    const out: Record<string, number> = {};
+    for (const row of (data ?? []) as Array<{ priority: string; total: number }>) {
+      out[row.priority] = Number(row.total);
+    }
+    return { data: out, error: null };
+  },
+
+  /**
+   * Change le statut d'une alerte MATÉRIALISÉE (table alerts).
+   * `snoozed` exige `snoozedUntil` ; `resolved` fige resolved_at/by.
+   */
+  async setStatus(
+    id: string,
+    status: 'new' | 'in_progress' | 'snoozed' | 'resolved' | 'dismissed',
+    opts: { snoozedUntil?: string; userId?: string } = {},
+  ): Promise<ServiceResult<Alert>> {
+    const supabase = createClient();
+    const patch: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
+    if (status === 'snoozed') {
+      patch.snoozed_until = opts.snoozedUntil ?? new Date(Date.now() + 7 * 86_400_000).toISOString();
+    } else {
+      patch.snoozed_until = null;
+    }
+    if (status === 'resolved') {
+      patch.resolved_at = new Date().toISOString();
+      patch.resolved_by = opts.userId ?? null;
+      patch.next_reminder_at = null;
+    } else if (status === 'new' || status === 'in_progress') {
+      patch.resolved_at = null;
+      patch.resolved_by = null;
+    }
+    const { data, error } = await supabase
+      .from('alerts')
+      .update(patch)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) return { data: null, error };
+    return { data: data as Alert, error: null };
+  },
+
+  /** Assigne (ou désassigne) une alerte matérialisée à un membre de l'org. */
+  async assign(id: string, assigneeId: string | null): Promise<ServiceResult<Alert>> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('alerts')
+      .update({ assignee_id: assigneeId, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) return { data: null, error };
+    return { data: data as Alert, error: null };
+  },
+
+  /** Marque une alerte matérialisée comme lue (première ouverture). */
+  async markRead(id: string): Promise<ServiceResult<true>> {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('alerts')
+      .update({ read_at: new Date().toISOString() })
+      .eq('id', id)
+      .is('read_at', null);
+    if (error) return { data: null, error };
+    return { data: true, error: null };
+  },
+
+  /** Commentaires internes d'une alerte (clé = alerts.id ou id calculé). */
+  async listComments(orgId: string, alertKey: string): Promise<ServiceResult<AlertComment[]>> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('alert_comments')
+      .select('*')
+      .eq('organization_id', orgId)
+      .eq('alert_key', alertKey)
+      .order('created_at', { ascending: true });
+    if (error) return { data: null, error };
+    return { data: (data ?? []) as AlertComment[], error: null };
+  },
+
+  async addComment(
+    orgId: string,
+    alertKey: string,
+    authorId: string,
+    body: string,
+  ): Promise<ServiceResult<AlertComment>> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('alert_comments')
+      .insert({ organization_id: orgId, alert_key: alertKey, author_id: authorId, body })
+      .select()
+      .single();
+    if (error) return { data: null, error };
+    return { data: data as AlertComment, error: null };
+  },
+
+  /** Historique des envois (relances) pour une alerte. */
+  async listDeliveries(
+    orgId: string,
+    dedupeKey: string,
+  ): Promise<ServiceResult<NotificationDelivery[]>> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('notification_deliveries')
+      .select('*')
+      .eq('organization_id', orgId)
+      .like('dedupe_key', `${dedupeKey}%`)
+      .order('created_at', { ascending: false })
+      .limit(30);
+    if (error) return { data: null, error };
+    return { data: (data ?? []) as NotificationDelivery[], error: null };
+  },
+};
+
+// =========================================================================
+// Notifications personnelles (cloche) + préférences
+// =========================================================================
+
+export const notificationService = {
+  async list(limit = 30): Promise<ServiceResult<AppNotification[]>> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) return { data: null, error };
+    return { data: (data ?? []) as AppNotification[], error: null };
+  },
+
+  async unreadCount(): Promise<ServiceResult<number>> {
+    const supabase = createClient();
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .is('read_at', null);
+    if (error) return { data: null, error };
+    return { data: count ?? 0, error: null };
+  },
+
+  async markRead(id: string): Promise<ServiceResult<true>> {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) return { data: null, error };
+    return { data: true, error: null };
+  },
+
+  async markAllRead(): Promise<ServiceResult<true>> {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read_at: new Date().toISOString() })
+      .is('read_at', null);
+    if (error) return { data: null, error };
+    return { data: true, error: null };
+  },
+};
+
+export type NotificationPreferencesRow = {
+  user_id: string;
+  organization_id: string;
+  email_enabled: boolean;
+  sms_enabled: boolean;
+  categories: Record<string, Partial<Record<'in_app' | 'email' | 'sms', boolean>>>;
+  digest_daily: boolean;
+  digest_weekly: boolean;
+  phone: string | null;
+};
+
+export const notificationPreferencesService = {
+  async get(orgId: string): Promise<ServiceResult<NotificationPreferencesRow | null>> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('notification_preferences')
+      .select('*')
+      .eq('organization_id', orgId)
+      .maybeSingle();
+    if (error) return { data: null, error };
+    return { data: (data as NotificationPreferencesRow) ?? null, error: null };
+  },
+
+  async upsert(
+    row: Omit<NotificationPreferencesRow, 'user_id'> & { user_id: string },
+  ): Promise<ServiceResult<true>> {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('notification_preferences')
+      .upsert({ ...row, updated_at: new Date().toISOString() }, { onConflict: 'user_id,organization_id' });
+    if (error) return { data: null, error };
+    return { data: true, error: null };
+  },
+};
+
+export const orgNotificationSettingsService = {
+  async get(orgId: string): Promise<ServiceResult<Record<string, unknown>>> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('org_notification_settings')
+      .select('settings')
+      .eq('organization_id', orgId)
+      .maybeSingle();
+    if (error) return { data: null, error };
+    return { data: (data?.settings as Record<string, unknown>) ?? {}, error: null };
+  },
+
+  async update(
+    orgId: string,
+    settings: Record<string, unknown>,
+    userId: string,
+  ): Promise<ServiceResult<true>> {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('org_notification_settings')
+      .upsert(
+        {
+          organization_id: orgId,
+          settings,
+          updated_by: userId,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'organization_id' },
+      );
+    if (error) return { data: null, error };
+    return { data: true, error: null };
   },
 };
 

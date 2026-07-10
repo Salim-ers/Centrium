@@ -753,6 +753,35 @@ export type AppDict = {
       hidden_title: string;
       hidden_description: string;
       cannot_hide_prefix: string;
+      kind_profile_incomplete: string;
+      kind_document_expiring: string;
+      kind_timesheet_missing: string;
+      kind_invoice_forgotten: string;
+      kind_invoice_draft_stale: string;
+      kind_contract_pending_signature: string;
+      kind_contract_expiring: string;
+      kind_mission_no_contract: string;
+      kind_mission_overrun: string;
+      kind_invitation_pending: string;
+      kind_system_issue: string;
+      search_placeholder: string;
+      take: string;
+      snooze7: string;
+      resolve: string;
+      reopen: string;
+      assign_to: string;
+      unassign: string;
+      comments: string;
+      comment_placeholder: string;
+      comment_send: string;
+      history_title: string;
+      reminders_sent: string;
+      next_reminder: string;
+      status_new: string;
+      status_in_progress: string;
+      status_snoozed: string;
+      resolved_toast: string;
+      more_actions: string;
     };
     todos: {
       eyebrow: string;
@@ -961,6 +990,8 @@ export type AppDict = {
       card_billing_description: string;
       card_facturation_title: string;
       card_facturation_description: string;
+      card_notifications_title: string;
+      card_notifications_description: string;
       card_data_title: string;
       card_data_description: string;
       card_appearance_title: string;
@@ -1749,6 +1780,35 @@ export const APP_DICT: Record<Locale, AppDict> = {
         hidden_title: 'Alerte masquée',
         hidden_description: 'Elle ne réapparaîtra plus tant que la situation reste identique.',
         cannot_hide_prefix: 'Impossible de masquer cette alerte — ',
+        kind_profile_incomplete: 'Profil incomplet',
+        kind_document_expiring: 'Document',
+        kind_timesheet_missing: 'CRA manquant',
+        kind_invoice_forgotten: 'Facture oubliée',
+        kind_invoice_draft_stale: 'Brouillon dormant',
+        kind_contract_pending_signature: 'Signature',
+        kind_contract_expiring: 'Contrat',
+        kind_mission_no_contract: 'Sans contrat',
+        kind_mission_overrun: 'Mission dépassée',
+        kind_invitation_pending: 'Invitation',
+        kind_system_issue: 'Système',
+        search_placeholder: 'Rechercher une alerte…',
+        take: 'Prendre en charge',
+        snooze7: 'Reporter 7 j',
+        resolve: 'Résoudre',
+        reopen: 'Réouvrir',
+        assign_to: 'Assigner à',
+        unassign: "Retirer l'assignation",
+        comments: 'Commentaires',
+        comment_placeholder: 'Note interne pour l’équipe…',
+        comment_send: 'Envoyer',
+        history_title: 'Historique des relances',
+        reminders_sent: 'relance(s) envoyée(s)',
+        next_reminder: 'Prochaine relance',
+        status_new: 'Nouvelle',
+        status_in_progress: 'Prise en charge',
+        status_snoozed: 'Reportée',
+        resolved_toast: 'Alerte résolue — les relances sont stoppées.',
+        more_actions: 'Actions',
       },
       todos: {
         eyebrow: 'Pilotage',
@@ -1957,6 +2017,8 @@ export const APP_DICT: Record<Locale, AppDict> = {
         card_billing_description: 'Plan, facturation et consommation de ton espace Centrium.',
         card_facturation_title: 'Facturation & société',
         card_facturation_description: 'RIB, coordonnées bancaires et mentions légales imprimées sur vos factures et contrats.',
+        card_notifications_title: 'Notifications',
+        card_notifications_description: 'Canaux (email, SMS), cadences de relance, récapitulatifs et catégories reçues.',
         card_data_title: 'Mes données & confidentialité',
         card_data_description: 'Exportez vos données, gérez vos cookies, exercez vos droits RGPD.',
         card_appearance_title: 'Apparence & design',
@@ -2743,6 +2805,35 @@ export const APP_DICT: Record<Locale, AppDict> = {
         hidden_title: 'Alert hidden',
         hidden_description: "It won't reappear as long as the situation stays the same.",
         cannot_hide_prefix: 'Cannot hide this alert — ',
+        kind_profile_incomplete: 'Incomplete profile',
+        kind_document_expiring: 'Document',
+        kind_timesheet_missing: 'Missing timesheet',
+        kind_invoice_forgotten: 'Forgotten invoice',
+        kind_invoice_draft_stale: 'Stale draft',
+        kind_contract_pending_signature: 'Signature',
+        kind_contract_expiring: 'Contract',
+        kind_mission_no_contract: 'No contract',
+        kind_mission_overrun: 'Mission overrun',
+        kind_invitation_pending: 'Invitation',
+        kind_system_issue: 'System',
+        search_placeholder: 'Search alerts…',
+        take: 'Take ownership',
+        snooze7: 'Snooze 7 d',
+        resolve: 'Resolve',
+        reopen: 'Reopen',
+        assign_to: 'Assign to',
+        unassign: 'Unassign',
+        comments: 'Comments',
+        comment_placeholder: 'Internal note for the team…',
+        comment_send: 'Send',
+        history_title: 'Reminder history',
+        reminders_sent: 'reminder(s) sent',
+        next_reminder: 'Next reminder',
+        status_new: 'New',
+        status_in_progress: 'In progress',
+        status_snoozed: 'Snoozed',
+        resolved_toast: 'Alert resolved — reminders stopped.',
+        more_actions: 'Actions',
       },
       todos: {
         eyebrow: 'Overview',
@@ -2951,6 +3042,8 @@ export const APP_DICT: Record<Locale, AppDict> = {
         card_billing_description: 'Plan, billing and usage of your Centrium workspace.',
         card_facturation_title: 'Billing details & company',
         card_facturation_description: 'Bank details (RIB) and legal information printed on your invoices and contracts.',
+        card_notifications_title: 'Notifications',
+        card_notifications_description: 'Channels (email, SMS), reminder cadence, digests and received categories.',
         card_data_title: 'My data & privacy',
         card_data_description: 'Export your data, manage cookies, exercise your GDPR rights.',
         card_appearance_title: 'Appearance & design',

@@ -223,7 +223,7 @@ async function loadOrgData(admin: SupabaseClient, orgId: string) {
       .eq('organization_id', orgId),
     admin
       .from('organization_members')
-      .select('user_id, role, profiles!inner(id, email, phone, first_name)')
+      .select('user_id, role, profiles!inner(id, email, phone, first_name, consultant_id)')
       .eq('organization_id', orgId),
     admin.from('notification_preferences').select('*').eq('organization_id', orgId),
     admin
@@ -244,6 +244,12 @@ async function loadOrgData(admin: SupabaseClient, orgId: string) {
   const prefsByUser = new Map(
     (prefs.data ?? []).map((p) => [p.user_id as string, p]),
   );
+  // Comptes portail : consultant_id → user_id (pour la cloche du portail).
+  const consultantUserIds = new Map<string, string>();
+  for (const m of members.data ?? []) {
+    const prof = m.profiles as unknown as { consultant_id: string | null };
+    if (prof?.consultant_id) consultantUserIds.set(prof.consultant_id, m.user_id as string);
+  }
   const recipients: MemberRecipient[] = (members.data ?? [])
     .map((m) => {
       const prof = m.profiles as unknown as {
@@ -279,6 +285,7 @@ async function loadOrgData(admin: SupabaseClient, orgId: string) {
 
   return {
     consultants: consultants.data ?? [],
+    consultantUserIds,
     documents: (documents.data ?? []) as unknown as Array<{
       id: string; consultant_id: string; kind: string; file_name: string; expires_at: string | null;
     }>,
@@ -578,52 +585,95 @@ export async function runOrgAlerts(
       const consultant = data.consultants.find((c) => c.id === candidate.consultant_id);
       if (copy && consultant) {
         const cKey = `${alert.dedupe_key}:consultant`;
-        const last = await lastDelivery(admin, org.id, cKey, 'email');
-        const decision = shouldNotify(alert.status, last, interval, now);
-        if (decision.send && settings.channels.email && consultant.email) {
-          const res = await sendEmail({
-            to: consultant.email as string,
-            subject: `${decision.isReminder ? '[Rappel] ' : ''}${copy.subject}`,
-            paragraphs: copy.paragraphs,
-            cta: { label: copy.ctaLabel, url: `${APP_URL}${copy.ctaPath}` },
-            footnote: `Message envoyé par ${org.name} via Centrium.`,
-          });
-          deliveries.push({
-            organization_id: org.id, dedupe_key: cKey, channel: 'email',
-            consultant_id: consultant.id as string, recipient: consultant.email as string,
-            status: res.sent ? 'sent' : 'failed', provider: 'resend', error: res.error ?? null,
-          });
-          if (res.sent) report.notified_email++;
+
+        // Cloche du portail : notification in-app si le consultant a un compte
+        // (profiles.consultant_id) — à la première occurrence uniquement.
+        const portalUserId = data.consultantUserIds.get(consultant.id as string);
+        if (portalUserId) {
+          const lastPortal = await lastDelivery(admin, org.id, cKey, 'in_app');
+          if (lastPortal === null && ['new', 'in_progress'].includes(alert.status)) {
+            const { error: notifErr } = await admin.from('notifications').insert({
+              organization_id: org.id,
+              user_id: portalUserId,
+              kind: alert.kind,
+              priority: alert.priority,
+              title: copy.subject,
+              body: copy.paragraphs[0] ?? null,
+              link: copy.ctaPath,
+            });
+            if (!notifErr) {
+              report.notified_in_app++;
+              deliveries.push({
+                organization_id: org.id, dedupe_key: cKey, channel: 'in_app',
+                user_id: portalUserId, consultant_id: consultant.id as string,
+                status: 'sent', provider: 'centrium',
+              });
+            }
+          }
         }
-        // SMS : réservé aux priorités hautes, si le canal org est actif.
-        if (
-          decision.send && settings.channels.sms && consultant.phone &&
-          (alert.priority === 'critical' || alert.priority === 'high')
-        ) {
-          const lastSms = await lastDelivery(admin, org.id, cKey, 'sms');
-          const smsDecision = shouldNotify(alert.status, lastSms, interval, now);
-          if (smsDecision.send) {
-            const sms = await sendSms({
-              to: consultant.phone as string,
-              body: buildSmsBody(copy.subject, `${APP_URL}${copy.ctaPath}`),
+
+        // Garde-fou : aucune communication SORTANTE vers un consultant tant
+        // que l'organisation n'a pas activé consultant_outreach_auto (réglage
+        // Paramètres → Notifications). La cloche portail (ci-dessus) et les
+        // alertes internes restent actives dans tous les cas.
+        if (!settings.consultant_outreach_auto) {
+          const lastSkip = await lastDelivery(admin, org.id, cKey, 'email');
+          if (lastSkip === null) {
+            deliveries.push({
+              organization_id: org.id, dedupe_key: cKey, channel: 'email',
+              consultant_id: consultant.id as string, recipient: consultant.email ?? null,
+              status: 'skipped', error: 'outreach_disabled',
+            });
+            report.skipped++;
+          }
+        } else {
+          const last = await lastDelivery(admin, org.id, cKey, 'email');
+          const decision = shouldNotify(alert.status, last, interval, now);
+          if (decision.send && settings.channels.email && consultant.email) {
+            const res = await sendEmail({
+              to: consultant.email as string,
+              subject: `${decision.isReminder ? '[Rappel] ' : ''}${copy.subject}`,
+              paragraphs: copy.paragraphs,
+              cta: { label: copy.ctaLabel, url: `${APP_URL}${copy.ctaPath}` },
+              footnote: `Message envoyé par ${org.name} via Centrium.`,
             });
             deliveries.push({
-              organization_id: org.id, dedupe_key: cKey, channel: 'sms',
-              consultant_id: consultant.id as string, recipient: consultant.phone as string,
-              status: sms.sent ? 'sent' : sms.error === 'no_provider' ? 'skipped' : 'failed',
-              provider: sms.provider, provider_id: sms.providerId ?? null, error: sms.error ?? null,
+              organization_id: org.id, dedupe_key: cKey, channel: 'email',
+              consultant_id: consultant.id as string, recipient: consultant.email as string,
+              status: res.sent ? 'sent' : 'failed', provider: 'resend', error: res.error ?? null,
             });
-            if (sms.sent) report.notified_sms++;
-            // Fallback SMS→email : si l'envoi a échoué (hors sandbox) et
-            // qu'aucun email n'était parti, l'email de secours part ici.
-            if (!sms.sent && sms.error !== 'no_provider' && consultant.email) {
-              await sendEmail({
-                to: consultant.email as string,
-                subject: copy.subject,
-                paragraphs: copy.paragraphs,
-                cta: { label: copy.ctaLabel, url: `${APP_URL}${copy.ctaPath}` },
-                footnote: 'SMS non délivré — email de secours.',
+            if (res.sent) report.notified_email++;
+          }
+          // SMS : réservé aux priorités hautes, si le canal org est actif.
+          if (
+            decision.send && settings.channels.sms && consultant.phone &&
+            (alert.priority === 'critical' || alert.priority === 'high')
+          ) {
+            const lastSms = await lastDelivery(admin, org.id, cKey, 'sms');
+            const smsDecision = shouldNotify(alert.status, lastSms, interval, now);
+            if (smsDecision.send) {
+              const sms = await sendSms({
+                to: consultant.phone as string,
+                body: buildSmsBody(copy.subject, `${APP_URL}${copy.ctaPath}`),
               });
+              deliveries.push({
+                organization_id: org.id, dedupe_key: cKey, channel: 'sms',
+                consultant_id: consultant.id as string, recipient: consultant.phone as string,
+                status: sms.sent ? 'sent' : sms.error === 'no_provider' ? 'skipped' : 'failed',
+                provider: sms.provider, provider_id: sms.providerId ?? null, error: sms.error ?? null,
+              });
+              if (sms.sent) report.notified_sms++;
+              // Fallback SMS→email : si l'envoi a échoué (hors sandbox) et
+              // qu'aucun email n'était parti, l'email de secours part ici.
+              if (!sms.sent && sms.error !== 'no_provider' && consultant.email) {
+                await sendEmail({
+                  to: consultant.email as string,
+                  subject: copy.subject,
+                  paragraphs: copy.paragraphs,
+                  cta: { label: copy.ctaLabel, url: `${APP_URL}${copy.ctaPath}` },
+                  footnote: 'SMS non délivré — email de secours.',
+                });
+              }
             }
           }
         }

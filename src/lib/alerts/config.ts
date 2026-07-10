@@ -84,6 +84,14 @@ export type OrgNotificationSettings = {
    * explicite de l'organisation — seule une alerte interne est créée.
    */
   client_dunning_auto: boolean;
+  /**
+   * Relances automatiques AUX CONSULTANTS (emails/SMS externes : profil
+   * incomplet, CRA attendu, document à renouveler…). false par défaut :
+   * aucune communication sortante vers les consultants tant que
+   * l'organisation ne l'a pas activée — les alertes internes et la cloche
+   * du portail restent actives.
+   */
+  consultant_outreach_auto: boolean;
 };
 
 export const DEFAULT_ORG_NOTIFICATION_SETTINGS: OrgNotificationSettings = {
@@ -104,6 +112,7 @@ export const DEFAULT_ORG_NOTIFICATION_SETTINGS: OrgNotificationSettings = {
   },
   digest: { daily: false, weekly: true },
   client_dunning_auto: false,
+  consultant_outreach_auto: false,
 };
 
 /**
@@ -131,6 +140,7 @@ export function resolveOrgSettings(
     thresholds: { ...d.thresholds, ...(o.thresholds ?? {}) },
     digest: { ...d.digest, ...(o.digest ?? {}) },
     client_dunning_auto: o.client_dunning_auto ?? d.client_dunning_auto,
+    consultant_outreach_auto: o.consultant_outreach_auto ?? d.consultant_outreach_auto,
   };
 }
 
