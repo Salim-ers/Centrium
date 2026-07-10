@@ -221,9 +221,12 @@ async function loadOrgData(admin: SupabaseClient, orgId: string) {
       .from('organization_invitations')
       .select('id, email, created_at, expires_at, accepted_at')
       .eq('organization_id', orgId),
+    // NB : pas d'embed profiles!inner ici — la FK de organization_members
+    // pointe vers auth.users, PostgREST ne connaît pas la relation avec
+    // profiles. On joint en 2 requêtes (voir plus bas).
     admin
       .from('organization_members')
-      .select('user_id, role, profiles!inner(id, email, phone, first_name, consultant_id)')
+      .select('user_id, role')
       .eq('organization_id', orgId),
     admin.from('notification_preferences').select('*').eq('organization_id', orgId),
     admin
@@ -244,27 +247,38 @@ async function loadOrgData(admin: SupabaseClient, orgId: string) {
   const prefsByUser = new Map(
     (prefs.data ?? []).map((p) => [p.user_id as string, p]),
   );
+
+  // Jointure explicite members ↔ profiles (pas de FK PostgREST entre les deux).
+  const memberIds = (members.data ?? []).map((m) => m.user_id as string);
+  const { data: memberProfiles, error: profErr } =
+    memberIds.length > 0
+      ? await admin
+          .from('profiles')
+          .select('id, email, phone, first_name, consultant_id')
+          .in('id', memberIds)
+      : { data: [], error: null };
+  if (profErr) throw new Error(profErr.message);
+  const profileById = new Map(
+    (memberProfiles ?? []).map((p) => [p.id as string, p]),
+  );
+
   // Comptes portail : consultant_id → user_id (pour la cloche du portail).
   const consultantUserIds = new Map<string, string>();
-  for (const m of members.data ?? []) {
-    const prof = m.profiles as unknown as { consultant_id: string | null };
-    if (prof?.consultant_id) consultantUserIds.set(prof.consultant_id, m.user_id as string);
+  for (const p of memberProfiles ?? []) {
+    if (p.consultant_id) consultantUserIds.set(p.consultant_id as string, p.id as string);
   }
+
   const recipients: MemberRecipient[] = (members.data ?? [])
-    .map((m) => {
-      const prof = m.profiles as unknown as {
-        id: string;
-        email: string;
-        phone: string | null;
-        first_name: string | null;
-      };
+    .flatMap((m) => {
+      const prof = profileById.get(m.user_id as string);
+      if (!prof?.email) return [];
       const p = prefsByUser.get(m.user_id as string);
-      return {
+      return [{
         user_id: m.user_id as string,
-        email: prof.email,
-        phone: prof.phone,
+        email: prof.email as string,
+        phone: (prof.phone as string | null) ?? null,
         role: m.role as string,
-        first_name: prof.first_name,
+        first_name: (prof.first_name as string | null) ?? null,
         prefs: p
           ? {
               email_enabled: p.email_enabled as boolean,
@@ -278,7 +292,7 @@ async function loadOrgData(admin: SupabaseClient, orgId: string) {
               phone: (p.phone as string | null) ?? null,
             }
           : null,
-      };
+      }];
     })
     // Les comptes consultants du portail ne reçoivent pas les alertes internes.
     .filter((r) => r.role !== 'consultant');
