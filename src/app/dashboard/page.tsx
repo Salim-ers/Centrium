@@ -46,6 +46,7 @@ import { ResetDashboardDialog } from '@/components/dashboard/ResetDashboardDialo
 import { TopConsultantsWidget } from '@/components/dashboard/TopConsultantsWidget';
 import { HotOpportunitiesWidget } from '@/components/dashboard/HotOpportunitiesWidget';
 import { InvoicesToCollectWidget } from '@/components/dashboard/InvoicesToCollectWidget';
+import { SetupChecklist } from '@/components/dashboard/SetupChecklist';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import {
   PageHeader,
@@ -190,6 +191,9 @@ export default function DashboardPage() {
 
       {/* Auto-ouvre le tuto au 1er montage si pas vu */}
       <NewUserTutorial />
+
+      {/* Checklist d'accueil — se masque seule quand la config est complète */}
+      <SetupChecklist />
 
       {brandingMissing && (
         <Link
