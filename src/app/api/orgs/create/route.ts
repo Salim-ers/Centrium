@@ -24,6 +24,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
   }
 
+  // Garde anti-abus : l'onboarding ne crée QUE la première organisation d'un
+  // utilisateur. Un compte déjà rattaché à une org (admin, membre, ou compte
+  // consultant du portail) ne peut pas générer d'organisations
+  // supplémentaires via cette route.
+  {
+    const guard = createAdminClient('onboarding');
+    const { data: existingMembership } = await guard
+      .from('organization_members')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle();
+    if (existingMembership) {
+      return NextResponse.json(
+        { error: 'already_onboarded', message: 'Ce compte appartient déjà à une organisation.' },
+        { status: 409 },
+      );
+    }
+  }
+
   // Validation input
   const body = await req.json().catch(() => ({}));
   const parsed = organizationSchema.safeParse(body);

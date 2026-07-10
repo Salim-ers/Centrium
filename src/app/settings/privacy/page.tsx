@@ -9,6 +9,7 @@ import {
   Trash2,
   Loader2,
   AlertTriangle,
+  Building2,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -26,8 +27,10 @@ import {
 } from '@/components/app';
 
 export default function PrivacySettingsPage() {
-  const { user } = useOrganization();
+  const { user, role } = useOrganization();
+  const isAdmin = role === 'admin';
   const [exporting, setExporting] = useState(false);
+  const [exportingOrg, setExportingOrg] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState('');
   const [reason, setReason] = useState('');
@@ -59,6 +62,34 @@ export default function PrivacySettingsPage() {
       notifyInfo('Vos données ont été téléchargées.');
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function handleOrgExport() {
+    setExportingOrg(true);
+    try {
+      const res = await fetch('/api/organizations/export', { method: 'POST' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        notifyError(body?.message ?? 'Export de l’organisation impossible pour le moment.');
+        return;
+      }
+      const blob = await res.blob();
+      const cd = res.headers.get('content-disposition') ?? '';
+      const match = /filename="?([^"]+)"?/.exec(cd);
+      const filename =
+        match?.[1] ?? `centrium-org-export-${new Date().toISOString().slice(0, 10)}.json`;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      notifyInfo('Les données de votre organisation ont été téléchargées.');
+    } finally {
+      setExportingOrg(false);
     }
   }
 
@@ -191,6 +222,40 @@ export default function PrivacySettingsPage() {
             </AppCardBody>
           </AppCard>
         </section>
+
+        {isAdmin && (
+          <section>
+            <SectionHeader
+              eyebrow="Portabilité"
+              title={
+                <>
+                  Exporter{' '}
+                  <span className="qc-italic-accent font-editorial italic">
+                    l’organisation.
+                  </span>
+                </>
+              }
+              description="Archive JSON complète des données métier de votre organisation : consultants, contacts, sociétés, offres, opportunités, missions, contrats, CRA et factures. Utile avant de quitter Centrium (art. 20 RGPD)."
+              actions={<Building2 className="h-4 w-4 text-magenta" />}
+            />
+            <AppCard variant="default" tone="violet">
+              <AppCardBody size="md" className="space-y-3">
+                <Button onClick={handleOrgExport} disabled={exportingOrg} variant="outline">
+                  {exportingOrg ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Building2 className="h-4 w-4" />
+                  )}
+                  Exporter toutes les données de l’organisation (JSON)
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Les fichiers stockés (CV, PDF de contrats/factures) restent
+                  téléchargeables individuellement depuis leurs fiches.
+                </p>
+              </AppCardBody>
+            </AppCard>
+          </section>
+        )}
 
         <section>
           <SectionHeader

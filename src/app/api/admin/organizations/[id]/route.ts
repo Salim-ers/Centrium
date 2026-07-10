@@ -169,7 +169,7 @@ function buildCount(admin: ReturnType<typeof createAdminClient>, table: string, 
 // La demande de devis liée (quote_requests) est dé-liée (SET NULL) → elle
 // réapparaît comme convertible.
 // =========================================================================
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const ctx = await getSuperAdminContext();
   if (!ctx) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
@@ -182,6 +182,31 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     .eq('id', orgId)
     .maybeSingle();
   if (!org) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+
+  // Garde-fou RGPD / réversibilité : on ne supprime JAMAIS une org sans qu'un
+  // export de ses données ait été réalisé au préalable (portabilité art. 20 +
+  // filet anti-erreur irréversible). La preuve = une entrée d'audit
+  // data.exported. Le body peut forcer le contrôle après un export récent.
+  const { data: exportProof } = await admin
+    .from('activities')
+    .select('id, created_at')
+    .eq('organization_id', orgId)
+    .eq('action', 'data.exported')
+    .eq('entity_type', 'organization_data')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const body = await req.json().catch(() => ({}));
+  if (!exportProof && body?.exported !== true) {
+    return NextResponse.json(
+      {
+        error: 'export_required',
+        message:
+          "Exporte d'abord les données de cette organisation (bouton « Exporter ») avant de la supprimer. La suppression est définitive.",
+      },
+      { status: 409 },
+    );
+  }
 
   const { data: sub } = await admin
     .from('subscriptions')
