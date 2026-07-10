@@ -25,9 +25,11 @@ const RECOMMENDED: Record<string, string> = {
   STRIPE_SECRET_KEY: 'paiements (checkout / webhook)',
   STRIPE_WEBHOOK_SECRET: 'synchro des abonnements Stripe',
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'paiement intégré côté client',
-  RESEND_API_KEY: 'emails transactionnels (invitations, purge…)',
-  CRON_SECRET: 'authentification du cron de purge des archives',
+  RESEND_API_KEY: 'emails transactionnels (invitations, alertes, purge…)',
+  CRON_SECRET: 'auth des crons (purge archives + moteur d’alertes)',
   NEXT_PUBLIC_APP_URL: 'URLs absolues (emails, redirections Stripe)',
+  FOUNDER_EMAILS:
+    'allowlist super-admin — DÉFINIR EN PROD (sinon accès /admin sur le seul rôle DB, sans 2ᵉ facteur)',
 };
 
 const OPTIONAL: Record<string, string> = {
@@ -36,6 +38,8 @@ const OPTIONAL: Record<string, string> = {
   UPSTASH_REDIS_REST_URL: 'rate-limit distribué (sinon in-memory par instance)',
   UPSTASH_REDIS_REST_TOKEN: 'rate-limit distribué',
   ANTHROPIC_API_KEY: 'CV Optimizer / matching IA (sinon fallback heuristique)',
+  TWILIO_ACCOUNT_SID: 'SMS via Twilio (sinon Brevo, sinon fallback email)',
+  BREVO_API_KEY: 'SMS via Brevo (alternative à Twilio)',
 };
 
 let validated = false;
