@@ -68,10 +68,28 @@ export type AlertType =
   | 'timesheet_pending'
   | 'invoice_overdue'
   | 'offer_stale'
-  | 'opportunity_cold';
+  | 'opportunity_cold'
+  // Détections du moteur d'alertes (migration 083)
+  | 'profile_incomplete'
+  | 'document_expiring'
+  | 'timesheet_missing'
+  | 'invoice_forgotten'
+  | 'invoice_draft_stale'
+  | 'contract_pending_signature'
+  | 'contract_expiring'
+  | 'mission_no_contract'
+  | 'mission_overrun'
+  | 'invitation_pending'
+  | 'system_issue';
 
 export type AlertPriority = 'low' | 'medium' | 'high' | 'critical';
-export type AlertStatus = 'new' | 'in_progress' | 'resolved' | 'dismissed';
+export type AlertStatus =
+  | 'new'
+  | 'in_progress'
+  | 'snoozed'
+  | 'resolved'
+  | 'dismissed'
+  | 'expired';
 
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 export type TimesheetStatus =
@@ -460,6 +478,59 @@ export type Alert = {
   timesheet_id: string | null;
   created_at: string;
   resolved_at: string | null;
+  // Cycle de vie + relances (migration 084)
+  dedupe_key: string | null;
+  link: string | null;
+  entity_kind: string | null;
+  entity_id: string | null;
+  source: 'manual' | 'engine';
+  read_at: string | null;
+  snoozed_until: string | null;
+  next_reminder_at: string | null;
+  reminder_count: number;
+  reminder_interval_days: number;
+  resolved_by: string | null;
+  updated_at: string;
+};
+
+/** Notification personnelle (cloche in-app — app interne et portail). */
+export type AppNotification = {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  kind: string;
+  priority: AlertPriority;
+  title: string;
+  body: string | null;
+  link: string | null;
+  read_at: string | null;
+  created_at: string;
+};
+
+/** Commentaire interne attaché à une alerte (matérialisée ou calculée). */
+export type AlertComment = {
+  id: string;
+  organization_id: string;
+  alert_key: string;
+  author_id: string;
+  body: string;
+  created_at: string;
+};
+
+/** Trace d'un envoi de notification (idempotence + délivrabilité). */
+export type NotificationDelivery = {
+  id: string;
+  organization_id: string;
+  dedupe_key: string;
+  channel: 'in_app' | 'email' | 'sms';
+  user_id: string | null;
+  consultant_id: string | null;
+  recipient: string | null;
+  status: 'sent' | 'failed' | 'skipped';
+  provider: string | null;
+  provider_id: string | null;
+  error: string | null;
+  created_at: string;
 };
 
 // ---------- Re-exports ----------

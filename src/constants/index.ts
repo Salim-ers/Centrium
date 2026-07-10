@@ -78,10 +78,12 @@ export const ALERT_PRIORITY_STYLE: Record<AlertPriority, string> = {
 };
 
 export const ALERT_STATUS_LABEL: Record<AlertStatus, string> = {
-  new: 'Nouveau',
-  in_progress: 'En cours',
-  resolved: 'Résolu',
-  dismissed: 'Ignoré',
+  new: 'Nouvelle',
+  in_progress: 'Prise en charge',
+  snoozed: 'Reportée',
+  resolved: 'Résolue',
+  dismissed: 'Ignorée',
+  expired: 'Expirée',
 };
 
 export const INVOICE_STATUS_LABEL: Record<InvoiceStatus, string> = {

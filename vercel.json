@@ -5,6 +5,10 @@
     {
       "path": "/api/admin/purge-archives",
       "schedule": "0 3 1 * *"
+    },
+    {
+      "path": "/api/cron/alerts-engine",
+      "schedule": "0 6 * * *"
     }
   ]
 }
