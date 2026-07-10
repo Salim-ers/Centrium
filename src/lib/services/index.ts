@@ -599,6 +599,24 @@ export const invoiceService = {
 
   async create(input: InvoiceInput, organizationId: string): Promise<ServiceResult<Invoice>> {
     const supabase = createClient();
+
+    // Conformité : une facture DOIT porter l'identité légale du vendeur
+    // (raison sociale + SIREN + adresse — art. 242 nonies A). On refuse
+    // l'émission tant que l'organisation ne l'a pas renseignée.
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('siren, address')
+      .eq('id', organizationId)
+      .maybeSingle();
+    if (!org?.siren || !org?.address) {
+      return {
+        data: null,
+        error: new Error(
+          "Renseigne d'abord l'identité légale de ton organisation (SIREN + adresse du siège) dans Paramètres → Facturation : ces mentions sont obligatoires sur une facture.",
+        ),
+      };
+    }
+
     const amount_vat = +(input.amount_ht * (input.vat_rate / 100)).toFixed(2);
     const amount_ttc = +(input.amount_ht + amount_vat).toFixed(2);
 

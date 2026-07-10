@@ -24,6 +24,7 @@ import {
   Building2,
   UserRound,
   HandCoins,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -205,6 +206,17 @@ function InvoicesPageInner() {
         description={t.pages.invoices.description}
         actions={
           <>
+            <Button
+              variant="outline"
+              onClick={() => {
+                const y = new Date().getFullYear();
+                window.location.href = `/api/accounting/export?year=${y}&party=${partyView}`;
+              }}
+              title={`Exporter le journal ${partyView === 'client' ? 'des ventes' : 'des achats'} ${new Date().getFullYear()} (CSV)`}
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Export compta
+            </Button>
             <Button
               variant="outline"
               onClick={() => setShowArchived((v) => !v)}
