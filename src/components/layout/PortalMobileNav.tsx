@@ -8,6 +8,7 @@ import { Menu, X, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { LocaleToggle } from '@/components/i18n/LocaleToggle';
 import { PORTAL_GROUPS } from './PortalSidebar';
 
 // =========================================================================
@@ -130,7 +131,10 @@ export function PortalMobileNav() {
                   Se déconnecter
                 </button>
               </form>
-              <ThemeToggle />
+              <div className="flex items-center gap-2">
+                <LocaleToggle variant="compact" />
+                <ThemeToggle />
+              </div>
             </div>
           </nav>
         </div>

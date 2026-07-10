@@ -18,20 +18,23 @@ import { createClient } from '@/lib/supabase/client';
 import { useBrandName } from '@/components/brand/BrandingStyles';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { usePortalConsultant } from '../portal-context';
 import type { Invoice } from '@/types';
 
 // Libellés vus DU POINT DE VUE DU CONSULTANT : une facture « envoyée » est
 // une facture en attente de paiement par l'ESN.
-const INVOICE_TONE: Record<Invoice['status'], { tone: StatusTone; label: string }> = {
-  draft: { tone: 'pending', label: 'Brouillon' },
-  sent: { tone: 'info', label: 'En attente de paiement' },
-  paid: { tone: 'success', label: 'Payée' },
-  overdue: { tone: 'danger', label: 'En retard' },
-  cancelled: { tone: 'neutral', label: 'Annulée' },
+const INVOICE_TONE: Record<Invoice['status'], { tone: StatusTone; label: string; labelEn: string }> = {
+  draft: { tone: 'pending', label: 'Brouillon', labelEn: 'Draft' },
+  sent: { tone: 'info', label: 'En attente de paiement', labelEn: 'Awaiting payment' },
+  paid: { tone: 'success', label: 'Payée', labelEn: 'Paid' },
+  overdue: { tone: 'danger', label: 'En retard', labelEn: 'Overdue' },
+  cancelled: { tone: 'neutral', label: 'Annulée', labelEn: 'Cancelled' },
 };
 
 export default function PortalInvoicesPage() {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const brandName = useBrandName();
   const { consultantId } = usePortalConsultant();
   const { data, loading } = useCachedQuery<Invoice[]>(
@@ -71,38 +74,48 @@ export default function PortalInvoicesPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Mon espace"
-        title={<>Mes <span className="qc-italic-accent font-editorial italic">factures.</span></>}
-        description={`Vos factures de sous-traitance établies avec ${brandName} — montants, échéances et paiements reçus.`}
+        eyebrow={isEn ? 'My space' : 'Mon espace'}
+        title={
+          isEn ? (
+            <>My <span className="qc-italic-accent font-editorial italic">invoices.</span></>
+          ) : (
+            <>Mes <span className="qc-italic-accent font-editorial italic">factures.</span></>
+          )
+        }
+        description={
+          isEn
+            ? `Your subcontracting invoices issued with ${brandName} — amounts, due dates and payments received.`
+            : `Vos factures de sous-traitance établies avec ${brandName} — montants, échéances et paiements reçus.`
+        }
       />
 
       <Reveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <KPICard
-          label="À encaisser"
+          label={isEn ? 'To collect' : 'À encaisser'}
           value={pendingAmount}
           prefix="€"
           icon={Clock3}
           tone="amber"
-          hint="TTC · émises non payées"
+          hint={isEn ? 'Incl. VAT · issued, unpaid' : 'TTC · émises non payées'}
         />
         <KPICard
-          label="Encaissé YTD"
+          label={isEn ? 'Collected YTD' : 'Encaissé YTD'}
           value={totalPaidYtd}
           prefix="€"
           icon={TrendingUp}
           tone="magenta"
-          hint={`HT · ${currentYear}`}
+          hint={isEn ? `Excl. VAT · ${currentYear}` : `HT · ${currentYear}`}
         />
         <KPICard
-          label="Encaissé total"
+          label={isEn ? 'Total collected' : 'Encaissé total'}
           value={totalPaidAll}
           prefix="€"
           icon={Receipt}
           tone="violet"
-          hint="HT toutes périodes"
+          hint={isEn ? 'Excl. VAT · all periods' : 'HT toutes périodes'}
         />
         <KPICard
-          label="Dernier paiement"
+          label={isEn ? 'Last payment' : 'Dernier paiement'}
           valueText={
             lastPayment
               ? new Date(lastPayment).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
@@ -118,8 +131,12 @@ export default function PortalInvoicesPage() {
       ) : invoices.length === 0 ? (
         <EmptyState
           icon={Receipt}
-          title="Aucune facture pour le moment"
-          description={`Vos factures de sous-traitance apparaissent ici dès qu'elles sont établies par ${brandName} — en général à la validation de votre CRA mensuel.`}
+          title={isEn ? 'No invoices yet' : 'Aucune facture pour le moment'}
+          description={
+            isEn
+              ? `Your subcontracting invoices appear here as soon as ${brandName} issues them — usually when your monthly CRA is validated.`
+              : `Vos factures de sous-traitance apparaissent ici dès qu'elles sont établies par ${brandName} — en général à la validation de votre CRA mensuel.`
+          }
         />
       ) : (
         <Reveal delay={0.08}>
@@ -140,16 +157,16 @@ export default function PortalInvoicesPage() {
                   primary={
                     <span className="flex items-center gap-2">
                       <span className="font-mono">{inv.invoice_number}</span>
-                      <StatusBadge tone={s.tone}>{s.label}</StatusBadge>
+                      <StatusBadge tone={s.tone}>{isEn ? s.labelEn : s.label}</StatusBadge>
                     </span>
                   }
                   secondary={
                     <>
-                      {inv.period_label ?? '—'} · Émise le {formatDate(inv.issue_date)}
+                      {inv.period_label ?? '—'} · {isEn ? 'Issued on' : 'Émise le'} {formatDate(inv.issue_date)}
                       {inv.status === 'paid' && inv.payment_date ? (
-                        <> · Payée le {formatDate(inv.payment_date)}</>
+                        <> · {isEn ? 'Paid on' : 'Payée le'} {formatDate(inv.payment_date)}</>
                       ) : (
-                        <> · Échéance le {formatDate(inv.due_date)}</>
+                        <> · {isEn ? 'Due on' : 'Échéance le'} {formatDate(inv.due_date)}</>
                       )}
                     </>
                   }
@@ -160,13 +177,13 @@ export default function PortalInvoicesPage() {
                           {formatCurrency(Number(inv.amount_ttc))}
                         </div>
                         <div className="text-[11px] text-muted-foreground">
-                          {formatCurrency(Number(inv.amount_ht))} HT
+                          {formatCurrency(Number(inv.amount_ht))} {isEn ? 'excl. VAT' : 'HT'}
                         </div>
                       </div>
                       <Button size="sm" variant="ghost" asChild>
                         <Link href={`/portal/invoices/${inv.id}`}>
                           <Eye className="h-3 w-3" />
-                          Voir
+                          {isEn ? 'View' : 'Voir'}
                         </Link>
                       </Button>
                     </>
@@ -182,10 +199,12 @@ export default function PortalInvoicesPage() {
       {paid.length > 0 && (
         <div className="mt-4 flex items-center gap-3 px-4 py-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5">
           <StatusBadge tone="success">
-            {ytdPaid.length} payée{ytdPaid.length > 1 ? 's' : ''} en {currentYear}
+            {isEn
+              ? `${ytdPaid.length} paid in ${currentYear}`
+              : `${ytdPaid.length} payée${ytdPaid.length > 1 ? 's' : ''} en ${currentYear}`}
           </StatusBadge>
           <span className="text-xs text-muted-foreground">
-            Total encaissé YTD :{' '}
+            {isEn ? 'Total collected YTD:' : 'Total encaissé YTD :'}{' '}
             <span className="text-emerald-400 font-semibold">{formatCurrency(totalPaidYtd)}</span>
           </span>
         </div>

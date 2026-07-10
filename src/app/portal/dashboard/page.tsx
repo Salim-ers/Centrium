@@ -29,6 +29,7 @@ import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { formatCurrency } from '@/lib/utils';
 import type { Consultant, Timesheet, Invoice } from '@/types';
 import { useBrandName } from '@/components/brand/BrandingStyles';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { usePortalConsultant } from '../portal-context';
 
 type PortalDashboardData = {
@@ -37,21 +38,29 @@ type PortalDashboardData = {
   invoices: Invoice[];
 };
 
-const MONTHS = [
+const MONTHS_FR = [
   'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
   'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
 ];
 
-const TIMESHEET_TONE: Record<Timesheet['status'], { tone: StatusTone; label: string }> = {
-  draft: { tone: 'pending', label: 'Brouillon' },
-  submitted: { tone: 'info', label: 'En attente' },
-  client_validated: { tone: 'success', label: 'Validé' },
-  rejected: { tone: 'danger', label: 'Rejeté' },
+const MONTHS_EN = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+const TIMESHEET_TONE: Record<Timesheet['status'], { tone: StatusTone; label: string; label_en: string }> = {
+  draft: { tone: 'pending', label: 'Brouillon', label_en: 'Draft' },
+  submitted: { tone: 'info', label: 'En attente', label_en: 'Pending' },
+  client_validated: { tone: 'success', label: 'Validé', label_en: 'Validated' },
+  rejected: { tone: 'danger', label: 'Rejeté', label_en: 'Rejected' },
 };
 
 export default function PortalDashboardPage() {
   const { consultantId } = usePortalConsultant();
   const brandName = useBrandName();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
+  const months = isEn ? MONTHS_EN : MONTHS_FR;
 
   const { data, loading } = useCachedQuery<PortalDashboardData>(
     `portal-dashboard:${consultantId}`,
@@ -94,26 +103,26 @@ export default function PortalDashboardPage() {
   const greeting = consultant?.first_name
     ? (
         <>
-          Bonjour, <span className="qc-italic-accent font-editorial italic">{consultant.first_name}.</span>
+          {isEn ? 'Hello, ' : 'Bonjour, '}<span className="qc-italic-accent font-editorial italic">{consultant.first_name}.</span>
         </>
       )
     : (
         <>
-          Votre <span className="qc-italic-accent font-editorial italic">tableau de bord.</span>
+          {isEn ? 'Your ' : 'Votre '}<span className="qc-italic-accent font-editorial italic">{isEn ? 'dashboard.' : 'tableau de bord.'}</span>
         </>
       );
 
   return (
     <div>
       <PageHeader
-        eyebrow="Mon espace"
+        eyebrow={isEn ? 'My space' : 'Mon espace'}
         title={greeting}
-        description={`Voici un aperçu de votre activité ${brandName}.`}
+        description={isEn ? `Here's an overview of your ${brandName} activity.` : `Voici un aperçu de votre activité ${brandName}.`}
         actions={
           <Button asChild>
             <Link href="/portal/cra/new">
               <Plus className="h-4 w-4" />
-              Nouveau CRA
+              {isEn ? 'New CRA' : 'Nouveau CRA'}
             </Link>
           </Button>
         }
@@ -122,32 +131,32 @@ export default function PortalDashboardPage() {
       {/* KPIs */}
       <Reveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <KPICard
-          label="CRA à rédiger"
+          label={isEn ? 'CRA to write' : 'CRA à rédiger'}
           value={(byStatus.draft ?? 0) + (byStatus.rejected ?? 0)}
           icon={ClipboardCheck}
           tone="amber"
-          hint="Brouillons + rejetés"
+          hint={isEn ? 'Drafts + rejected' : 'Brouillons + rejetés'}
         />
         <KPICard
-          label="CRA en attente"
+          label={isEn ? 'CRA pending' : 'CRA en attente'}
           value={byStatus.submitted ?? 0}
           icon={Hourglass}
           tone="violet"
-          hint="En validation client"
+          hint={isEn ? 'In client validation' : 'En validation client'}
         />
         <KPICard
-          label="CRA validés"
+          label={isEn ? 'CRA validated' : 'CRA validés'}
           value={byStatus.client_validated ?? 0}
           icon={CalendarCheck}
           tone="emerald"
         />
         <KPICard
-          label="Encaissé"
+          label={isEn ? 'Collected' : 'Encaissé'}
           value={totalPaid}
           prefix="€"
           icon={Wallet}
           tone="magenta"
-          hint="Factures payées"
+          hint={isEn ? 'Paid invoices' : 'Factures payées'}
         />
       </Reveal>
 
@@ -155,11 +164,11 @@ export default function PortalDashboardPage() {
         {/* Derniers CRA */}
         <Reveal delay={0.08} className="lg:col-span-2">
           <SectionHeader
-            eyebrow="Activité"
-            title={<>Mes derniers <span className="qc-italic-accent font-editorial italic">CRA.</span></>}
+            eyebrow={isEn ? 'Activity' : 'Activité'}
+            title={<>{isEn ? 'My latest ' : 'Mes derniers '}<span className="qc-italic-accent font-editorial italic">CRA.</span></>}
             actions={
               <Button size="sm" variant="outline" asChild>
-                <Link href="/portal/cra">Voir tout</Link>
+                <Link href="/portal/cra">{isEn ? 'View all' : 'Voir tout'}</Link>
               </Button>
             }
           />
@@ -171,13 +180,13 @@ export default function PortalDashboardPage() {
             ) : timesheets.length === 0 ? (
               <EmptyState
                 icon={ClipboardCheck}
-                title="Aucun CRA pour le moment"
-                description="Commencez par créer votre premier compte-rendu d'activité."
+                title={isEn ? 'No CRA yet' : 'Aucun CRA pour le moment'}
+                description={isEn ? 'Start by creating your first activity report.' : "Commencez par créer votre premier compte-rendu d'activité."}
                 action={
                   <Button asChild>
                     <Link href="/portal/cra/new">
                       <Plus className="h-4 w-4" />
-                      Nouveau CRA
+                      {isEn ? 'New CRA' : 'Nouveau CRA'}
                     </Link>
                   </Button>
                 }
@@ -189,9 +198,9 @@ export default function PortalDashboardPage() {
                   return (
                     <DataRow
                       key={t.id}
-                      primary={`${MONTHS[t.period_month - 1]} ${t.period_year}`}
-                      secondary={`${t.days_worked} jours travaillés`}
-                      trailing={<StatusBadge tone={s.tone}>{s.label}</StatusBadge>}
+                      primary={`${months[t.period_month - 1]} ${t.period_year}`}
+                      secondary={`${t.days_worked} ${isEn ? 'days worked' : 'jours travaillés'}`}
+                      trailing={<StatusBadge tone={s.tone}>{isEn ? s.label_en : s.label}</StatusBadge>}
                       href={`/portal/cra/${t.id}`}
                     />
                   );
@@ -205,7 +214,7 @@ export default function PortalDashboardPage() {
         <Reveal delay={0.14}>
           <SectionHeader
             eyebrow="Finances"
-            title={<>Factures <span className="qc-italic-accent font-editorial italic">payées.</span></>}
+            title={<>{isEn ? 'Invoices ' : 'Factures '}<span className="qc-italic-accent font-editorial italic">{isEn ? 'paid.' : 'payées.'}</span></>}
           />
           <AppCard>
             {loading ? (
@@ -215,8 +224,8 @@ export default function PortalDashboardPage() {
             ) : invoices.length === 0 ? (
               <EmptyState
                 icon={Receipt}
-                title="Aucune facture payée"
-                description="Les factures apparaîtront ici dès qu'elles seront marquées payées."
+                title={isEn ? 'No paid invoice' : 'Aucune facture payée'}
+                description={isEn ? 'Invoices will appear here as soon as they are marked as paid.' : "Les factures apparaîtront ici dès qu'elles seront marquées payées."}
               />
             ) : (
               <>
@@ -237,7 +246,7 @@ export default function PortalDashboardPage() {
                 </div>
                 <AppCardBody size="sm">
                   <Button variant="outline" className="w-full" asChild>
-                    <Link href="/portal/invoices">Voir toutes</Link>
+                    <Link href="/portal/invoices">{isEn ? 'View all' : 'Voir toutes'}</Link>
                   </Button>
                 </AppCardBody>
               </>

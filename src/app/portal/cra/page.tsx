@@ -16,6 +16,7 @@ import {
 } from '@/components/app';
 import { createClient } from '@/lib/supabase/client';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { usePortalConsultant } from '../portal-context';
 import type { Timesheet } from '@/types';
 
@@ -24,14 +25,22 @@ const MONTHS = [
   'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
 ];
 
-const STATUS: Record<Timesheet['status'], { label: string; tone: StatusTone; highlight?: boolean }> = {
-  draft: { label: 'Brouillon', tone: 'pending' },
-  submitted: { label: 'En attente', tone: 'info' },
-  client_validated: { label: 'Validé', tone: 'success' },
-  rejected: { label: 'Rejeté', tone: 'danger', highlight: true },
+const MONTHS_EN = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+const STATUS: Record<Timesheet['status'], { label: string; label_en: string; tone: StatusTone; highlight?: boolean }> = {
+  draft: { label: 'Brouillon', label_en: 'Draft', tone: 'pending' },
+  submitted: { label: 'En attente', label_en: 'Pending', tone: 'info' },
+  client_validated: { label: 'Validé', label_en: 'Validated', tone: 'success' },
+  rejected: { label: 'Rejeté', label_en: 'Rejected', tone: 'danger', highlight: true },
 };
 
 export default function PortalCraListPage() {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
+  const months = isEn ? MONTHS_EN : MONTHS;
   const { consultantId } = usePortalConsultant();
   // Cache SWR : la liste s'affiche instantanément au retour sur la page
   // (sessionStorage) pendant que la version fraîche arrive en arrière-plan.
@@ -63,14 +72,14 @@ export default function PortalCraListPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Mon espace"
-        title={<>Mes <span className="qc-italic-accent font-editorial italic">comptes-rendus.</span></>}
-        description="Déclarez votre activité mensuelle et suivez l'avancement de vos CRA."
+        eyebrow={isEn ? 'My space' : 'Mon espace'}
+        title={<>{isEn ? 'My ' : 'Mes '}<span className="qc-italic-accent font-editorial italic">{isEn ? 'activity reports.' : 'comptes-rendus.'}</span></>}
+        description={isEn ? 'Declare your monthly activity and track the progress of your CRAs.' : "Déclarez votre activité mensuelle et suivez l'avancement de vos CRA."}
         actions={
           <Button asChild>
             <Link href="/portal/cra/new">
               <Plus className="h-4 w-4" />
-              Nouveau CRA
+              {isEn ? 'New CRA' : 'Nouveau CRA'}
             </Link>
           </Button>
         }
@@ -78,31 +87,31 @@ export default function PortalCraListPage() {
 
       <Reveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <KPICard
-          label="CRA validés"
+          label={isEn ? 'Validated CRAs' : 'CRA validés'}
           value={validated}
           icon={CalendarCheck}
           tone="emerald"
         />
         <KPICard
-          label="En attente"
+          label={isEn ? 'Pending' : 'En attente'}
           value={pending}
           icon={Hourglass}
           tone="amber"
-          hint="Validation client"
+          hint={isEn ? 'Client validation' : 'Validation client'}
         />
         <KPICard
-          label="Jours saisis"
+          label={isEn ? 'Days entered' : 'Jours saisis'}
           value={totalDays}
           icon={CalendarDays}
           tone="violet"
-          suffix="j"
+          suffix={isEn ? 'd' : 'j'}
         />
         <KPICard
-          label="Mois courant"
-          valueText={currentMonthTs ? STATUS[currentMonthTs.status].label : 'À créer'}
+          label={isEn ? 'Current month' : 'Mois courant'}
+          valueText={currentMonthTs ? (isEn ? STATUS[currentMonthTs.status].label_en : STATUS[currentMonthTs.status].label) : (isEn ? 'To create' : 'À créer')}
           icon={ClipboardCheck}
           tone="magenta"
-          hint={`${MONTHS[currentMonth - 1]} ${currentYear}`}
+          hint={`${months[currentMonth - 1]} ${currentYear}`}
         />
       </Reveal>
 
@@ -111,13 +120,13 @@ export default function PortalCraListPage() {
       ) : timesheets.length === 0 ? (
         <EmptyState
           icon={ClipboardCheck}
-          title="Aucun CRA pour le moment"
-          description="Commencez par créer votre premier compte-rendu d'activité mensuel."
+          title={isEn ? 'No CRA yet' : 'Aucun CRA pour le moment'}
+          description={isEn ? 'Start by creating your first monthly activity report.' : "Commencez par créer votre premier compte-rendu d'activité mensuel."}
           action={
             <Button asChild>
               <Link href="/portal/cra/new">
                 <Plus className="h-4 w-4" />
-                Nouveau CRA
+                {isEn ? 'New CRA' : 'Nouveau CRA'}
               </Link>
             </Button>
           }
@@ -132,12 +141,12 @@ export default function PortalCraListPage() {
                 <DataRow
                   key={t.id}
                   highlight={s.highlight}
-                  primary={`${MONTHS[t.period_month - 1]} ${t.period_year}`}
+                  primary={`${months[t.period_month - 1]} ${t.period_year}`}
                   secondary={
                     <>
-                      {t.days_worked} j travaillés
+                      {t.days_worked} {isEn ? 'days worked' : 'j travaillés'}
                       {t.days_validated > 0 && (
-                        <> · {t.days_validated} j validés</>
+                        <> · {t.days_validated} {isEn ? 'days validated' : 'j validés'}</>
                       )}
                     </>
                   }
@@ -145,12 +154,12 @@ export default function PortalCraListPage() {
                     <>
                       <StatusBadge tone={s.tone}>
                         {s.highlight && <AlertTriangle className="h-3 w-3" />}
-                        {s.label}
+                        {isEn ? s.label_en : s.label}
                       </StatusBadge>
                       <Button size="sm" variant="ghost" asChild>
                         <Link href={`/portal/cra/${t.id}`}>
                           <Eye className="h-3 w-3" />
-                          Ouvrir
+                          {isEn ? 'Open' : 'Ouvrir'}
                         </Link>
                       </Button>
                     </>

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { InvoiceDocument, type InvoiceIssuer } from '@/components/invoices/InvoiceDocument';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { downloadElementAsPdf } from '@/lib/pdf/download-document';
 import type { Invoice, Company, Mission, Consultant, Timesheet } from '@/types';
 
@@ -26,6 +27,8 @@ export default function PortalInvoiceDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { branding } = useOrganization();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(true);
   const docRef = useRef<HTMLDivElement | null>(null);
@@ -71,7 +74,7 @@ export default function PortalInvoiceDetailPage() {
         .maybeSingle();
 
       if (error || !invoice) {
-        toast.error('Facture introuvable ou accès refusé');
+        toast.error(isEn ? 'Invoice not found or access denied' : 'Facture introuvable ou accès refusé');
         router.push('/portal/invoices');
         return;
       }
@@ -118,7 +121,7 @@ export default function PortalInvoiceDetailPage() {
         <Button variant="ghost" size="sm" asChild>
           <Link href="/portal/invoices">
             <ArrowLeft className="h-4 w-4" />
-            Retour
+            {isEn ? 'Back' : 'Retour'}
           </Link>
         </Button>
         <div className="flex items-center gap-2">
@@ -133,21 +136,21 @@ export default function PortalInvoiceDetailPage() {
             }
           >
             {detail.invoice.status === 'paid'
-              ? 'Payée'
+              ? (isEn ? 'Paid' : 'Payée')
               : detail.invoice.status === 'overdue'
-                ? 'En retard'
-                : 'En attente de paiement'}
+                ? (isEn ? 'Overdue' : 'En retard')
+                : (isEn ? 'Awaiting payment' : 'En attente de paiement')}
           </Badge>
           <Button
             size="sm"
             onClick={() =>
               downloadElementAsPdf(docRef.current, {
-                fileName: `Facture_${detail.invoice.invoice_number}`,
+                fileName: `${isEn ? 'Invoice' : 'Facture'}_${detail.invoice.invoice_number}`,
               })
             }
           >
             <Download className="h-4 w-4" />
-            Télécharger PDF
+            {isEn ? 'Download PDF' : 'Télécharger PDF'}
           </Button>
         </div>
       </div>

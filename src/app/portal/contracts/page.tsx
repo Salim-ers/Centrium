@@ -17,23 +17,29 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { useBrandName } from '@/components/brand/BrandingStyles';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { usePortalConsultant } from '../portal-context';
 import type { Contract } from '@/types';
 
-const STATUS_TONE: Record<Contract['status'], { tone: StatusTone; label: string }> = {
-  draft: { tone: 'pending', label: 'Brouillon' },
-  pending_review: { tone: 'warning', label: 'En revue' },
-  sent: { tone: 'warning', label: 'À signer' },
-  signed: { tone: 'success', label: 'Signé' },
-  active: { tone: 'success', label: 'Actif' },
-  ended: { tone: 'neutral', label: 'Terminé' },
-  terminated: { tone: 'danger', label: 'Résilié' },
-  cancelled: { tone: 'neutral', label: 'Annulé' },
+const STATUS_TONE: Record<
+  Contract['status'],
+  { tone: StatusTone; label: string; label_en: string }
+> = {
+  draft: { tone: 'pending', label: 'Brouillon', label_en: 'Draft' },
+  pending_review: { tone: 'warning', label: 'En revue', label_en: 'In review' },
+  sent: { tone: 'warning', label: 'À signer', label_en: 'To sign' },
+  signed: { tone: 'success', label: 'Signé', label_en: 'Signed' },
+  active: { tone: 'success', label: 'Actif', label_en: 'Active' },
+  ended: { tone: 'neutral', label: 'Terminé', label_en: 'Ended' },
+  terminated: { tone: 'danger', label: 'Résilié', label_en: 'Terminated' },
+  cancelled: { tone: 'neutral', label: 'Annulé', label_en: 'Cancelled' },
 };
 
 export default function PortalContractsPage() {
   const brandName = useBrandName();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const { consultantId } = usePortalConsultant();
   const { data, loading } = useCachedQuery<Contract[]>(
     `portal-contracts:${consultantId}`,
@@ -57,15 +63,25 @@ export default function PortalContractsPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Mon espace"
-        title={<>Mes <span className="qc-italic-accent font-editorial italic">contrats.</span></>}
-        description={`Retrouvez vos contrats avec ${brandName} et téléchargez les PDF.`}
+        eyebrow={isEn ? 'My space' : 'Mon espace'}
+        title={
+          isEn ? (
+            <>My <span className="qc-italic-accent font-editorial italic">contracts.</span></>
+          ) : (
+            <>Mes <span className="qc-italic-accent font-editorial italic">contrats.</span></>
+          )
+        }
+        description={
+          isEn
+            ? `Find your contracts with ${brandName} and download the PDFs.`
+            : `Retrouvez vos contrats avec ${brandName} et téléchargez les PDF.`
+        }
       />
 
       <Reveal className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-        <KPICard label="Contrats actifs" value={active} icon={CheckCircle2} tone="emerald" />
-        <KPICard label="À signer" value={toSign} icon={Clock} tone="amber" />
-        <KPICard label="Terminés" value={ended} icon={XCircle} tone="violet" />
+        <KPICard label={isEn ? 'Active contracts' : 'Contrats actifs'} value={active} icon={CheckCircle2} tone="emerald" />
+        <KPICard label={isEn ? 'To sign' : 'À signer'} value={toSign} icon={Clock} tone="amber" />
+        <KPICard label={isEn ? 'Ended' : 'Terminés'} value={ended} icon={XCircle} tone="violet" />
       </Reveal>
 
       {loading ? (
@@ -73,8 +89,12 @@ export default function PortalContractsPage() {
       ) : contracts.length === 0 ? (
         <EmptyState
           icon={FileSignature}
-          title="Aucun contrat pour le moment"
-          description={`Vos contrats avec ${brandName} apparaîtront ici dès qu'ils seront créés.`}
+          title={isEn ? 'No contracts yet' : 'Aucun contrat pour le moment'}
+          description={
+            isEn
+              ? `Your contracts with ${brandName} will appear here as soon as they are created.`
+              : `Vos contrats avec ${brandName} apparaîtront ici dès qu'ils seront créés.`
+          }
         />
       ) : (
         <div className="space-y-3">
@@ -95,7 +115,7 @@ export default function PortalContractsPage() {
                       </p>
                     </div>
                     <StatusBadge tone={s.tone} pulse={pulse}>
-                      {s.label}
+                      {isEn ? s.label_en : s.label}
                     </StatusBadge>
                   </div>
 
@@ -104,8 +124,8 @@ export default function PortalContractsPage() {
                     <Field label="Mission" value={c.mission_title ?? '—'} />
                     <Field label="TJM" value={formatCurrency(Number(c.daily_rate_eur))} />
                     <Field
-                      label="Période"
-                      value={`${formatDate(c.start_date)} — ${c.end_date ? formatDate(c.end_date) : 'En cours'}`}
+                      label={isEn ? 'Period' : 'Période'}
+                      value={`${formatDate(c.start_date)} — ${c.end_date ? formatDate(c.end_date) : isEn ? 'Ongoing' : 'En cours'}`}
                     />
                   </div>
 
@@ -113,14 +133,14 @@ export default function PortalContractsPage() {
                     <Button size="sm" asChild>
                       <Link href={`/portal/contracts/${c.id}`}>
                         <Eye className="h-3.5 w-3.5" />
-                        Voir &amp; télécharger
+                        {isEn ? 'View & download' : <>Voir &amp; télécharger</>}
                       </Link>
                     </Button>
                     {c.signed_pdf_url && (
                       <Button size="sm" variant="outline" asChild>
                         <a href={c.signed_pdf_url} target="_blank" rel="noopener noreferrer">
                           <FileText className="h-3.5 w-3.5" />
-                          Contrat signé (PDF)
+                          {isEn ? 'Signed contract (PDF)' : 'Contrat signé (PDF)'}
                         </a>
                       </Button>
                     )}
@@ -128,7 +148,7 @@ export default function PortalContractsPage() {
                       <Button size="sm" variant="outline" asChild>
                         <a href={c.pdf_url} target="_blank" rel="noopener noreferrer">
                           <FileText className="h-3.5 w-3.5" />
-                          PDF original
+                          {isEn ? 'Original PDF' : 'PDF original'}
                         </a>
                       </Button>
                     )}

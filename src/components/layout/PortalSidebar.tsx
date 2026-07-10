@@ -17,6 +17,7 @@ import {
 import { cn } from '@/lib/utils';
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { LocaleToggle } from '@/components/i18n/LocaleToggle';
 
 // =========================================================================
 // Sidebar du portail consultant — MÊME langage que la sidebar admin :
@@ -158,7 +159,10 @@ export function PortalSidebar() {
             Se déconnecter
           </button>
         </form>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <LocaleToggle variant="compact" />
+          <ThemeToggle />
+        </div>
       </div>
     </aside>
   );

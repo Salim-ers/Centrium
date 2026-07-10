@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge, type StatusTone } from '@/components/app';
 import { createClient } from '@/lib/supabase/client';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import type { Mission, Timesheet } from '@/types';
 
 // =========================================================================
@@ -36,19 +37,24 @@ const MONTHS = [
   'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc',
 ];
 
-const MISSION_STATUS: Record<Mission['status'], { label: string; tone: StatusTone }> = {
-  proposed: { label: 'CV envoyé', tone: 'pending' },
-  active: { label: 'En cours', tone: 'success' },
-  ended: { label: 'Terminée', tone: 'neutral' },
-  suspended: { label: 'Suspendue', tone: 'warning' },
-  rejected: { label: 'Non retenue', tone: 'danger' },
+const MONTHS_EN = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+const MISSION_STATUS: Record<Mission['status'], { label: string; label_en: string; tone: StatusTone }> = {
+  proposed: { label: 'CV envoyé', label_en: 'CV sent', tone: 'pending' },
+  active: { label: 'En cours', label_en: 'Active', tone: 'success' },
+  ended: { label: 'Terminée', label_en: 'Ended', tone: 'neutral' },
+  suspended: { label: 'Suspendue', label_en: 'Suspended', tone: 'warning' },
+  rejected: { label: 'Non retenue', label_en: 'Not selected', tone: 'danger' },
 };
 
-const CRA_STATUS: Record<Timesheet['status'], { label: string; tone: StatusTone }> = {
-  draft: { label: 'Brouillon', tone: 'pending' },
-  submitted: { label: 'En attente', tone: 'warning' },
-  client_validated: { label: 'Validé', tone: 'success' },
-  rejected: { label: 'À corriger', tone: 'danger' },
+const CRA_STATUS: Record<Timesheet['status'], { label: string; label_en: string; tone: StatusTone }> = {
+  draft: { label: 'Brouillon', label_en: 'Draft', tone: 'pending' },
+  submitted: { label: 'En attente', label_en: 'Pending', tone: 'warning' },
+  client_validated: { label: 'Validé', label_en: 'Validated', tone: 'success' },
+  rejected: { label: 'À corriger', label_en: 'To revise', tone: 'danger' },
 };
 
 type MissionWithCompany = Mission & {
@@ -58,6 +64,8 @@ type MissionWithCompany = Mission & {
 export default function PortalMissionDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [mission, setMission] = useState<MissionWithCompany | null>(null);
   const [cras, setCras] = useState<Timesheet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,7 +92,7 @@ export default function PortalMissionDetailPage() {
       ]);
       if (cancelled) return;
       if (error || !m) {
-        toast.error('Mission introuvable ou accès refusé');
+        toast.error(isEn ? 'Mission not found or access denied' : 'Mission introuvable ou accès refusé');
         router.push('/portal/missions');
         return;
       }
@@ -115,14 +123,14 @@ export default function PortalMissionDetailPage() {
         <Button variant="ghost" size="sm" asChild>
           <Link href="/portal/missions">
             <ArrowLeft className="h-4 w-4" />
-            Mes missions
+            {isEn ? 'My missions' : 'Mes missions'}
           </Link>
         </Button>
         {mission.status === 'active' && (
           <Button size="sm" asChild>
             <Link href="/portal/cra/new">
               <Plus className="h-4 w-4" />
-              Nouveau CRA
+              {isEn ? 'New CRA' : 'Nouveau CRA'}
             </Link>
           </Button>
         )}
@@ -138,7 +146,7 @@ export default function PortalMissionDetailPage() {
               <div className="min-w-0">
                 <h1 className="text-lg font-semibold leading-tight">{mission.title}</h1>
                 <div className="mt-1 flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
-                  <StatusBadge tone={st.tone}>{st.label}</StatusBadge>
+                  <StatusBadge tone={st.tone}>{isEn ? st.label_en : st.label}</StatusBadge>
                   {mission.contract_number && (
                     <span className="inline-flex items-center gap-1 text-xs">
                       <FileSignature className="h-3.5 w-3.5" />
@@ -161,11 +169,11 @@ export default function PortalMissionDetailPage() {
             <div className="rounded-lg border border-hairline surface-1 px-3 py-2.5">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" />
-                Période
+                {isEn ? 'Period' : 'Période'}
               </div>
               <div className="mt-0.5 font-medium">
                 {fmtDate(mission.start_date) ?? '—'}
-                {mission.end_date ? ` → ${fmtDate(mission.end_date)}` : ' → en cours'}
+                {mission.end_date ? ` → ${fmtDate(mission.end_date)}` : isEn ? ' → ongoing' : ' → en cours'}
               </div>
             </div>
             <div className="rounded-lg border border-hairline surface-1 px-3 py-2.5">
@@ -174,7 +182,9 @@ export default function PortalMissionDetailPage() {
                 TJM
               </div>
               <div className="mt-0.5 font-medium">
-                {mission.daily_rate_eur ? `${mission.daily_rate_eur} € HT/j` : '—'}
+                {mission.daily_rate_eur
+                  ? `${mission.daily_rate_eur} ${isEn ? '€ excl. VAT/day' : '€ HT/j'}`
+                  : '—'}
               </div>
             </div>
           </div>
@@ -185,7 +195,7 @@ export default function PortalMissionDetailPage() {
         <CardHeader>
           <CardTitle className="text-base inline-flex items-center gap-2">
             <ClipboardCheck className="h-4 w-4 text-violet-glow" />
-            CRA de cette mission
+            {isEn ? 'CRA for this mission' : 'CRA de cette mission'}
             <span className="ml-1 text-xs font-normal text-muted-foreground">
               {cras.length}
             </span>
@@ -194,7 +204,7 @@ export default function PortalMissionDetailPage() {
         <CardContent>
           {cras.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Aucun CRA pour cette mission pour l&apos;instant.
+              {isEn ? 'No CRA for this mission yet.' : "Aucun CRA pour cette mission pour l'instant."}
             </p>
           ) : (
             <ul className="divide-y divide-hairline">
@@ -207,14 +217,14 @@ export default function PortalMissionDetailPage() {
                       className="flex items-center justify-between gap-3 py-2.5 px-2 -mx-2 rounded-lg hover-surface transition"
                     >
                       <span className="font-medium text-sm">
-                        {MONTHS[t.period_month - 1]} {t.period_year}
+                        {(isEn ? MONTHS_EN : MONTHS)[t.period_month - 1]} {t.period_year}
                       </span>
                       <span className="flex items-center gap-3">
                         <span className="text-xs text-muted-foreground">
-                          {Number(t.days_worked)} j
+                          {Number(t.days_worked)} {isEn ? 'd' : 'j'}
                         </span>
                         <StatusBadge tone={cs.tone} dot={false} className="px-2 py-0.5 text-[10px]">
-                          {cs.label}
+                          {isEn ? cs.label_en : cs.label}
                         </StatusBadge>
                       </span>
                     </Link>
