@@ -38,6 +38,7 @@ export type AppDict = {
     team: string;
     billing: string;
     settings: string;
+    help: string;
     collapse_menu: string;
     expand_menu: string;
   };
@@ -1076,6 +1077,7 @@ export const APP_DICT: Record<Locale, AppDict> = {
       team: 'Équipe',
       billing: 'Abonnement',
       settings: 'Paramètres',
+      help: 'Aide & support',
       collapse_menu: 'Réduire le menu',
       expand_menu: 'Afficher le menu',
     },
@@ -2101,6 +2103,7 @@ export const APP_DICT: Record<Locale, AppDict> = {
       team: 'Team',
       billing: 'Subscription',
       settings: 'Settings',
+      help: 'Help & support',
       collapse_menu: 'Collapse menu',
       expand_menu: 'Expand menu',
     },

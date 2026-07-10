@@ -24,7 +24,7 @@ import {
   Building2,
   CheckSquare,
 } from 'lucide-react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -98,6 +98,7 @@ function buildGroups(t: AppDict): NavGroup[] {
         // vivent désormais DANS le hub Paramètres (cartes de sections).
         // matchAlso garde l'item allumé quand on navigue sur /billing.
         { label: t.nav.settings, href: '/settings', icon: Settings, matchAlso: ['/billing'] },
+        { label: t.nav.help, href: '/aide', icon: HelpCircle },
       ],
     },
   ];
