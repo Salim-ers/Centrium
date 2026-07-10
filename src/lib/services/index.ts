@@ -704,7 +704,9 @@ export const invoiceService = {
     const due = new Date();
     due.setDate(due.getDate() + (contract?.payment_terms_days ?? 30));
 
-    const invoice_number = `FC-${issue.getFullYear()}-${Math.floor(Math.random() * 9000 + 1000)}`;
+    // Numéro attribué SÉQUENTIELLEMENT par la DB (trigger assign_invoice_number,
+    // migration 088) : on insère vide, le trigger pose FC-AAAA-NNNN continu.
+    const invoice_number = '';
 
     const { data, error } = await supabase
       .from('invoices')
@@ -1231,6 +1233,9 @@ export const timesheetService = {
 
     const today = new Date();
     const todayStr = today.toISOString().slice(0, 10);
+    const due = new Date(today);
+    due.setDate(due.getDate() + 30);
+    const dueStr = due.toISOString().slice(0, 10);
 
     const { data: invoice, error: invErr } = await supabase
       .from('invoices')
@@ -1240,17 +1245,22 @@ export const timesheetService = {
         company_id: mission.company_id,
         mission_id: mission.id,
         timesheet_id: timesheet.id,
-        invoice_number: `FAC-${today.getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`,
+        // Numéro séquentiel attribué par la DB (trigger, migration 088).
+        invoice_number: '',
         issue_date: todayStr,
-        due_date: todayStr, // échéance = aujourd'hui puisque payée immédiatement
+        // Échéance réelle à 30 j : la facture n'est PAS encaissée d'office.
+        // Elle est créée en brouillon — l'utilisateur la relit, l'envoie,
+        // puis marque le paiement quand le client règle réellement.
+        // (avant : status='paid' + payment_date=aujourd'hui → CA encaissé
+        //  fictif, non fidèle.)
+        due_date: dueStr,
         period_label: periodLabel,
         amount_ht: amountHt,
         vat_rate: vatRate,
         amount_vat: amountVat,
         amount_ttc: amountTtc,
-        status: 'paid',
-        payment_date: todayStr,
-        notes: `Générée automatiquement à la validation du CRA ${periodLabel}.`,
+        status: 'draft',
+        notes: `Générée automatiquement à la validation du CRA ${periodLabel}. À vérifier puis envoyer au client.`,
       })
       .select()
       .single();

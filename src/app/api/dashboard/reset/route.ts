@@ -49,12 +49,16 @@ export async function POST(req: NextRequest) {
   // pour éviter les violations FK. Les timesheet_days cascadent avec
   // leur CRA. Les invoice_items cascadent avec leur facture.
 
-  // 1. Invoices (peut avoir une FK vers timesheet et vers mission)
+  // 1. Invoices — UNIQUEMENT les brouillons et annulées. Une facture ÉMISE
+  // (sent/paid/overdue) est un document comptable à valeur légale : elle ne
+  // doit JAMAIS être supprimée (inaltérabilité art. L123-22 + conservation
+  // 10 ans). Le reset ne nettoie donc que le travail non émis.
   if (scopes.has('invoices')) {
     const { data: del, error } = await admin
       .from('invoices')
       .delete()
       .eq('organization_id', ctx.organizationId)
+      .in('status', ['draft', 'cancelled'])
       .select('id');
     if (error) {
       return NextResponse.json(
@@ -63,11 +67,17 @@ export async function POST(req: NextRequest) {
       );
     }
     counts.invoices = del?.length ?? 0;
+    // Combien de factures émises ont été CONSERVÉES (information au caller).
+    const { count: kept } = await admin
+      .from('invoices')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', ctx.organizationId);
+    counts.invoices_kept = kept ?? 0;
   }
 
-  // 2. Timesheets (FK invoices.timesheet_id : on a déjà supprimé les
-  // factures si scope invoices, sinon le delete échouera si une facture
-  // existe — on renvoie un message clair).
+  // 2. Timesheets — bloqués si une facture (forcément émise, car les
+  // brouillons viennent d'être purgés) référence encore un CRA : on ne peut
+  // pas casser le lien d'une facture légale.
   if (scopes.has('timesheets')) {
     const { data: blocking } = await admin
       .from('invoices')
@@ -75,12 +85,12 @@ export async function POST(req: NextRequest) {
       .eq('organization_id', ctx.organizationId)
       .not('timesheet_id', 'is', null)
       .limit(1);
-    if (blocking && blocking.length > 0 && !scopes.has('invoices')) {
+    if (blocking && blocking.length > 0) {
       return NextResponse.json(
         {
           error: 'has_invoices',
           message:
-            'Des factures référencent des CRA. Coche "Factures" pour les supprimer en même temps, ou supprime-les manuellement.',
+            'Des factures émises (non supprimables car documents légaux) référencent des CRA. Ces CRA ne peuvent pas être réinitialisés.',
         },
         { status: 409 },
       );

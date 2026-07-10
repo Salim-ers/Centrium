@@ -23,5 +23,7 @@ async function handle(req: NextRequest) {
   return res;
 }
 
+// POST uniquement : un GET permettrait un logout CSRF (<img src=…> ou
+// prefetch déconnecterait l'utilisateur). Tous les appels réels sont des
+// <form method="POST"> ou navigator.sendBeacon (POST).
 export const POST = handle;
-export const GET = handle;

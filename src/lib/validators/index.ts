@@ -157,7 +157,10 @@ export const invoiceSchema = z
     mission_id: optionalUuid.optional(),
     job_offer_id: optionalUuid.optional(),
     timesheet_id: optionalUuid.optional(),
-    invoice_number: z.string().min(1).max(50),
+    // Vide autorisé : la DB attribue un numéro SÉQUENTIEL atomique
+    // (trigger assign_invoice_number, migration 088). Un numéro saisi à la
+    // main dans un format personnalisé est conservé tel quel.
+    invoice_number: z.string().max(50),
     issue_date: z.string(),
     due_date: z.string(),
     period_label: z.string().max(100).optional().nullable(),

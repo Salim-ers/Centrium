@@ -41,13 +41,15 @@ type Props = {
 };
 
 // FAC- = facture de vente client · FC- = facture de sous-traitance consultant.
-function suggestInvoiceNumber(party: DocumentParty) {
-  const d = new Date();
-  const y = d.getFullYear();
-  const rand = Math.floor(Math.random() * 9000 + 1000);
-  return `${party === 'consultant' ? 'FC' : 'FAC'}-${y}-${rand}`;
+// Numéro laissé VIDE par défaut : la DB attribue un numéro SÉQUENTIEL
+// atomique et conforme à l'enregistrement (trigger assign_invoice_number,
+// migration 088). Fini le tirage aléatoire (non conforme + collisions).
+// L'utilisateur peut toujours saisir un numéro personnalisé à la main.
+function suggestInvoiceNumber(_party: DocumentParty) {
+  return '';
 }
 
+// Un numéro encore au format aléatoire hérité est traité comme "auto".
 const AUTO_NUMBER_RE = /^(FAC|FC)-\d{4}-\d{4}$/;
 
 function todayISO() {
@@ -352,8 +354,16 @@ export function InvoiceFormDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>{t.forms.invoice.invoice_number} *</Label>
-              <Input {...register('invoice_number')} />
+              <Label>{t.forms.invoice.invoice_number}</Label>
+              <Input
+                {...register('invoice_number')}
+                placeholder={isEn ? 'Auto (sequential)' : 'Auto (séquentiel)'}
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {isEn
+                  ? 'Leave empty for an automatic sequential number.'
+                  : 'Laisser vide = numéro séquentiel automatique et conforme.'}
+              </p>
               {errors.invoice_number && (
                 <p className="text-xs text-red-400 mt-1">{errors.invoice_number.message}</p>
               )}
