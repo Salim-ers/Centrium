@@ -263,6 +263,16 @@ export async function POST(req: NextRequest) {
     // 5) Checkout : essai 7 j, carte OBLIGATOIRE, 0 € maintenant, débit
     //    auto à la fin de l'essai. metadata.organization_id → le webhook
     //    saura relier la sub à l'org.
+    // TVA : activée seulement si STRIPE_TAX_ENABLED=true (+ Stripe Tax
+    // configuré dans le dashboard). Off par défaut = comportement inchangé.
+    const taxEnabled = process.env.STRIPE_TAX_ENABLED === 'true';
+    const taxParams = taxEnabled
+      ? ({
+          automatic_tax: { enabled: true },
+          tax_id_collection: { enabled: true },
+          customer_update: { address: 'auto', name: 'auto' },
+        } as const)
+      : {};
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customer.id,
@@ -273,7 +283,8 @@ export async function POST(req: NextRequest) {
       },
       payment_method_collection: 'always',
       allow_promotion_codes: true,
-      billing_address_collection: 'auto',
+      billing_address_collection: taxEnabled ? 'required' : 'auto',
+      ...taxParams,
       success_url: `${appUrl}/login?welcome=trial&email=${encodeURIComponent(email)}`,
       cancel_url: `${appUrl}/essai?canceled=1&email=${encodeURIComponent(email)}`,
     });

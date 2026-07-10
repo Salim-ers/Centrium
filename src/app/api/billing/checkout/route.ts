@@ -116,11 +116,46 @@ export async function POST(req: NextRequest) {
   try {
     const { data: sub } = await admin
       .from('subscriptions')
-      .select('stripe_customer_id')
+      .select('stripe_customer_id, stripe_subscription_id, status, plan_id')
       .eq('organization_id', ctx.organizationId)
       .maybeSingle();
 
     const stripe = getStripe();
+
+    // ── CHANGEMENT DE PLAN ────────────────────────────────────────────────
+    // Une souscription Stripe active existe déjà → on la MODIFIE en place
+    // (prorata) au lieu d'ouvrir un nouveau checkout. Sans ça, chaque
+    // changement de plan créait une 2e souscription sur le même client =
+    // DOUBLE DÉBIT mensuel (bug critique corrigé).
+    const ACTIVE = new Set(['active', 'trialing', 'past_due']);
+    if (sub?.stripe_subscription_id && ACTIVE.has(sub.status ?? '')) {
+      if (sub.plan_id === planId) {
+        return NextResponse.json(
+          { error: 'same_plan', message: 'Vous êtes déjà sur ce plan.' },
+          { status: 400 },
+        );
+      }
+      const current = await stripe.subscriptions.retrieve(sub.stripe_subscription_id);
+      const itemId = current.items.data[0]?.id;
+      if (!itemId) {
+        throw new Error('subscription sans item — impossible de changer de plan');
+      }
+      await stripe.subscriptions.update(sub.stripe_subscription_id, {
+        items: [{ id: itemId, price: priceId }],
+        proration_behavior: 'create_prorations',
+        metadata: { organization_id: ctx.organizationId, plan_id: planId },
+      });
+      // La DB sera confirmée par le webhook customer.subscription.updated ;
+      // on écrit tout de suite le plan pour un retour UI immédiat.
+      await admin
+        .from('subscriptions')
+        .update({ plan_id: planId, updated_at: new Date().toISOString() })
+        .eq('organization_id', ctx.organizationId);
+      logger.info(`[billing/checkout] plan change ${sub.plan_id}→${planId} org=${ctx.organizationId}`);
+      return NextResponse.json({ updated: true, plan_id: planId });
+    }
+
+    // ── NOUVEL ABONNÉ : checkout classique ────────────────────────────────
     let customerId = sub?.stripe_customer_id ?? null;
 
     if (!customerId) {
@@ -142,6 +177,20 @@ export async function POST(req: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
+    // TVA : activée UNIQUEMENT si STRIPE_TAX_ENABLED=true ET Stripe Tax
+    // configuré dans le dashboard. Sans le flag, comportement historique
+    // inchangé (aucune régression : activer automatic_tax sans Stripe Tax
+    // configuré ferait échouer le checkout). Collecte aussi le n° TVA
+    // intracom (autoliquidation UE) et met à jour l'adresse du client.
+    const taxEnabled = process.env.STRIPE_TAX_ENABLED === 'true';
+    const taxParams = taxEnabled
+      ? ({
+          automatic_tax: { enabled: true },
+          tax_id_collection: { enabled: true },
+          customer_update: { address: 'auto', name: 'auto' },
+        } as const)
+      : {};
+
     if (ui === 'embedded') {
       // Paiement DANS l'app : pas de success/cancel_url, pas de redirection —
       // le dialog écoute onComplete côté client puis rafraîchit l'abonnement
@@ -156,7 +205,8 @@ export async function POST(req: NextRequest) {
           metadata: { organization_id: ctx.organizationId, plan_id: planId },
         },
         allow_promotion_codes: true,
-        billing_address_collection: 'auto',
+        billing_address_collection: taxEnabled ? 'required' : 'auto',
+        ...taxParams,
       });
       return NextResponse.json({ client_secret: session.client_secret });
     }
@@ -171,7 +221,8 @@ export async function POST(req: NextRequest) {
         metadata: { organization_id: ctx.organizationId, plan_id: planId },
       },
       allow_promotion_codes: true,
-      billing_address_collection: 'auto',
+      billing_address_collection: taxEnabled ? 'required' : 'auto',
+      ...taxParams,
     });
 
     return NextResponse.json({ url: session.url });

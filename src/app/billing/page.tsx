@@ -306,6 +306,13 @@ function BillingPageInner() {
         return;
       }
 
+      // Changement de plan appliqué en place (prorata) — pas de checkout.
+      if (body.updated) {
+        toast.success(tb.toast_payment_confirmed);
+        await load();
+        return;
+      }
+
       if (body.url) {
         window.location.href = body.url;
       } else {

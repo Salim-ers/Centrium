@@ -77,6 +77,17 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient('webhook');
 
+  // Idempotence : si cet event a déjà été traité, on acquitte sans rejouer
+  // (Stripe peut renvoyer le même event plusieurs fois).
+  const { data: already } = await admin
+    .from('stripe_webhook_events')
+    .select('event_id')
+    .eq('event_id', event.id)
+    .maybeSingle();
+  if (already) {
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -192,12 +203,9 @@ export async function POST(req: NextRequest) {
         // Renouvellement mensuel réussi. subscription.updated va suivre,
         // mais on force ici un status='active' au cas où une facture
         // arriverait après un flip past_due (rétablissement automatique).
-        const inv = event.data.object as Stripe.Invoice & {
-          subscription?: string | Stripe.Subscription | null;
-        };
-        const subRef = inv.subscription;
-        if (subRef) {
-          const subId = typeof subRef === 'string' ? subRef : subRef.id;
+        const inv = event.data.object as Stripe.Invoice;
+        const subId = invoiceSubscriptionId(inv);
+        if (subId) {
           // Re-fetch depuis Stripe pour avoir current_period_end à jour.
           try {
             const sub = await stripe.subscriptions.retrieve(subId);
@@ -220,12 +228,9 @@ export async function POST(req: NextRequest) {
         // bloque immédiatement. Si le retry passe, invoice.paid remettra
         // status='active'. Sinon Stripe finit par emit
         // customer.subscription.deleted (dunning terminal).
-        const inv = event.data.object as Stripe.Invoice & {
-          subscription?: string | Stripe.Subscription | null;
-        };
-        const subRef = inv.subscription;
-        if (subRef) {
-          const subId = typeof subRef === 'string' ? subRef : subRef.id;
+        const inv = event.data.object as Stripe.Invoice;
+        const subId = invoiceSubscriptionId(inv);
+        if (subId) {
           await admin
             .from('subscriptions')
             .update({ status: 'past_due', updated_at: new Date().toISOString() })
@@ -236,14 +241,44 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) {
     logger.error('[stripe/webhook] handler error', { eventType: event.type, err });
-    // On return 200 pour éviter les retries infinis Stripe sur une erreur
-    // idempotente. Tout est loggé pour investigation post-mortem.
+    // On renvoie 500 pour que Stripe RETENTE l'événement : un abonné qui a
+    // payé ne doit jamais être perdu sur une erreur DB transitoire. L'event
+    // n'est PAS marqué traité → le retry le rejouera (handlers idempotents).
+    return NextResponse.json(
+      { error: 'handler_failed', message: (err as Error).message },
+      { status: 500 },
+    );
+  }
+
+  // Marque l'event comme traité (idempotence des futurs retries Stripe).
+  const { error: markErr } = await admin
+    .from('stripe_webhook_events')
+    .insert({ event_id: event.id, type: event.type });
+  if (markErr && markErr.code !== '23505') {
+    logger.warn('[stripe/webhook] could not record event id', markErr.message);
   }
 
   return NextResponse.json({ received: true });
 }
 
 type AdminClient = ReturnType<typeof createAdminClient>;
+
+/**
+ * Résout l'ID de souscription d'une facture, robuste au changement d'API
+ * Stripe : `invoice.subscription` (ancien) OU
+ * `invoice.parent.subscription_details.subscription` (nouveau, ≥ 2025).
+ */
+function invoiceSubscriptionId(inv: Stripe.Invoice): string | null {
+  const legacy = (inv as unknown as { subscription?: string | { id: string } | null })
+    .subscription;
+  if (legacy) return typeof legacy === 'string' ? legacy : legacy.id;
+  const parent = (inv as unknown as {
+    parent?: { subscription_details?: { subscription?: string | { id: string } | null } };
+  }).parent;
+  const nested = parent?.subscription_details?.subscription;
+  if (nested) return typeof nested === 'string' ? nested : nested.id;
+  return null;
+}
 
 async function upsertSubscription(admin: AdminClient, sub: Stripe.Subscription) {
   const organizationId = sub.metadata?.organization_id;
