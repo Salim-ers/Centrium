@@ -27,10 +27,18 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 // Pas d'accordéon : 7 items, tout reste visible.
 // =========================================================================
 
-type NavItem = { label: string; href: string; icon: React.ElementType };
-type NavGroup = { id: string; label: string; icon: React.ElementType; items: NavItem[] };
+export type PortalNavItem = { label: string; href: string; icon: React.ElementType };
+export type PortalNavGroup = {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  items: PortalNavItem[];
+};
 
-const PORTAL_GROUPS: NavGroup[] = [
+type NavItem = PortalNavItem;
+type NavGroup = PortalNavGroup;
+
+export const PORTAL_GROUPS: NavGroup[] = [
   {
     id: 'espace',
     label: 'Mon espace',

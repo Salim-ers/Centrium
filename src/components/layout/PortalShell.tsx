@@ -1,4 +1,5 @@
 import { PortalSidebar } from './PortalSidebar';
+import { PortalMobileNav } from './PortalMobileNav';
 import { AppBackground } from './AppBackground';
 import { BrandingStyles } from '@/components/brand/BrandingStyles';
 import { SessionPresenceGate } from '@/components/auth/SessionPresenceGate';
@@ -11,8 +12,10 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
       <SessionPresenceGate />
       {/* Starfield warp dark-only (cohérent avec AppShell BM). */}
       <AppBackground />
+      {/* Nav mobile (< md) : barre + tiroir avec déconnexion. */}
+      <PortalMobileNav />
       <PortalSidebar />
-      <main className="relative z-[1] md:pl-64 pt-6">
+      <main className="relative z-[1] md:pl-64 md:pt-6">
         <div className="mx-auto max-w-6xl px-4 md:px-8 py-8">{children}</div>
       </main>
     </div>
