@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useOrganization } from '@/lib/auth/context';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { PageHeader, SectionHeader, AppCard, AppCardBody } from '@/components/app';
 
 // =========================================================================
@@ -60,6 +61,8 @@ const EMPTY: Identity = {
 export default function FacturationSettingsPage() {
   const { role, reloadBranding } = useOrganization();
   const isAdmin = role === 'admin';
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -76,7 +79,12 @@ export default function FacturationSettingsPage() {
           setForm({ ...EMPTY, ...pickIdentity(data) });
         }
       } catch {
-        if (alive) toast.error('Impossible de charger les informations de facturation.');
+        if (alive)
+          toast.error(
+            isEn
+              ? 'Unable to load your billing information.'
+              : 'Impossible de charger les informations de facturation.',
+          );
       } finally {
         if (alive) setLoading(false);
       }
@@ -105,9 +113,13 @@ export default function FacturationSettingsPage() {
       // Rafraîchit le contexte branding (qui alimente l'émetteur des factures)
       // pour que le RIB/mentions apparaissent immédiatement, sans F5.
       await reloadBranding();
-      toast.success('Coordonnées de facturation enregistrées — elles apparaîtront sur vos factures.');
+      toast.success(
+        isEn
+          ? 'Billing details saved — they will now appear on your invoices.'
+          : 'Coordonnées de facturation enregistrées — elles apparaîtront sur vos factures.',
+      );
     } catch {
-      toast.error("Échec de l'enregistrement. Réessaie.");
+      toast.error(isEn ? 'Save failed. Please try again.' : "Échec de l'enregistrement. Réessaie.");
     } finally {
       setSaving(false);
     }
@@ -117,49 +129,63 @@ export default function FacturationSettingsPage() {
     <AppShell>
       <PageHeader
         backHref="/settings"
-        backLabel="Retour aux paramètres"
-        eyebrow="Organisation"
+        backLabel={isEn ? 'Back to settings' : 'Retour aux paramètres'}
+        eyebrow={isEn ? 'Organization' : 'Organisation'}
         title={
           <>
-            Facturation{' '}
-            <span className="qc-italic-accent font-editorial italic">& société.</span>
+            {isEn ? 'Billing' : 'Facturation'}{' '}
+            <span className="qc-italic-accent font-editorial italic">
+              {isEn ? '& company.' : '& société.'}
+            </span>
           </>
         }
-        description="RIB et mentions légales de votre ESN — imprimés sur vos factures et contrats."
+        description={
+          isEn
+            ? 'Bank details and legal information for your company — printed on your invoices and contracts.'
+            : 'RIB et mentions légales de votre ESN — imprimés sur vos factures et contrats.'
+        }
         actions={<Landmark className="h-5 w-5 text-magenta" />}
       />
 
       {!isAdmin && (
         <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-          Seuls les administrateurs peuvent modifier les informations de facturation.
+          {isEn
+            ? 'Only administrators can edit the billing information.'
+            : 'Seuls les administrateurs peuvent modifier les informations de facturation.'}
         </div>
       )}
 
       {loading ? (
         <div className="flex items-center gap-2 text-muted-foreground text-sm">
-          <Loader2 className="h-4 w-4 animate-spin" /> Chargement…
+          <Loader2 className="h-4 w-4 animate-spin" /> {isEn ? 'Loading…' : 'Chargement…'}
         </div>
       ) : (
         <div className="max-w-2xl space-y-8">
           {/* ---- RIB / coordonnées bancaires (la demande principale) ---- */}
           <section>
             <SectionHeader
-              eyebrow="Paiement"
+              eyebrow={isEn ? 'Payment' : 'Paiement'}
               title={
                 <>
-                  Coordonnées{' '}
-                  <span className="qc-italic-accent font-editorial italic">bancaires (RIB).</span>
+                  {isEn ? 'Bank' : 'Coordonnées'}{' '}
+                  <span className="qc-italic-accent font-editorial italic">
+                    {isEn ? 'details (RIB).' : 'bancaires (RIB).'}
+                  </span>
                 </>
               }
-              description="Affichées sur vos factures clients dans un bloc « Coordonnées bancaires » pour que vos clients vous règlent par virement."
+              description={
+                isEn
+                  ? 'Shown on your client invoices in a « Coordonnées bancaires » block so your clients can pay you by bank transfer.'
+                  : 'Affichées sur vos factures clients dans un bloc « Coordonnées bancaires » pour que vos clients vous règlent par virement.'
+              }
               actions={<Landmark className="h-4 w-4 text-magenta" />}
             />
             <AppCard variant="default" tone="magenta">
               <AppCardBody size="md" className="space-y-4">
                 <Field
                   id="bank_name"
-                  label="Banque"
-                  placeholder="Ex : BNP Paribas"
+                  label={isEn ? 'Bank' : 'Banque'}
+                  placeholder={isEn ? 'e.g. BNP Paribas' : 'Ex : BNP Paribas'}
                   value={val('bank_name')}
                   onChange={setText('bank_name')}
                   disabled={!isAdmin}
@@ -192,21 +218,27 @@ export default function FacturationSettingsPage() {
           {/* ---- Mentions légales société ---- */}
           <section>
             <SectionHeader
-              eyebrow="Mentions légales"
+              eyebrow={isEn ? 'Legal information' : 'Mentions légales'}
               title={
                 <>
-                  Identité{' '}
-                  <span className="qc-italic-accent font-editorial italic">société.</span>
+                  {isEn ? 'Company' : 'Identité'}{' '}
+                  <span className="qc-italic-accent font-editorial italic">
+                    {isEn ? 'identity.' : 'société.'}
+                  </span>
                 </>
               }
-              description="Adresse, immatriculation et représentant légal — repris sur factures et contrats (obligatoire pour une facture conforme)."
+              description={
+                isEn
+                  ? 'Address, registration and legal representative — reproduced on invoices and contracts (required for a compliant invoice).'
+                  : 'Adresse, immatriculation et représentant légal — repris sur factures et contrats (obligatoire pour une facture conforme).'
+              }
               actions={<Building2 className="h-4 w-4 text-magenta" />}
             />
             <AppCard variant="default" tone="violet">
               <AppCardBody size="md" className="space-y-4">
                 <Field
                   id="address"
-                  label="Adresse"
+                  label={isEn ? 'Address' : 'Adresse'}
                   placeholder="12 rue de la République"
                   value={val('address')}
                   onChange={setText('address')}
@@ -216,7 +248,7 @@ export default function FacturationSettingsPage() {
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Field
                     id="postal_code"
-                    label="Code postal"
+                    label={isEn ? 'Postal code' : 'Code postal'}
                     placeholder="75001"
                     value={val('postal_code')}
                     onChange={setText('postal_code')}
@@ -225,7 +257,7 @@ export default function FacturationSettingsPage() {
                   />
                   <Field
                     id="city"
-                    label="Ville"
+                    label={isEn ? 'City' : 'Ville'}
                     placeholder="Paris"
                     value={val('city')}
                     onChange={setText('city')}
@@ -237,7 +269,7 @@ export default function FacturationSettingsPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field
                     id="legal_form"
-                    label="Forme juridique"
+                    label={isEn ? 'Legal form' : 'Forme juridique'}
                     placeholder="SAS, SARL…"
                     value={val('legal_form')}
                     onChange={setText('legal_form')}
@@ -246,7 +278,7 @@ export default function FacturationSettingsPage() {
                   />
                   <Field
                     id="capital_eur"
-                    label="Capital social (€)"
+                    label={isEn ? 'Share capital (€)' : 'Capital social (€)'}
                     placeholder="10000"
                     value={val('capital_eur')}
                     onChange={setCapital}
@@ -277,7 +309,7 @@ export default function FacturationSettingsPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field
                     id="vat_number"
-                    label="N° TVA intracom."
+                    label={isEn ? 'Intra-EU VAT no.' : 'N° TVA intracom.'}
                     placeholder="FR 12 345678901"
                     value={val('vat_number')}
                     onChange={setText('vat_number')}
@@ -297,7 +329,7 @@ export default function FacturationSettingsPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field
                     id="representative_name"
-                    label="Représentant légal"
+                    label={isEn ? 'Legal representative' : 'Représentant légal'}
                     placeholder="Jean Dupont"
                     value={val('representative_name')}
                     onChange={setText('representative_name')}
@@ -306,8 +338,8 @@ export default function FacturationSettingsPage() {
                   />
                   <Field
                     id="representative_title"
-                    label="Qualité"
-                    placeholder="Président, Gérant…"
+                    label={isEn ? 'Role' : 'Qualité'}
+                    placeholder={isEn ? 'President, Manager…' : 'Président, Gérant…'}
                     value={val('representative_title')}
                     onChange={setText('representative_title')}
                     disabled={!isAdmin}
@@ -326,7 +358,7 @@ export default function FacturationSettingsPage() {
               className="bg-gradient-to-r from-violet-glow to-magenta-neon hover:opacity-95"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              Enregistrer
+              {isEn ? 'Save' : 'Enregistrer'}
             </Button>
           </div>
         </div>

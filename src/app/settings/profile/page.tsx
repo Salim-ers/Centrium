@@ -88,6 +88,7 @@ const EMPTY_PERSONAL: PersonalRow = {
 export default function MyProfilePage() {
   const { user, reload } = useOrganization();
   const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   // Affiche un badge "Enregistré ✓" inline 2 s à côté du bouton Enregistrer
@@ -180,7 +181,7 @@ export default function MyProfilePage() {
         })
         .eq('id', user.id);
       if (profErr) {
-        notifyError('Identité : ' + profErr.message);
+        notifyError((isEn ? 'Identity: ' : 'Identité : ') + profErr.message);
         return;
       }
 
@@ -213,7 +214,7 @@ export default function MyProfilePage() {
         .from('user_profile_personal')
         .upsert(payload, { onConflict: 'user_id' });
       if (persErr) {
-        notifyError('Infos perso : ' + persErr.message);
+        notifyError((isEn ? 'Personal info: ' : 'Infos perso : ') + persErr.message);
         return;
       }
 
@@ -231,20 +232,33 @@ export default function MyProfilePage() {
     <AppShell>
       <PageHeader
         backHref="/settings"
-        backLabel="Retour aux paramètres"
-        eyebrow="Organisation"
+        backLabel={isEn ? 'Back to settings' : 'Retour aux paramètres'}
+        eyebrow={isEn ? 'Organization' : 'Organisation'}
         title={
           <>
-            Mon{' '}
-            <span className="qc-italic-accent font-editorial italic">profil.</span>
+            {isEn ? 'My' : 'Mon'}{' '}
+            <span className="qc-italic-accent font-editorial italic">
+              {isEn ? 'profile.' : 'profil.'}
+            </span>
           </>
         }
         description={
           <span className="inline-flex items-center gap-1.5">
             <Lock className="h-3.5 w-3.5 text-magenta" />
-            Sauf <strong className="text-foreground/80 mx-1">prénom / nom</strong>,
-            ces infos sont strictement privées — invisible des autres membres, même
-            des admins.
+            {isEn ? (
+              <>
+                Except your{' '}
+                <strong className="text-foreground/80 mx-1">first / last name</strong>,
+                this information is strictly private — invisible to other members, even
+                admins.
+              </>
+            ) : (
+              <>
+                Sauf <strong className="text-foreground/80 mx-1">prénom / nom</strong>,
+                ces infos sont strictement privées — invisible des autres membres, même
+                des admins.
+              </>
+            )}
           </span>
         }
       />
@@ -264,21 +278,25 @@ export default function MyProfilePage() {
           {/* Identité publique */}
           <section>
             <SectionHeader
-              eyebrow="Identité"
+              eyebrow={isEn ? 'Identity' : 'Identité'}
               title={
                 <>
-                  Visible{' '}
+                  {isEn ? 'Visible to' : 'Visible'}{' '}
                   <span className="qc-italic-accent font-editorial italic">
-                    de l&apos;équipe.
+                    {isEn ? 'the team.' : 'de l’équipe.'}
                   </span>
                 </>
               }
-              description="Présence, partages d'activité, todos partagées."
+              description={
+                isEn
+                  ? 'Presence, activity sharing, shared to-dos.'
+                  : 'Présence, partages d’activité, todos partagées.'
+              }
             />
             <AppCard variant="default" tone="magenta">
               <AppCardBody size="md" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label>Prénom</Label>
+                  <Label>{isEn ? 'First name' : 'Prénom'}</Label>
                   <Input
                     value={identity.first_name ?? ''}
                     onChange={(e) =>
@@ -288,7 +306,7 @@ export default function MyProfilePage() {
                   />
                 </div>
                 <div>
-                  <Label>Nom</Label>
+                  <Label>{isEn ? 'Last name' : 'Nom'}</Label>
                   <Input
                     value={identity.last_name ?? ''}
                     onChange={(e) =>
@@ -301,7 +319,9 @@ export default function MyProfilePage() {
                   <Label>Email</Label>
                   <Input value={user?.email ?? ''} disabled className="opacity-60" />
                   <p className="text-[11px] text-muted-foreground mt-1">
-                    L&apos;email se modifie côté Supabase Auth (contactez un admin).
+                    {isEn
+                      ? 'The email is changed on the Supabase Auth side (contact an admin).'
+                      : 'L’email se modifie côté Supabase Auth (contactez un admin).'}
                   </p>
                 </div>
               </AppCardBody>
@@ -311,30 +331,38 @@ export default function MyProfilePage() {
           {/* Rôle dans l'entreprise */}
           <section>
             <SectionHeader
-              eyebrow="Rôle"
+              eyebrow={isEn ? 'Role' : 'Rôle'}
               title={
                 <>
-                  Dans{' '}
+                  {isEn ? 'Within the' : 'Dans'}{' '}
                   <span className="qc-italic-accent font-editorial italic">
-                    l&apos;entreprise.
+                    {isEn ? 'company.' : 'l’entreprise.'}
                   </span>
                 </>
               }
-              description="Privé — utile pour votre CV interne, signature email, onboarding RH."
+              description={
+                isEn
+                  ? 'Private — useful for your internal CV, email signature, HR onboarding.'
+                  : 'Privé — utile pour votre CV interne, signature email, onboarding RH.'
+              }
               actions={<Briefcase className="h-4 w-4 text-magenta" />}
             />
             <AppCard variant="default" tone="violet">
               <AppCardBody size="md" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label>Poste</Label>
+                  <Label>{isEn ? 'Job title' : 'Poste'}</Label>
                   <Input
                     value={personal.job_title ?? ''}
                     onChange={(e) => setField('job_title', e.target.value)}
-                    placeholder="Co-fondateur, Business Manager, Recruteur…"
+                    placeholder={
+                      isEn
+                        ? 'Co-founder, Business Manager, Recruiter…'
+                        : 'Co-fondateur, Business Manager, Recruteur…'
+                    }
                   />
                 </div>
                 <div>
-                  <Label>Date d&apos;entrée dans l&apos;entreprise</Label>
+                  <Label>{isEn ? 'Company start date' : 'Date d’entrée dans l’entreprise'}</Label>
                   <Input
                     type="date"
                     value={personal.hire_date ?? ''}
@@ -342,23 +370,27 @@ export default function MyProfilePage() {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <Label>Bio courte</Label>
+                  <Label>{isEn ? 'Short bio' : 'Bio courte'}</Label>
                   <Textarea
                     rows={3}
                     value={personal.bio ?? ''}
                     onChange={(e) => setField('bio', e.target.value)}
-                    placeholder="Quelques mots sur votre parcours, vos spécialités…"
+                    placeholder={
+                      isEn
+                        ? 'A few words about your background, your specialties…'
+                        : 'Quelques mots sur votre parcours, vos spécialités…'
+                    }
                   />
                 </div>
                 <div className="sm:col-span-2">
                   <Label className="inline-flex items-center gap-1.5">
                     <Languages className="h-3.5 w-3.5" />
-                    Langues (séparées par des virgules)
+                    {isEn ? 'Languages (comma-separated)' : 'Langues (séparées par des virgules)'}
                   </Label>
                   <Input
                     value={languagesInput}
                     onChange={(e) => setLanguagesInput(e.target.value)}
-                    placeholder="Français, Anglais, Espagnol"
+                    placeholder={isEn ? 'French, English, Spanish' : 'Français, Anglais, Espagnol'}
                   />
                 </div>
               </AppCardBody>
@@ -371,13 +403,13 @@ export default function MyProfilePage() {
               eyebrow="Contact"
               title={
                 <>
-                  Coordonnées{' '}
+                  {isEn ? 'Personal' : 'Coordonnées'}{' '}
                   <span className="qc-italic-accent font-editorial italic">
-                    personnelles.
+                    {isEn ? 'contact details.' : 'personnelles.'}
                   </span>
                 </>
               }
-              description="Privé — pour vous uniquement."
+              description={isEn ? 'Private — for you only.' : 'Privé — pour vous uniquement.'}
               actions={<Phone className="h-4 w-4 text-magenta" />}
             />
             <AppCard variant="default" tone="cyan">
@@ -406,7 +438,7 @@ export default function MyProfilePage() {
                 <div>
                   <Label className="inline-flex items-center gap-1.5">
                     <Calendar className="h-3.5 w-3.5" />
-                    Date de naissance
+                    {isEn ? 'Date of birth' : 'Date de naissance'}
                   </Label>
                   <Input
                     type="date"
@@ -415,11 +447,11 @@ export default function MyProfilePage() {
                   />
                 </div>
                 <div>
-                  <Label>Nationalité</Label>
+                  <Label>{isEn ? 'Nationality' : 'Nationalité'}</Label>
                   <Input
                     value={personal.nationality ?? ''}
                     onChange={(e) => setField('nationality', e.target.value)}
-                    placeholder="Française"
+                    placeholder={isEn ? 'French' : 'Française'}
                   />
                 </div>
               </AppCardBody>
@@ -429,22 +461,26 @@ export default function MyProfilePage() {
           {/* Adresse */}
           <section>
             <SectionHeader
-              eyebrow="Adresse"
+              eyebrow={isEn ? 'Address' : 'Adresse'}
               title={
                 <>
-                  Domicile{' '}
+                  {isEn ? 'Home' : 'Domicile'}{' '}
                   <span className="qc-italic-accent font-editorial italic">
-                    personnel.
+                    {isEn ? 'address.' : 'personnel.'}
                   </span>
                 </>
               }
-              description="Privé — utile si l'entreprise vous envoie un document, du matériel, etc."
+              description={
+                isEn
+                  ? 'Private — useful if the company sends you a document, equipment, etc.'
+                  : 'Privé — utile si l’entreprise vous envoie un document, du matériel, etc.'
+              }
               actions={<MapPin className="h-4 w-4 text-magenta" />}
             />
             <AppCard variant="default" tone="emerald">
               <AppCardBody size="md" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
-                  <Label>Rue</Label>
+                  <Label>{isEn ? 'Street' : 'Rue'}</Label>
                   <Input
                     value={personal.address ?? ''}
                     onChange={(e) => setField('address', e.target.value)}
@@ -452,7 +488,7 @@ export default function MyProfilePage() {
                   />
                 </div>
                 <div>
-                  <Label>Code postal</Label>
+                  <Label>{isEn ? 'Postal code' : 'Code postal'}</Label>
                   <Input
                     value={personal.postal_code ?? ''}
                     onChange={(e) => setField('postal_code', e.target.value)}
@@ -460,7 +496,7 @@ export default function MyProfilePage() {
                   />
                 </div>
                 <div>
-                  <Label>Ville</Label>
+                  <Label>{isEn ? 'City' : 'Ville'}</Label>
                   <Input
                     value={personal.city ?? ''}
                     onChange={(e) => setField('city', e.target.value)}
@@ -468,7 +504,7 @@ export default function MyProfilePage() {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <Label>Pays</Label>
+                  <Label>{isEn ? 'Country' : 'Pays'}</Label>
                   <Input
                     value={personal.country ?? ''}
                     onChange={(e) => setField('country', e.target.value)}
@@ -481,22 +517,26 @@ export default function MyProfilePage() {
           {/* Contact d'urgence */}
           <section>
             <SectionHeader
-              eyebrow="Sécurité"
+              eyebrow={isEn ? 'Safety' : 'Sécurité'}
               title={
                 <>
-                  Contact{' '}
+                  {isEn ? 'Emergency' : 'Contact'}{' '}
                   <span className="qc-italic-accent font-editorial italic">
-                    d&apos;urgence.
+                    {isEn ? 'contact.' : 'd’urgence.'}
                   </span>
                 </>
               }
-              description="Privé — utile pour les RH en cas de pépin."
+              description={
+                isEn
+                  ? 'Private — useful for HR if something goes wrong.'
+                  : 'Privé — utile pour les RH en cas de pépin.'
+              }
               actions={<ShieldAlert className="h-4 w-4 text-amber-300" />}
             />
             <AppCard variant="default" tone="amber">
               <AppCardBody size="md" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <Label>Nom</Label>
+                  <Label>{isEn ? 'Name' : 'Nom'}</Label>
                   <Input
                     value={personal.emergency_contact_name ?? ''}
                     onChange={(e) => setField('emergency_contact_name', e.target.value)}
@@ -504,7 +544,7 @@ export default function MyProfilePage() {
                   />
                 </div>
                 <div>
-                  <Label>Téléphone</Label>
+                  <Label>{isEn ? 'Phone' : 'Téléphone'}</Label>
                   <Input
                     type="tel"
                     value={personal.emergency_contact_phone ?? ''}
@@ -513,11 +553,11 @@ export default function MyProfilePage() {
                   />
                 </div>
                 <div>
-                  <Label>Lien</Label>
+                  <Label>{isEn ? 'Relationship' : 'Lien'}</Label>
                   <Input
                     value={personal.emergency_contact_rel ?? ''}
                     onChange={(e) => setField('emergency_contact_rel', e.target.value)}
-                    placeholder="Conjoint, parent…"
+                    placeholder={isEn ? 'Spouse, parent…' : 'Conjoint, parent…'}
                   />
                 </div>
               </AppCardBody>
@@ -532,11 +572,11 @@ export default function MyProfilePage() {
                 aria-live="polite"
               >
                 <Check className="h-3.5 w-3.5" />
-                {locale === 'en' ? 'Saved' : 'Enregistré'}
+                {isEn ? 'Saved' : 'Enregistré'}
               </span>
             )}
             <Button type="button" variant="outline" asChild>
-              <Link href="/settings">Annuler</Link>
+              <Link href="/settings">{isEn ? 'Cancel' : 'Annuler'}</Link>
             </Button>
             <Button
               type="submit"
@@ -544,7 +584,7 @@ export default function MyProfilePage() {
               className="bg-gradient-to-r from-violet-glow to-magenta-neon hover:opacity-95"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Enregistrer
+              {isEn ? 'Save' : 'Enregistrer'}
             </Button>
           </div>
         </form>

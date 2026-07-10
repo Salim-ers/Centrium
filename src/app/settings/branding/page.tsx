@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { useOrganization } from '@/lib/auth/context';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import {
   PageHeader,
   SectionHeader,
@@ -26,24 +27,31 @@ const TEMPLATE_OPTIONS: Array<{
   id: TemplateId;
   name: string;
   description: string;
+  description_en: string;
 }> = [
   {
     id: 'standard',
     name: 'Standard',
     description:
       'Équilibré, lisible. Bon défaut pour la majorité des profils. Édition inline supportée.',
+    description_en:
+      'Balanced and readable. A solid default for most profiles. Inline editing supported.',
   },
   {
     id: 'dense',
     name: 'Dense',
     description:
       'Typographie serrée, header sombre. Idéal pour les profils seniors avec 8+ missions.',
+    description_en:
+      'Tight typography, dark header. Ideal for senior profiles with 8+ assignments.',
   },
   {
     id: 'executive',
     name: 'Executive',
     description:
       'Très aéré, typo large. Conseillé pour les profils lead, architectes, direction.',
+    description_en:
+      'Very airy, large typography. Recommended for lead, architect and management profiles.',
   },
 ];
 
@@ -62,6 +70,8 @@ type Branding = {
 export default function BrandingSettingsPage() {
   const { role, reloadBranding } = useOrganization();
   const isAdmin = role === 'admin';
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -102,7 +112,12 @@ export default function BrandingSettingsPage() {
         const { data } = (await res.json()) as { data: Branding };
         if (alive) applyFromApi(data);
       } catch {
-        if (alive) toast.error("Impossible de charger l'identité visuelle.");
+        if (alive)
+          toast.error(
+            isEn
+              ? 'Unable to load the visual identity.'
+              : "Impossible de charger l'identité visuelle.",
+          );
       } finally {
         if (alive) setLoading(false);
       }
@@ -132,9 +147,9 @@ export default function BrandingSettingsPage() {
       const { data } = (await res.json()) as { data: Branding };
       applyFromApi(data);
       await reloadBranding();
-      toast.success('Identité visuelle enregistrée.');
+      toast.success(isEn ? 'Visual identity saved.' : 'Identité visuelle enregistrée.');
     } catch {
-      toast.error("Échec de l'enregistrement.");
+      toast.error(isEn ? 'Save failed.' : "Échec de l'enregistrement.");
     } finally {
       setSaving(false);
     }
@@ -157,7 +172,7 @@ export default function BrandingSettingsPage() {
       const url = json?.data?.logo_url as string | null;
       setLogoUrl(url);
       await reloadBranding();
-      toast.success('Logo mis à jour.');
+      toast.success(isEn ? 'Logo updated.' : 'Logo mis à jour.');
 
       if (url) {
         const palette = await extractPaletteFromImage(file).catch(() => null);
@@ -165,12 +180,16 @@ export default function BrandingSettingsPage() {
           setPrimary(palette.primary);
           setAccent(palette.accent);
           toast.info(
-            'Couleurs suggérées depuis le logo. Ajustez-les avant d\'enregistrer si besoin.',
+            isEn
+              ? 'Colors suggested from the logo. Adjust them before saving if needed.'
+              : 'Couleurs suggérées depuis le logo. Ajustez-les avant d\'enregistrer si besoin.',
           );
         }
       }
     } catch (e) {
-      toast.error(`Upload du logo échoué${e instanceof Error ? ` : ${e.message}` : ''}.`);
+      toast.error(
+        `${isEn ? 'Logo upload failed' : 'Upload du logo échoué'}${e instanceof Error ? ` : ${e.message}` : ''}.`,
+      );
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -179,16 +198,23 @@ export default function BrandingSettingsPage() {
 
   const removeLogo = async () => {
     if (!isAdmin) return;
-    if (!confirm('Supprimer le logo ? Le logo générique sera affiché à la place.')) return;
+    if (
+      !confirm(
+        isEn
+          ? 'Delete the logo? The generic logo will be shown instead.'
+          : 'Supprimer le logo ? Le logo générique sera affiché à la place.',
+      )
+    )
+      return;
     setDeletingLogo(true);
     try {
       const res = await fetch('/api/organizations/branding/logo', { method: 'DELETE' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setLogoUrl(null);
       await reloadBranding();
-      toast.success('Logo supprimé.');
+      toast.success(isEn ? 'Logo deleted.' : 'Logo supprimé.');
     } catch {
-      toast.error('Suppression du logo échouée.');
+      toast.error(isEn ? 'Failed to delete the logo.' : 'Suppression du logo échouée.');
     } finally {
       setDeletingLogo(false);
     }
@@ -210,10 +236,10 @@ export default function BrandingSettingsPage() {
       }
       setSignatureUrl((json?.data?.signature_url as string | null) ?? null);
       await reloadBranding();
-      toast.success('Signature mise à jour.');
+      toast.success(isEn ? 'Signature updated.' : 'Signature mise à jour.');
     } catch (e) {
       toast.error(
-        `Upload de la signature échoué${e instanceof Error ? ` : ${e.message}` : ''}.`,
+        `${isEn ? 'Signature upload failed' : 'Upload de la signature échoué'}${e instanceof Error ? ` : ${e.message}` : ''}.`,
       );
     } finally {
       setUploadingSig(false);
@@ -223,16 +249,25 @@ export default function BrandingSettingsPage() {
 
   const removeSignature = async () => {
     if (!isAdmin) return;
-    if (!confirm('Supprimer la signature ? Les documents utiliseront le rendu texte par défaut.')) return;
+    if (
+      !confirm(
+        isEn
+          ? 'Delete the signature? Documents will use the default text rendering.'
+          : 'Supprimer la signature ? Les documents utiliseront le rendu texte par défaut.',
+      )
+    )
+      return;
     setDeletingSig(true);
     try {
       const res = await fetch('/api/organizations/branding/signature', { method: 'DELETE' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setSignatureUrl(null);
       await reloadBranding();
-      toast.success('Signature supprimée.');
+      toast.success(isEn ? 'Signature deleted.' : 'Signature supprimée.');
     } catch {
-      toast.error('Suppression de la signature échouée.');
+      toast.error(
+        isEn ? 'Failed to delete the signature.' : 'Suppression de la signature échouée.',
+      );
     } finally {
       setDeletingSig(false);
     }
@@ -255,27 +290,35 @@ export default function BrandingSettingsPage() {
     <AppShell>
       <PageHeader
         backHref="/settings"
-        backLabel="Retour aux paramètres"
-        eyebrow="Organisation"
+        backLabel={isEn ? 'Back to settings' : 'Retour aux paramètres'}
+        eyebrow={isEn ? 'Organization' : 'Organisation'}
         title={
           <>
-            Identité{' '}
-            <span className="qc-italic-accent font-editorial italic">visuelle.</span>
+            {isEn ? 'Visual' : 'Identité'}{' '}
+            <span className="qc-italic-accent font-editorial italic">
+              {isEn ? 'identity.' : 'visuelle.'}
+            </span>
           </>
         }
-        description="Branding affiché à vos consultants et à vos clients : sidebar, CV générés, contrats, factures, CRA."
+        description={
+          isEn
+            ? 'Branding shown to your consultants and clients: sidebar, generated CVs, contracts, invoices, CRA.'
+            : 'Branding affiché à vos consultants et à vos clients : sidebar, CV générés, contrats, factures, CRA.'
+        }
         actions={<Palette className="h-5 w-5 text-magenta" />}
       />
 
       {!isAdmin && (
         <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-          Seuls les administrateurs peuvent modifier l'identité visuelle.
+          {isEn
+            ? 'Only administrators can modify the visual identity.'
+            : "Seuls les administrateurs peuvent modifier l'identité visuelle."}
         </div>
       )}
 
       {loading ? (
         <div className="flex items-center gap-2 text-muted-foreground text-sm">
-          <Loader2 className="h-4 w-4 animate-spin" /> Chargement…
+          <Loader2 className="h-4 w-4 animate-spin" /> {isEn ? 'Loading…' : 'Chargement…'}
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -285,11 +328,17 @@ export default function BrandingSettingsPage() {
                 eyebrow="Assets"
                 title={
                   <>
-                    Logo{' '}
-                    <span className="qc-italic-accent font-editorial italic">de marque.</span>
+                    {isEn ? 'Brand' : 'Logo'}{' '}
+                    <span className="qc-italic-accent font-editorial italic">
+                      {isEn ? 'logo.' : 'de marque.'}
+                    </span>
                   </>
                 }
-                description="PNG, JPG, WebP ou SVG — 5 Mo maximum. Affiché en en-tête des CV."
+                description={
+                  isEn
+                    ? 'PNG, JPG, WebP or SVG — 5 MB max. Shown in the header of CVs.'
+                    : 'PNG, JPG, WebP ou SVG — 5 Mo maximum. Affiché en en-tête des CV.'
+                }
               />
               <AppCard variant="default" tone="magenta">
                 <AppCardBody size="md">
@@ -330,7 +379,13 @@ export default function BrandingSettingsPage() {
                         ) : (
                           <Upload className="h-4 w-4" />
                         )}
-                        {logoUrl ? 'Remplacer' : 'Téléverser'}
+                        {logoUrl
+                          ? isEn
+                            ? 'Replace'
+                            : 'Remplacer'
+                          : isEn
+                            ? 'Upload'
+                            : 'Téléverser'}
                       </Button>
                       {logoUrl && (
                         <Button
@@ -345,12 +400,14 @@ export default function BrandingSettingsPage() {
                           ) : (
                             <Trash2 className="h-4 w-4" />
                           )}
-                          Supprimer
+                          {isEn ? 'Delete' : 'Supprimer'}
                         </Button>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Transparent recommandé. À défaut, un logo générique est utilisé.
+                      {isEn
+                        ? 'Transparent background recommended. Otherwise a generic logo is used.'
+                        : 'Transparent recommandé. À défaut, un logo générique est utilisé.'}
                     </p>
                   </div>
                 </div>
@@ -360,14 +417,20 @@ export default function BrandingSettingsPage() {
 
             <section>
               <SectionHeader
-                eyebrow="Document officiel"
+                eyebrow={isEn ? 'Official document' : 'Document officiel'}
                 title={
                   <>
-                    Signature{' '}
-                    <span className="qc-italic-accent font-editorial italic">officielle.</span>
+                    {isEn ? 'Official' : 'Signature'}{' '}
+                    <span className="qc-italic-accent font-editorial italic">
+                      {isEn ? 'signature.' : 'officielle.'}
+                    </span>
                   </>
                 }
-                description="PNG transparent fortement recommandé — 3 Mo maximum. Incrustée dans les contrats, CRA et factures à la place du rendu texte stylisé."
+                description={
+                  isEn
+                    ? 'Transparent PNG strongly recommended — 3 MB max. Embedded in contracts, CRA and invoices in place of the styled text rendering.'
+                    : 'PNG transparent fortement recommandé — 3 Mo maximum. Incrustée dans les contrats, CRA et factures à la place du rendu texte stylisé.'
+                }
                 actions={<PenLine className="h-4 w-4 text-magenta" />}
               />
               <AppCard variant="default" tone="violet">
@@ -383,7 +446,7 @@ export default function BrandingSettingsPage() {
                       />
                     ) : (
                       <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-400">
-                        Aucune signature
+                        {isEn ? 'No signature' : 'Aucune signature'}
                       </span>
                     )}
                   </div>
@@ -411,7 +474,13 @@ export default function BrandingSettingsPage() {
                         ) : (
                           <Upload className="h-4 w-4" />
                         )}
-                        {signatureUrl ? 'Remplacer' : 'Téléverser'}
+                        {signatureUrl
+                          ? isEn
+                            ? 'Replace'
+                            : 'Remplacer'
+                          : isEn
+                            ? 'Upload'
+                            : 'Téléverser'}
                       </Button>
                       {signatureUrl && (
                         <Button
@@ -426,12 +495,14 @@ export default function BrandingSettingsPage() {
                           ) : (
                             <Trash2 className="h-4 w-4" />
                           )}
-                          Supprimer
+                          {isEn ? 'Delete' : 'Supprimer'}
                         </Button>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Scan ou export d'un trait signé, sur fond transparent.
+                      {isEn
+                        ? 'Scan or export of a signed stroke, on a transparent background.'
+                        : "Scan ou export d'un trait signé, sur fond transparent."}
                     </p>
                   </div>
                 </div>
@@ -441,30 +512,38 @@ export default function BrandingSettingsPage() {
 
             <section>
               <SectionHeader
-                eyebrow="Mentions"
+                eyebrow={isEn ? 'Footer' : 'Mentions'}
                 title={
                   <>
-                    Texte{' '}
-                    <span className="qc-italic-accent font-editorial italic">de marque.</span>
+                    {isEn ? 'Brand' : 'Texte'}{' '}
+                    <span className="qc-italic-accent font-editorial italic">
+                      {isEn ? 'text.' : 'de marque.'}
+                    </span>
                   </>
                 }
-                description={`Affiché dans le footer des CV, contrats et factures (ex: "MaSociété — IT Services & Consulting").`}
+                description={
+                  isEn
+                    ? `Shown in the footer of CVs, contracts and invoices (e.g. "MyCompany — IT Services & Consulting").`
+                    : `Affiché dans le footer des CV, contrats et factures (ex: "MaSociété — IT Services & Consulting").`
+                }
               />
               <AppCard variant="default" tone="cyan">
                 <AppCardBody size="md" className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="brand_name">Nom de marque</Label>
+                    <Label htmlFor="brand_name">{isEn ? 'Brand name' : 'Nom de marque'}</Label>
                     <Input
                       id="brand_name"
                       value={brandName}
                       onChange={(e) => setBrandName(e.target.value)}
-                      placeholder={initial?.name ?? 'Votre ESN'}
+                      placeholder={initial?.name ?? (isEn ? 'Your company' : 'Votre ESN')}
                       disabled={!isAdmin}
                       maxLength={120}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="footer_tagline">Tagline du footer</Label>
+                    <Label htmlFor="footer_tagline">
+                      {isEn ? 'Footer tagline' : 'Tagline du footer'}
+                    </Label>
                     <Input
                       id="footer_tagline"
                       value={footerTagline}
@@ -483,11 +562,17 @@ export default function BrandingSettingsPage() {
                 eyebrow="Palette"
                 title={
                   <>
-                    Couleurs{' '}
-                    <span className="qc-italic-accent font-editorial italic">de marque.</span>
+                    {isEn ? 'Brand' : 'Couleurs'}{' '}
+                    <span className="qc-italic-accent font-editorial italic">
+                      {isEn ? 'colors.' : 'de marque.'}
+                    </span>
                   </>
                 }
-                description="Séparateurs, intitulés de poste et accents décoratifs des CV."
+                description={
+                  isEn
+                    ? 'Separators, job titles and decorative accents on CVs.'
+                    : 'Séparateurs, intitulés de poste et accents décoratifs des CV.'
+                }
                 actions={
                   <Button
                     type="button"
@@ -497,22 +582,30 @@ export default function BrandingSettingsPage() {
                     onClick={resetColors}
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
-                    Réinitialiser
+                    {isEn ? 'Reset' : 'Réinitialiser'}
                   </Button>
                 }
               />
               <AppCard variant="default" tone="rose">
                 <AppCardBody size="md" className="grid gap-4 sm:grid-cols-2">
                   <ColorField
-                    label="Couleur principale"
-                    hint="Utilisée pour les titres, bandeaux et intitulés."
+                    label={isEn ? 'Primary color' : 'Couleur principale'}
+                    hint={
+                      isEn
+                        ? 'Used for headings, banners and titles.'
+                        : 'Utilisée pour les titres, bandeaux et intitulés.'
+                    }
                     value={primary}
                     onChange={setPrimary}
                     disabled={!isAdmin}
                   />
                   <ColorField
-                    label="Couleur d'accent"
-                    hint="Utilisée pour les puces, séparateurs et highlights."
+                    label={isEn ? 'Accent color' : "Couleur d'accent"}
+                    hint={
+                      isEn
+                        ? 'Used for bullets, separators and highlights.'
+                        : 'Utilisée pour les puces, séparateurs et highlights.'
+                    }
                     value={accent}
                     onChange={setAccent}
                     disabled={!isAdmin}
@@ -526,11 +619,17 @@ export default function BrandingSettingsPage() {
                 eyebrow="Layout"
                 title={
                   <>
-                    Template{' '}
-                    <span className="qc-italic-accent font-editorial italic">par défaut.</span>
+                    {isEn ? 'Default' : 'Template'}{' '}
+                    <span className="qc-italic-accent font-editorial italic">
+                      {isEn ? 'template.' : 'par défaut.'}
+                    </span>
                   </>
                 }
-                description="Layout présélectionné à l'ouverture du CV Optimizer. Chaque utilisateur peut toujours changer ponctuellement."
+                description={
+                  isEn
+                    ? 'Layout preselected when opening the CV Optimizer. Each user can still switch it on a one-off basis.'
+                    : "Layout présélectionné à l'ouverture du CV Optimizer. Chaque utilisateur peut toujours changer ponctuellement."
+                }
                 actions={<LayoutTemplate className="h-4 w-4 text-magenta" />}
               />
               <AppCard variant="default" tone="amber">
@@ -555,11 +654,13 @@ export default function BrandingSettingsPage() {
                           <span className="font-semibold text-sm">{opt.name}</span>
                           {selected && (
                             <span className="text-[10px] uppercase tracking-wider text-violet-glow font-bold">
-                              Sélectionné
+                              {isEn ? 'Selected' : 'Sélectionné'}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">{opt.description}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {isEn ? opt.description_en : opt.description}
+                        </p>
                       </button>
                     );
                   })}
@@ -575,7 +676,7 @@ export default function BrandingSettingsPage() {
                 className="bg-gradient-to-r from-violet-glow to-magenta-neon hover:opacity-95"
               >
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                Enregistrer
+                {isEn ? 'Save' : 'Enregistrer'}
               </Button>
             </div>
           </div>
@@ -585,11 +686,13 @@ export default function BrandingSettingsPage() {
               eyebrow="Preview"
               title={
                 <>
-                  Aperçu{' '}
-                  <span className="qc-italic-accent font-editorial italic">CV.</span>
+                  {isEn ? 'CV' : 'Aperçu'}{' '}
+                  <span className="qc-italic-accent font-editorial italic">
+                    {isEn ? 'preview.' : 'CV.'}
+                  </span>
                 </>
               }
-              description="Rendu appliqué sur les CV."
+              description={isEn ? 'Rendering applied to CVs.' : 'Rendu appliqué sur les CV.'}
             />
             <AppCard variant="luminous" tone="magenta">
               <AppCardBody size="md">
@@ -617,15 +720,17 @@ export default function BrandingSettingsPage() {
                       Jean Dupont
                     </div>
                     <div className="text-[13px] font-semibold mt-1" style={{ color: primary }}>
-                      Consultant Senior
+                      {isEn ? 'Senior Consultant' : 'Consultant Senior'}
                     </div>
                   </div>
                   <div className="mt-4 text-[10px] text-neutral-400 flex justify-between border-t border-neutral-200 pt-2">
                     <span>
-                      {brandName.trim() || initial?.name || 'Votre ESN'}
+                      {brandName.trim() || initial?.name || (isEn ? 'Your company' : 'Votre ESN')}
                       {(footerTagline.trim() || '') && ` — ${footerTagline.trim()}`}
                     </span>
-                    <span className="uppercase tracking-wider">Confidentiel</span>
+                    <span className="uppercase tracking-wider">
+                      {isEn ? 'Confidential' : 'Confidentiel'}
+                    </span>
                   </div>
                 </div>
               </AppCardBody>

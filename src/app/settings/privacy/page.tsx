@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useOrganization } from '@/lib/auth/context';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { notifyError, notifyInfo } from '@/lib/notify';
 import {
   PageHeader,
@@ -28,6 +29,8 @@ import {
 
 export default function PrivacySettingsPage() {
   const { user, role } = useOrganization();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const isAdmin = role === 'admin';
   const [exporting, setExporting] = useState(false);
   const [exportingOrg, setExportingOrg] = useState(false);
@@ -42,7 +45,7 @@ export default function PrivacySettingsPage() {
       const res = await fetch('/api/me/export', { method: 'POST' });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        notifyError(body?.message ?? 'Export impossible pour le moment.');
+        notifyError(body?.message ?? (isEn ? 'Export unavailable at the moment.' : 'Export impossible pour le moment.'));
         return;
       }
       const blob = await res.blob();
@@ -59,7 +62,7 @@ export default function PrivacySettingsPage() {
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      notifyInfo('Vos données ont été téléchargées.');
+      notifyInfo(isEn ? 'Your data has been downloaded.' : 'Vos données ont été téléchargées.');
     } finally {
       setExporting(false);
     }
@@ -71,7 +74,7 @@ export default function PrivacySettingsPage() {
       const res = await fetch('/api/organizations/export', { method: 'POST' });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        notifyError(body?.message ?? 'Export de l’organisation impossible pour le moment.');
+        notifyError(body?.message ?? (isEn ? 'Organization export unavailable at the moment.' : 'Export de l’organisation impossible pour le moment.'));
         return;
       }
       const blob = await res.blob();
@@ -87,7 +90,7 @@ export default function PrivacySettingsPage() {
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      notifyInfo('Les données de votre organisation ont été téléchargées.');
+      notifyInfo(isEn ? 'Your organization data has been downloaded.' : 'Les données de votre organisation ont été téléchargées.');
     } finally {
       setExportingOrg(false);
     }
@@ -101,7 +104,7 @@ export default function PrivacySettingsPage() {
     e.preventDefault();
     if (!user?.email) return;
     if (confirmEmail.trim().toLowerCase() !== user.email.toLowerCase()) {
-      notifyError('L’email saisi ne correspond pas à celui de votre compte.');
+      notifyError(isEn ? 'The email entered does not match your account email.' : 'L’email saisi ne correspond pas à celui de votre compte.');
       return;
     }
     setDeleting(true);
@@ -116,13 +119,13 @@ export default function PrivacySettingsPage() {
       });
       const body = await res.json().catch(() => null);
       if (!res.ok) {
-        notifyError(body?.message ?? 'Demande impossible pour le moment.');
+        notifyError(body?.message ?? (isEn ? 'Request unavailable at the moment.' : 'Demande impossible pour le moment.'));
         return;
       }
       setDeleteReceipt(body?.data?.reference ?? 'OK');
       setConfirmEmail('');
       setReason('');
-      notifyInfo('Votre demande a été enregistrée.');
+      notifyInfo(isEn ? 'Your request has been recorded.' : 'Votre demande a été enregistrée.');
     } finally {
       setDeleting(false);
     }
@@ -132,38 +135,51 @@ export default function PrivacySettingsPage() {
     <AppShell>
       <PageHeader
         backHref="/settings"
-        backLabel="Retour aux paramètres"
-        eyebrow="Organisation"
+        backLabel={isEn ? 'Back to settings' : 'Retour aux paramètres'}
+        eyebrow={isEn ? 'Organization' : 'Organisation'}
         title={
           <>
-            Mes{' '}
-            <span className="qc-italic-accent font-editorial italic">données.</span>
+            {isEn ? 'My' : 'Mes'}{' '}
+            <span className="qc-italic-accent font-editorial italic">
+              {isEn ? 'data.' : 'données.'}
+            </span>
           </>
         }
-        description="Exercez vos droits RGPD : accédez à vos données, gérez votre consentement, ou demandez la suppression de votre compte."
+        description={
+          isEn
+            ? 'Exercise your GDPR rights: access your data, manage your consent, or request the deletion of your account.'
+            : 'Exercez vos droits RGPD : accédez à vos données, gérez votre consentement, ou demandez la suppression de votre compte.'
+        }
       />
 
       <div className="space-y-8 max-w-3xl">
         <section>
           <SectionHeader
-            eyebrow="Conformité"
+            eyebrow={isEn ? 'Compliance' : 'Conformité'}
             title={
               <>
-                Vos{' '}
-                <span className="qc-italic-accent font-editorial italic">droits.</span>
+                {isEn ? 'Your' : 'Vos'}{' '}
+                <span className="qc-italic-accent font-editorial italic">
+                  {isEn ? 'rights.' : 'droits.'}
+                </span>
               </>
             }
-            description="Centrium agit en sous-traitant pour les données métier de votre organisation, et en responsable de traitement pour vos données de compte."
+            description={
+              isEn
+                ? 'Centrium acts as a processor for your organization’s business data, and as a controller for your account data.'
+                : 'Centrium agit en sous-traitant pour les données métier de votre organisation, et en responsable de traitement pour vos données de compte.'
+            }
             actions={<ShieldCheck className="h-4 w-4 text-magenta" />}
           />
           <AppCard variant="default" tone="violet">
             <AppCardBody size="md" className="text-sm text-muted-foreground space-y-3">
               <p>
-                Vous disposez d’un droit d’accès, de rectification, d’effacement, de
-                limitation, d’opposition et de portabilité.
+                {isEn
+                  ? 'You have the right to access, rectify, erase, restrict, object to and port your data.'
+                  : 'Vous disposez d’un droit d’accès, de rectification, d’effacement, de limitation, d’opposition et de portabilité.'}
               </p>
               <p>
-                Pour toute question :{' '}
+                {isEn ? 'For any question:' : 'Pour toute question :'}{' '}
                 <a
                   href="mailto:contact@centrium-platform.com"
                   className="text-magenta hover:underline"
@@ -176,19 +192,19 @@ export default function PrivacySettingsPage() {
                   href="/legal/privacy"
                   className="inline-flex items-center px-3 py-1.5 rounded-full border border-hairline hover:bg-white/5 transition"
                 >
-                  Politique de confidentialité
+                  {isEn ? 'Privacy policy' : 'Politique de confidentialité'}
                 </Link>
                 <Link
                   href="/legal/dpa"
                   className="inline-flex items-center px-3 py-1.5 rounded-full border border-hairline hover:bg-white/5 transition"
                 >
-                  Accord de sous-traitance (DPA)
+                  {isEn ? 'Data Processing Agreement (DPA)' : 'Accord de sous-traitance (DPA)'}
                 </Link>
                 <Link
                   href="/engagements"
                   className="inline-flex items-center px-3 py-1.5 rounded-full border border-hairline hover:bg-white/5 transition"
                 >
-                  Sécurité & conformité
+                  {isEn ? 'Security & compliance' : 'Sécurité & conformité'}
                 </Link>
               </div>
             </AppCardBody>
@@ -200,13 +216,17 @@ export default function PrivacySettingsPage() {
             eyebrow="Export"
             title={
               <>
-                Télécharger{' '}
+                {isEn ? 'Download' : 'Télécharger'}{' '}
                 <span className="qc-italic-accent font-editorial italic">
-                  mes données.
+                  {isEn ? 'my data.' : 'mes données.'}
                 </span>
               </>
             }
-            description="Fichier JSON contenant identité, profil, todos personnelles, activité récente. Les données métier de votre organisation sont gérées séparément."
+            description={
+              isEn
+                ? 'JSON file containing your identity, profile, personal todos and recent activity. Your organization’s business data is handled separately.'
+                : 'Fichier JSON contenant identité, profil, todos personnelles, activité récente. Les données métier de votre organisation sont gérées séparément.'
+            }
             actions={<Download className="h-4 w-4 text-magenta" />}
           />
           <AppCard variant="default" tone="emerald">
@@ -217,7 +237,7 @@ export default function PrivacySettingsPage() {
                 ) : (
                   <Download className="h-4 w-4" />
                 )}
-                Télécharger mes données (JSON)
+                {isEn ? 'Download my data (JSON)' : 'Télécharger mes données (JSON)'}
               </Button>
             </AppCardBody>
           </AppCard>
@@ -226,16 +246,20 @@ export default function PrivacySettingsPage() {
         {isAdmin && (
           <section>
             <SectionHeader
-              eyebrow="Portabilité"
+              eyebrow={isEn ? 'Portability' : 'Portabilité'}
               title={
                 <>
-                  Exporter{' '}
+                  {isEn ? 'Export' : 'Exporter'}{' '}
                   <span className="qc-italic-accent font-editorial italic">
-                    l’organisation.
+                    {isEn ? 'the organization.' : 'l’organisation.'}
                   </span>
                 </>
               }
-              description="Archive JSON complète des données métier de votre organisation : consultants, contacts, sociétés, offres, opportunités, missions, contrats, CRA et factures. Utile avant de quitter Centrium (art. 20 RGPD)."
+              description={
+                isEn
+                  ? 'Complete JSON archive of your organization’s business data: consultants, contacts, companies, job offers, opportunities, missions, contracts, CRA and invoices. Useful before leaving Centrium (art. 20 GDPR).'
+                  : 'Archive JSON complète des données métier de votre organisation : consultants, contacts, sociétés, offres, opportunités, missions, contrats, CRA et factures. Utile avant de quitter Centrium (art. 20 RGPD).'
+              }
               actions={<Building2 className="h-4 w-4 text-magenta" />}
             />
             <AppCard variant="default" tone="violet">
@@ -246,11 +270,14 @@ export default function PrivacySettingsPage() {
                   ) : (
                     <Building2 className="h-4 w-4" />
                   )}
-                  Exporter toutes les données de l’organisation (JSON)
+                  {isEn
+                    ? 'Export all organization data (JSON)'
+                    : 'Exporter toutes les données de l’organisation (JSON)'}
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  Les fichiers stockés (CV, PDF de contrats/factures) restent
-                  téléchargeables individuellement depuis leurs fiches.
+                  {isEn
+                    ? 'Stored files (CVs, contract/invoice PDFs) remain downloadable individually from their records.'
+                    : 'Les fichiers stockés (CV, PDF de contrats/factures) restent téléchargeables individuellement depuis leurs fiches.'}
                 </p>
               </AppCardBody>
             </AppCard>
@@ -259,21 +286,27 @@ export default function PrivacySettingsPage() {
 
         <section>
           <SectionHeader
-            eyebrow="Consentement"
+            eyebrow={isEn ? 'Consent' : 'Consentement'}
             title={
               <>
-                Préférences{' '}
-                <span className="qc-italic-accent font-editorial italic">cookies.</span>
+                {isEn ? 'Cookie' : 'Préférences'}{' '}
+                <span className="qc-italic-accent font-editorial italic">
+                  {isEn ? 'preferences.' : 'cookies.'}
+                </span>
               </>
             }
-            description="Modifiez à tout moment les catégories de cookies que vous acceptez sur Centrium. Les cookies essentiels (session, sécurité) restent toujours actifs."
+            description={
+              isEn
+                ? 'Change the cookie categories you accept on Centrium at any time. Essential cookies (session, security) always remain active.'
+                : 'Modifiez à tout moment les catégories de cookies que vous acceptez sur Centrium. Les cookies essentiels (session, sécurité) restent toujours actifs.'
+            }
             actions={<Cookie className="h-4 w-4 text-magenta" />}
           />
           <AppCard variant="default" tone="cyan">
             <AppCardBody size="md">
               <Button onClick={openCookiePreferences} variant="outline">
                 <Cookie className="h-4 w-4" />
-                Ouvrir les préférences
+                {isEn ? 'Open preferences' : 'Ouvrir les préférences'}
               </Button>
             </AppCardBody>
           </AppCard>
@@ -281,14 +314,20 @@ export default function PrivacySettingsPage() {
 
         <section>
           <SectionHeader
-            eyebrow="Suppression"
+            eyebrow={isEn ? 'Deletion' : 'Suppression'}
             title={
               <>
-                Supprimer{' '}
-                <span className="qc-italic-accent font-editorial italic">mon compte.</span>
+                {isEn ? 'Delete' : 'Supprimer'}{' '}
+                <span className="qc-italic-accent font-editorial italic">
+                  {isEn ? 'my account.' : 'mon compte.'}
+                </span>
               </>
             }
-            description="Demande traitée sous 30 jours conformément au RGPD. Les données soumises à obligation comptable sont conservées dans les délais légaux."
+            description={
+              isEn
+                ? 'Request processed within 30 days in accordance with GDPR. Data subject to accounting obligations is retained for the legally required periods.'
+                : 'Demande traitée sous 30 jours conformément au RGPD. Les données soumises à obligation comptable sont conservées dans les délais légaux.'
+            }
             actions={<Trash2 className="h-4 w-4 text-rose-400" />}
           />
           <AppCard variant="default" tone="rose">
@@ -296,13 +335,14 @@ export default function PrivacySettingsPage() {
               {deleteReceipt ? (
                 <div className="rounded-lg border border-emerald-400/30 bg-emerald-400/5 p-4 text-sm">
                   <div className="font-semibold text-emerald-300 mb-1">
-                    Demande enregistrée
+                    {isEn ? 'Request recorded' : 'Demande enregistrée'}
                   </div>
                   <p className="text-muted-foreground">
-                    Référence :{' '}
+                    {isEn ? 'Reference:' : 'Référence :'}{' '}
                     <span className="font-mono text-foreground">{deleteReceipt}</span>
-                    . Vous recevrez un email de confirmation. Pour annuler la
-                    demande, écrivez à{' '}
+                    {isEn
+                      ? '. You will receive a confirmation email. To cancel the request, write to '
+                      : '. Vous recevrez un email de confirmation. Pour annuler la demande, écrivez à '}
                     <a
                       href="mailto:contact@centrium-platform.com"
                       className="text-magenta hover:underline"
@@ -317,35 +357,47 @@ export default function PrivacySettingsPage() {
                   <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-200 flex gap-2">
                     <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                     <div>
-                      Cette demande est <strong>irréversible</strong> une fois
-                      traitée. Vos accès, votre profil personnel et vos todos
-                      seront supprimés. Si vous êtes le seul administrateur de
-                      votre organisation, contactez-nous d’abord pour transférer
-                      la gestion.
+                      {isEn ? (
+                        <>
+                          This request is <strong>irreversible</strong> once
+                          processed. Your access, your personal profile and your
+                          todos will be deleted. If you are the sole administrator
+                          of your organization, contact us first to transfer
+                          management.
+                        </>
+                      ) : (
+                        <>
+                          Cette demande est <strong>irréversible</strong> une fois
+                          traitée. Vos accès, votre profil personnel et vos todos
+                          seront supprimés. Si vous êtes le seul administrateur de
+                          votre organisation, contactez-nous d’abord pour transférer
+                          la gestion.
+                        </>
+                      )}
                     </div>
                   </div>
                   <div>
                     <Label htmlFor="confirm-email">
-                      Confirmez en saisissant votre email
+                      {isEn ? 'Confirm by entering your email' : 'Confirmez en saisissant votre email'}
                     </Label>
                     <Input
                       id="confirm-email"
                       type="email"
                       autoComplete="off"
-                      placeholder={user?.email ?? 'votre@email.com'}
+                      placeholder={user?.email ?? (isEn ? 'your@email.com' : 'votre@email.com')}
                       value={confirmEmail}
                       onChange={(e) => setConfirmEmail(e.target.value)}
                       required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="reason">Motif (optionnel)</Label>
+                    <Label htmlFor="reason">{isEn ? 'Reason (optional)' : 'Motif (optionnel)'}</Label>
                     <Textarea
                       id="reason"
                       rows={3}
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
-                      placeholder="Aidez-nous à comprendre — entièrement facultatif."
+                      placeholder={isEn ? 'Help us understand — entirely optional.' : 'Aidez-nous à comprendre — entièrement facultatif.'}
                     />
                   </div>
                   <Button
@@ -359,7 +411,7 @@ export default function PrivacySettingsPage() {
                     ) : (
                       <Trash2 className="h-4 w-4" />
                     )}
-                    Envoyer la demande de suppression
+                    {isEn ? 'Send deletion request' : 'Envoyer la demande de suppression'}
                   </Button>
                 </form>
               )}
