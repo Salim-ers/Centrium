@@ -80,20 +80,43 @@ export default function SubprocessorsPage() {
     <LegalShell
       title="Sous-traitants"
       updatedAt="4 juin 2026"
-      currentSlug="privacy"
+      currentSlug="subprocessors"
     >
       <p>
-        En tant que sous-traitant au sens de l&apos;article 28 du RGPD, QuadCore SAS
-        (éditeur de Centrium) recourt à un nombre limité de sous-traitants
-        ultérieurs pour fournir son service. Cette page liste publiquement ces
-        sous-traitants et les conditions de leur intervention.
+        Cette page liste publiquement les prestataires tiers auxquels QuadCore SAS
+        (éditeur de Centrium) recourt, et constitue l&apos;annexe « Sous-traitants
+        ultérieurs » de l&apos;<a href="/legal/dpa" className="text-magenta hover:underline">Accord de
+        sous-traitance (DPA)</a> au sens de l&apos;article 28.3 du RGPD.
       </p>
 
       <p>
-        <strong>Notification de changement.</strong> Toute modification de cette
-        liste (ajout, retrait, changement de localisation) sera notifiée aux
-        clients par email au moins 30 jours avant prise d&apos;effet. Les clients
-        disposent d&apos;un droit d&apos;objection raisonné pendant cette période.
+        <strong>Rôles.</strong> Pour les données que ses clients ESN saisissent dans
+        Centrium (consultants, contacts, contrats, factures), QuadCore agit en{' '}
+        <strong>sous-traitant</strong> (art. 28) : les prestataires ci-dessous sont
+        alors des <strong>sous-traitants ultérieurs</strong>. Pour les données de
+        compte, de facturation et de prospection de ses propres utilisateurs, QuadCore
+        agit en <strong>responsable de traitement</strong> et ces prestataires sont ses
+        sous-traitants directs. Cette page les recense tous par transparence.
+      </p>
+
+      <p>
+        <strong>Répercussion des obligations (art. 28.4).</strong> QuadCore impose
+        contractuellement à chaque sous-traitant ultérieur les <strong>mêmes obligations
+        de protection des données</strong> que celles de son propre DPA et{' '}
+        <strong>demeure pleinement responsable</strong> envers ses clients de leur
+        exécution.
+      </p>
+
+      <p>
+        <strong>Notification & objection.</strong> Toute modification de cette liste
+        (ajout, retrait, changement de localisation) est notifiée aux clients par email
+        (adresse du compte) et via la Plateforme au moins <strong>30 jours</strong> avant
+        prise d&apos;effet. Le client peut s&apos;y opposer pour motif légitime pendant
+        ce délai ; à défaut d&apos;accord sous 30 jours après l&apos;objection, il peut{' '}
+        <strong>résilier sans pénalité</strong> les prestations affectées, avec
+        remboursement au prorata des sommes payées d&apos;avance et non consommées. Pour
+        s&apos;abonner aux mises à jour :{' '}
+        <a href="mailto:dpo@centrium-platform.com" className="text-magenta hover:underline">dpo@centrium-platform.com</a>.
       </p>
 
       {SUBPROCESSORS.map((sp) => (

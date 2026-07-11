@@ -33,18 +33,30 @@ export function CookiePolicy() {
         <code>centrium-landing-locale</code> et <code>centrium-cookie-consent</code>.
       </p>
 
-      <h3>2.2 Cookies de mesure d&apos;audience (soumis au consentement si non anonymisés)</h3>
+      <h3>2.2 Base légale des traceurs</h3>
       <p>
-        Lorsqu&apos;ils sont activés, ces cookies permettent d&apos;établir des statistiques de fréquentation. Centrium
-        privilégie des outils de mesure d&apos;audience <strong>exemptés de consentement</strong> (configuration
-        anonymisée, durée de vie courte, absence de croisement, pas de transfert hors UE) conformément à la
-        recommandation CNIL.
+        Les traceurs <strong>strictement nécessaires</strong> ci-dessus reposent sur l&apos;exemption de consentement
+        prévue à l&apos;<strong>article 82, alinéa 2, de la Loi Informatique et Libertés</strong>. Tout traceur non
+        essentiel (mesure d&apos;audience non exemptée, communication) serait subordonné à votre{' '}
+        <strong>consentement préalable</strong>, libre et univoque (art. 6-1-a et 7 du RGPD ; art. 82 LIL), recueilli
+        via le bandeau et révocable à tout moment.
       </p>
 
-      <h3>2.3 Absence de cookies publicitaires et de réseaux sociaux</h3>
+      <h3>2.3 Mesure d&apos;audience, publicité, réseaux sociaux</h3>
       <p>
-        La Plateforme <strong>n&apos;utilise aucun cookie</strong> à finalité publicitaire, de profilage, ni de réseau
-        social.
+        À la date de la présente politique, la Plateforme <strong>ne dépose aucun cookie de mesure d&apos;audience</strong>,
+        ni aucun cookie à finalité publicitaire, de profilage ou de réseau social. Les catégories « mesure
+        d&apos;audience » et « communication » éventuellement présentes dans le module de préférences sont réservées à une
+        évolution future : le cas échéant, la présente politique sera mise à jour et votre consentement recueilli{' '}
+        <strong>avant tout dépôt</strong>.
+      </p>
+
+      <h3>2.4 Transferts hors Union européenne</h3>
+      <p>
+        Les traceurs Stripe (prévention de la fraude) sont déposés par un prestataire dont des traitements peuvent
+        impliquer un transfert hors UE. Ces transferts sont encadrés par les <strong>garanties appropriées</strong> du
+        chapitre V du RGPD (clauses contractuelles types de la Commission et/ou EU-US Data Privacy Framework). Copie sur
+        demande à <a href="mailto:contact@centrium-platform.com">contact@centrium-platform.com</a>.
       </p>
 
       <h2>3. Gestion de vos préférences</h2>
@@ -72,15 +84,25 @@ export function CookiePolicy() {
         recommandation CNIL. À l&apos;expiration, votre consentement vous sera redemandé.
       </p>
 
-      <h2>5. Contact</h2>
+      <h2>5. Vos droits</h2>
+      <p>
+        Vous pouvez <strong>retirer votre consentement</strong> aux traceurs non essentiels à tout moment, aussi
+        facilement que vous l&apos;avez donné, via le lien « Gérer mes cookies » du pied de page (art. 7-3 du RGPD). Si
+        vous estimez que le traitement de vos données n&apos;est pas conforme, vous disposez du droit d&apos;introduire
+        une <strong>réclamation auprès de la CNIL</strong> (3 place de Fontenoy, TSA 80715, 75334 Paris Cedex 07 —{' '}
+        <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer">www.cnil.fr</a>), conformément à
+        l&apos;article 77 du RGPD.
+      </p>
+
+      <h2>6. Contact</h2>
       <p>
         Pour toute question relative aux cookies, écrivez à{' '}
         <a href="mailto:contact@centrium-platform.com">contact@centrium-platform.com</a> ou consultez notre{' '}
-        <strong>Politique de confidentialité</strong>.
+        <a href="/legal/privacy" className="text-magenta hover:underline">Politique de confidentialité</a>.
       </p>
 
       <hr />
-      <p className="text-sm text-white/50"><em>Dernière mise à jour : avril 2026</em></p>
+      <p className="text-sm text-white/50"><em>Dernière mise à jour : juillet 2026</em></p>
     </div>
   );
 }

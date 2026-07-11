@@ -10,6 +10,7 @@ export const LEGAL_PAGES = [
   { slug: 'cgu', label: 'CGU / CGS', href: '/legal/cgu' },
   { slug: 'cookies', label: 'Cookies', href: '/legal/cookies' },
   { slug: 'dpa', label: 'DPA (sous-traitance)', href: '/legal/dpa' },
+  { slug: 'subprocessors', label: 'Sous-traitants', href: '/legal/subprocessors' },
 ] as const;
 
 export type LegalSlug = (typeof LEGAL_PAGES)[number]['slug'];
