@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import {
   parseCsv,
   csvRowsToConsultants,
@@ -34,6 +35,8 @@ export function CsvImportDialog({
   isProspect = false,
   onImported,
 }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [drafts, setDrafts] = useState<ImportRowDraft[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
@@ -48,17 +51,17 @@ export function CsvImportDialog({
 
   async function handleFile(file: File) {
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Fichier trop gros (5 Mo max).');
+      toast.error(isEn ? 'File too large (5 MB max).' : 'Fichier trop gros (5 Mo max).');
       return;
     }
     const text = await file.text();
     const { rows } = parseCsv(text);
     if (rows.length === 0) {
-      toast.error('CSV vide ou illisible.');
+      toast.error(isEn ? 'Empty or unreadable CSV.' : 'CSV vide ou illisible.');
       return;
     }
     if (rows.length > 500) {
-      toast.error('Maximum 500 lignes par import.');
+      toast.error(isEn ? 'Maximum 500 rows per import.' : 'Maximum 500 lignes par import.');
       return;
     }
     const parsed = csvRowsToConsultants(rows);
@@ -69,7 +72,7 @@ export function CsvImportDialog({
   async function handleImport() {
     const valid = drafts.filter((d) => d.parsed !== null).map((d) => d.parsed!);
     if (valid.length === 0) {
-      toast.error('Aucune ligne valide à importer.');
+      toast.error(isEn ? 'No valid row to import.' : 'Aucune ligne valide à importer.');
       return;
     }
     setImporting(true);
@@ -85,20 +88,27 @@ export function CsvImportDialog({
         return;
       }
       if (!res.ok) {
-        toast.error(body.message ?? `Import échoué (${res.status})`);
+        toast.error(body.message ?? (isEn ? `Import failed (${res.status})` : `Import échoué (${res.status})`));
         return;
       }
       const inserted = body.inserted as number;
       const errCount = (body.errors as unknown[])?.length ?? 0;
+      const noun = isProspect ? (isEn ? 'prospect' : 'prospect') : (isEn ? 'consultant' : 'consultant');
       toast.success(
-        `${inserted} ${isProspect ? 'prospect' : 'consultant'}${inserted > 1 ? 's' : ''} importé${inserted > 1 ? 's' : ''}` +
-          (errCount > 0 ? ` (${errCount} en erreur côté serveur)` : ''),
+        isEn
+          ? `${inserted} ${noun}${inserted > 1 ? 's' : ''} imported` +
+              (errCount > 0 ? ` (${errCount} failed server-side)` : '')
+          : `${inserted} ${noun}${inserted > 1 ? 's' : ''} importé${inserted > 1 ? 's' : ''}` +
+              (errCount > 0 ? ` (${errCount} en erreur côté serveur)` : ''),
       );
       onImported?.(inserted);
       onOpenChange(false);
       reset();
     } catch (e) {
-      toast.error(`Erreur réseau : ${e instanceof Error ? e.message : 'inconnue'}`);
+      toast.error(
+        (isEn ? 'Network error: ' : 'Erreur réseau : ') +
+          (e instanceof Error ? e.message : isEn ? 'unknown' : 'inconnue'),
+      );
     } finally {
       setImporting(false);
     }
@@ -106,6 +116,8 @@ export function CsvImportDialog({
 
   const validCount = drafts.filter((d) => d.parsed !== null).length;
   const errorCount = drafts.length - validCount;
+  const noun = isProspect ? (isEn ? 'prospects' : 'prospects') : (isEn ? 'consultants' : 'consultants');
+  const nounSingular = isProspect ? 'prospect' : 'consultant';
 
   return (
     <>
@@ -125,17 +137,32 @@ export function CsvImportDialog({
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            Importer un CSV de {isProspect ? 'prospects' : 'consultants'}
+            {isEn ? `Import a ${noun} CSV` : `Importer un CSV de ${noun}`}
           </DialogTitle>
           <DialogDescription>
-            Format attendu : 1 ligne par profil avec en-têtes. Colonnes minimum :
-            <code className="mx-1 text-violet-300">first_name</code>,
-            <code className="mx-1 text-violet-300">last_name</code>,
-            <code className="mx-1 text-violet-300">job_title</code>,
-            <code className="mx-1 text-violet-300">seniority</code> (junior/confirmed/senior/expert/lead/architect),
-            <code className="mx-1 text-violet-300">years_experience</code>. Optionnel :
-            email, phone, linkedin_url, sub_title, city, country, daily_rate_eur, status, summary.
-            Séparateur virgule, point-virgule ou tab.
+            {isEn ? (
+              <>
+                Expected format: 1 row per profile with headers. Minimum columns:
+                <code className="mx-1 text-violet-300">first_name</code>,
+                <code className="mx-1 text-violet-300">last_name</code>,
+                <code className="mx-1 text-violet-300">job_title</code>,
+                <code className="mx-1 text-violet-300">seniority</code> (junior/confirmed/senior/expert),
+                <code className="mx-1 text-violet-300">years_experience</code>. Optional:
+                email, phone, linkedin_url, sub_title, city, country, daily_rate_eur, status, summary.
+                Comma, semicolon or tab separator.
+              </>
+            ) : (
+              <>
+                Format attendu : 1 ligne par profil avec en-têtes. Colonnes minimum :
+                <code className="mx-1 text-violet-300">first_name</code>,
+                <code className="mx-1 text-violet-300">last_name</code>,
+                <code className="mx-1 text-violet-300">job_title</code>,
+                <code className="mx-1 text-violet-300">seniority</code> (junior/confirmed/senior/expert),
+                <code className="mx-1 text-violet-300">years_experience</code>. Optionnel :
+                email, phone, linkedin_url, sub_title, city, country, daily_rate_eur, status, summary.
+                Séparateur virgule, point-virgule ou tab.
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -158,10 +185,10 @@ export function CsvImportDialog({
                 onClick={() => fileRef.current?.click()}
               >
                 <FileUp className="h-4 w-4" />
-                Choisir un CSV
+                {isEn ? 'Choose a CSV' : 'Choisir un CSV'}
               </Button>
               <p className="text-xs text-muted-foreground mt-3">
-                Jusqu&apos;à 500 lignes, 5 Mo maximum.
+                {isEn ? 'Up to 500 rows, 5 MB maximum.' : 'Jusqu\'à 500 lignes, 5 Mo maximum.'}
               </p>
             </div>
           ) : (
@@ -171,12 +198,12 @@ export function CsvImportDialog({
                 <div className="flex items-center gap-3">
                   <span className="inline-flex items-center gap-1 text-emerald-300">
                     <CheckCircle2 className="h-3.5 w-3.5" />
-                    {validCount} valides
+                    {validCount} {isEn ? 'valid' : 'valides'}
                   </span>
                   {errorCount > 0 && (
                     <span className="inline-flex items-center gap-1 text-red-300">
                       <AlertCircle className="h-3.5 w-3.5" />
-                      {errorCount} en erreur
+                      {errorCount} {isEn ? 'in error' : 'en erreur'}
                     </span>
                   )}
                   <Button
@@ -185,7 +212,7 @@ export function CsvImportDialog({
                     size="sm"
                     onClick={reset}
                   >
-                    Recommencer
+                    {isEn ? 'Start over' : 'Recommencer'}
                   </Button>
                 </div>
               </div>
@@ -196,11 +223,11 @@ export function CsvImportDialog({
                     <thead className="bg-white/[0.02] sticky top-0">
                       <tr className="text-left text-white/60">
                         <th className="px-3 py-2 font-semibold">#</th>
-                        <th className="px-3 py-2 font-semibold">Nom</th>
-                        <th className="px-3 py-2 font-semibold">Intitulé</th>
-                        <th className="px-3 py-2 font-semibold">Niv.</th>
-                        <th className="px-3 py-2 font-semibold">TJM</th>
-                        <th className="px-3 py-2 font-semibold">Statut</th>
+                        <th className="px-3 py-2 font-semibold">{isEn ? 'Name' : 'Nom'}</th>
+                        <th className="px-3 py-2 font-semibold">{isEn ? 'Title' : 'Intitulé'}</th>
+                        <th className="px-3 py-2 font-semibold">{isEn ? 'Lvl' : 'Niv.'}</th>
+                        <th className="px-3 py-2 font-semibold">{isEn ? 'Day rate' : 'TJM'}</th>
+                        <th className="px-3 py-2 font-semibold">{isEn ? 'Status' : 'Statut'}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -242,7 +269,7 @@ export function CsvImportDialog({
                                       d.raw.prenom ||
                                       '').trim()}{' '}
                                     {(d.raw.last_name || d.raw.nom || '').trim() ||
-                                      '(ligne inconnue)'}
+                                      (isEn ? '(unknown row)' : '(ligne inconnue)')}
                                   </div>
                                   <div className="text-[11px] mt-0.5">
                                     {d.errors.join(' · ')}
@@ -268,7 +295,7 @@ export function CsvImportDialog({
             onClick={() => onOpenChange(false)}
             disabled={importing}
           >
-            Annuler
+            {isEn ? 'Cancel' : 'Annuler'}
           </Button>
           <Button
             type="button"
@@ -276,8 +303,8 @@ export function CsvImportDialog({
             onClick={handleImport}
           >
             {importing && <Loader2 className="h-4 w-4 animate-spin" />}
-            Importer {validCount > 0 ? `${validCount} ` : ''}
-            {isProspect ? 'prospect' : 'consultant'}
+            {isEn ? 'Import' : 'Importer'} {validCount > 0 ? `${validCount} ` : ''}
+            {nounSingular}
             {validCount > 1 ? 's' : ''}
           </Button>
         </DialogFooter>

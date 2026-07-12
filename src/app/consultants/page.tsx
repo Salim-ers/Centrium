@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { useConsultantStatusLabels, useSeniorityLabels } from '@/lib/i18n/useBadges';
 import {
   notifyDestructive,
@@ -94,6 +94,8 @@ import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 function ConsultantsPageInner() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const { format: formatCurrency } = useCurrency();
   const consultantStatusI18n = useConsultantStatusLabels();
   const seniorityI18n = useSeniorityLabels();
@@ -373,7 +375,9 @@ function ConsultantsPageInner() {
   }
 
   const headerSub = showArchived
-    ? `${consultants.length} ${consultants.length > 1 ? 'archivés' : 'archivé'}`
+    ? isEn
+      ? `${consultants.length} archived`
+      : `${consultants.length} ${consultants.length > 1 ? 'archivés' : 'archivé'}`
     : `${consultants.length} ${t.pages.consultants.profiles_available} — ${t.pages.consultants.not_positioned_yet}`;
 
   // KPIs : total / en mission (présent dans consultantsData) / disponibles / intercontrat
@@ -564,18 +568,20 @@ function ConsultantsPageInner() {
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-violet-glow/15 text-violet-glow">
               <Search className="h-3 w-3" />
             </span>
-            <span className="text-muted-foreground">Filtre actif :</span>
+            <span className="text-muted-foreground">{isEn ? 'Active filter:' : 'Filtre actif :'}</span>
             <span className="font-medium">
-              {urlStatusFilter === 'available' && 'Disponibles'}
-              {urlStatusFilter === 'on_mission' && 'En mission'}
-              {urlStatusFilter === 'soon_available' && 'Bientôt disponibles'}
-              {urlStatusFilter === 'unavailable' && 'Indisponibles'}
-              {urlEndedBefore === 'today' && ' · mission terminée'}
+              {urlStatusFilter === 'available' && (isEn ? 'Available' : 'Disponibles')}
+              {urlStatusFilter === 'on_mission' && (isEn ? 'On mission' : 'En mission')}
+              {urlStatusFilter === 'soon_available' && (isEn ? 'Soon available' : 'Bientôt disponibles')}
+              {urlStatusFilter === 'unavailable' && (isEn ? 'Unavailable' : 'Indisponibles')}
+              {urlEndedBefore === 'today' && (isEn ? ' · mission ended' : ' · mission terminée')}
             </span>
-            <span className="text-xs text-muted-foreground">({totalCount} profils)</span>
+            <span className="text-xs text-muted-foreground">
+              ({totalCount} {isEn ? 'profiles' : 'profils'})
+            </span>
           </div>
           <Button variant="ghost" size="sm" onClick={clearUrlFilter} className="h-7">
-            Retirer le filtre
+            {isEn ? 'Clear filter' : 'Retirer le filtre'}
           </Button>
         </div>
       )}
@@ -583,22 +589,28 @@ function ConsultantsPageInner() {
       {!loading && consultantsData !== null && totalCount === 0 ? (
         <EmptyState
           icon={Users}
-          title={showArchived ? 'Aucun profil archivé' : 'Aucun profil disponible'}
+          title={
+            showArchived
+              ? isEn ? 'No archived profile' : 'Aucun profil archivé'
+              : isEn ? 'No profile available' : 'Aucun profil disponible'
+          }
           description={
             showArchived
-              ? 'Les profils archivés apparaîtront ici.'
-              : 'Importez votre première bibliothèque CSV ou créez un consultant manuellement.'
+              ? isEn ? 'Archived profiles will appear here.' : 'Les profils archivés apparaîtront ici.'
+              : isEn
+                ? 'Import your first CSV library or create a consultant manually.'
+                : 'Importez votre première bibliothèque CSV ou créez un consultant manuellement.'
           }
           action={
             !showArchived ? (
               <div className="flex gap-2 justify-center">
                 <Button variant="outline" onClick={() => setCsvOpen(true)}>
                   <FileUp className="h-4 w-4" />
-                  Importer CSV
+                  {isEn ? 'Import CSV' : 'Importer CSV'}
                 </Button>
                 <Button onClick={openCreate}>
                   <Plus className="h-4 w-4" />
-                  Nouveau consultant
+                  {isEn ? 'New consultant' : 'Nouveau consultant'}
                 </Button>
               </div>
             ) : undefined
@@ -614,7 +626,7 @@ function ConsultantsPageInner() {
                 <TableHead className="w-10">
                   <input
                     type="checkbox"
-                    aria-label="Tout sélectionner"
+                    aria-label={isEn ? 'Select all' : 'Tout sélectionner'}
                     checked={bulkSel.allSelected}
                     ref={(el) => {
                       if (el) el.indeterminate = bulkSel.someSelected;
@@ -665,7 +677,7 @@ function ConsultantsPageInner() {
                     <TableCell className="w-10">
                       <input
                         type="checkbox"
-                        aria-label={`Sélectionner ${c.first_name} ${c.last_name}`}
+                        aria-label={`${isEn ? 'Select' : 'Sélectionner'} ${c.first_name} ${c.last_name}`}
                         checked={bulkSel.isSelected(c.id)}
                         onChange={() => bulkSel.toggle(c.id)}
                         className="h-4 w-4 cursor-pointer accent-magenta"
@@ -751,21 +763,21 @@ function ConsultantsPageInner() {
                               variant="ghost"
                               size="sm"
                               onClick={() => unarchiveConsultant(c)}
-                              title="Restaurer"
+                              title={isEn ? 'Restore' : 'Restaurer'}
                               className="text-emerald-300 hover:text-emerald-200"
                             >
                               <ArchiveRestore className="h-3.5 w-3.5" />
-                              Restaurer
+                              {isEn ? 'Restore' : 'Restaurer'}
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => hardDeleteConsultant(c)}
-                              title="Supprimer définitivement"
+                              title={isEn ? 'Delete permanently' : 'Supprimer définitivement'}
                               className="text-red-400 hover:text-red-300"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
-                              Supprimer
+                              {isEn ? 'Delete' : 'Supprimer'}
                             </Button>
                           </>
                         ) : (
@@ -774,7 +786,11 @@ function ConsultantsPageInner() {
                               variant="ghost"
                               size="sm"
                               onClick={() => setAssignTo(c)}
-                              title="Pousser le CV sur une offre (choisis l'offre + valide le TJM)"
+                              title={
+                                isEn
+                                  ? 'Push the CV to an offer (pick the offer + confirm day rate)'
+                                  : 'Pousser le CV sur une offre (choisis l\'offre + valide le TJM)'
+                              }
                               className="text-magenta-neon hover:bg-magenta/10"
                             >
                               <Send className="h-3.5 w-3.5" />
@@ -784,7 +800,7 @@ function ConsultantsPageInner() {
                               variant="ghost"
                               size="sm"
                               onClick={() => openEdit(c)}
-                              title="Éditer"
+                              title={isEn ? 'Edit' : 'Éditer'}
                             >
                               <Pencil className="h-3.5 w-3.5 text-violet-glow" />
                             </Button>
@@ -793,7 +809,7 @@ function ConsultantsPageInner() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setGrantingPortal(c)}
-                                title="Créer un accès portail consultant"
+                                title={isEn ? 'Create a consultant portal access' : 'Créer un accès portail consultant'}
                                 className="text-violet-300 hover:text-violet-200"
                               >
                                 <KeyRound className="h-3.5 w-3.5" />
@@ -803,7 +819,7 @@ function ConsultantsPageInner() {
                               variant="ghost"
                               size="sm"
                               onClick={() => archiveConsultant(c)}
-                              title="Archiver"
+                              title={isEn ? 'Archive' : 'Archiver'}
                             >
                               <Trash2 className="h-3.5 w-3.5 text-red-400" />
                             </Button>
@@ -824,7 +840,7 @@ function ConsultantsPageInner() {
       <PaginationFooter
         pagination={pagination}
         total={totalCount}
-        itemLabel="profil"
+        itemLabel={isEn ? 'profile' : 'profil'}
       />
 
       <BulkActionBar
@@ -835,13 +851,13 @@ function ConsultantsPageInner() {
           showArchived
             ? [
                 {
-                  label: 'Restaurer',
+                  label: isEn ? 'Restore' : 'Restaurer',
                   icon: <ArchiveRestore className="h-3.5 w-3.5" />,
                   onClick: handleBulkUnarchive,
                   busy: bulkBusy,
                 },
                 {
-                  label: 'Supprimer définitivement',
+                  label: isEn ? 'Delete permanently' : 'Supprimer définitivement',
                   icon: <Trash2 className="h-3.5 w-3.5" />,
                   onClick: handleBulkDelete,
                   variant: 'destructive',
@@ -850,7 +866,7 @@ function ConsultantsPageInner() {
               ]
             : [
                 {
-                  label: 'Archiver',
+                  label: isEn ? 'Archive' : 'Archiver',
                   icon: <Archive className="h-3.5 w-3.5" />,
                   onClick: handleBulkArchive,
                   busy: bulkBusy,

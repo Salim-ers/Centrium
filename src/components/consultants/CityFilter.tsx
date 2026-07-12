@@ -4,6 +4,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { createPortal } from 'react-dom';
 import { MapPin, ChevronDown, X } from 'lucide-react';
 
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+
 type Props = {
   /** Liste des villes présentes dans la table avec leur nb d'occurrences. */
   cities: { name: string; count: number }[];
@@ -21,6 +23,8 @@ const PANEL_WIDTH = 264;
  * le Combobox. Aligné à droite du bouton (filtre en fin de barre d'outils).
  */
 export function CityFilter({ cities, selected, onChange }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [rect, setRect] = useState<{ top: number; left: number } | null>(null);
@@ -93,7 +97,7 @@ export function CityFilter({ cities, selected, onChange }: Props) {
         }`}
       >
         <MapPin className="h-3.5 w-3.5" />
-        Ville
+        {isEn ? 'City' : 'Ville'}
         {isFiltering && (
           <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-4 px-1 rounded-full bg-violet-glow/30 text-[10px] font-semibold">
             {selected.size}
@@ -113,7 +117,7 @@ export function CityFilter({ cities, selected, onChange }: Props) {
           >
             <div className="sticky top-0 px-3 py-2 border-b border-hairline bg-popover flex items-center justify-between">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                Filtrer par ville
+                {isEn ? 'Filter by city' : 'Filtrer par ville'}
               </span>
               {isFiltering && (
                 <button
@@ -122,13 +126,15 @@ export function CityFilter({ cities, selected, onChange }: Props) {
                   className="text-[10px] text-violet-300 hover:text-violet-100 inline-flex items-center gap-1"
                 >
                   <X className="h-3 w-3" />
-                  Tout désélectionner
+                  {isEn ? 'Clear all' : 'Tout désélectionner'}
                 </button>
               )}
             </div>
             {cities.length === 0 ? (
               <div className="px-3 py-4 text-xs text-muted-foreground italic">
-                Aucune ville renseignée sur les profils visibles.
+                {isEn
+                  ? 'No city set on the visible profiles.'
+                  : 'Aucune ville renseignée sur les profils visibles.'}
               </div>
             ) : (
               <ul className="py-1">
