@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Combobox } from '@/components/ui/Combobox';
 import { companyService } from '@/lib/services';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import type { Company } from '@/types';
 
 // =========================================================================
@@ -51,6 +52,8 @@ const EMPTY: Form = {
 };
 
 export function CompanyFormDialog({ open, onOpenChange, organizationId, company, onSaved }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const isEdit = !!company;
   const [form, setForm] = useState<Form>(EMPTY);
   const [saving, setSaving] = useState(false);
@@ -80,7 +83,7 @@ export function CompanyFormDialog({ open, onOpenChange, organizationId, company,
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim()) {
-      toast.error('Le nom de la société est obligatoire.');
+      toast.error(isEn ? 'Company name is required.' : 'Le nom de la société est obligatoire.');
       return;
     }
     setSaving(true);
@@ -101,10 +104,14 @@ export function CompanyFormDialog({ open, onOpenChange, organizationId, company,
         ? await companyService.update(company!.id, payload)
         : await companyService.create({ organization_id: organizationId, ...payload });
       if (res.error) {
-        toast.error('Erreur : ' + res.error.message);
+        toast.error((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
         return;
       }
-      toast.info(isEdit ? 'Société mise à jour.' : 'Société créée.');
+      toast.info(
+        isEdit
+          ? isEn ? 'Company updated.' : 'Société mise à jour.'
+          : isEn ? 'Company created.' : 'Société créée.',
+      );
       onSaved?.();
       onOpenChange(false);
     } finally {
@@ -116,45 +123,49 @@ export function CompanyFormDialog({ open, onOpenChange, organizationId, company,
     <Dialog open={open} onOpenChange={onOpenChange}>
       <FormDialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Modifier la société' : 'Nouvelle société'}</DialogTitle>
+          <DialogTitle>
+            {isEdit
+              ? isEn ? 'Edit company' : 'Modifier la société'
+              : isEn ? 'New company' : 'Nouvelle société'}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4 pt-2">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <Label>Raison sociale *</Label>
-              <Input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="ex : BNP Paribas" />
+              <Label>{isEn ? 'Legal name' : 'Raison sociale'} *</Label>
+              <Input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder={isEn ? 'e.g. BNP Paribas' : 'ex : BNP Paribas'} />
             </div>
             <div>
-              <Label>Type</Label>
+              <Label>{isEn ? 'Type' : 'Type'}</Label>
               <Combobox
-                ariaLabel="Type de société"
+                ariaLabel={isEn ? 'Company type' : 'Type de société'}
                 value={form.kind}
                 onChange={(v) => set('kind', v)}
                 options={[
                   { value: 'client', label: 'Client' },
-                  { value: 'esn_partner', label: 'ESN partenaire' },
+                  { value: 'esn_partner', label: isEn ? 'Partner firm' : 'ESN partenaire' },
                   { value: 'prospect', label: 'Prospect' },
                 ]}
               />
             </div>
             <div>
-              <Label>Secteur</Label>
-              <Input value={form.industry} onChange={(e) => set('industry', e.target.value)} placeholder="Banque, Assurance…" />
+              <Label>{isEn ? 'Industry' : 'Secteur'}</Label>
+              <Input value={form.industry} onChange={(e) => set('industry', e.target.value)} placeholder={isEn ? 'Banking, Insurance…' : 'Banque, Assurance…'} />
             </div>
             <div>
-              <Label>Ville</Label>
+              <Label>{isEn ? 'City' : 'Ville'}</Label>
               <Input value={form.city} onChange={(e) => set('city', e.target.value)} />
             </div>
             <div>
-              <Label>Pays</Label>
+              <Label>{isEn ? 'Country' : 'Pays'}</Label>
               <Input value={form.country} onChange={(e) => set('country', e.target.value)} />
             </div>
             <div className="col-span-2">
-              <Label>Adresse</Label>
+              <Label>{isEn ? 'Address' : 'Adresse'}</Label>
               <Input value={form.address} onChange={(e) => set('address', e.target.value)} />
             </div>
             <div>
-              <Label>Site web</Label>
+              <Label>{isEn ? 'Website' : 'Site web'}</Label>
               <Input value={form.website} onChange={(e) => set('website', e.target.value)} placeholder="https://…" />
             </div>
             <div>
@@ -167,10 +178,12 @@ export function CompanyFormDialog({ open, onOpenChange, organizationId, company,
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              {isEn ? 'Cancel' : 'Annuler'}
+            </Button>
             <Button type="submit" disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isEdit ? 'Enregistrer' : 'Créer'}
+              {isEdit ? (isEn ? 'Save' : 'Enregistrer') : isEn ? 'Create' : 'Créer'}
             </Button>
           </DialogFooter>
         </form>

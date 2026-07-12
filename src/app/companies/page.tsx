@@ -19,6 +19,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useCurrency } from '@/lib/i18n/CurrencyProvider';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import {
@@ -73,9 +74,22 @@ const KIND_LABEL: Record<string, string> = {
   prospect: 'Prospect',
 };
 
+const KIND_LABEL_EN: Record<string, string> = {
+  client: 'Client',
+  esn_partner: 'Partner firm',
+  prospect: 'Prospect',
+};
+
+function kindLabel(kind: string | null | undefined, isEn: boolean): string {
+  if (!kind) return '';
+  return (isEn ? KIND_LABEL_EN[kind] : KIND_LABEL[kind]) ?? kind;
+}
+
 export default function CompaniesPage() {
   const { activeOrgId } = useOrganization();
   const { format: formatCurrency } = useCurrency();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<CompanyRow | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -134,11 +148,21 @@ export default function CompaniesPage() {
       <PageHeader
         eyebrow="Commercial"
         title={
-          <>
-            Sociétés <span className="qc-italic-accent font-editorial italic">clientes.</span>
-          </>
+          isEn ? (
+            <>
+              Client <span className="qc-italic-accent font-editorial italic">companies.</span>
+            </>
+          ) : (
+            <>
+              Sociétés <span className="qc-italic-accent font-editorial italic">clientes.</span>
+            </>
+          )
         }
-        description="Vue d’ensemble de vos clients et ESN partenaires, avec leurs contacts, missions et facturation."
+        description={
+          isEn
+            ? 'Overview of your clients and partner firms, with their contacts, missions and billing.'
+            : 'Vue d’ensemble de vos clients et ESN partenaires, avec leurs contacts, missions et facturation.'
+        }
         actions={
           <Button
             onClick={() => {
@@ -147,7 +171,7 @@ export default function CompaniesPage() {
             }}
           >
             <Plus className="h-4 w-4" />
-            Nouvelle société
+            {isEn ? 'New company' : 'Nouvelle société'}
           </Button>
         }
       />
@@ -161,15 +185,15 @@ export default function CompaniesPage() {
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Sociétés" value={String(companies.length)} />
+        <Stat label={isEn ? 'Companies' : 'Sociétés'} value={String(companies.length)} />
         <Stat label="Contacts" value={String((data?.contacts ?? []).filter((c) => c.company_id).length)} />
-        <Stat label="Missions liées" value={String((data?.missions ?? []).filter((m) => m.company_id).length)} />
-        <Stat label="CA facturé (TTC)" value={formatCurrency(totalRevenue)} />
+        <Stat label={isEn ? 'Linked missions' : 'Missions liées'} value={String((data?.missions ?? []).filter((m) => m.company_id).length)} />
+        <Stat label={isEn ? 'Billed revenue (incl. VAT)' : 'CA facturé (TTC)'} value={formatCurrency(totalRevenue)} />
       </div>
 
       <div className="relative mb-6 max-w-md">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher une société…" className="pl-9" />
+        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={isEn ? 'Search a company…' : 'Rechercher une société…'} className="pl-9" />
       </div>
 
       {loading ? (
@@ -181,8 +205,12 @@ export default function CompaniesPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Building2}
-          title="Aucune société"
-          description="Les sociétés apparaissent ici dès que tu en crées une (facture, contrat ou offre)."
+          title={isEn ? 'No company' : 'Aucune société'}
+          description={
+            isEn
+              ? 'Companies appear here as soon as you create one (invoice, contract or offer).'
+              : 'Les sociétés apparaissent ici dès que tu en crées une (facture, contrat ou offre).'
+          }
         />
       ) : (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -204,7 +232,7 @@ export default function CompaniesPage() {
                       <div className="min-w-0">
                         <h3 className="truncate font-semibold">{c.name}</h3>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                          {c.kind && <StatusBadge tone={c.kind === 'client' ? 'success' : c.kind === 'prospect' ? 'warning' : 'info'}>{KIND_LABEL[c.kind] ?? c.kind}</StatusBadge>}
+                          {c.kind && <StatusBadge tone={c.kind === 'client' ? 'success' : c.kind === 'prospect' ? 'warning' : 'info'}>{kindLabel(c.kind, isEn)}</StatusBadge>}
                           {c.city && (
                             <span className="inline-flex items-center gap-1">
                               <MapPin className="h-3 w-3" />
@@ -220,11 +248,11 @@ export default function CompaniesPage() {
                     <div className="mt-4 grid grid-cols-3 gap-2 text-center">
                       <MiniStat icon={Users} value={s.contacts} label="contacts" />
                       <MiniStat icon={Briefcase} value={s.missions} label="missions" />
-                      <MiniStat icon={Receipt} value={s.invoices} label="factures" />
+                      <MiniStat icon={Receipt} value={s.invoices} label={isEn ? 'invoices' : 'factures'} />
                     </div>
                     {s.revenue > 0 && (
                       <div className="mt-3 text-right text-xs text-muted-foreground">
-                        CA facturé : <span className="font-medium text-foreground">{formatCurrency(s.revenue)}</span>
+                        {isEn ? 'Billed revenue: ' : 'CA facturé : '}<span className="font-medium text-foreground">{formatCurrency(s.revenue)}</span>
                       </div>
                     )}
                   </AppCardBody>
@@ -282,6 +310,8 @@ function CompanyDetailDialog({
   onClose: () => void;
   onEdit: (c: CompanyRow) => void;
 }) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   if (!company) return null;
   const contacts = (data?.contacts ?? []).filter((c) => c.company_id === company.id);
   const missions = (data?.missions ?? []).filter((m) => m.company_id === company.id);
@@ -296,12 +326,12 @@ function CompanyDetailDialog({
             {company.name}
           </DialogTitle>
           <DialogDescription>
-            {[KIND_LABEL[company.kind ?? ''] ?? company.kind, company.industry, company.city].filter(Boolean).join(' · ')}
+            {[kindLabel(company.kind, isEn), company.industry, company.city].filter(Boolean).join(' · ')}
             {company.website && (
               <>
                 {' · '}
                 <a href={company.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-violet-glow hover:underline">
-                  Site <ExternalLink className="h-3 w-3" />
+                  {isEn ? 'Website' : 'Site'} <ExternalLink className="h-3 w-3" />
                 </a>
               </>
             )}
@@ -310,7 +340,7 @@ function CompanyDetailDialog({
 
         <Section title={`Contacts (${contacts.length})`} icon={Users}>
           {contacts.length === 0 ? (
-            <Empty>Aucun contact rattaché.</Empty>
+            <Empty>{isEn ? 'No linked contact.' : 'Aucun contact rattaché.'}</Empty>
           ) : (
             contacts.map((c) => (
               <Row key={c.id}>
@@ -320,17 +350,17 @@ function CompanyDetailDialog({
             ))
           )}
           <Link href="/contacts" className="mt-1.5 inline-flex items-center gap-1 text-xs text-violet-glow hover:underline">
-            Gérer les contacts <ArrowRight className="h-3 w-3" />
+            {isEn ? 'Manage contacts' : 'Gérer les contacts'} <ArrowRight className="h-3 w-3" />
           </Link>
         </Section>
 
         <Section title={`Missions (${missions.length})`} icon={Briefcase}>
           {missions.length === 0 ? (
-            <Empty>Aucune mission liée.</Empty>
+            <Empty>{isEn ? 'No linked mission.' : 'Aucune mission liée.'}</Empty>
           ) : (
             missions.map((m) => (
               <Row key={m.id}>
-                <span className="truncate">{m.title ?? 'Sans titre'}</span>
+                <span className="truncate">{m.title ?? (isEn ? 'Untitled' : 'Sans titre')}</span>
                 {m.status && <StatusBadge tone={m.status === 'active' ? 'success' : 'neutral'}>{m.status}</StatusBadge>}
               </Row>
             ))
@@ -340,13 +370,13 @@ function CompanyDetailDialog({
         <div className="flex justify-end">
           <Button variant="outline" size="sm" onClick={() => onEdit(company)}>
             <Pencil className="h-3.5 w-3.5" />
-            Éditer la fiche
+            {isEn ? 'Edit record' : 'Éditer la fiche'}
           </Button>
         </div>
 
-        <Section title={`Factures (${invoices.length})`} icon={Receipt}>
+        <Section title={`${isEn ? 'Invoices' : 'Factures'} (${invoices.length})`} icon={Receipt}>
           {invoices.length === 0 ? (
-            <Empty>Aucune facture.</Empty>
+            <Empty>{isEn ? 'No invoice.' : 'Aucune facture.'}</Empty>
           ) : (
             invoices.map((inv) => (
               <Row key={inv.id}>
