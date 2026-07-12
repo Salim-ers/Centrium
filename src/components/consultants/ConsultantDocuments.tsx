@@ -39,6 +39,20 @@ const DOC_KIND_LABEL: Record<string, string> = {
   other: 'Autre',
 };
 
+// Taille maximale par fichier — au-delà, on refuse côté client (un fichier de
+// plusieurs Go bloquerait le worker et saturerait le stockage).
+const MAX_DOC_BYTES = 20 * 1024 * 1024; // 20 Mo
+
+// Nombre maximal de fichiers par rubrique (cohérence métier). `cv_generated`
+// est produit par le système et n'est pas soumis à ces quotas d'upload.
+const DOC_KIND_MAX: Record<string, number> = {
+  cv_source: 1,
+  id: 2,
+  certification: 10,
+  contract: 3,
+  other: 3,
+};
+
 type Props = {
   consultantId: string;
   organizationId: string;
@@ -115,6 +129,34 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Garde-fou taille (par fichier).
+    if (file.size > MAX_DOC_BYTES) {
+      toast.error(
+        `Fichier trop volumineux (${(file.size / 1024 / 1024).toFixed(1)} Mo). Limite : 20 Mo par fichier.`,
+      );
+      if (inputRef.current) inputRef.current.value = '';
+      return;
+    }
+    if (file.size === 0) {
+      toast.error('Fichier vide.');
+      if (inputRef.current) inputRef.current.value = '';
+      return;
+    }
+
+    // Garde-fou nombre de fichiers pour la rubrique sélectionnée.
+    const max = DOC_KIND_MAX[kind];
+    if (max != null) {
+      const current = docs.filter((d) => d.kind === kind).length;
+      if (current >= max) {
+        toast.error(
+          `Limite atteinte pour « ${DOC_KIND_LABEL[kind]} » : ${max} fichier${max > 1 ? 's' : ''} maximum. Supprime un fichier existant pour en ajouter un autre.`,
+        );
+        if (inputRef.current) inputRef.current.value = '';
+        return;
+      }
+    }
+
     setUploading(true);
     try {
       const supabase = createClient();
@@ -355,6 +397,21 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
             onChange={onFile}
           />
         </div>
+
+        <p className="text-[11px] text-muted-foreground">
+          {DOC_KIND_MAX[kind] != null ? (
+            <>
+              {DOC_KIND_LABEL[kind]} :{' '}
+              <span className="text-foreground/80">
+                {docs.filter((d) => d.kind === kind).length} / {DOC_KIND_MAX[kind]} fichier
+                {DOC_KIND_MAX[kind]! > 1 ? 's' : ''}
+              </span>{' '}
+              · 20 Mo max par fichier
+            </>
+          ) : (
+            <>20 Mo max par fichier</>
+          )}
+        </p>
 
         {kind === 'cv_source' && (
           <div className="flex items-start gap-2 p-2.5 rounded-lg border border-violet-glow/20 bg-violet-glow/5">

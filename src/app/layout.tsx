@@ -108,7 +108,7 @@ const themeBootstrapScript = `
 (function() {
   try {
     var path = window.location.pathname;
-    var forcedDarkPaths = ['/', '/login', '/signup', '/register', '/devis', '/essai', '/pricing', '/security', '/plateforme', '/manifesto', '/engagements'];
+    var forcedDarkPaths = ['/', '/login', '/signup', '/register', '/devis', '/essai', '/pricing', '/tarifs', '/security', '/plateforme', '/manifesto', '/engagements'];
     var forcedDarkPrefixes = ['/auth/', '/invite/', '/legal/', '/trust'];
     var isForcedDark =
       forcedDarkPaths.indexOf(path) !== -1 ||
@@ -145,7 +145,7 @@ const sessionGateScript = `
   try {
     var path = window.location.pathname;
     // Pages publiques (vitrine + auth + invite + legal) : pas de check.
-    var publicPaths = ['/', '/login', '/signup', '/register', '/devis', '/pricing', '/security', '/plateforme', '/manifesto', '/engagements'];
+    var publicPaths = ['/', '/login', '/signup', '/register', '/devis', '/essai', '/pricing', '/tarifs', '/security', '/plateforme', '/manifesto', '/engagements'];
     var publicPrefixes = ['/auth/', '/invite/', '/legal/'];
     var isPublic =
       publicPaths.indexOf(path) !== -1 ||

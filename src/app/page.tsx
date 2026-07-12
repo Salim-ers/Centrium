@@ -10,7 +10,6 @@ import { Metrics } from '@/components/marketing/Metrics';
 import { Testimonials } from '@/components/marketing/Testimonials';
 import { MarketingShell, useLandingDict } from '@/components/marketing/MarketingShell';
 import { MagneticButton } from '@/components/marketing/MagneticButton';
-import { BootIntro } from '@/components/marketing/BootIntro';
 
 /**
  * Page d'accueil enrichie (réponse au feedback "trop vide / pas assez de démos") :
@@ -24,12 +23,9 @@ import { BootIntro } from '@/components/marketing/BootIntro';
  */
 export default function LandingPage() {
   return (
-    <>
-      <BootIntro />
-      <MarketingShell>
-        <HomeContent />
-      </MarketingShell>
-    </>
+    <MarketingShell>
+      <HomeContent />
+    </MarketingShell>
   );
 }
 

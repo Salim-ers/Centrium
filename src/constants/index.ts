@@ -12,7 +12,7 @@ import type {
 export const CONSULTANT_STATUS_LABEL: Record<ConsultantStatus, string> = {
   available: 'Disponible',
   on_mission: 'En mission',
-  soon_available: 'Bientôt dispo',
+  soon_available: 'Bientôt disponible',
   unavailable: 'Indisponible',
   archived: 'Archivé',
 };

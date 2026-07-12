@@ -105,6 +105,7 @@ export function Contact({ t }: { t: LandingDict }) {
                 name="message"
                 required
                 rows={5}
+                maxLength={2000}
                 className="flex w-full rounded-md border border-hairline bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-violet-brand/40 focus:border-violet-brand/50 transition resize-none"
               />
             </div>

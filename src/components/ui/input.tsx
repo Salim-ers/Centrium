@@ -47,14 +47,29 @@ function defaultMaxLengthFor(type: string | undefined): number {
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, maxLength, ...props }, ref) => {
+  ({ className, type, maxLength, onKeyDown, ...props }, ref) => {
     const fallbackMax = defaultMaxLengthFor(type);
     const effectiveMax =
       maxLength !== undefined ? maxLength : fallbackMax > 0 ? fallbackMax : undefined;
+
+    // Les <input type="number"> acceptent nativement 'e'/'E' (notation
+    // exponentielle) et '+'/'-' : aucun sens pour nos champs (TJM, durées,
+    // montants, tous ≥ 0) et source de valeurs fantômes type "30e--" que
+    // l'utilisateur peut saisir. On bloque ces touches, tout en préservant
+    // un onKeyDown éventuellement fourni par l'appelant.
+    const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> | undefined =
+      type === 'number'
+        ? (e) => {
+            if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+            onKeyDown?.(e);
+          }
+        : onKeyDown;
+
     return (
       <input
         type={type}
         maxLength={effectiveMax}
+        onKeyDown={handleKeyDown}
         className={cn(
           'flex h-10 w-full rounded-md border border-hairline surface-1 px-3 py-2 text-sm transition-colors',
           'placeholder:text-muted-foreground',

@@ -1173,7 +1173,7 @@ export const APP_DICT: Record<Locale, AppDict> = {
     },
     consultant_status: {
       available: 'Disponible',
-      soon_available: 'Bientôt dispo',
+      soon_available: 'Bientôt disponible',
       on_mission: 'En mission',
       unavailable: 'Indisponible',
       archived: 'Archivé',

@@ -248,18 +248,18 @@ export default function ConsultantDetailPage() {
               {c.last_name[0]}
             </div>
 
-            <div className="flex-1 min-w-[280px]">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="font-display text-3xl font-bold tracking-tight">
+                <h1 className="font-display text-3xl font-bold tracking-tight break-words [overflow-wrap:anywhere]">
                   {c.first_name} {c.last_name}
                 </h1>
                 <Badge variant="outline" className={CONSULTANT_STATUS_STYLE[c.status]}>
                   {CONSULTANT_STATUS_LABEL[c.status]}
                 </Badge>
               </div>
-              <p className="text-lg text-muted-foreground mt-1">{c.job_title}</p>
+              <p className="text-lg text-muted-foreground mt-1 break-words [overflow-wrap:anywhere]">{c.job_title}</p>
               {c.sub_title && (
-                <p className="text-sm text-muted-foreground/80">{c.sub_title}</p>
+                <p className="text-sm text-muted-foreground/80 break-words [overflow-wrap:anywhere]">{c.sub_title}</p>
               )}
 
               <div className="flex flex-wrap gap-x-6 gap-y-2 mt-4 text-sm">
@@ -359,7 +359,7 @@ export default function ConsultantDetailPage() {
             </CardHeader>
             <CardContent>
               {c.summary ? (
-                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line break-words [overflow-wrap:anywhere]">
                   {c.summary}
                 </p>
               ) : (
@@ -391,9 +391,9 @@ export default function ConsultantDetailPage() {
                   <div key={exp.id} className="relative pl-5 border-l border-hairline group">
                     <div className="absolute -left-1.5 top-1 h-3 w-3 rounded-full bg-qc-gradient" />
                     <div className="flex items-baseline justify-between gap-3 flex-wrap">
-                      <div className="flex-1">
-                        <div className="font-semibold">{exp.client_name}</div>
-                        <div className="text-sm text-muted-foreground">{exp.role}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold break-words [overflow-wrap:anywhere]">{exp.client_name}</div>
+                        <div className="text-sm text-muted-foreground break-words [overflow-wrap:anywhere]">{exp.role}</div>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="text-xs text-muted-foreground">

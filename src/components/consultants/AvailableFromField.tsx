@@ -74,7 +74,7 @@ export function AvailableFromField({ value, onChange }: Props) {
           active={mode === 'unknown'}
           onClick={() => pick('unknown')}
           icon={<HelpCircle className="h-3.5 w-3.5" />}
-          label={isEn ? 'Unknown' : 'On ne sait pas'}
+          label={isEn ? 'Unknown' : 'Inconnue'}
         />
         {mode === 'date' && (
           <input

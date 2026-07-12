@@ -601,8 +601,6 @@ export function JobOfferFormDialog({
                   { value: 'confirmed', label: t.seniority.confirmed },
                   { value: 'senior', label: t.seniority.senior },
                   { value: 'expert', label: t.seniority.expert },
-                  { value: 'lead', label: t.seniority.lead },
-                  { value: 'architect', label: t.seniority.architect },
                 ]}
               />
             </div>

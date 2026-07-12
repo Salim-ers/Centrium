@@ -148,6 +148,26 @@ export function ConsultantFormDialog({
     //   - parsing trop long (timeout serveur quasi-garanti)
     //   - risque DoS (gros payload qui bloque le worker Vercel)
     //   - extraction texte qui swap en RAM
+    // Garde-fou format : on rejette IMMÉDIATEMENT tout format non supporté
+    // au lieu de lancer l'extraction (qui tournait dans le vide ~1 min sur un
+    // .png/.doc avant d'échouer silencieusement). Le champ `accept` de l'input
+    // n'est qu'une suggestion : rien n'empêche de choisir "tous les fichiers".
+    const ALLOWED_EXT = ['pdf', 'docx', 'txt'];
+    const ALLOWED_MIME = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+    ];
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+    if (!ALLOWED_EXT.includes(ext) && !ALLOWED_MIME.includes(file.type)) {
+      toast.error(
+        isEn
+          ? `Unsupported format (.${ext}). Only PDF, DOCX or TXT are accepted.`
+          : `Format non supporté (.${ext}). Seuls PDF, DOCX ou TXT sont acceptés.`,
+      );
+      return;
+    }
+
     const MAX_CV_BYTES = 10 * 1024 * 1024;
     if (file.size > MAX_CV_BYTES) {
       const sizeMb = (file.size / 1024 / 1024).toFixed(1);
@@ -569,8 +589,6 @@ export function ConsultantFormDialog({
                   { value: 'confirmed', label: t.seniority.confirmed },
                   { value: 'senior', label: t.seniority.senior },
                   { value: 'expert', label: t.seniority.expert },
-                  { value: 'lead', label: t.seniority.lead },
-                  { value: 'architect', label: t.seniority.architect },
                 ]}
               />
             </div>
@@ -619,7 +637,7 @@ export function ConsultantFormDialog({
 
           <div>
             <Label>{t.forms.consultant.summary}</Label>
-            <Textarea {...register('summary')} rows={3} placeholder={t.forms.consultant.summary_placeholder} />
+            <Textarea {...register('summary')} rows={3} maxLength={2000} placeholder={t.forms.consultant.summary_placeholder} />
           </div>
 
           {/* Accès portail consultant — seulement en création d'un consultant actif */}

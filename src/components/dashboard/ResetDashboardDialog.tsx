@@ -34,7 +34,7 @@ const SCOPE_LABEL: Record<Scope, { label: string; desc: string }> = {
   },
   invoices: {
     label: 'Factures',
-    desc: 'Toutes les factures (envoyées, payées, en retard) — réinitialise "CA du mois encaissé"',
+    desc: 'Uniquement les brouillons et annulées. Les factures émises (envoyées, payées, en retard) sont CONSERVÉES — ce sont des documents comptables légaux (obligation de conservation 10 ans).',
   },
   alerts: {
     label: 'Alertes',
@@ -127,6 +127,11 @@ export function ResetDashboardDialog({ open, onOpenChange, onReset }: Props) {
               Action <strong>irréversible</strong>. Les KPI « En mission », « CA du mois »,
               « Disponibles » et « CRA à valider » se recalculent automatiquement après
               suppression.
+              <span className="block mt-1.5 text-amber-200/80">
+                Par obligation légale, les <strong>factures émises</strong> (envoyées/payées)
+                et les <strong>CRA qu&apos;elles référencent</strong> ne sont jamais supprimés,
+                même s&apos;ils sont cochés ci-dessous.
+              </span>
             </div>
           </div>
 
