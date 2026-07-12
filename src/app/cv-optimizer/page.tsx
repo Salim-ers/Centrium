@@ -35,7 +35,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Combobox } from '@/components/ui/Combobox';
 import { Badge } from '@/components/ui/badge';
 import { ConsultantCombobox } from '@/components/ui/ConsultantCombobox';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 
 import { CVRenderer } from '@/components/cv/CVRenderer';
 import { CVPreviewBoundary } from '@/components/cv/CVPreviewBoundary';
@@ -80,6 +80,8 @@ function CVOptimizerPageInner() {
   const initialOfferId = params?.get('offerId') ?? '';
   const { branding, activeOrgId } = useOrganization();
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const brand = useMemo(() => resolveBrand(branding), [branding]);
 
   // Consultants + offres via cache SWR : affichage INSTANTANÉ depuis le cache
@@ -178,7 +180,9 @@ function CVOptimizerPageInner() {
   }
   function resetOverrides() {
     if (!hasOverrides) return;
-    const ok = confirm('Annuler toutes les modifications manuelles sur ce CV ?');
+    const ok = confirm(
+      isEn ? 'Cancel all manual edits on this CV?' : 'Annuler toutes les modifications manuelles sur ce CV ?',
+    );
     if (!ok) return;
     setOverrides({});
   }
@@ -244,7 +248,7 @@ function CVOptimizerPageInner() {
     setLoadingData(true);
     consultantService.getById(selectedId).then((res) => {
       if (res.data) setLoaded(res.data);
-      else toast.error('Impossible de charger ce consultant');
+      else toast.error(isEn ? 'Could not load this consultant' : 'Impossible de charger ce consultant');
       setLoadingData(false);
     });
   }, [selectedId]);
@@ -364,22 +368,22 @@ function CVOptimizerPageInner() {
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         if (res.status === 503) {
-          toast.error('Service IA temporairement indisponible. Réessaie dans un instant.');
+          toast.error(isEn ? 'AI service temporarily unavailable. Try again shortly.' : 'Service IA temporairement indisponible. Réessaie dans un instant.');
         } else if (res.status === 429) {
-          toast.error('Trop de requêtes IA. Attends quelques secondes avant de relancer.');
+          toast.error(isEn ? 'Too many AI requests. Wait a few seconds before retrying.' : 'Trop de requêtes IA. Attends quelques secondes avant de relancer.');
         } else if (res.status === 401 || res.status === 403) {
-          toast.error('Accès IA refusé. Vérifie ta connexion ou contacte le support.');
+          toast.error(isEn ? 'AI access denied. Check your connection or contact support.' : 'Accès IA refusé. Vérifie ta connexion ou contacte le support.');
         } else {
-          const msg = body?.message ?? `Erreur ${res.status}`;
-          toast.error(`Analyse impossible : ${msg}`);
+          const msg = body?.message ?? (isEn ? `Error ${res.status}` : `Erreur ${res.status}`);
+          toast.error((isEn ? 'Analysis failed: ' : 'Analyse impossible : ') + msg);
         }
         return;
       }
       const data = (await res.json()) as { suggestions: SkillSuggestion[] };
       setSuggestions(data.suggestions);
-      toast.success(`🤖 ${data.suggestions.length} compétences analysées`);
+      toast.success(isEn ? `🤖 ${data.suggestions.length} skills analyzed` : `🤖 ${data.suggestions.length} compétences analysées`);
     } catch (e) {
-      toast.error(`Analyse IA échouée : ${e instanceof Error ? e.message : 'erreur réseau'}`);
+      toast.error((isEn ? 'AI analysis failed: ' : 'Analyse IA échouée : ') + (e instanceof Error ? e.message : isEn ? 'network error' : 'erreur réseau'));
     } finally {
       setAnalyzing(false);
     }
@@ -387,13 +391,14 @@ function CVOptimizerPageInner() {
 
   async function addSuggestedSkill(s: SkillSuggestion, force = false) {
     if (!loaded) {
-      toast.error('Sélectionne d\'abord un consultant');
+      toast.error(isEn ? 'Select a consultant first' : 'Sélectionne d\'abord un consultant');
       return;
     }
     if (s.verdict === 'unsupported' && !force) {
       const ok = confirm(
-        `"${s.skill}" n'est étayée par aucun élément du profil.\n` +
-          'Veux-tu quand même l\'ajouter (ajout forcé) ?',
+        isEn
+          ? `"${s.skill}" is not supported by any element of the profile.\nAdd it anyway (forced add)?`
+          : `"${s.skill}" n'est étayée par aucun élément du profil.\nVeux-tu quand même l'ajouter (ajout forcé) ?`,
       );
       if (!ok) return;
     }
@@ -408,13 +413,13 @@ function CVOptimizerPageInner() {
       ]);
       if (res.error) {
         console.error('[addSuggestedSkill] addSkills error', res.error);
-        toast.error('Erreur : ' + (res.error.message ?? 'ajout impossible'));
+        toast.error((isEn ? 'Error: ' : 'Erreur : ') + (res.error.message ?? (isEn ? 'add failed' : 'ajout impossible')));
         return;
       }
       if (res.data === 0) {
-        toast.info('Cette compétence est déjà dans le profil.');
+        toast.info(isEn ? 'This skill is already in the profile.' : 'Cette compétence est déjà dans le profil.');
       } else {
-        toast.success(`✓ "${s.skill}" ajoutée au profil consultant`);
+        toast.success(isEn ? `✓ "${s.skill}" added to the consultant profile` : `✓ "${s.skill}" ajoutée au profil consultant`);
       }
       // Recharge le profil → le matching se recalcule automatiquement
       // et la suggestion bascule en "Retirer".
@@ -423,7 +428,7 @@ function CVOptimizerPageInner() {
     } catch (e) {
       console.error('[addSuggestedSkill] unexpected error', e);
       toast.error(
-        `Ajout impossible : ${e instanceof Error ? e.message : 'erreur inconnue'}`,
+        (isEn ? 'Add failed: ' : 'Ajout impossible : ') + (e instanceof Error ? e.message : isEn ? 'unknown error' : 'erreur inconnue'),
       );
     } finally {
       setAddingSkill(null);
@@ -440,20 +445,20 @@ function CVOptimizerPageInner() {
       });
       if (res.error) {
         console.error('[removeSuggestedSkill] error', res.error);
-        toast.error('Erreur : ' + (res.error.message ?? 'suppression impossible'));
+        toast.error((isEn ? 'Error: ' : 'Erreur : ') + (res.error.message ?? (isEn ? 'remove failed' : 'suppression impossible')));
         return;
       }
       if ((res.data ?? 0) === 0) {
-        toast.info('Aucune compétence à retirer (déjà absente du profil).');
+        toast.info(isEn ? 'No skill to remove (already absent from the profile).' : 'Aucune compétence à retirer (déjà absente du profil).');
       } else {
-        toast.success(`✓ "${s.skill}" retirée du profil consultant`);
+        toast.success(isEn ? `✓ "${s.skill}" removed from the consultant profile` : `✓ "${s.skill}" retirée du profil consultant`);
       }
       const reload = await consultantService.getById(loaded.consultant.id);
       if (reload.data) setLoaded(reload.data);
     } catch (e) {
       console.error('[removeSuggestedSkill] unexpected error', e);
       toast.error(
-        `Suppression impossible : ${e instanceof Error ? e.message : 'erreur inconnue'}`,
+        (isEn ? 'Remove failed: ' : 'Suppression impossible : ') + (e instanceof Error ? e.message : isEn ? 'unknown error' : 'erreur inconnue'),
       );
     } finally {
       setRemovingSkill(null);
@@ -498,7 +503,7 @@ function CVOptimizerPageInner() {
         setGuardrails(result.guardrails);
         setConfidence(result.confidence);
       } catch (e) {
-        if (!cancelled) toast.error('Erreur de génération');
+        if (!cancelled) toast.error(isEn ? 'Generation error' : 'Erreur de génération');
         console.error(e);
       }
     })();
@@ -509,7 +514,7 @@ function CVOptimizerPageInner() {
 
   async function handleDownloadPDF() {
     if (!displayed || !loaded) {
-      toast.error('Aucun CV à exporter');
+      toast.error(isEn ? 'No CV to export' : 'Aucun CV à exporter');
       return;
     }
     setExporting('pdf');
@@ -526,11 +531,11 @@ function CVOptimizerPageInner() {
         brand,
         qrSrc: qrSrc ?? undefined,
       });
-      toast.success('PDF téléchargé');
+      toast.success(isEn ? 'PDF downloaded' : 'PDF téléchargé');
     } catch (e) {
       console.error(e);
       toast.error(
-        `Erreur export PDF : ${e instanceof Error ? e.message : 'inconnue'}`,
+        (isEn ? 'PDF export error: ' : 'Erreur export PDF : ') + (e instanceof Error ? e.message : isEn ? 'unknown' : 'inconnue'),
       );
     } finally {
       setExporting(null);
@@ -539,7 +544,7 @@ function CVOptimizerPageInner() {
 
   async function handleDownloadDOCX() {
     if (!displayed || !loaded) {
-      toast.error('Aucun CV à exporter');
+      toast.error(isEn ? 'No CV to export' : 'Aucun CV à exporter');
       return;
     }
     setExporting('docx');
@@ -557,10 +562,10 @@ function CVOptimizerPageInner() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success('DOCX téléchargé');
+      toast.success(isEn ? 'DOCX downloaded' : 'DOCX téléchargé');
     } catch (e) {
       console.error(e);
-      toast.error('Erreur export DOCX');
+      toast.error(isEn ? 'DOCX export error' : 'Erreur export DOCX');
     } finally {
       setExporting(null);
     }
@@ -635,9 +640,9 @@ function CVOptimizerPageInner() {
         const plural = n > 1;
         return (
           <div className="no-print mb-3 text-[11px] text-violet-600 dark:text-violet-300/80">
-            {n} modification{plural ? 's' : ''} manuelle{plural ? 's' : ''} appliquée{plural ? 's' : ''}
-            {' — '}
-            elle{plural ? 's' : ''} ser{plural ? 'ont' : 'a'} incluse{plural ? 's' : ''} dans l&apos;export.
+            {isEn
+              ? `${n} manual edit${plural ? 's' : ''} applied — ${plural ? 'they' : 'it'} will be included in the export.`
+              : `${n} modification${plural ? 's' : ''} manuelle${plural ? 's' : ''} appliquée${plural ? 's' : ''} — elle${plural ? 's' : ''} ser${plural ? 'ont' : 'a'} incluse${plural ? 's' : ''} dans l'export.`}
           </div>
         );
       })()}
@@ -694,7 +699,7 @@ function CVOptimizerPageInner() {
             </CardHeader>
             <CardContent>
               <Combobox
-                ariaLabel="Modèle de CV"
+                ariaLabel={isEn ? 'CV template' : 'Modèle de CV'}
                 value={templateId}
                 onChange={(v) => handleTemplateChange(v as CVTemplateId)}
                 options={[
@@ -748,7 +753,7 @@ function CVOptimizerPageInner() {
                   className="flex h-9 w-full rounded-md border border-hairline surface-1 px-3 py-2 text-sm mt-1"
                   value={offerTitle}
                   onChange={(e) => setOfferTitle(e.target.value)}
-                  placeholder="ex: QA Automation Senior"
+                  placeholder={isEn ? 'e.g. QA Automation Senior' : 'ex: QA Automation Senior'}
                 />
               </div>
               <div>
@@ -803,7 +808,7 @@ function CVOptimizerPageInner() {
                 {matching.matchedSkills.length > 0 && (
                   <div className="mt-3">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
-                      Matchées ({matching.matchedSkills.length})
+                      {isEn ? 'Matched' : 'Matchées'} ({matching.matchedSkills.length})
                     </p>
                     <div className="flex flex-wrap gap-1">
                       {matching.matchedSkills.map((s) => (
@@ -818,7 +823,7 @@ function CVOptimizerPageInner() {
                   <div className="mt-3">
                     <div className="flex items-center justify-between mb-1.5">
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        Manquantes ({matching.missingSkills.length})
+                        {isEn ? 'Missing' : 'Manquantes'} ({matching.missingSkills.length})
                       </p>
                       {!suggestions && (
                         <Button
@@ -827,14 +832,14 @@ function CVOptimizerPageInner() {
                           className="h-6 text-[10px] px-2"
                           onClick={analyzeMissingSkills}
                           disabled={analyzing || !loaded}
-                          title="L'IA examine le profil pour voir si ces compétences sont plausiblement détenues"
+                          title={isEn ? 'The AI examines the profile to see if these skills are plausibly held' : "L'IA examine le profil pour voir si ces compétences sont plausiblement détenues"}
                         >
                           {analyzing ? (
                             <Loader2 className="h-3 w-3 animate-spin" />
                           ) : (
                             <Sparkles className="h-3 w-3" />
                           )}
-                          {analyzing ? 'Analyse…' : 'Analyser avec l\'IA'}
+                          {analyzing ? (isEn ? 'Analyzing…' : 'Analyse…') : isEn ? 'Analyze with AI' : 'Analyser avec l\'IA'}
                         </Button>
                       )}
                     </div>
@@ -872,10 +877,10 @@ function CVOptimizerPageInner() {
                                   : 'text-slate-400';
                             const verdictLabel =
                               s.verdict === 'strong'
-                                ? 'Fort'
+                                ? isEn ? 'Strong' : 'Fort'
                                 : s.verdict === 'plausible'
                                   ? 'Plausible'
-                                  : 'Non étayé';
+                                  : isEn ? 'Unsupported' : 'Non étayé';
                             return (
                               <div
                                 key={s.skill}
@@ -913,14 +918,14 @@ function CVOptimizerPageInner() {
                                       className="h-6 text-[10px] px-2 border-red-500/40 text-red-300 hover:bg-red-500/10"
                                       onClick={() => removeSuggestedSkill(s)}
                                       disabled={removingSkill === s.skill}
-                                      title="Retirer cette compétence du profil consultant"
+                                      title={isEn ? 'Remove this skill from the consultant profile' : 'Retirer cette compétence du profil consultant'}
                                     >
                                       {removingSkill === s.skill ? (
                                         <Loader2 className="h-3 w-3 animate-spin" />
                                       ) : (
                                         <Trash2 className="h-3 w-3" />
                                       )}
-                                      Retirer du profil
+                                      {isEn ? 'Remove from profile' : 'Retirer du profil'}
                                     </Button>
                                   ) : s.verdict !== 'unsupported' ? (
                                     <Button
@@ -936,7 +941,7 @@ function CVOptimizerPageInner() {
                                       ) : (
                                         <Plus className="h-3 w-3" />
                                       )}
-                                      Ajouter au profil
+                                      {isEn ? 'Add to profile' : 'Ajouter au profil'}
                                     </Button>
                                   ) : (
                                     <Button
@@ -946,14 +951,14 @@ function CVOptimizerPageInner() {
                                       className="h-6 text-[10px] px-2 border-amber-500/40 text-amber-300 hover:bg-amber-500/10"
                                       onClick={() => addSuggestedSkill(s, true)}
                                       disabled={addingSkill === s.skill}
-                                      title="Ajouter malgré l'absence d'évidence dans le profil"
+                                      title={isEn ? 'Add despite the lack of evidence in the profile' : "Ajouter malgré l'absence d'évidence dans le profil"}
                                     >
                                       {addingSkill === s.skill ? (
                                         <Loader2 className="h-3 w-3 animate-spin" />
                                       ) : (
                                         <Plus className="h-3 w-3" />
                                       )}
-                                      Forcer l&apos;ajout
+                                      {isEn ? 'Force add' : 'Forcer l\'ajout'}
                                     </Button>
                                   )}
                                   <Button
@@ -964,7 +969,7 @@ function CVOptimizerPageInner() {
                                     onClick={() => ignoreSuggestion(s.skill)}
                                   >
                                     <X className="h-3 w-3" />
-                                    Ignorer
+                                    {isEn ? 'Ignore' : 'Ignorer'}
                                   </Button>
                                 </div>
                               </div>
@@ -972,7 +977,7 @@ function CVOptimizerPageInner() {
                           })}
                         {suggestions.filter((s) => !ignoredSkills.has(s.skill)).length === 0 && (
                           <p className="text-[11px] text-muted-foreground italic">
-                            Toutes les suggestions ont été traitées.
+                            {isEn ? 'All suggestions have been handled.' : 'Toutes les suggestions ont été traitées.'}
                           </p>
                         )}
                         <Button
@@ -984,7 +989,7 @@ function CVOptimizerPageInner() {
                             setIgnoredSkills(new Set());
                           }}
                         >
-                          Réinitialiser
+                          {isEn ? 'Reset' : 'Réinitialiser'}
                         </Button>
                       </div>
                     )}
@@ -1000,21 +1005,21 @@ function CVOptimizerPageInner() {
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="text-[10px] uppercase tracking-widest text-violet-300 font-semibold">
-                      Niveau de confiance IA
+                      {isEn ? 'AI confidence level' : 'Niveau de confiance IA'}
                     </div>
                     <div className="font-display text-3xl font-bold qc-gradient-text">
                       {confidence.overall}%
                     </div>
                   </div>
                   <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-amber-400/30 bg-amber-400/10 text-[10px] uppercase tracking-wider text-amber-300 font-semibold">
-                    Brouillon
+                    {isEn ? 'Draft' : 'Brouillon'}
                   </span>
                 </div>
                 <div className="space-y-2 mb-3">
                   {[
-                    { label: 'Qualité de la source', value: confidence.perDimension.sourceQuality },
-                    { label: 'Match avec l’offre', value: confidence.perDimension.offerMatch },
-                    { label: 'Aucune invention', value: confidence.perDimension.noInvention },
+                    { label: isEn ? 'Source quality' : 'Qualité de la source', value: confidence.perDimension.sourceQuality },
+                    { label: isEn ? 'Match with the offer' : 'Match avec l’offre', value: confidence.perDimension.offerMatch },
+                    { label: isEn ? 'No fabrication' : 'Aucune invention', value: confidence.perDimension.noInvention },
                   ].map((d) => (
                     <div key={d.label}>
                       <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-0.5">
@@ -1049,7 +1054,9 @@ function CVOptimizerPageInner() {
                 )}
                 <div className="flex-1 text-xs">
                   <p className="font-semibold">
-                    {guardrails.noInvention ? 'Aucune invention détectée' : 'Invention détectée'}
+                    {guardrails.noInvention
+                      ? isEn ? 'No fabrication detected' : 'Aucune invention détectée'
+                      : isEn ? 'Fabrication detected' : 'Invention détectée'}
                   </p>
                   {!guardrails.noInvention && (
                     <ul className="mt-1 space-y-0.5 text-red-300">
@@ -1067,7 +1074,7 @@ function CVOptimizerPageInner() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs flex items-center gap-2">
-                  <AlertTriangle className="h-3 w-3 text-amber-400" /> Avertissements
+                  <AlertTriangle className="h-3 w-3 text-amber-400" /> {isEn ? 'Warnings' : 'Avertissements'}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1 text-xs text-muted-foreground">
@@ -1099,12 +1106,14 @@ function CVOptimizerPageInner() {
                 <CardContent className="p-4 flex items-start gap-3">
                   <Info className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
                   <div className="text-sm">
-                    <p className="font-semibold">Données incomplètes pour ce consultant</p>
+                    <p className="font-semibold">{isEn ? 'Incomplete data for this consultant' : 'Données incomplètes pour ce consultant'}</p>
                     <p className="text-muted-foreground text-xs mt-1">
-                      {loaded.skills.length === 0 && '• Aucune compétence renseignée. '}
-                      {loaded.experiences.length === 0 && '• Aucune expérience renseignée. '}
-                      {!loaded.consultant.summary && '• Aucun résumé exécutif. '}
-                      Le CV apparaîtra minimal. Complète la fiche consultant pour un rendu complet.
+                      {loaded.skills.length === 0 && (isEn ? '• No skill filled in. ' : '• Aucune compétence renseignée. ')}
+                      {loaded.experiences.length === 0 && (isEn ? '• No experience filled in. ' : '• Aucune expérience renseignée. ')}
+                      {!loaded.consultant.summary && (isEn ? '• No executive summary. ' : '• Aucun résumé exécutif. ')}
+                      {isEn
+                        ? 'The CV will look minimal. Complete the consultant record for a full rendering.'
+                        : 'Le CV apparaîtra minimal. Complète la fiche consultant pour un rendu complet.'}
                     </p>
                   </div>
                 </CardContent>
@@ -1179,16 +1188,18 @@ function EditModeBanner({
   editMode: boolean;
   setEditMode: (v: boolean) => void;
 }) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   if (editMode) {
     return (
       <div className="mb-3 flex items-start gap-3 rounded-lg border border-emerald-500/40 bg-emerald-500/[0.06] px-4 py-3">
         <MousePointerClick className="h-4 w-4 text-emerald-300 shrink-0 mt-0.5" />
         <div className="flex-1 text-sm">
-          <div className="font-semibold text-emerald-200">Mode édition activé</div>
+          <div className="font-semibold text-emerald-200">{isEn ? 'Edit mode enabled' : 'Mode édition activé'}</div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Clique sur n&apos;importe quel texte du CV pour le modifier directement (titre,
-            résumé, expériences, compétences). Tape Entrée pour valider, ou clique ailleurs.
-            Tes modifications sont sauvegardées automatiquement.
+            {isEn
+              ? 'Click any text in the CV to edit it directly (title, summary, experiences, skills). Press Enter to confirm, or click elsewhere. Your changes are saved automatically.'
+              : "Clique sur n'importe quel texte du CV pour le modifier directement (titre, résumé, expériences, compétences). Tape Entrée pour valider, ou clique ailleurs. Tes modifications sont sauvegardées automatiquement."}
           </p>
         </div>
         <Button
@@ -1197,7 +1208,7 @@ function EditModeBanner({
           onClick={() => setEditMode(false)}
           className="shrink-0"
         >
-          Sortir
+          {isEn ? 'Exit' : 'Sortir'}
         </Button>
       </div>
     );
@@ -1206,11 +1217,11 @@ function EditModeBanner({
     <div className="mb-3 flex items-start gap-3 rounded-lg border border-violet-glow/30 bg-violet-glow/[0.06] px-4 py-3">
       <Sparkles className="h-4 w-4 text-violet-glow shrink-0 mt-0.5" />
       <div className="flex-1 text-sm">
-        <div className="font-semibold">Modifie ton CV comme dans Canva</div>
+        <div className="font-semibold">{isEn ? 'Edit your CV like in Canva' : 'Modifie ton CV comme dans Canva'}</div>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Active le mode édition pour cliquer directement sur le texte du CV et le modifier
-          inline. Idéal pour ajuster un titre, reformuler une mission ou retravailler un
-          résumé sans repasser par la fiche consultant.
+          {isEn
+            ? 'Enable edit mode to click directly on the CV text and edit it inline. Ideal to tweak a title, reword a mission or rework a summary without going back to the consultant record.'
+            : 'Active le mode édition pour cliquer directement sur le texte du CV et le modifier inline. Idéal pour ajuster un titre, reformuler une mission ou retravailler un résumé sans repasser par la fiche consultant.'}
         </p>
       </div>
       <Button
@@ -1219,7 +1230,7 @@ function EditModeBanner({
         className="shrink-0 bg-gradient-to-r from-violet-glow to-magenta text-white shadow-[0_0_18px_-6px_rgba(225,29,116,0.55)] hover:brightness-110"
       >
         <Pencil className="h-3.5 w-3.5" />
-        Activer
+        {isEn ? 'Enable' : 'Activer'}
       </Button>
     </div>
   );
