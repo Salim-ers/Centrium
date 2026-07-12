@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 import { MarketingShell } from '@/components/marketing/MarketingShell';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
@@ -15,6 +16,36 @@ export const LEGAL_PAGES = [
 ] as const;
 
 export type LegalSlug = (typeof LEGAL_PAGES)[number]['slug'];
+
+// Titres longs EN (le titre FR est passé en prop par la page serveur, qui
+// ne peut pas connaître la locale — on le traduit ici, côté client).
+const LEGAL_TITLE_EN: Record<LegalSlug, string> = {
+  privacy: 'Privacy Policy',
+  mentions: 'Legal Notice',
+  cgu: 'Terms of Use and Service',
+  cookies: 'Cookie Policy',
+  dpa: 'Data Processing Agreement (DPA)',
+  subprocessors: 'Subprocessors',
+};
+
+// La date « mise à jour » est passée en français en dur ("mai 2026",
+// "4 juin 2026"…). On traduit uniquement le nom du mois pour l'affichage EN.
+const FR_MONTHS = [
+  'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+  'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+];
+const EN_MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+function localizeUpdatedAt(updatedAt: string, isEn: boolean): string {
+  if (!isEn) return updatedAt;
+  let out = updatedAt;
+  for (let i = 0; i < FR_MONTHS.length; i++) {
+    out = out.replace(new RegExp(FR_MONTHS[i], 'i'), EN_MONTHS[i]);
+  }
+  return out;
+}
 
 type Props = {
   title: string;
@@ -76,6 +107,13 @@ export function LegalShell({ title, updatedAt, currentSlug, children }: Props) {
       )}
 
       <main className="relative max-w-6xl mx-auto w-full px-6 py-12 md:py-16">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 mb-8 text-sm text-white/60 hover:text-white transition"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {isEn ? 'Back to site' : 'Retour au site'}
+        </Link>
         <div className="grid md:grid-cols-[230px_1fr] gap-10 md:gap-14">
           <aside className="md:sticky md:top-28 md:self-start">
             <div className="text-[11px] font-semibold tracking-[0.2em] text-white/40 mb-3 uppercase">
@@ -128,11 +166,11 @@ export function LegalShell({ title, updatedAt, currentSlug, children }: Props) {
                 {isEn ? 'Centrium · Legal' : 'Centrium · Espace légal'}
               </div>
               <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-white">
-                {title}
+                {isEn ? (LEGAL_TITLE_EN[currentSlug] ?? title) : title}
               </h1>
               <p className="mt-3 text-sm text-white/50">
                 {isEn ? 'Last updated: ' : 'Dernière mise à jour : '}
-                <span className="text-white/70">{updatedAt}</span>
+                <span className="text-white/70">{localizeUpdatedAt(updatedAt, isEn)}</span>
               </p>
             </header>
 
