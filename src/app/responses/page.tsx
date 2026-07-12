@@ -49,6 +49,7 @@ import type {
 import { CV_TEMPLATE_LABEL } from '@/constants';
 import { formatDate } from '@/lib/utils';
 import { useCurrency } from '@/lib/i18n/CurrencyProvider';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 type LoadedConsultant = {
   consultant: Consultant;
@@ -65,6 +66,8 @@ type EmailDraft = {
 
 export default function ResponsesPage() {
   const { format: formatCurrency } = useCurrency();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   // === Step 1 : offres ===
   const [offers, setOffers] = useState<JobOffer[]>([]);
   const [loadingOffers, setLoadingOffers] = useState(true);
@@ -116,7 +119,7 @@ export default function ResponsesPage() {
     setMatchingLoading(true);
     matchingService.matchConsultantsToOffer(selectedOfferId).then((res) => {
       if (res.data) setMatches(res.data);
-      else toast.error('Matching échoué : ' + (res.error?.message ?? ''));
+      else toast.error((isEn ? 'Matching failed: ' : 'Matching échoué : ') + (res.error?.message ?? ''));
       setMatchingLoading(false);
     });
   }, [selectedOfferId]);
@@ -131,7 +134,7 @@ export default function ResponsesPage() {
     }
     consultantService.getById(selectedConsultantId).then((res) => {
       if (res.data) setLoaded(res.data);
-      else toast.error('Impossible de charger le consultant');
+      else toast.error(isEn ? 'Could not load the consultant' : 'Impossible de charger le consultant');
     });
   }, [selectedConsultantId]);
 
@@ -156,7 +159,7 @@ export default function ResponsesPage() {
         setCvContent(result.content);
         setCvWarnings(result.warnings);
       } catch (e) {
-        if (!cancelled) toast.error('Erreur de génération CV');
+        if (!cancelled) toast.error(isEn ? 'CV generation error' : 'Erreur de génération CV');
         console.error(e);
       }
     })();
@@ -181,9 +184,16 @@ export default function ResponsesPage() {
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         if (res.status === 503) {
-          toast.error('Clé API Anthropic manquante. Ajoute ANTHROPIC_API_KEY dans .env.local.');
+          toast.error(
+            isEn
+              ? 'Missing Anthropic API key. Add ANTHROPIC_API_KEY to .env.local.'
+              : 'Clé API Anthropic manquante. Ajoute ANTHROPIC_API_KEY dans .env.local.',
+          );
         } else {
-          toast.error(`Génération email impossible : ${body.message ?? `HTTP ${res.status}`}`);
+          toast.error(
+            (isEn ? 'Email generation failed: ' : 'Génération email impossible : ') +
+              (body.message ?? `HTTP ${res.status}`),
+          );
         }
         return;
       }
@@ -193,9 +203,12 @@ export default function ResponsesPage() {
         body: data.body,
         highlights: data.highlights ?? [],
       });
-      toast.success('🤖 Pitch email généré');
+      toast.success(isEn ? '🤖 Email pitch generated' : '🤖 Pitch email généré');
     } catch (e) {
-      toast.error(`Erreur réseau : ${e instanceof Error ? e.message : 'inconnue'}`);
+      toast.error(
+        (isEn ? 'Network error: ' : 'Erreur réseau : ') +
+          (e instanceof Error ? e.message : isEn ? 'unknown' : 'inconnue'),
+      );
     } finally {
       setGeneratingEmail(false);
     }
@@ -203,9 +216,9 @@ export default function ResponsesPage() {
 
   function copyEmail() {
     if (!email) return;
-    const full = `Objet : ${email.subject}\n\n${email.body}`;
+    const full = `${isEn ? 'Subject' : 'Objet'}: ${email.subject}\n\n${email.body}`;
     navigator.clipboard.writeText(full);
-    toast.success('Email copié');
+    toast.success(isEn ? 'Email copied' : 'Email copié');
   }
 
   function openMailto() {
@@ -216,7 +229,7 @@ export default function ResponsesPage() {
 
   async function downloadDocx() {
     if (!cvContent) {
-      toast.error('CV non prêt');
+      toast.error(isEn ? 'CV not ready' : 'CV non prêt');
       return;
     }
     setExporting('docx');
@@ -232,7 +245,7 @@ export default function ResponsesPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      toast.error('Export DOCX échoué');
+      toast.error(isEn ? 'DOCX export failed' : 'Export DOCX échoué');
       console.error(e);
     } finally {
       setExporting(null);
@@ -244,10 +257,12 @@ export default function ResponsesPage() {
       <div className="mb-8">
         <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
           <Send className="h-7 w-7 text-violet-glow" />
-          Réponses AO
+          {isEn ? 'RFP Responses' : 'Réponses AO'}
         </h1>
         <p className="text-muted-foreground mt-1">
-          Offre → meilleur consultant → CV aligné → pitch commercial IA
+          {isEn
+            ? 'Offer → best consultant → aligned CV → AI sales pitch'
+            : 'Offre → meilleur consultant → CV aligné → pitch commercial IA'}
         </p>
       </div>
 
@@ -260,13 +275,13 @@ export default function ResponsesPage() {
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-500/20 text-[10px] font-bold text-violet-300">
                   1
                 </span>
-                Offre
+                {isEn ? 'Offer' : 'Offre'}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
                 <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Sélectionner
+                  {isEn ? 'Select' : 'Sélectionner'}
                 </Label>
                 <Combobox
                   value={selectedOfferId}
@@ -276,10 +291,10 @@ export default function ResponsesPage() {
                     {
                       value: '',
                       label: loadingOffers
-                        ? 'Chargement…'
+                        ? isEn ? 'Loading…' : 'Chargement…'
                         : offers.length === 0
-                          ? 'Aucune offre ouverte'
-                          : 'Choisir une offre ouverte',
+                          ? isEn ? 'No open offer' : 'Aucune offre ouverte'
+                          : isEn ? 'Choose an open offer' : 'Choisir une offre ouverte',
                     },
                     ...offers.map((o) => ({ value: o.id, label: o.title })),
                   ]}
@@ -290,13 +305,13 @@ export default function ResponsesPage() {
                 <div className="space-y-2 text-xs pt-2 border-t border-hairline">
                   {selectedOffer.seniority && (
                     <div>
-                      <span className="text-muted-foreground">Séniorité : </span>
+                      <span className="text-muted-foreground">{isEn ? 'Seniority: ' : 'Séniorité : '}</span>
                       <span className="font-medium">{selectedOffer.seniority}</span>
                     </div>
                   )}
                   {(selectedOffer.daily_rate_min || selectedOffer.daily_rate_max) && (
                     <div>
-                      <span className="text-muted-foreground">TJM : </span>
+                      <span className="text-muted-foreground">{isEn ? 'Day rate: ' : 'TJM : '}</span>
                       <span className="font-medium">
                         {selectedOffer.daily_rate_min ? formatCurrency(selectedOffer.daily_rate_min) : '?'}
                         {' – '}
@@ -306,19 +321,19 @@ export default function ResponsesPage() {
                   )}
                   {selectedOffer.location && (
                     <div>
-                      <span className="text-muted-foreground">Lieu : </span>
+                      <span className="text-muted-foreground">{isEn ? 'Location: ' : 'Lieu : '}</span>
                       <span className="font-medium">{selectedOffer.location}</span>
                     </div>
                   )}
                   {selectedOffer.start_date && (
                     <div>
-                      <span className="text-muted-foreground">Démarrage : </span>
+                      <span className="text-muted-foreground">{isEn ? 'Start: ' : 'Démarrage : '}</span>
                       <span className="font-medium">{formatDate(selectedOffer.start_date)}</span>
                     </div>
                   )}
                   {selectedOffer.deadline && (
                     <div>
-                      <span className="text-muted-foreground">Deadline : </span>
+                      <span className="text-muted-foreground">{isEn ? 'Deadline: ' : 'Deadline : '}</span>
                       <span className="font-medium text-amber-300">
                         {formatDate(selectedOffer.deadline)}
                       </span>
@@ -326,7 +341,7 @@ export default function ResponsesPage() {
                   )}
                   {selectedOffer.required_skills?.length > 0 && (
                     <div>
-                      <p className="text-muted-foreground mb-1">Compétences requises</p>
+                      <p className="text-muted-foreground mb-1">{isEn ? 'Required skills' : 'Compétences requises'}</p>
                       <div className="flex flex-wrap gap-1">
                         {selectedOffer.required_skills.map((s) => (
                           <Badge key={s} variant="outline" className="text-[10px]">
@@ -351,28 +366,29 @@ export default function ResponsesPage() {
                   2
                 </span>
                 <Target className="h-4 w-4" />
-                Consultants classés
+                {isEn ? 'Ranked consultants' : 'Consultants classés'}
               </CardTitle>
               {matches && (
                 <CardDescription className="text-xs">
-                  {matches.length} consultant{matches.length > 1 ? 's' : ''} évalué
-                  {matches.length > 1 ? 's' : ''} — trié par score
+                  {isEn
+                    ? `${matches.length} consultant${matches.length > 1 ? 's' : ''} evaluated — sorted by score`
+                    : `${matches.length} consultant${matches.length > 1 ? 's' : ''} évalué${matches.length > 1 ? 's' : ''} — trié par score`}
                 </CardDescription>
               )}
             </CardHeader>
             <CardContent className="space-y-2 max-h-[75vh] overflow-auto">
               {!selectedOfferId ? (
                 <p className="text-xs text-muted-foreground italic py-8 text-center">
-                  Sélectionne une offre pour lancer le matching.
+                  {isEn ? 'Select an offer to run the matching.' : 'Sélectionne une offre pour lancer le matching.'}
                 </p>
               ) : matchingLoading ? (
                 <div className="py-8 text-center">
                   <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground mt-2">Matching en cours…</p>
+                  <p className="text-xs text-muted-foreground mt-2">{isEn ? 'Matching…' : 'Matching en cours…'}</p>
                 </div>
               ) : matches && matches.length === 0 ? (
                 <p className="text-xs text-muted-foreground italic py-8 text-center">
-                  Aucun consultant actif dans la base.
+                  {isEn ? 'No active consultant in the database.' : 'Aucun consultant actif dans la base.'}
                 </p>
               ) : (
                 matches?.map((m) => {
@@ -385,10 +401,10 @@ export default function ResponsesPage() {
                         : 'border-slate-500/20 bg-slate-500/5';
                   const recoLabel =
                     m.recommendation === 'recommend'
-                      ? 'Recommandé'
+                      ? isEn ? 'Recommended' : 'Recommandé'
                       : m.recommendation === 'maybe'
-                        ? 'Peut-être'
-                        : 'Pas adapté';
+                        ? isEn ? 'Maybe' : 'Peut-être'
+                        : isEn ? 'Not suited' : 'Pas adapté';
                   return (
                     <button
                       key={m.consultant.id}
@@ -423,10 +439,10 @@ export default function ResponsesPage() {
                         </Badge>
                         <span className="text-muted-foreground">
                           {m.consultant.status === 'available'
-                            ? 'Dispo'
+                            ? isEn ? 'Available' : 'Dispo'
                             : m.consultant.status === 'soon_available'
-                              ? 'Bientôt dispo'
-                              : 'En mission'}
+                              ? isEn ? 'Soon' : 'Bientôt dispo'
+                              : isEn ? 'On mission' : 'En mission'}
                         </span>
                         {m.consultant.daily_rate_eur && (
                           <span className="text-muted-foreground">
@@ -450,14 +466,14 @@ export default function ResponsesPage() {
                       )}
                       {m.missingSkills.length > 0 && (
                         <p className="mt-1 text-[9px] text-amber-300/70">
-                          Manquantes : {m.missingSkills.slice(0, 3).join(', ')}
+                          {isEn ? 'Missing: ' : 'Manquantes : '}{m.missingSkills.slice(0, 3).join(', ')}
                           {m.missingSkills.length > 3 && ` +${m.missingSkills.length - 3}`}
                         </p>
                       )}
                       {isSelected && (
                         <div className="mt-2 flex items-center gap-1 text-[10px] text-violet-300">
                           <CheckCircle2 className="h-3 w-3" />
-                          Sélectionné
+                          {isEn ? 'Selected' : 'Sélectionné'}
                           <ChevronRight className="h-3 w-3 ml-auto" />
                         </div>
                       )}
@@ -478,13 +494,13 @@ export default function ResponsesPage() {
                   3
                 </span>
                 <FileText className="h-4 w-4" />
-                CV aligné
+                {isEn ? 'Aligned CV' : 'CV aligné'}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {!loaded ? (
                 <p className="text-xs text-muted-foreground italic py-4 text-center">
-                  Sélectionne un consultant dans la colonne 2.
+                  {isEn ? 'Select a consultant in column 2.' : 'Sélectionne un consultant dans la colonne 2.'}
                 </p>
               ) : (
                 <>
@@ -536,7 +552,7 @@ export default function ResponsesPage() {
                       ))}
                       {cvWarnings.length > 3 && (
                         <p className="text-muted-foreground">
-                          … +{cvWarnings.length - 3} autres
+                          … +{cvWarnings.length - 3} {isEn ? 'more' : 'autres'}
                         </p>
                       )}
                     </div>
@@ -550,31 +566,33 @@ export default function ResponsesPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Mail className="h-4 w-4" />
-                Pitch email
+                {isEn ? 'Email pitch' : 'Pitch email'}
               </CardTitle>
               <CardDescription className="text-xs">
-                Le moteur ne cite que les faits du profil. Pas d&apos;invention.
+                {isEn
+                  ? 'The engine only cites facts from the profile. No fabrication.'
+                  : "Le moteur ne cite que les faits du profil. Pas d'invention."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {!loaded ? (
                 <p className="text-xs text-muted-foreground italic py-4 text-center">
-                  En attente d&apos;un consultant sélectionné.
+                  {isEn ? 'Waiting for a selected consultant.' : "En attente d'un consultant sélectionné."}
                 </p>
               ) : (
                 <>
                   <div className="flex items-end gap-2">
                     <div className="flex-1">
                       <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        Ton
+                        {isEn ? 'Tone' : 'Ton'}
                       </Label>
                       <Combobox
                         value={tone}
                         onChange={(v) => setTone(v as typeof tone)}
                         options={[
-                          { value: 'sobre', label: 'Sobre et factuel' },
-                          { value: 'direct', label: 'Direct et concis' },
-                          { value: 'chaleureux', label: 'Chaleureux mais pro' },
+                          { value: 'sobre', label: isEn ? 'Sober and factual' : 'Sobre et factuel' },
+                          { value: 'direct', label: isEn ? 'Direct and concise' : 'Direct et concis' },
+                          { value: 'chaleureux', label: isEn ? 'Warm but professional' : 'Chaleureux mais pro' },
                         ]}
                       />
                     </div>
@@ -588,7 +606,7 @@ export default function ResponsesPage() {
                       ) : (
                         <Sparkles className="h-3 w-3" />
                       )}
-                      {email ? 'Régénérer' : 'Générer'}
+                      {email ? (isEn ? 'Regenerate' : 'Régénérer') : isEn ? 'Generate' : 'Générer'}
                     </Button>
                   </div>
 
@@ -596,7 +614,7 @@ export default function ResponsesPage() {
                     <>
                       <div>
                         <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                          Objet
+                          {isEn ? 'Subject' : 'Objet'}
                         </Label>
                         <Input
                           value={email.subject}
@@ -610,7 +628,7 @@ export default function ResponsesPage() {
                       </div>
                       <div>
                         <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                          Corps
+                          {isEn ? 'Body' : 'Corps'}
                         </Label>
                         <Textarea
                           value={email.body}
@@ -626,7 +644,7 @@ export default function ResponsesPage() {
                         <div className="bg-white/[0.02] border border-hairline rounded-md p-2">
                           <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                             <Info className="h-3 w-3" />
-                            Points-clés du pitch
+                            {isEn ? 'Pitch key points' : 'Points-clés du pitch'}
                           </p>
                           <ul className="space-y-0.5 text-[11px]">
                             {email.highlights.map((h, i) => (
@@ -643,7 +661,7 @@ export default function ResponsesPage() {
                           className="flex-1"
                         >
                           <Copy className="h-3 w-3" />
-                          Copier
+                          {isEn ? 'Copy' : 'Copier'}
                         </Button>
                         <Button
                           variant="outline"
@@ -652,7 +670,7 @@ export default function ResponsesPage() {
                           className="flex-1"
                         >
                           <ExternalLink className="h-3 w-3" />
-                          Ouvrir mailto
+                          {isEn ? 'Open mailto' : 'Ouvrir mailto'}
                         </Button>
                       </div>
                     </>
