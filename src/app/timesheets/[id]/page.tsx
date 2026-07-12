@@ -38,6 +38,8 @@ import {
 import { timesheetService, invoiceService } from '@/lib/services';
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { useTimesheetStatusLabels } from '@/lib/i18n/useBadges';
 import type { Timesheet, Mission, Consultant, Company } from '@/types';
 
 type TimesheetDay = {
@@ -73,6 +75,9 @@ const STATUS_LABEL: Record<Timesheet['status'], string> = {
 
 export default function TimesheetDetailPage() {
   const { activeOrgId, branding } = useOrganization();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
+  const tsStatus = useTimesheetStatusLabels() as Record<string, string>;
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [detail, setDetail] = useState<Detail | null>(null);
@@ -134,12 +139,12 @@ export default function TimesheetDetailPage() {
   async function validateAndInvoice() {
     if (!detail) return;
     if (!activeOrgId) {
-      toast.error('Organisation active manquante');
+      toast.error(isEn ? 'Missing active organization' : 'Organisation active manquante');
       return;
     }
     const res = await timesheetService.validateAndInvoice(detail.timesheet.id, activeOrgId);
     if (res.error || !res.data) {
-      toast.error('Erreur : ' + (res.error?.message ?? 'inconnue'));
+      toast.error((isEn ? 'Error: ' : 'Erreur : ') + (res.error?.message ?? (isEn ? 'unknown' : 'inconnue')));
       return;
     }
     // Email "CRA validé" au consultant — fire-and-forget, jamais bloquant.
@@ -149,10 +154,12 @@ export default function TimesheetDetailPage() {
       body: JSON.stringify({ action: 'notify_validated' }),
     }).catch(() => {});
     if (res.data.alreadyInvoiced) {
-      toast.success('CRA validé — la facture client existait déjà');
+      toast.success(isEn ? 'Timesheet validated — the client invoice already existed' : 'CRA validé — la facture client existait déjà');
     } else {
       toast.success(
-        `CRA validé → facture client ${res.data.invoice.invoice_number} générée`,
+        isEn
+          ? `Timesheet validated → client invoice ${res.data.invoice.invoice_number} generated`
+          : `CRA validé → facture client ${res.data.invoice.invoice_number} générée`,
       );
     }
     // On RESTE sur le CRA : le bouton « Facture consultant » apparaît juste
@@ -168,14 +175,20 @@ export default function TimesheetDetailPage() {
     try {
       const res = await invoiceService.generateConsultantInvoice(detail.timesheet.id);
       if (res.error || !res.data) {
-        toast.error('Erreur : ' + (res.error?.message ?? 'inconnue'));
+        toast.error((isEn ? 'Error: ' : 'Erreur : ') + (res.error?.message ?? (isEn ? 'unknown' : 'inconnue')));
         return;
       }
       if (res.data.alreadyExists) {
-        toast.info(`Facture consultant déjà générée — ${res.data.invoice.invoice_number}`);
+        toast.info(
+          isEn
+            ? `Consultant invoice already generated — ${res.data.invoice.invoice_number}`
+            : `Facture consultant déjà générée — ${res.data.invoice.invoice_number}`,
+        );
       } else {
         toast.success(
-          `Facture consultant ${res.data.invoice.invoice_number} générée — visible dans son espace`,
+          isEn
+            ? `Consultant invoice ${res.data.invoice.invoice_number} generated — visible in their portal`
+            : `Facture consultant ${res.data.invoice.invoice_number} générée — visible dans son espace`,
         );
       }
       await reload();
@@ -196,10 +209,10 @@ export default function TimesheetDetailPage() {
     return (
       <AppShell>
         <div className="text-center py-20">
-          <h1 className="font-display text-2xl font-bold">CRA introuvable</h1>
+          <h1 className="font-display text-2xl font-bold">{isEn ? 'Timesheet not found' : 'CRA introuvable'}</h1>
           <Button className="mt-6" onClick={() => router.push('/timesheets')}>
             <ArrowLeft className="h-4 w-4" />
-            Retour aux CRA
+            {isEn ? 'Back to timesheets' : 'Retour aux CRA'}
           </Button>
         </div>
       </AppShell>
@@ -221,7 +234,7 @@ export default function TimesheetDetailPage() {
       note: next.note,
     });
     if (res.error) {
-      toast.error('Modification impossible : ' + res.error.message);
+      toast.error((isEn ? 'Change failed: ' : 'Modification impossible : ') + res.error.message);
       return;
     }
     await reload();
@@ -245,7 +258,9 @@ export default function TimesheetDetailPage() {
     );
     const firstError = results.find((r) => r.error)?.error;
     if (firstError) {
-      toast.error(`Modification impossible sur certains jours : ${firstError.message}`);
+      toast.error(
+        (isEn ? 'Change failed on some days: ' : 'Modification impossible sur certains jours : ') + firstError.message,
+      );
     }
     await reload();
   }
@@ -256,13 +271,13 @@ export default function TimesheetDetailPage() {
         <Button variant="ghost" size="sm" asChild>
           <Link href="/timesheets">
             <ArrowLeft className="h-4 w-4" />
-            Retour
+            {isEn ? 'Back' : 'Retour'}
           </Link>
         </Button>
 
         <div className="flex items-center gap-2 flex-wrap">
           <Badge variant="outline" className={STATUS_STYLE[timesheet.status]}>
-            {STATUS_LABEL[timesheet.status]}
+            {tsStatus[timesheet.status] ?? STATUS_LABEL[timesheet.status]}
           </Badge>
           {timesheet.status === 'submitted' && (
             <Button
@@ -275,27 +290,27 @@ export default function TimesheetDetailPage() {
               className="border-red-500/40 text-red-400 hover:bg-red-500/10"
             >
               <XCircle className="h-4 w-4" />
-              Refuser
+              {isEn ? 'Reject' : 'Refuser'}
             </Button>
           )}
           {timesheet.status !== 'client_validated' && (
             <Button variant="outline" size="sm" onClick={validateAndInvoice}>
               <CheckCircle2 className="h-4 w-4" />
-              Valider &amp; facturer
+              {isEn ? 'Validate & invoice' : 'Valider & facturer'}
             </Button>
           )}
           {/* Volet 1 — facture CLIENT (vente, à encaisser) */}
           {timesheet.status === 'client_validated' && !clientInvoice && (
             <Button variant="outline" size="sm" onClick={validateAndInvoice}>
               <Receipt className="h-4 w-4" />
-              Générer la facture client
+              {isEn ? 'Generate client invoice' : 'Générer la facture client'}
             </Button>
           )}
           {clientInvoice && (
             <Button variant="outline" size="sm" asChild>
               <Link href={`/invoices/${clientInvoice.id}`}>
                 <Receipt className="h-4 w-4" />
-                Facture client · {clientInvoice.invoice_number}
+                {isEn ? 'Client invoice' : 'Facture client'} · {clientInvoice.invoice_number}
               </Link>
             </Button>
           )}
@@ -315,14 +330,14 @@ export default function TimesheetDetailPage() {
               ) : (
                 <HandCoins className="h-4 w-4" />
               )}
-              Pousser en facture consultant
+              {isEn ? 'Push to consultant invoice' : 'Pousser en facture consultant'}
             </Button>
           )}
           {consultantInvoice && (
             <Button variant="outline" size="sm" asChild>
               <Link href={`/invoices/${consultantInvoice.id}`}>
                 <HandCoins className="h-4 w-4" />
-                Facture consultant · {consultantInvoice.invoice_number}
+                {isEn ? 'Consultant invoice' : 'Facture consultant'} · {consultantInvoice.invoice_number}
               </Link>
             </Button>
           )}
@@ -335,7 +350,7 @@ export default function TimesheetDetailPage() {
             }
           >
             <Download className="h-4 w-4" />
-            Télécharger PDF
+            {isEn ? 'Download PDF' : 'Télécharger PDF'}
           </Button>
         </div>
       </div>
@@ -346,28 +361,29 @@ export default function TimesheetDetailPage() {
           <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
             <div>
               <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
-                Calendrier du mois
+                {isEn ? 'Month calendar' : 'Calendrier du mois'}
               </div>
               <div className="text-sm">
                 {calendarEditable ? (
                   <span className="inline-flex items-center gap-1.5 text-violet-300">
                     <Pencil className="h-3.5 w-3.5" />
-                    Choisis un type ci-dessous puis clique-glisse pour remplir
-                    plusieurs jours — ou clique un jour pour le menu détaillé
+                    {isEn
+                      ? 'Pick a type below then click-drag to fill several days — or click a day for the detailed menu'
+                      : 'Choisis un type ci-dessous puis clique-glisse pour remplir plusieurs jours — ou clique un jour pour le menu détaillé'}
                   </span>
                 ) : (
                   <span className="text-muted-foreground">
-                    CRA validé — calendrier en lecture seule
+                    {isEn ? 'Timesheet validated — calendar read-only' : 'CRA validé — calendrier en lecture seule'}
                   </span>
                 )}
               </div>
             </div>
             <div className="text-right">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                Total facturé
+                {isEn ? 'Total billed' : 'Total facturé'}
               </div>
               <div className="text-2xl font-bold qc-gradient-text">
-                {Number(timesheet.days_worked)} j
+                {Number(timesheet.days_worked)} {isEn ? 'd' : 'j'}
               </div>
             </div>
           </div>
@@ -394,23 +410,28 @@ export default function TimesheetDetailPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <XCircle className="h-5 w-5 text-red-400" />
-              Refuser ce CRA
+              {isEn ? 'Reject this timesheet' : 'Refuser ce CRA'}
             </DialogTitle>
             <DialogDescription>
-              Le consultant recevra un email avec ta raison, pourra corriger son
-              CRA depuis son portail et le soumettre à nouveau.
+              {isEn
+                ? 'The consultant will receive an email with your reason, will be able to correct their timesheet from their portal and submit it again.'
+                : 'Le consultant recevra un email avec ta raison, pourra corriger son CRA depuis son portail et le soumettre à nouveau.'}
             </DialogDescription>
           </DialogHeader>
           <Textarea
             rows={4}
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
-            placeholder="Ex : le 15 mars est compté travaillé alors que la mission était suspendue…"
+            placeholder={
+              isEn
+                ? 'E.g. March 15 is counted as worked while the mission was suspended…'
+                : 'Ex : le 15 mars est compté travaillé alors que la mission était suspendue…'
+            }
             autoFocus
           />
           <DialogFooter className="gap-2 sm:gap-2">
             <Button variant="outline" onClick={() => setRejectOpen(false)} disabled={rejecting}>
-              Annuler
+              {isEn ? 'Cancel' : 'Annuler'}
             </Button>
             <Button
               variant="outline"
@@ -428,7 +449,7 @@ export default function TimesheetDetailPage() {
                   );
                   const body = await res.json().catch(() => ({}));
                   if (!res.ok) {
-                    toast.error(body.message ?? 'Refus impossible');
+                    toast.error(body.message ?? (isEn ? 'Rejection failed' : 'Refus impossible'));
                     return;
                   }
                   setRejectOpen(false);
@@ -440,7 +461,7 @@ export default function TimesheetDetailPage() {
               className="border-red-500/40 text-red-400 hover:bg-red-500/10"
             >
               {rejecting && <Loader2 className="h-4 w-4 animate-spin" />}
-              Refuser et demander correction
+              {isEn ? 'Reject and request correction' : 'Refuser et demander correction'}
             </Button>
           </DialogFooter>
         </DialogContent>

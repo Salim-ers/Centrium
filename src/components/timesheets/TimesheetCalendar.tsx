@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Briefcase, Palmtree, HeartPulse, MinusCircle, Sparkles, Trash2 } from 'lucide-react';
 
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+
 export type TimesheetDayKind =
   | 'worked'
   | 'paid_leave'
@@ -91,6 +93,18 @@ const KIND_META: Record<
   },
 };
 
+const KIND_LABEL_EN: Record<TimesheetDayKind, string> = {
+  worked: 'Worked',
+  paid_leave: 'Paid leave',
+  sick_leave: 'Sick leave',
+  unpaid_leave: 'Unpaid leave',
+  holiday: 'Public holiday',
+};
+
+function kindLabel(kind: TimesheetDayKind, isEn: boolean): string {
+  return isEn ? KIND_LABEL_EN[kind] : KIND_META[kind].label;
+}
+
 type Cell = {
   dayNum: number | null;
   iso: string | null;
@@ -98,15 +112,17 @@ type Cell = {
   data: CalendarDay | null;
 };
 
-const BRUSHES: Brush[] = [
-  { id: 'worked', kind: 'worked', duration: 1, label: 'Travaillé', icon: Briefcase, activeClass: `${KIND_META.worked.border} ${KIND_META.worked.bg} ${KIND_META.worked.text}` },
-  { id: 'half', kind: 'worked', duration: 0.5, label: 'Demi-journée', icon: Briefcase, activeClass: `${KIND_META.worked.border} ${KIND_META.worked.bg} ${KIND_META.worked.text}` },
-  { id: 'paid_leave', kind: 'paid_leave', label: KIND_META.paid_leave.label, icon: Palmtree, activeClass: `${KIND_META.paid_leave.border} ${KIND_META.paid_leave.bg} ${KIND_META.paid_leave.text}` },
-  { id: 'sick_leave', kind: 'sick_leave', label: KIND_META.sick_leave.label, icon: HeartPulse, activeClass: `${KIND_META.sick_leave.border} ${KIND_META.sick_leave.bg} ${KIND_META.sick_leave.text}` },
-  { id: 'unpaid_leave', kind: 'unpaid_leave', label: KIND_META.unpaid_leave.label, icon: MinusCircle, activeClass: `${KIND_META.unpaid_leave.border} ${KIND_META.unpaid_leave.bg} ${KIND_META.unpaid_leave.text}` },
-  { id: 'holiday', kind: 'holiday', label: KIND_META.holiday.label, icon: Sparkles, activeClass: `${KIND_META.holiday.border} ${KIND_META.holiday.bg} ${KIND_META.holiday.text}` },
-  { id: 'clear', kind: null, label: 'Vider', icon: Trash2, activeClass: 'border-red-500/40 bg-red-500/10 text-red-300' },
-];
+function buildBrushes(isEn: boolean): Brush[] {
+  return [
+    { id: 'worked', kind: 'worked', duration: 1, label: isEn ? 'Worked' : 'Travaillé', icon: Briefcase, activeClass: `${KIND_META.worked.border} ${KIND_META.worked.bg} ${KIND_META.worked.text}` },
+    { id: 'half', kind: 'worked', duration: 0.5, label: isEn ? 'Half day' : 'Demi-journée', icon: Briefcase, activeClass: `${KIND_META.worked.border} ${KIND_META.worked.bg} ${KIND_META.worked.text}` },
+    { id: 'paid_leave', kind: 'paid_leave', label: kindLabel('paid_leave', isEn), icon: Palmtree, activeClass: `${KIND_META.paid_leave.border} ${KIND_META.paid_leave.bg} ${KIND_META.paid_leave.text}` },
+    { id: 'sick_leave', kind: 'sick_leave', label: kindLabel('sick_leave', isEn), icon: HeartPulse, activeClass: `${KIND_META.sick_leave.border} ${KIND_META.sick_leave.bg} ${KIND_META.sick_leave.text}` },
+    { id: 'unpaid_leave', kind: 'unpaid_leave', label: kindLabel('unpaid_leave', isEn), icon: MinusCircle, activeClass: `${KIND_META.unpaid_leave.border} ${KIND_META.unpaid_leave.bg} ${KIND_META.unpaid_leave.text}` },
+    { id: 'holiday', kind: 'holiday', label: kindLabel('holiday', isEn), icon: Sparkles, activeClass: `${KIND_META.holiday.border} ${KIND_META.holiday.bg} ${KIND_META.holiday.text}` },
+    { id: 'clear', kind: null, label: isEn ? 'Clear' : 'Vider', icon: Trash2, activeClass: 'border-red-500/40 bg-red-500/10 text-red-300' },
+  ];
+}
 
 export function TimesheetCalendar({
   year,
@@ -117,6 +133,9 @@ export function TimesheetCalendar({
   onBatchChange,
   primaryColor,
 }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
+  const BRUSHES = useMemo(() => buildBrushes(isEn), [isEn]);
   const cells = useMemo(() => buildCells(year, month, days), [year, month, days]);
   const [openIso, setOpenIso] = useState<string | null>(null);
 
@@ -197,7 +216,7 @@ export function TimesheetCalendar({
       {editable && (
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="mr-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-            Remplissage rapide
+            {isEn ? 'Quick fill' : 'Remplissage rapide'}
           </span>
           {BRUSHES.map((b) => {
             const BI = b.icon;
@@ -214,8 +233,8 @@ export function TimesheetCalendar({
                 }`}
                 title={
                   active
-                    ? 'Désactiver le pinceau'
-                    : `Sélectionner puis cliquer-glisser sur les jours`
+                    ? isEn ? 'Disable the brush' : 'Désactiver le pinceau'
+                    : isEn ? 'Select then click-drag over the days' : 'Sélectionner puis cliquer-glisser sur les jours'
                 }
               >
                 <BI className="h-3 w-3" />
@@ -225,9 +244,9 @@ export function TimesheetCalendar({
           })}
           <span className="ml-1 text-[11px] text-muted-foreground">
             {saving
-              ? 'Enregistrement…'
+              ? isEn ? 'Saving…' : 'Enregistrement…'
               : brush
-                ? 'Clique ou glisse sur les jours à remplir'
+                ? isEn ? 'Click or drag over the days to fill' : 'Clique ou glisse sur les jours à remplir'
                 : ''}
           </span>
         </div>
@@ -235,7 +254,10 @@ export function TimesheetCalendar({
 
       {/* En-têtes jours */}
       <div className="grid grid-cols-7 gap-1.5 text-[10px] uppercase tracking-wider text-neutral-500">
-        {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((d) => (
+        {(isEn
+          ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+          : ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+        ).map((d) => (
           <div key={d} className="text-center font-semibold py-1">
             {d}
           </div>
@@ -255,6 +277,7 @@ export function TimesheetCalendar({
             onChange={onChange}
             primaryColor={primaryColor}
             brush={brush}
+            isEn={isEn}
             isPending={cell.iso !== null && pending.has(cell.iso)}
             onPaintStart={startPaint}
             onPaintEnter={paintEnter}
@@ -275,9 +298,9 @@ export function TimesheetCalendar({
                 className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 ${meta.border} ${meta.bg} ${meta.text}`}
               >
                 <Icon className="h-3 w-3" />
-                <span className="font-medium">{meta.label}</span>
+                <span className="font-medium">{kindLabel(k, isEn)}</span>
                 <span className="text-[10px] opacity-80">
-                  {k === 'worked' ? `${count} j` : count > 0 ? `· ${count}` : ''}
+                  {k === 'worked' ? `${count} ${isEn ? 'd' : 'j'}` : count > 0 ? `· ${count}` : ''}
                 </span>
               </div>
             );
@@ -297,6 +320,7 @@ function CalendarCell({
   onChange,
   primaryColor,
   brush,
+  isEn,
   isPending,
   onPaintStart,
   onPaintEnter,
@@ -309,6 +333,7 @@ function CalendarCell({
   onChange?: Props['onChange'];
   primaryColor?: string;
   brush: Brush | null;
+  isEn: boolean;
   isPending: boolean;
   onPaintStart: (iso: string) => void;
   onPaintEnter: (iso: string) => void;
@@ -380,11 +405,11 @@ function CalendarCell({
           onPaintEnter(cell.iso);
         }}
         className={`${cellClasses} ${interactive} w-full text-left`}
-        aria-label={`${cell.iso} — ${meta?.label ?? 'vide'}`}
+        aria-label={`${cell.iso} — ${(cell.data ? kindLabel(cell.data.kind, isEn) : null) ?? (isEn ? 'empty' : 'vide')}`}
         title={
           brush
-            ? `Appliquer « ${brush.label} »`
-            : meta?.label ?? 'Cliquer pour modifier'
+            ? isEn ? `Apply "${brush.label}"` : `Appliquer « ${brush.label} »`
+            : (cell.data ? kindLabel(cell.data.kind, isEn) : null) ?? (isEn ? 'Click to edit' : 'Cliquer pour modifier')
         }
       >
         <div className="flex items-baseline justify-between">
@@ -396,12 +421,12 @@ function CalendarCell({
             className="text-[10px] font-bold self-end"
             style={primaryColor ? { color: primaryColor } : undefined}
           >
-            {cell.data.duration === 1 ? '1 j' : `${cell.data.duration} j`}
+            {cell.data.duration === 1 ? (isEn ? '1 d' : '1 j') : `${cell.data.duration} ${isEn ? 'd' : 'j'}`}
           </div>
         )}
         {cell.data && cell.data.kind !== 'worked' && (
           <div className="text-[8px] uppercase tracking-wider opacity-70 self-end">
-            {meta?.label}
+            {kindLabel(cell.data.kind, isEn)}
           </div>
         )}
       </button>
@@ -420,7 +445,7 @@ function CalendarCell({
                 className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-white/[0.04] ${km.text} ${isCurrent ? 'bg-white/[0.04]' : ''}`}
               >
                 <KI className="h-3.5 w-3.5" />
-                <span className="flex-1 text-left">{km.label}</span>
+                <span className="flex-1 text-left">{kindLabel(k, isEn)}</span>
                 {isCurrent && <span className="text-[9px] opacity-60">✓</span>}
               </button>
             );
@@ -432,7 +457,7 @@ function CalendarCell({
             className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-white/[0.04] text-violet-200 border-t border-hairline"
           >
             <Briefcase className="h-3.5 w-3.5" />
-            <span className="flex-1 text-left">Demi-journée</span>
+            <span className="flex-1 text-left">{isEn ? 'Half day' : 'Demi-journée'}</span>
             {cell.data?.kind === 'worked' && cell.data.duration === 0.5 && (
               <span className="text-[9px] opacity-60">✓</span>
             )}
@@ -445,7 +470,7 @@ function CalendarCell({
               className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-red-500/10 text-red-300 border-t border-hairline"
             >
               <Trash2 className="h-3.5 w-3.5" />
-              <span className="flex-1 text-left">Vider</span>
+              <span className="flex-1 text-left">{isEn ? 'Clear' : 'Vider'}</span>
             </button>
           )}
         </div>
