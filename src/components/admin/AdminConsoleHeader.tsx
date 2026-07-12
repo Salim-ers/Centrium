@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Building2, Inbox, ShieldAlert, ArrowLeft, LogOut, Sparkles } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { cn } from '@/lib/utils';
 
 // =========================================================================
@@ -14,9 +15,9 @@ import { cn } from '@/lib/utils';
 // =========================================================================
 
 const TABS = [
-  { href: '/admin/organizations', label: 'Organisations', icon: Building2 },
-  { href: '/admin/clients', label: 'Clients & devis', icon: Inbox },
-  { href: '/admin/audit', label: 'Audit', icon: ShieldAlert },
+  { href: '/admin/organizations', label: 'Organisations', labelEn: 'Organizations', icon: Building2 },
+  { href: '/admin/clients', label: 'Clients & devis', labelEn: 'Clients & quotes', icon: Inbox },
+  { href: '/admin/audit', label: 'Audit', labelEn: 'Audit', icon: ShieldAlert },
 ];
 
 export function AdminConsoleHeader({
@@ -29,6 +30,8 @@ export function AdminConsoleHeader({
   actions?: React.ReactNode;
 }) {
   const pathname = usePathname() ?? '';
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   return (
     <header className="border-b border-hairline bg-card/40 backdrop-blur-xl sticky top-0 z-10">
       <div className="max-w-7xl mx-auto px-6 py-4">
@@ -45,7 +48,7 @@ export function AdminConsoleHeader({
             <Button variant="outline" size="sm" asChild>
               <a href="/dashboard" className="inline-flex items-center gap-1.5">
                 <ArrowLeft className="h-3.5 w-3.5" />
-                Retour à l&apos;app
+                {isEn ? 'Back to app' : 'Retour à l\'app'}
               </a>
             </Button>
             <form action="/api/auth/logout" method="POST" className="inline">
@@ -56,7 +59,7 @@ export function AdminConsoleHeader({
                 className="text-red-500 border-red-500/30 hover:bg-red-500/10 hover:text-red-500"
               >
                 <LogOut className="h-3.5 w-3.5 mr-1.5" />
-                Déconnexion
+                {isEn ? 'Sign out' : 'Déconnexion'}
               </Button>
             </form>
           </div>
@@ -79,7 +82,7 @@ export function AdminConsoleHeader({
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />
-                {tab.label}
+                {isEn ? tab.labelEn : tab.label}
               </Link>
             );
           })}

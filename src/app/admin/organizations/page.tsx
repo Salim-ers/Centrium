@@ -20,6 +20,7 @@ import { AdminConsoleHeader } from '@/components/admin/AdminConsoleHeader';
 import { StripeStatusBanner } from '@/components/admin/StripeStatusBanner';
 import { PageHeader, KPICard, AppCard, AppCardBody, StatusBadge, EmptyState } from '@/components/app';
 import { deriveOrgStatus, type OrgStatusCategory } from '@/lib/admin/org-status';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 type OrgRow = {
   id: string;
@@ -44,28 +45,31 @@ type OrgRow = {
 
 type Filter = 'all' | OrgStatusCategory;
 
-const FILTERS: { key: Filter; label: string }[] = [
-  { key: 'all', label: 'Toutes' },
-  { key: 'active', label: 'Actives' },
-  { key: 'trial', label: 'En essai' },
-  { key: 'risk', label: 'À risque' },
-  { key: 'exempt', label: 'Exemptes' },
+const FILTERS: { key: Filter; label: string; labelEn: string }[] = [
+  { key: 'all', label: 'Toutes', labelEn: 'All' },
+  { key: 'active', label: 'Actives', labelEn: 'Active' },
+  { key: 'trial', label: 'En essai', labelEn: 'Trial' },
+  { key: 'risk', label: 'À risque', labelEn: 'At risk' },
+  { key: 'exempt', label: 'Exemptes', labelEn: 'Exempt' },
 ];
 
-function relativeDate(iso: string | null): string {
-  if (!iso) return 'Jamais';
+function relativeDate(iso: string | null, isEn: boolean): string {
+  if (!iso) return isEn ? 'Never' : 'Jamais';
   const diff = Date.now() - new Date(iso).getTime();
   const day = 24 * 60 * 60 * 1000;
   const days = Math.floor(diff / day);
-  if (days <= 0) return "Aujourd'hui";
-  if (days === 1) return 'Hier';
-  if (days < 30) return `Il y a ${days} j`;
+  if (days <= 0) return isEn ? 'Today' : "Aujourd'hui";
+  if (days === 1) return isEn ? 'Yesterday' : 'Hier';
+  if (days < 30) return isEn ? `${days}d ago` : `Il y a ${days} j`;
   const months = Math.floor(days / 30);
-  if (months < 12) return `Il y a ${months} mois`;
-  return `Il y a ${Math.floor(months / 12)} an(s)`;
+  if (months < 12) return isEn ? `${months}mo ago` : `Il y a ${months} mois`;
+  const years = Math.floor(months / 12);
+  return isEn ? `${years}y ago` : `Il y a ${years} an(s)`;
 }
 
 export default function AdminOrganizationsPage() {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [rows, setRows] = useState<OrgRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
@@ -108,29 +112,40 @@ export default function AdminOrganizationsPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <AdminConsoleHeader
-        title="Console super-admin"
-        subtitle="Supervision des organisations · abonnements · activité"
+        title={isEn ? 'Super-admin console' : 'Console super-admin'}
+        subtitle={
+          isEn
+            ? 'Organizations supervision · subscriptions · activity'
+            : 'Supervision des organisations · abonnements · activité'
+        }
       />
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         <PageHeader
-          eyebrow="Supervision"
+          eyebrow={isEn ? 'Supervision' : 'Supervision'}
           title={
             <>
-              Vos <span className="qc-italic-accent font-editorial italic">organisations.</span>
+              {isEn ? 'Your ' : 'Vos '}
+              <span className="qc-italic-accent font-editorial italic">
+                {isEn ? 'organizations.' : 'organisations.'}
+              </span>
             </>
           }
-          description="Tous vos clients — nouveaux, anciens, actifs ou dormants. Cliquez une organisation pour sa fiche complète : abonnement, effectifs et activité."
+          description={
+            isEn
+              ? 'All your clients — new, old, active or dormant. Click an organization for its full record: subscription, headcount and activity.'
+              : 'Tous vos clients — nouveaux, anciens, actifs ou dormants. Cliquez une organisation pour sa fiche complète : abonnement, effectifs et activité.'
+          }
         />
 
         <StripeStatusBanner />
 
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
           <KPICard label="Total" value={counts.all} icon={Building2} tone="magenta" />
-          <KPICard label="Actives" value={counts.active} icon={CircleCheck} tone="emerald" />
-          <KPICard label="En essai" value={counts.trial} icon={Hourglass} tone="amber" />
-          <KPICard label="À risque" value={counts.risk} icon={AlertTriangle} tone="rose" />
-          <KPICard label="Exemptes" value={counts.exempt} icon={Sparkles} tone="violet" />
+          <KPICard label={isEn ? 'Active' : 'Actives'} value={counts.active} icon={CircleCheck} tone="emerald" />
+          <KPICard label={isEn ? 'Trial' : 'En essai'} value={counts.trial} icon={Hourglass} tone="amber" />
+          <KPICard label={isEn ? 'At risk' : 'À risque'} value={counts.risk} icon={AlertTriangle} tone="rose" />
+          <KPICard label={isEn ? 'Exempt' : 'Exemptes'} value={counts.exempt} icon={Sparkles} tone="violet" />
         </div>
 
         {/* Recherche + filtres */}
@@ -140,7 +155,7 @@ export default function AdminOrganizationsPage() {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher une organisation…"
+              placeholder={isEn ? 'Search an organization…' : 'Rechercher une organisation…'}
               className="pl-9"
             />
           </div>
@@ -158,7 +173,7 @@ export default function AdminOrganizationsPage() {
                       : 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]'
                   }`}
                 >
-                  {f.label}
+                  {isEn ? f.labelEn : f.label}
                   <span className="text-[10px] tabular-nums opacity-70">
                     {counts[f.key as keyof typeof counts]}
                   </span>
@@ -181,11 +196,15 @@ export default function AdminOrganizationsPage() {
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={Building2}
-            title="Aucune organisation"
+            title={isEn ? 'No organization' : 'Aucune organisation'}
             description={
               query || filter !== 'all'
-                ? 'Aucun résultat pour ce filtre ou cette recherche.'
-                : "Les organisations apparaissent ici dès qu'elles sont créées."
+                ? isEn
+                  ? 'No result for this filter or search.'
+                  : 'Aucun résultat pour ce filtre ou cette recherche.'
+                : isEn
+                  ? 'Organizations appear here as soon as they are created.'
+                  : "Les organisations apparaissent ici dès qu'elles sont créées."
             }
           />
         ) : (
@@ -222,13 +241,15 @@ export default function AdminOrganizationsPage() {
                         </StatusBadge>
                       </div>
                       <div className="text-[11px] text-muted-foreground truncate">
-                        {row.plan_name ?? row.plan_id ?? '—'} · créée {relativeDate(row.created_at)}
+                        {row.plan_name ?? row.plan_id ?? '—'} ·{' '}
+                        {isEn ? 'created ' : 'créée '}
+                        {relativeDate(row.created_at, isEn)}
                       </div>
                     </div>
 
                     {/* Effectifs */}
                     <div className="hidden md:flex items-center gap-5 text-xs text-muted-foreground shrink-0">
-                      <span className="inline-flex items-center gap-1.5" title="Membres internes">
+                      <span className="inline-flex items-center gap-1.5" title={isEn ? 'Internal members' : 'Membres internes'}>
                         <Users className="h-3.5 w-3.5" />
                         {row.members_count}
                       </span>
@@ -240,13 +261,13 @@ export default function AdminOrganizationsPage() {
                         className={`inline-flex items-center gap-1.5 ${
                           row.activity_7d > 0 ? 'text-emerald-400' : ''
                         }`}
-                        title="Actions sur 7 jours"
+                        title={isEn ? 'Actions over 7 days' : 'Actions sur 7 jours'}
                       >
                         <Activity className="h-3.5 w-3.5" />
                         {row.activity_7d}
                       </span>
-                      <span className="w-24 text-right" title="Dernière activité">
-                        {relativeDate(row.last_activity_at)}
+                      <span className="w-24 text-right" title={isEn ? 'Last activity' : 'Dernière activité'}>
+                        {relativeDate(row.last_activity_at, isEn)}
                       </span>
                     </div>
 
