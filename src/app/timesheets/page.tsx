@@ -4,8 +4,9 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { useTimesheetStatusLabels } from '@/lib/i18n/useBadges';
+import { monthsShort } from '@/lib/i18n/months';
 import {
   ClipboardCheck,
   CheckCircle2,
@@ -42,21 +43,6 @@ import { usePagination } from '@/hooks/usePagination';
 import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import type { Timesheet } from '@/types';
 
-const MONTHS = [
-  'Janv',
-  'Févr',
-  'Mars',
-  'Avr',
-  'Mai',
-  'Juin',
-  'Juil',
-  'Août',
-  'Sept',
-  'Oct',
-  'Nov',
-  'Déc',
-];
-
 const STATUS_LABEL: Record<Timesheet['status'], string> = {
   draft: 'Brouillon',
   submitted: 'Soumis',
@@ -67,6 +53,9 @@ const STATUS_LABEL: Record<Timesheet['status'], string> = {
 function TimesheetsPageInner() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
+  const MONTHS = monthsShort(isEn);
   const tsLabels = useTimesheetStatusLabels();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
@@ -486,8 +475,8 @@ function TimesheetsPageInner() {
         <PaginationFooter
           pagination={pagination}
           total={timesheets.length}
-          itemLabel="CRA"
-          itemLabelPlural="CRA"
+          itemLabel={isEn ? 'timesheet' : 'CRA'}
+          itemLabelPlural={isEn ? 'timesheets' : 'CRA'}
         />
       )}
     </AppShell>

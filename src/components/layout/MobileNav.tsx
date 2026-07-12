@@ -18,10 +18,13 @@ import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidebarBody } from './Sidebar';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
 
   // Ferme le drawer quand la route change (sécurité : si un Link n'a
   // pas appelé son onClick pour une raison X, on rattrape ici).
@@ -55,7 +58,7 @@ export function MobileNav() {
         type="button"
         onClick={() => setOpen(true)}
         className="md:hidden inline-flex items-center justify-center h-10 w-10 rounded-md text-foreground hover:bg-white/[0.06] transition"
-        aria-label="Ouvrir le menu"
+        aria-label={isEn ? 'Open menu' : 'Ouvrir le menu'}
         aria-expanded={open}
       >
         <Menu className="h-5 w-5" />
@@ -84,13 +87,13 @@ export function MobileNav() {
               className="fixed left-0 top-0 z-50 h-screen w-72 max-w-[85vw] border-r border-hairline bg-card/95 backdrop-blur-xl md:hidden flex flex-col overflow-hidden"
               role="dialog"
               aria-modal="true"
-              aria-label="Menu de navigation"
+              aria-label={isEn ? 'Navigation menu' : 'Menu de navigation'}
             >
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 className="absolute top-3 right-3 z-20 h-8 w-8 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.08] transition"
-                aria-label="Fermer le menu"
+                aria-label={isEn ? 'Close menu' : 'Fermer le menu'}
               >
                 <X className="h-4 w-4" />
               </button>

@@ -55,7 +55,7 @@ import {
   AppCardBody,
   EmptyState as AppEmptyState,
 } from '@/components/app';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 
 type DashboardData = {
   kpis: DashboardKPIs | null;
@@ -113,6 +113,8 @@ export default function DashboardPage() {
   const { activeOrgId, branding } = useOrganization();
   const brandName = useBrandName();
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const { format: formatCurrency } = useCurrency();
   // "Branding non configuré" = pas de logo ET pas de couleur primaire perso.
   // Évite de hasseler les orgs qui ont décidé de garder le défaut.
@@ -206,11 +208,14 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="text-sm font-semibold">
-                Personnalise l&apos;identité visuelle de ton ESN
+                {isEn
+                  ? 'Personalize your ESN visual identity'
+                  : 'Personnalise l’identité visuelle de ton ESN'}
               </div>
               <div className="text-xs text-muted-foreground mt-0.5">
-                Logo, couleurs, signature, mentions légales — pour que tes contrats, factures et
-                CV soient à ton image.
+                {isEn
+                  ? 'Logo, colors, signature, legal notices — so your contracts, invoices and CVs match your brand.'
+                  : 'Logo, couleurs, signature, mentions légales — pour que tes contrats, factures et CV soient à ton image.'}
               </div>
             </div>
           </div>

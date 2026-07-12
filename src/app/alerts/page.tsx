@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import {
   alertService,
   type ComputedAlert,
@@ -670,6 +670,8 @@ function AlertDetailDialog({
   onDismiss: (a: ComputedAlert) => void;
 }) {
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [comment, setComment] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -733,7 +735,7 @@ function AlertDetailDialog({
         {/* Méta */}
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="rounded-lg border border-hairline p-2.5">
-            <div className="text-muted-foreground text-[10px] uppercase tracking-wider mb-0.5">Statut</div>
+            <div className="text-muted-foreground text-[10px] uppercase tracking-wider mb-0.5">{isEn ? 'Status' : 'Statut'}</div>
             {alert.status === 'in_progress'
               ? t.pages.alerts.status_in_progress
               : alert.status === 'snoozed'

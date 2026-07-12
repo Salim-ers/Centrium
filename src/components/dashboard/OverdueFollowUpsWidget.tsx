@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { useOrganization } from '@/lib/auth/context';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { cn } from '@/lib/utils';
 
 type OverdueFollowUp = {
@@ -32,6 +32,8 @@ type OverdueFollowUp = {
 export function OverdueFollowUpsWidget() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
 
   const { data, loading, reload } = useCachedQuery<OverdueFollowUp[]>(
     `overdue-followups:${activeOrgId ?? 'none'}`,
@@ -135,9 +137,13 @@ export function OverdueFollowUpsWidget() {
                         'shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium',
                         tone,
                       )}
-                      title={`Relance prévue le ${opp.next_follow_up}`}
+                      title={
+                        isEn
+                          ? `Follow-up due on ${opp.next_follow_up}`
+                          : `Relance prévue le ${opp.next_follow_up}`
+                      }
                     >
-                      +{opp.days_overdue}j
+                      +{opp.days_overdue}{isEn ? 'd' : 'j'}
                     </span>
                   </Link>
                 </li>

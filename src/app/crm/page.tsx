@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { Plus, Trash2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { useOpportunityStatusLabels } from '@/lib/i18n/useBadges';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -626,6 +626,8 @@ function ClosedOpportunitiesDialogInline({
   onDelete: (id: string, title: string) => Promise<void>;
 }) {
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const { format: formatCurrency } = useCurrency();
   const oppLabels = useOpportunityStatusLabels();
   const filtered =
@@ -689,7 +691,7 @@ function ClosedOpportunitiesDialogInline({
                     size="sm"
                     variant="outline"
                     onClick={() => void onMove(opp.id, 'negotiation')}
-                    title="Réouvrir cette opportunité"
+                    title={isEn ? 'Reopen this opportunity' : 'Réouvrir cette opportunité'}
                   >
                     {t.pages.crm.closed_reopen}
                   </Button>
@@ -712,6 +714,8 @@ function ClosedOpportunitiesDialogInline({
 }
 
 function PeerBadge({ peer, label }: { peer: PeerDrag; label?: string }) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   return (
     <span
       className={cn(
@@ -721,7 +725,7 @@ function PeerBadge({ peer, label }: { peer: PeerDrag; label?: string }) {
         peer.user.color.text,
       )}
       style={{ boxShadow: `0 0 12px -2px ${peer.user.color.glow}` }}
-      title={`${peer.user.displayName} est en train de glisser une carte`}
+      title={isEn ? `${peer.user.displayName} is dragging a card` : `${peer.user.displayName} est en train de glisser une carte`}
     >
       <span className="h-1 w-1 rounded-full bg-white/90" />
       {peer.user.initials}
@@ -748,6 +752,8 @@ function OpportunityCard({
   onEdit: () => void;
 }) {
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const { format: formatCurrency } = useCurrency();
   // Si un collègue est en train de glisser cette carte, on bloque le drag
   // local (sinon conflit de mises à jour) et on affiche son indicateur.
@@ -826,7 +832,7 @@ function OpportunityCard({
               onClick={onEdit}
               className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 rounded hover:bg-violet-glow/15 flex items-center justify-center cursor-pointer"
               title={t.pages.crm.card_edit_title}
-              aria-label="Éditer"
+              aria-label={isEn ? 'Edit' : 'Éditer'}
             >
               <Pencil className="h-3.5 w-3.5 text-violet-glow" />
             </button>
@@ -836,7 +842,7 @@ function OpportunityCard({
               onClick={onDelete}
               className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 rounded hover:bg-red-500/15 flex items-center justify-center cursor-pointer"
               title={t.pages.crm.card_delete_title}
-              aria-label="Supprimer"
+              aria-label={isEn ? 'Delete' : 'Supprimer'}
             >
               <Trash2 className="h-3.5 w-3.5 text-red-400" />
             </button>
@@ -860,7 +866,7 @@ function OpportunityCard({
               <>TJM {formatCurrency(Number(opportunity.daily_rate_eur))}</>
             )}
             {opportunity.daily_rate_eur && opportunity.duration_months && ' · '}
-            {opportunity.duration_months && <>{opportunity.duration_months} mois</>}
+            {opportunity.duration_months && <>{opportunity.duration_months} {isEn ? 'months' : 'mois'}</>}
           </div>
         )}
 

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { useInvoiceStatusLabels } from '@/lib/i18n/useBadges';
 import {
   Plus,
@@ -62,6 +62,8 @@ type PartyView = 'client' | 'consultant';
 function InvoicesPageInner() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const { format: formatCurrency } = useCurrency();
   const invoiceLabels = useInvoiceStatusLabels();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -212,10 +214,14 @@ function InvoicesPageInner() {
                 const y = new Date().getFullYear();
                 window.location.href = `/api/accounting/export?year=${y}&party=${partyView}`;
               }}
-              title={`Exporter le journal ${partyView === 'client' ? 'des ventes' : 'des achats'} ${new Date().getFullYear()} (CSV)`}
+              title={
+                isEn
+                  ? `Export the ${partyView === 'client' ? 'sales' : 'purchases'} ledger ${new Date().getFullYear()} (CSV)`
+                  : `Exporter le journal ${partyView === 'client' ? 'des ventes' : 'des achats'} ${new Date().getFullYear()} (CSV)`
+              }
             >
               <FileSpreadsheet className="h-4 w-4" />
-              Export compta
+              {isEn ? 'Export accounting' : 'Export compta'}
             </Button>
             <Button
               variant="outline"
@@ -383,7 +389,7 @@ function InvoicesPageInner() {
                 <TableHead>{t.forms.invoice.issue_date}</TableHead>
                 <TableHead>{t.forms.invoice.due_date}</TableHead>
                 <TableHead>{t.forms.invoice.amount_ht}</TableHead>
-                <TableHead>TTC</TableHead>
+                <TableHead>{isEn ? 'Incl. tax' : 'TTC'}</TableHead>
                 <TableHead>{t.forms.contract.status}</TableHead>
                 <TableHead className="text-right">{t.pages.consultants.table_actions}</TableHead>
               </TableRow>
@@ -549,7 +555,7 @@ function InvoicesPageInner() {
       <PaginationFooter
         pagination={pagination}
         total={invoices.length}
-        itemLabel="facture"
+        itemLabel={isEn ? 'invoice' : 'facture'}
       />
     </AppShell>
   );

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { useContractStatusLabels } from '@/lib/i18n/useBadges';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -104,6 +104,8 @@ type PartyView = 'client' | 'consultant';
 export default function ContractsPage() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const { format: formatCurrency, convert: convertCurrency, symbol: currencySymbol } = useCurrency();
   const ctLabels = useContractStatusLabels();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -413,7 +415,7 @@ export default function ContractsPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-end transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
-                            <Button variant="ghost" size="sm" asChild title="Voir le détail">
+                            <Button variant="ghost" size="sm" asChild title={isEn ? 'View details' : 'Voir le détail'}>
                               <Link href={`/contracts/${c.id}`}>
                                 <Eye className="h-3 w-3" />
                               </Link>
@@ -425,7 +427,7 @@ export default function ContractsPage() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => openEdit(c)}
-                                  title="Modifier"
+                                  title={isEn ? 'Edit' : 'Modifier'}
                                 >
                                   <Pencil className="h-3 w-3" />
                                 </Button>
@@ -435,7 +437,7 @@ export default function ContractsPage() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => updateStatus(c.id, 'sent')}
-                                    title="Marquer envoyé"
+                                    title={isEn ? 'Mark as sent' : 'Marquer envoyé'}
                                   >
                                     <Send className="h-3 w-3" />
                                   </Button>
@@ -445,7 +447,7 @@ export default function ContractsPage() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => updateStatus(c.id, 'signed')}
-                                    title="Marquer signé"
+                                    title={isEn ? 'Mark as signed' : 'Marquer signé'}
                                   >
                                     <CheckCircle2 className="h-3 w-3" />
                                   </Button>
@@ -455,7 +457,7 @@ export default function ContractsPage() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => archive(c.id)}
-                                  title="Archiver"
+                                  title={isEn ? 'Archive' : 'Archiver'}
                                 >
                                   <Archive className="h-3 w-3" />
                                 </Button>
@@ -467,7 +469,7 @@ export default function ContractsPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => unarchive(c.id)}
-                                title="Restaurer"
+                                title={isEn ? 'Restore' : 'Restaurer'}
                               >
                                 <ArchiveRestore className="h-3 w-3" />
                               </Button>
@@ -477,7 +479,7 @@ export default function ContractsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => remove(c)}
-                              title="Supprimer définitivement"
+                              title={isEn ? 'Delete permanently' : 'Supprimer définitivement'}
                               className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                             >
                               <Trash2 className="h-3 w-3" />
@@ -499,7 +501,7 @@ export default function ContractsPage() {
       <PaginationFooter
         pagination={pagination}
         total={contracts.length}
-        itemLabel="contrat"
+        itemLabel={isEn ? 'contract' : 'contrat'}
       />
 
       <ContractFormDialog

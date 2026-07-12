@@ -30,7 +30,7 @@ import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useOrganizationSafe } from '@/lib/auth/context';
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import type { AppDict } from '@/lib/i18n/app';
 
 type NavItem = {
@@ -160,6 +160,8 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
   const pathname = usePathname();
   const org = useOrganizationSafe();
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const groups = buildGroups(t);
   const brandingMissing =
     !!org?.branding && !org.branding.logoUrl && !org.branding.primaryColor;
@@ -228,7 +230,7 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
         href="/dashboard"
         onClick={onItemClick}
         className="relative flex h-44 items-center justify-center border-b border-hairline px-3 shrink-0 group hover:opacity-95 transition"
-        aria-label="Centrium — accueil"
+        aria-label={isEn ? 'Centrium — home' : 'Centrium — accueil'}
       >
         <CentriumWordmark size="lg" orientation="vertical" />
       </Link>
@@ -296,13 +298,19 @@ export function SidebarBody({ onItemClick }: { onItemClick?: () => void } = {}) 
                       href="/onboarding/setup"
                       onClick={onItemClick}
                       className="mt-2 mx-1 flex items-start gap-2 rounded-lg border border-violet-glow/30 bg-violet-glow/[0.06] px-3 py-2 hover:border-violet-glow/60 transition-colors"
-                      title="Configure le logo, les couleurs et l'identité légale de ton ESN"
+                      title={
+                        isEn
+                          ? 'Configure your ESN logo, colors and legal identity'
+                          : "Configure le logo, les couleurs et l'identité légale de ton ESN"
+                      }
                     >
                       <Sparkles className="h-3.5 w-3.5 text-violet-glow shrink-0 mt-0.5" />
                       <div className="text-[11px] leading-tight">
-                        <div className="font-semibold text-violet-glow">Personnalise ton ESN</div>
+                        <div className="font-semibold text-violet-glow">
+                          {isEn ? 'Personalize your ESN' : 'Personnalise ton ESN'}
+                        </div>
                         <div className="text-muted-foreground mt-0.5">
-                          Logo, couleurs, identité légale
+                          {isEn ? 'Logo, colors, legal identity' : 'Logo, couleurs, identité légale'}
                         </div>
                       </div>
                     </Link>

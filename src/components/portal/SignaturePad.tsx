@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useImperativeHandle, useRef, forwardRef } from 'react';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 // =========================================================================
 // SignaturePad — zone de signature manuscrite (canvas, souris + tactile).
@@ -29,6 +30,8 @@ export const SignaturePad = forwardRef<SignaturePadHandle, Props>(function Signa
   { height = 180, className, onDirtyChange },
   ref,
 ) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawingRef = useRef(false);
   const dirtyRef = useRef(false);
@@ -124,7 +127,7 @@ export const SignaturePad = forwardRef<SignaturePadHandle, Props>(function Signa
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}
-      aria-label="Zone de signature manuscrite"
+      aria-label={isEn ? 'Handwritten signature area' : 'Zone de signature manuscrite'}
     />
   );
 });

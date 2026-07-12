@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/Combobox';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import {
   Table,
   TableBody,
@@ -62,13 +62,16 @@ type Invitation = {
   created_at: string;
 };
 
-const ROLE_LABEL: Record<string, string> = {
-  admin: 'Admin',
-  business_manager: 'Business Manager',
-  recruiter: 'Recruteur',
-  finance: 'Finance',
-  viewer: 'Viewer',
-  consultant: 'Consultant',
+const roleLabel = (role: string, isEn: boolean): string => {
+  const map: Record<string, string> = {
+    admin: 'Admin',
+    business_manager: 'Business Manager',
+    recruiter: isEn ? 'Recruiter' : 'Recruteur',
+    finance: 'Finance',
+    viewer: 'Viewer',
+    consultant: 'Consultant',
+  };
+  return map[role] ?? role;
 };
 
 const ROLE_TONE: Record<string, StatusTone> = {
@@ -83,6 +86,8 @@ const ROLE_TONE: Record<string, StatusTone> = {
 export default function TeamSettingsPage() {
   const { activeOrgId, role } = useOrganization();
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [members, setMembers] = useState<Member[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -403,7 +408,7 @@ export default function TeamSettingsPage() {
                       </TableCell>
                       <TableCell>
                         <StatusBadge tone={ROLE_TONE[m.role] ?? 'neutral'} dot={false}>
-                          {ROLE_LABEL[m.role] ?? m.role}
+                          {roleLabel(m.role, isEn)}
                         </StatusBadge>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
@@ -465,7 +470,7 @@ export default function TeamSettingsPage() {
                       <TableCell className="font-medium">{i.email}</TableCell>
                       <TableCell>
                         <StatusBadge tone={ROLE_TONE[i.role] ?? 'neutral'} dot={false}>
-                          {ROLE_LABEL[i.role] ?? i.role}
+                          {roleLabel(i.role, isEn)}
                         </StatusBadge>
                       </TableCell>
                       <TableCell>

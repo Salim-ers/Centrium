@@ -111,6 +111,7 @@ export default function OffersPage() {
   const t = useAppT();
   const { format: formatCurrency, convert: convertCurrency, symbol: currencySymbol } = useCurrency();
   const { locale } = useLocale();
+  const isEn = locale === 'en';
   const seniorityLabel = getSeniorityLabel(t);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<JobOffer | null>(null);
@@ -674,7 +675,7 @@ export default function OffersPage() {
                       <TableCell className="w-10 align-top py-3">
                         <input
                           type="checkbox"
-                          aria-label={`Sélectionner ${o.title}`}
+                          aria-label={`${isEn ? 'Select' : 'Sélectionner'} ${o.title}`}
                           checked={offerBulk.isSelected(o.id)}
                           onChange={() => offerBulk.toggle(o.id)}
                           className="h-4 w-4 cursor-pointer accent-magenta"

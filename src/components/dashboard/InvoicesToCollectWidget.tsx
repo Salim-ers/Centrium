@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { useOrganization } from '@/lib/auth/context';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +36,8 @@ type Receivable = {
 export function InvoicesToCollectWidget() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const { format: formatCurrency } = useCurrency();
 
   const { data, loading, reload } = useCachedQuery<Receivable[]>(
@@ -167,7 +169,7 @@ export function InvoicesToCollectWidget() {
                                   : 'text-muted-foreground',
                             )}
                           >
-                            +{inv.days_overdue}j {t.dashboard.overdue_short}
+                            +{inv.days_overdue}{isEn ? 'd' : 'j'} {t.dashboard.overdue_short}
                           </div>
                         ) : inv.due_date ? (
                           <div className="text-[10px] text-muted-foreground">
@@ -184,7 +186,7 @@ export function InvoicesToCollectWidget() {
               })}
             </ul>
             <div className="mt-2 pt-2 border-t border-hairline text-[10px] text-muted-foreground flex justify-end">
-              Total : <span className="ml-1 font-semibold text-foreground/80">{formatCurrency(totalOutstanding)}</span>
+              {isEn ? 'Total:' : 'Total :'} <span className="ml-1 font-semibold text-foreground/80">{formatCurrency(totalOutstanding)}</span>
             </div>
           </>
         )}

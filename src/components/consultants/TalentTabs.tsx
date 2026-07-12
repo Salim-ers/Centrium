@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Users, Send, BriefcaseBusiness } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 
 type Tab = 'consultants' | 'cv-pushed' | 'on-mission';
 
@@ -23,6 +23,8 @@ type Props = {
  */
 export function TalentTabs({ active, counts }: Props) {
   const ti = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const tabs: {
     id: Tab;
     href: string;
@@ -35,7 +37,9 @@ export function TalentTabs({ active, counts }: Props) {
       id: 'consultants',
       href: '/consultants',
       label: ti.pages.consultants.tabs_library,
-      sub: 'Bibliothèque + vivier — profils disponibles à positionner',
+      sub: isEn
+        ? 'Library + talent pool — profiles available to position'
+        : 'Bibliothèque + vivier — profils disponibles à positionner',
       Icon: Users,
       countKey: 'consultants',
     },
@@ -43,7 +47,9 @@ export function TalentTabs({ active, counts }: Props) {
       id: 'cv-pushed',
       href: '/cv-pushed',
       label: ti.pages.consultants.tabs_cv_pushed,
-      sub: 'CV envoyé sur une offre, en attente de validation client',
+      sub: isEn
+        ? 'CV sent on an offer, awaiting client validation'
+        : 'CV envoyé sur une offre, en attente de validation client',
       Icon: Send,
       countKey: 'cvPushed',
     },
@@ -51,7 +57,9 @@ export function TalentTabs({ active, counts }: Props) {
       id: 'on-mission',
       href: '/en-mission',
       label: ti.pages.consultants.tabs_on_mission,
-      sub: 'Missions validées — comptées dans le dashboard',
+      sub: isEn
+        ? 'Validated missions — counted in the dashboard'
+        : 'Missions validées — comptées dans le dashboard',
       Icon: BriefcaseBusiness,
       countKey: 'onMission',
     },

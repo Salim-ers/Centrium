@@ -38,6 +38,7 @@ function MatchingInner() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
   const { locale } = useLocale();
+  const isEn = locale === 'en';
   const { format: formatCurrency } = useCurrency();
   const searchParams = useSearchParams();
   const [offerId, setOfferId] = useState<string>('');
@@ -95,7 +96,7 @@ function MatchingInner() {
       const res = await matchingService.matchConsultantsToOffer(offerId);
       if (myRunId !== runIdRef.current) return; // une run plus récente est en cours
       if (res.error) {
-        toast.error(t.pages.matching.err_matching_failed + (res.error.message ?? 'inconnu'));
+        toast.error(t.pages.matching.err_matching_failed + (res.error.message ?? (isEn ? 'unknown' : 'inconnu')));
         setResults([]);
         return;
       }
@@ -121,7 +122,7 @@ function MatchingInner() {
       }
     } catch (e) {
       if (myRunId !== runIdRef.current) return;
-      toast.error(t.pages.matching.err_unexpected + ((e as Error).message ?? 'inconnu'));
+      toast.error(t.pages.matching.err_unexpected + ((e as Error).message ?? (isEn ? 'unknown' : 'inconnu')));
       setResults([]);
     } finally {
       if (myRunId === runIdRef.current) setLoading(false);
