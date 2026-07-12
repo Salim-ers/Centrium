@@ -36,12 +36,12 @@ import { useBrandName } from '@/components/brand/BrandingStyles';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import {
-  CONSULTANT_STATUS_LABEL,
   CONSULTANT_STATUS_STYLE,
-  SENIORITY_LABEL,
 } from '@/constants';
 import type { Consultant } from '@/types';
 import { useOrganization } from '@/lib/auth/context';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { useConsultantStatusLabels, useSeniorityLabels } from '@/lib/i18n/useBadges';
 import { KycDocuments } from '@/components/consultants/KycDocuments';
 import { ConsultantCompleteness } from '@/components/consultants/ConsultantCompleteness';
 import { ConsultantSelfDocuments } from '@/components/portal/ConsultantSelfDocuments';
@@ -105,6 +105,10 @@ export default function PortalProfilePage() {
   const { consultantId, userId } = usePortalConsultant();
   const { activeOrgId } = useOrganization();
   const brandName = useBrandName();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
+  const statusLabels = useConsultantStatusLabels();
+  const seniorityLabels = useSeniorityLabels();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<EditableForm>(emptyForm());
@@ -146,14 +150,14 @@ export default function PortalProfilePage() {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(body.message ?? 'Mise à jour impossible');
+        toast.error(body.message ?? (isEn ? 'Unable to update' : 'Mise à jour impossible'));
         return;
       }
-      toast.success('Profil mis à jour');
+      toast.success(isEn ? 'Profile updated' : 'Profil mis à jour');
       setConsultant(body.data as Consultant);
       setEditing(false);
     } catch {
-      toast.error('Erreur réseau');
+      toast.error(isEn ? 'Network error' : 'Erreur réseau');
     } finally {
       setSaving(false);
     }
@@ -165,33 +169,48 @@ export default function PortalProfilePage() {
   }
 
   if (loading) return <div className="h-60 rounded-2xl bg-foreground/[0.03] animate-pulse" />;
-  if (!consultant) return <p className="text-muted-foreground">Profil introuvable.</p>;
+  if (!consultant) return <p className="text-muted-foreground">{isEn ? 'Profile not found.' : 'Profil introuvable.'}</p>;
 
   const c = consultant;
   const billingMissing = !c.legal_status && !c.siret && !c.iban;
+  const langLevelLabel = (lvl: string) =>
+    isEn
+      ? ({
+          Natif: 'Native',
+          Bilingue: 'Bilingual',
+          Courant: 'Fluent',
+          Professionnel: 'Professional',
+          Intermédiaire: 'Intermediate',
+          Notions: 'Basics',
+        }[lvl] ?? lvl)
+      : lvl;
 
   return (
     <div>
       <PageHeader
-        eyebrow="Mon espace"
-        title={<>Mon <span className="qc-italic-accent font-editorial italic">profil.</span></>}
-        description={`Mets à jour tes infos personnelles — les champs business (TJM, séniorité, statut) restent gérés par ${brandName}.`}
+        eyebrow={isEn ? 'My space' : 'Mon espace'}
+        title={<>{isEn ? 'My ' : 'Mon '}<span className="qc-italic-accent font-editorial italic">{isEn ? 'profile.' : 'profil.'}</span></>}
+        description={
+          isEn
+            ? `Update your personal information — the business fields (day rate, seniority, status) remain managed by ${brandName}.`
+            : `Mets à jour tes infos personnelles — les champs business (TJM, séniorité, statut) restent gérés par ${brandName}.`
+        }
         actions={
           editing ? (
             <>
               <Button variant="outline" onClick={cancel} disabled={saving}>
                 <X className="h-4 w-4" />
-                Annuler
+                {isEn ? 'Cancel' : 'Annuler'}
               </Button>
               <Button onClick={save} disabled={saving}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Enregistrer
+                {isEn ? 'Save' : 'Enregistrer'}
               </Button>
             </>
           ) : (
             <Button onClick={() => setEditing(true)}>
               <Pencil className="h-4 w-4" />
-              Modifier
+              {isEn ? 'Edit' : 'Modifier'}
             </Button>
           )
         }
@@ -217,7 +236,7 @@ export default function PortalProfilePage() {
                     <span className="qc-italic-accent font-editorial italic">{c.last_name}</span>
                   </h2>
                   <Badge variant="outline" className={CONSULTANT_STATUS_STYLE[c.status]}>
-                    {CONSULTANT_STATUS_LABEL[c.status]}
+                    {statusLabels[c.status]}
                   </Badge>
                 </div>
                 <p className="text-lg text-muted-foreground mt-1 inline-flex items-center gap-2">
@@ -229,12 +248,12 @@ export default function PortalProfilePage() {
                 )}
 
                 <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl overflow-hidden border border-hairline bg-hairline/40">
-                  <HeroStat label="Séniorité" value={SENIORITY_LABEL[c.seniority]} />
-                  <HeroStat label="Expérience" value={`${c.years_experience} ans`} />
-                  <HeroStat label="TJM" value={formatCurrency(c.daily_rate_eur)} />
+                  <HeroStat label={isEn ? 'Seniority' : 'Séniorité'} value={seniorityLabels[c.seniority]} />
+                  <HeroStat label={isEn ? 'Experience' : 'Expérience'} value={isEn ? `${c.years_experience} yrs` : `${c.years_experience} ans`} />
+                  <HeroStat label={isEn ? 'Day rate' : 'TJM'} value={formatCurrency(c.daily_rate_eur)} />
                   <HeroStat
-                    label="Disponible"
-                    value={c.available_from ? formatDate(c.available_from) : 'Maintenant'}
+                    label={isEn ? 'Available' : 'Disponible'}
+                    value={c.available_from ? formatDate(c.available_from) : (isEn ? 'Now' : 'Maintenant')}
                   />
                 </div>
               </div>
@@ -246,8 +265,8 @@ export default function PortalProfilePage() {
       {/* ---- Coordonnées (éditables) ---- */}
       <Reveal delay={0.06}>
         <SectionHeader
-          eyebrow="Contact"
-          title={<>Mes <span className="qc-italic-accent font-editorial italic">coordonnées.</span></>}
+          eyebrow={isEn ? 'Contact' : 'Contact'}
+          title={<>{isEn ? 'My ' : 'Mes '}<span className="qc-italic-accent font-editorial italic">{isEn ? 'contact details.' : 'coordonnées.'}</span></>}
         />
         <AppCard className="mb-8">
           <AppCardBody>
@@ -261,7 +280,7 @@ export default function PortalProfilePage() {
                     placeholder="prenom.nom@email.fr"
                   />
                 </FormField>
-                <FormField label="Téléphone" icon={<Phone className="h-3.5 w-3.5" />}>
+                <FormField label={isEn ? 'Phone' : 'Téléphone'} icon={<Phone className="h-3.5 w-3.5" />}>
                   <Input
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -275,40 +294,40 @@ export default function PortalProfilePage() {
                     placeholder="https://linkedin.com/in/…"
                   />
                 </FormField>
-                <FormField label="Ville" icon={<MapPin className="h-3.5 w-3.5" />}>
+                <FormField label={isEn ? 'City' : 'Ville'} icon={<MapPin className="h-3.5 w-3.5" />}>
                   <Input
                     value={form.city}
                     onChange={(e) => setForm({ ...form, city: e.target.value })}
                     placeholder="Paris"
                   />
                 </FormField>
-                <FormField label="Pays">
+                <FormField label={isEn ? 'Country' : 'Pays'}>
                   <Input
                     value={form.country}
                     onChange={(e) => setForm({ ...form, country: e.target.value })}
                     placeholder="FR"
                   />
                 </FormField>
-                <FormField label="Mobilité" className="md:col-span-2">
+                <FormField label={isEn ? 'Mobility' : 'Mobilité'} className="md:col-span-2">
                   <Input
                     value={form.mobility}
                     onChange={(e) => setForm({ ...form, mobility: e.target.value })}
-                    placeholder="Île-de-France, Lyon, full-remote France…"
+                    placeholder={isEn ? 'Île-de-France, Lyon, full-remote France…' : 'Île-de-France, Lyon, full-remote France…'}
                   />
                 </FormField>
-                <FormField label="Résumé" className="md:col-span-2">
+                <FormField label={isEn ? 'Summary' : 'Résumé'} className="md:col-span-2">
                   <Textarea
                     value={form.summary}
                     onChange={(e) => setForm({ ...form, summary: e.target.value })}
                     rows={4}
-                    placeholder="Quelques lignes pour te présenter…"
+                    placeholder={isEn ? 'A few lines to introduce yourself…' : 'Quelques lignes pour te présenter…'}
                   />
                 </FormField>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <ReadRow icon={<Mail className="h-4 w-4" />} label="Email" value={c.email} />
-                <ReadRow icon={<Phone className="h-4 w-4" />} label="Téléphone" value={c.phone} />
+                <ReadRow icon={<Phone className="h-4 w-4" />} label={isEn ? 'Phone' : 'Téléphone'} value={c.phone} />
                 <ReadRow
                   icon={<Linkedin className="h-4 w-4" />}
                   label="LinkedIn"
@@ -317,16 +336,16 @@ export default function PortalProfilePage() {
                 />
                 <ReadRow
                   icon={<MapPin className="h-4 w-4" />}
-                  label="Ville"
+                  label={isEn ? 'City' : 'Ville'}
                   value={c.city ? `${c.city}${c.country && c.country !== 'FR' ? `, ${c.country}` : ''}` : null}
                 />
                 {c.mobility && (
-                  <ReadRow icon={<MapPin className="h-4 w-4" />} label="Mobilité" value={c.mobility} />
+                  <ReadRow icon={<MapPin className="h-4 w-4" />} label={isEn ? 'Mobility' : 'Mobilité'} value={c.mobility} />
                 )}
                 {c.summary && (
                   <div className="md:col-span-2 mt-2 pt-3 border-t border-hairline">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-magenta mb-2">
-                      Résumé
+                      {isEn ? 'Summary' : 'Résumé'}
                     </div>
                     <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
                       {c.summary}
@@ -342,22 +361,22 @@ export default function PortalProfilePage() {
       {/* ---- Société & facturation ---- */}
       <Reveal delay={0.12}>
         <SectionHeader
-          eyebrow="Facturation"
-          title={<>Société &amp; <span className="qc-italic-accent font-editorial italic">facturation.</span></>}
-          description="Ces informations alimentent tes contrats et le règlement de tes CRA."
+          eyebrow={isEn ? 'Billing' : 'Facturation'}
+          title={<>{isEn ? 'Company & ' : 'Société & '}<span className="qc-italic-accent font-editorial italic">{isEn ? 'billing.' : 'facturation.'}</span></>}
+          description={isEn ? 'This information feeds your contracts and the payment of your timesheets.' : 'Ces informations alimentent tes contrats et le règlement de tes CRA.'}
         />
         <AppCard tone={billingMissing && !editing ? 'amber' : 'none'} className="mb-8">
           <AppCardBody>
             {editing ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField label="Statut juridique">
+                <FormField label={isEn ? 'Legal status' : 'Statut juridique'}>
                   <Input
                     value={form.legal_status}
                     onChange={(e) => setForm({ ...form, legal_status: e.target.value })}
                     placeholder="EI, EURL, SASU, portage salarial…"
                   />
                 </FormField>
-                <FormField label="Raison sociale">
+                <FormField label={isEn ? 'Company name' : 'Raison sociale'}>
                   <Input
                     value={form.company_name}
                     onChange={(e) => setForm({ ...form, company_name: e.target.value })}
@@ -368,25 +387,25 @@ export default function PortalProfilePage() {
                   <Input
                     value={form.siret}
                     onChange={(e) => setForm({ ...form, siret: e.target.value.replace(/\s/g, '') })}
-                    placeholder="14 chiffres"
+                    placeholder={isEn ? '14 digits' : '14 chiffres'}
                     inputMode="numeric"
                   />
                 </FormField>
-                <FormField label="N° TVA intracommunautaire">
+                <FormField label={isEn ? 'Intra-EU VAT number' : 'N° TVA intracommunautaire'}>
                   <Input
                     value={form.vat_number}
                     onChange={(e) => setForm({ ...form, vat_number: e.target.value })}
                     placeholder="FRXX999999999"
                   />
                 </FormField>
-                <FormField label="Adresse">
+                <FormField label={isEn ? 'Address' : 'Adresse'}>
                   <Input
                     value={form.address}
                     onChange={(e) => setForm({ ...form, address: e.target.value })}
-                    placeholder="12 rue Exemple"
+                    placeholder={isEn ? '12 Example Street' : '12 rue Exemple'}
                   />
                 </FormField>
-                <FormField label="Code postal">
+                <FormField label={isEn ? 'Postal code' : 'Code postal'}>
                   <Input
                     value={form.postal_code}
                     onChange={(e) => setForm({ ...form, postal_code: e.target.value })}
@@ -411,12 +430,12 @@ export default function PortalProfilePage() {
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                  <ReadRow icon={<Building2 className="h-4 w-4" />} label="Statut juridique" value={c.legal_status} />
-                  <ReadRow label="Raison sociale" value={c.company_name} />
+                  <ReadRow icon={<Building2 className="h-4 w-4" />} label={isEn ? 'Legal status' : 'Statut juridique'} value={c.legal_status} />
+                  <ReadRow label={isEn ? 'Company name' : 'Raison sociale'} value={c.company_name} />
                   <ReadRow label="SIRET" value={c.siret} />
-                  <ReadRow label="N° TVA" value={c.vat_number} />
+                  <ReadRow label={isEn ? 'VAT number' : 'N° TVA'} value={c.vat_number} />
                   <ReadRow
-                    label="Adresse"
+                    label={isEn ? 'Address' : 'Adresse'}
                     value={c.address ? `${c.address}${c.postal_code ? `, ${c.postal_code}` : ''}` : null}
                   />
                   <ReadRow label="IBAN" value={c.iban} />
@@ -426,8 +445,9 @@ export default function PortalProfilePage() {
                   <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/[0.07] px-4 py-3">
                     <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
                     <p className="text-xs leading-relaxed text-amber-600 dark:text-amber-300/90">
-                      Complète tes informations de société et de facturation — elles sont
-                      nécessaires pour tes contrats et le règlement de tes CRA.
+                      {isEn
+                        ? 'Complete your company and billing information — it is required for your contracts and the payment of your timesheets.'
+                        : 'Complète tes informations de société et de facturation — elles sont nécessaires pour tes contrats et le règlement de tes CRA.'}
                     </p>
                   </div>
                 )}
@@ -440,9 +460,9 @@ export default function PortalProfilePage() {
       {/* ---- Langues (ajout / suppression par le consultant) ---- */}
       <Reveal delay={0.18}>
         <SectionHeader
-          eyebrow="Profil"
-          title={<>Mes <span className="qc-italic-accent font-editorial italic">langues.</span></>}
-          description={editing ? 'Ajoute, modifie ou retire tes langues — pense à enregistrer.' : undefined}
+          eyebrow={isEn ? 'Profile' : 'Profil'}
+          title={<>{isEn ? 'My ' : 'Mes '}<span className="qc-italic-accent font-editorial italic">{isEn ? 'languages.' : 'langues.'}</span></>}
+          description={editing ? (isEn ? 'Add, edit or remove your languages — remember to save.' : 'Ajoute, modifie ou retire tes langues — pense à enregistrer.') : undefined}
         />
         <AppCard className="mb-8">
           <AppCardBody className="space-y-1">
@@ -462,7 +482,7 @@ export default function PortalProfilePage() {
                       }
                       placeholder="FR"
                       className="w-24 uppercase"
-                      aria-label="Code langue"
+                      aria-label={isEn ? 'Language code' : 'Code langue'}
                     />
                     <select
                       value={l.level}
@@ -475,14 +495,14 @@ export default function PortalProfilePage() {
                         })
                       }
                       className="flex-1 h-10 rounded-md border border-input bg-transparent px-3 text-sm"
-                      aria-label="Niveau"
+                      aria-label={isEn ? 'Level' : 'Niveau'}
                     >
                       {!LANG_LEVELS.includes(l.level) && l.level && (
-                        <option value={l.level}>{l.level}</option>
+                        <option value={l.level}>{langLevelLabel(l.level)}</option>
                       )}
                       {LANG_LEVELS.map((lvl) => (
                         <option key={lvl} value={lvl}>
-                          {lvl}
+                          {langLevelLabel(lvl)}
                         </option>
                       ))}
                     </select>
@@ -496,7 +516,7 @@ export default function PortalProfilePage() {
                           languages: form.languages.filter((_, j) => j !== i),
                         })
                       }
-                      aria-label="Retirer cette langue"
+                      aria-label={isEn ? 'Remove this language' : 'Retirer cette langue'}
                     >
                       <Trash2 className="h-3.5 w-3.5 text-rose-400" />
                     </Button>
@@ -514,12 +534,12 @@ export default function PortalProfilePage() {
                   }
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  Ajouter une langue
+                  {isEn ? 'Add a language' : 'Ajouter une langue'}
                 </Button>
               </div>
             ) : c.languages.length === 0 ? (
               <p className="text-sm text-muted-foreground/60 italic px-1 py-2">
-                Aucune langue renseignée — clique sur « Modifier » pour en ajouter.
+                {isEn ? 'No language set — click “Edit” to add one.' : 'Aucune langue renseignée — clique sur « Modifier » pour en ajouter.'}
               </p>
             ) : (
               c.languages.map((l) => (
@@ -533,7 +553,7 @@ export default function PortalProfilePage() {
                       {l.code}
                     </span>
                   </span>
-                  <span className="text-sm text-muted-foreground">{l.level}</span>
+                  <span className="text-sm text-muted-foreground">{langLevelLabel(l.level)}</span>
                 </div>
               ))
             )}
@@ -545,8 +565,8 @@ export default function PortalProfilePage() {
       <Reveal delay={0.22}>
         <SectionHeader
           eyebrow="Documents"
-          title={<>CV &amp; <span className="qc-italic-accent font-editorial italic">certifications.</span></>}
-          description="Ton CV et tes justificatifs, partagés avec l'équipe qui te positionne."
+          title={<>{isEn ? 'CV & ' : 'CV & '}<span className="qc-italic-accent font-editorial italic">certifications.</span></>}
+          description={isEn ? 'Your CV and supporting documents, shared with the team that positions you.' : 'Ton CV et tes justificatifs, partagés avec l\'équipe qui te positionne.'}
         />
         <div className="mb-8">
           <ConsultantSelfDocuments
@@ -623,10 +643,12 @@ function ReadRow({
   value: string | null;
   href?: string;
 }) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   if (!value) {
     return (
       <div className="text-muted-foreground/50 italic">
-        <span className="text-[10px] uppercase tracking-wider">{label}</span> — non renseigné
+        <span className="text-[10px] uppercase tracking-wider">{label}</span> {isEn ? '— not provided' : '— non renseigné'}
       </div>
     );
   }

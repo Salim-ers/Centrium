@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 // =========================================================================
 // Checklist d'accueil sur le dashboard : guide le nouvel admin dans la
@@ -27,6 +28,8 @@ type Setup = {
 const DISMISS_KEY = (org: string) => `centrium-setup-dismissed:${org}`;
 
 export function SetupChecklist() {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const { activeOrgId } = useOrganization();
   const [dismissed, setDismissed] = useState<boolean>(() => {
     if (typeof window === 'undefined' || !activeOrgId) return false;
@@ -56,10 +59,10 @@ export function SetupChecklist() {
   if (!data || dismissed) return null;
 
   const steps = [
-    { key: 'identity', done: data.identity, label: 'Renseigner l’identité de l’ESN', hint: 'SIREN, adresse, RIB — requis pour facturer', href: '/settings/facturation' },
-    { key: 'team', done: data.team, label: 'Inviter l’équipe', hint: 'Business managers, recruteurs, finance', href: '/settings/team' },
-    { key: 'consultant', done: data.consultant, label: 'Ajouter un premier consultant', hint: 'Importe un CV pour pré-remplir le profil', href: '/consultants' },
-    { key: 'offer', done: data.offer, label: 'Créer une offre', hint: 'Lance le matching consultant ↔ mission', href: '/offers' },
+    { key: 'identity', done: data.identity, label: isEn ? 'Fill in your company identity' : 'Renseigner l’identité de l’ESN', hint: isEn ? 'SIREN, address, bank details — required to invoice' : 'SIREN, adresse, RIB — requis pour facturer', href: '/settings/facturation' },
+    { key: 'team', done: data.team, label: isEn ? 'Invite your team' : 'Inviter l’équipe', hint: isEn ? 'Business managers, recruiters, finance' : 'Business managers, recruteurs, finance', href: '/settings/team' },
+    { key: 'consultant', done: data.consultant, label: isEn ? 'Add a first consultant' : 'Ajouter un premier consultant', hint: isEn ? 'Import a CV to pre-fill the profile' : 'Importe un CV pour pré-remplir le profil', href: '/consultants' },
+    { key: 'offer', done: data.offer, label: isEn ? 'Create an offer' : 'Créer une offre', hint: isEn ? 'Kick off consultant ↔ mission matching' : 'Lance le matching consultant ↔ mission', href: '/offers' },
   ];
   const doneCount = steps.filter((s) => s.done).length;
   if (doneCount === steps.length) return null; // tout est fait → on n'affiche rien
@@ -82,7 +85,7 @@ export function SetupChecklist() {
         <button
           type="button"
           onClick={dismiss}
-          aria-label="Masquer la checklist"
+          aria-label={isEn ? 'Hide the checklist' : 'Masquer la checklist'}
           className="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground transition"
         >
           <X className="h-4 w-4" />
@@ -93,9 +96,9 @@ export function SetupChecklist() {
             <Rocket className="h-4 w-4" />
           </span>
           <div>
-            <h2 className="font-display text-lg font-light leading-tight">Bien démarrer</h2>
+            <h2 className="font-display text-lg font-light leading-tight">{isEn ? 'Getting started' : 'Bien démarrer'}</h2>
             <p className="text-[11px] text-muted-foreground">
-              {doneCount} / {steps.length} étapes · {pct} %
+              {doneCount} / {steps.length} {isEn ? 'steps' : 'étapes'} · {pct} %
             </p>
           </div>
         </div>

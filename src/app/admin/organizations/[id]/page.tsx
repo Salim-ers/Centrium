@@ -42,6 +42,7 @@ import {
   type StatusTone,
 } from '@/components/app';
 import { deriveOrgStatus } from '@/lib/admin/org-status';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 type Quota = { used: number; max: number | null };
 type Detail = {
@@ -121,6 +122,15 @@ const ROLE_LABEL: Record<string, string> = {
   consultant: 'Consultant',
 };
 
+const ROLE_LABEL_EN: Record<string, string> = {
+  admin: 'Admin',
+  business_manager: 'Business Manager',
+  recruiter: 'Recruiter',
+  finance: 'Finance',
+  viewer: 'Viewer',
+  consultant: 'Consultant',
+};
+
 const ENTITY_LABEL: Record<string, string> = {
   consultant: 'consultant',
   mission: 'mission',
@@ -131,6 +141,19 @@ const ENTITY_LABEL: Record<string, string> = {
   timesheet: 'CRA',
   job_offer: 'offre',
   company: 'entreprise',
+  cv: 'CV',
+};
+
+const ENTITY_LABEL_EN: Record<string, string> = {
+  consultant: 'consultant',
+  mission: 'mission',
+  contract: 'contract',
+  invoice: 'invoice',
+  opportunity: 'opportunity',
+  contact: 'contact',
+  timesheet: 'timesheet',
+  job_offer: 'job offer',
+  company: 'company',
   cv: 'CV',
 };
 
@@ -146,29 +169,41 @@ const ACTION_LABEL: Record<string, string> = {
   restored: 'a restauré',
 };
 
-function fmtDate(iso: string | null | undefined): string {
+const ACTION_LABEL_EN: Record<string, string> = {
+  created: 'created',
+  updated: 'updated',
+  deleted: 'deleted',
+  archived: 'archived',
+  validated: 'validated',
+  sent: 'sent',
+  signed: 'signed',
+  requested: 'requested',
+  restored: 'restored',
+};
+
+function fmtDate(iso: string | null | undefined, isEn = false): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('fr-FR', {
+  return new Date(iso).toLocaleDateString(isEn ? 'en-GB' : 'fr-FR', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
   });
 }
 
-function fmtEur(n: number): string {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
+function fmtEur(n: number, isEn = false): string {
+  return new Intl.NumberFormat(isEn ? 'en-GB' : 'fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
 }
 
-function relative(iso: string): string {
+function relative(iso: string, isEn = false): string {
   const diff = Date.now() - new Date(iso).getTime();
   const min = Math.floor(diff / 60000);
-  if (min < 1) return "à l'instant";
-  if (min < 60) return `il y a ${min} min`;
+  if (min < 1) return isEn ? 'just now' : "à l'instant";
+  if (min < 60) return isEn ? `${min} min ago` : `il y a ${min} min`;
   const h = Math.floor(min / 60);
-  if (h < 24) return `il y a ${h} h`;
+  if (h < 24) return isEn ? `${h} h ago` : `il y a ${h} h`;
   const d = Math.floor(h / 24);
-  if (d < 30) return `il y a ${d} j`;
-  return fmtDate(iso);
+  if (d < 30) return isEn ? `${d} d ago` : `il y a ${d} j`;
+  return fmtDate(iso, isEn);
 }
 
 function UsageBar({ label, quota }: { label: string; quota: Quota }) {
@@ -221,6 +256,8 @@ function Metric({
 
 export default function AdminOrganizationDetailPage() {
   const params = useParams<{ id: string }>();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -249,13 +286,13 @@ export default function AdminOrganizationDetailPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <AdminConsoleHeader
-        title="Fiche organisation"
-        subtitle="Supervision · abonnement · effectifs · activité"
+        title={isEn ? 'Organization file' : 'Fiche organisation'}
+        subtitle={isEn ? 'Oversight · subscription · headcount · activity' : 'Supervision · abonnement · effectifs · activité'}
         actions={
           <Button variant="outline" size="sm" asChild>
             <Link href="/admin/organizations" className="inline-flex items-center gap-1.5">
               <ArrowLeft className="h-3.5 w-3.5" />
-              Organisations
+              {isEn ? 'Organizations' : 'Organisations'}
             </Link>
           </Button>
         }
@@ -273,11 +310,11 @@ export default function AdminOrganizationDetailPage() {
           </div>
         ) : notFound || !detail ? (
           <div className="text-center py-20">
-            <h1 className="font-display text-2xl font-bold">Organisation introuvable</h1>
+            <h1 className="font-display text-2xl font-bold">{isEn ? 'Organization not found' : 'Organisation introuvable'}</h1>
             <Button className="mt-6" asChild>
               <Link href="/admin/organizations">
                 <ArrowLeft className="h-4 w-4" />
-                Retour aux organisations
+                {isEn ? 'Back to organizations' : 'Retour aux organisations'}
               </Link>
             </Button>
           </div>
@@ -291,6 +328,11 @@ export default function AdminOrganizationDetailPage() {
 
 function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => void | Promise<void> }) {
   const router = useRouter();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
+  const roleLabel = isEn ? ROLE_LABEL_EN : ROLE_LABEL;
+  const entityLabel = isEn ? ENTITY_LABEL_EN : ENTITY_LABEL;
+  const actionLabel = isEn ? ACTION_LABEL_EN : ACTION_LABEL;
   const { org, subscription, usage, members, counts, activities } = detail;
   const status = deriveOrgStatus({
     status: subscription?.status,
@@ -311,7 +353,9 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
   const [suspending, setSuspending] = useState(false);
 
   async function handleSuspend() {
-    if (!window.confirm(`Suspendre l'accès de « ${org.name} » ? L'abonnement est résilié (aucun débit) et l'accès coupé. Les données sont conservées.`)) {
+    if (!window.confirm(isEn
+      ? `Suspend access for “${org.name}”? The subscription is canceled (no charge) and access is cut off. Data is kept.`
+      : `Suspendre l'accès de « ${org.name} » ? L'abonnement est résilié (aucun débit) et l'accès coupé. Les données sont conservées.`)) {
       return;
     }
     setSuspending(true);
@@ -319,10 +363,10 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
       const res = await fetch(`/api/admin/organizations/${org.id}/suspend`, { method: 'POST' });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(body.message ?? 'Suspension impossible');
+        toast.error(body.message ?? (isEn ? 'Unable to suspend' : 'Suspension impossible'));
         return;
       }
-      toast.success(`Accès de « ${org.name} » suspendu`);
+      toast.success(isEn ? `Access for “${org.name}” suspended` : `Accès de « ${org.name} » suspendu`);
       await onChanged();
     } finally {
       setSuspending(false);
@@ -335,14 +379,16 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
       const res = await fetch(`/api/admin/organizations/${org.id}`, { method: 'DELETE' });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(body.message ?? 'Suppression impossible');
+        toast.error(body.message ?? (isEn ? 'Unable to delete' : 'Suppression impossible'));
         return;
       }
       const extra =
         body.data?.authAccountsDeleted > 0
-          ? ` · ${body.data.authAccountsDeleted} compte(s) supprimé(s)`
+          ? isEn
+            ? ` · ${body.data.authAccountsDeleted} account(s) deleted`
+            : ` · ${body.data.authAccountsDeleted} compte(s) supprimé(s)`
           : '';
-      toast.success(`« ${org.name} » supprimée${extra}`);
+      toast.success(isEn ? `“${org.name}” deleted${extra}` : `« ${org.name} » supprimée${extra}`);
       router.push('/admin/organizations');
     } finally {
       setDeleting(false);
@@ -367,19 +413,19 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
               <h2 className="font-display text-2xl font-bold tracking-tight truncate">{org.name}</h2>
               <StatusBadge tone={status.tone as StatusTone} dot={false}>
                 {status.label}
-                {status.daysLeft !== null && status.daysLeft >= 0 ? ` · ${status.daysLeft} j` : ''}
+                {status.daysLeft !== null && status.daysLeft >= 0 ? ` · ${status.daysLeft} ${isEn ? 'd' : 'j'}` : ''}
               </StatusBadge>
               {org.brand_primary_color && (
                 <span
                   className="h-4 w-4 rounded-full border border-hairline shrink-0"
                   style={{ backgroundColor: org.brand_primary_color }}
-                  title={`Couleur de marque ${org.brand_primary_color}`}
+                  title={`${isEn ? 'Brand color' : 'Couleur de marque'} ${org.brand_primary_color}`}
                 />
               )}
             </div>
             <div className="mt-1 text-sm text-muted-foreground">
               {org.brand_name && org.brand_name !== org.name ? `${org.brand_name} · ` : ''}
-              <span className="font-mono text-xs">{org.slug}</span> · créée le {fmtDate(org.created_at)}
+              <span className="font-mono text-xs">{org.slug}</span> · {isEn ? 'created on' : 'créée le'} {fmtDate(org.created_at, isEn)}
             </div>
             <div className="mt-2 grid sm:grid-cols-2 gap-x-8 gap-y-1 text-xs text-muted-foreground">
               {(org.address || cityLine) && (
@@ -390,7 +436,7 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
                 </div>
               )}
               {org.siren && <div>SIREN {org.siren}</div>}
-              {org.vat_number && <div>TVA {org.vat_number}</div>}
+              {org.vat_number && <div>{isEn ? 'VAT' : 'TVA'} {org.vat_number}</div>}
               {org.representative_name && (
                 <div>
                   {org.representative_name}
@@ -413,7 +459,7 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
             className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10 hover:text-amber-400"
           >
             {suspending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
-            Suspendre l&apos;accès
+            {isEn ? 'Suspend access' : <>Suspendre l&apos;accès</>}
           </Button>
         </div>
       )}
@@ -422,15 +468,15 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
         {/* Abonnement */}
         <section className="lg:col-span-1">
           <SectionHeader
-            eyebrow="Facturation"
-            title={<>Abonnement<span className="qc-italic-accent font-editorial italic">.</span></>}
-            description="Plan, statut et échéances Stripe."
+            eyebrow={isEn ? 'Billing' : 'Facturation'}
+            title={<>{isEn ? 'Subscription' : 'Abonnement'}<span className="qc-italic-accent font-editorial italic">.</span></>}
+            description={isEn ? 'Plan, status and Stripe deadlines.' : 'Plan, statut et échéances Stripe.'}
           />
           <AppCard variant="default">
             <AppCardBody size="md" className="space-y-3 text-sm">
               <Row label="Plan" value={subscription?.plans?.name ?? subscription?.plan_id ?? '—'} />
               <Row
-                label="Statut"
+                label={isEn ? 'Status' : 'Statut'}
                 value={
                   <StatusBadge tone={status.tone as StatusTone} dot={false}>
                     {status.label}
@@ -438,26 +484,26 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
                 }
               />
               {subscription?.plans?.price_monthly_eur != null && (
-                <Row label="Prix" value={`${fmtEur(Number(subscription.plans.price_monthly_eur))} / mois`} />
+                <Row label={isEn ? 'Price' : 'Prix'} value={`${fmtEur(Number(subscription.plans.price_monthly_eur), isEn)} ${isEn ? '/ month' : '/ mois'}`} />
               )}
               {subscription?.trial_end && (
-                <Row label="Fin d'essai" value={fmtDate(subscription.trial_end)} />
+                <Row label={isEn ? 'Trial end' : "Fin d'essai"} value={fmtDate(subscription.trial_end, isEn)} />
               )}
               {subscription?.current_period_end && (
-                <Row label="Fin de période" value={fmtDate(subscription.current_period_end)} />
+                <Row label={isEn ? 'Period end' : 'Fin de période'} value={fmtDate(subscription.current_period_end, isEn)} />
               )}
               {subscription?.cancel_at_period_end && (
-                <Row label="Résiliation" value={<span className="text-amber-400">programmée en fin de période</span>} />
+                <Row label={isEn ? 'Cancellation' : 'Résiliation'} value={<span className="text-amber-400">{isEn ? 'scheduled at period end' : 'programmée en fin de période'}</span>} />
               )}
               <Row
-                label="Facturation"
+                label={isEn ? 'Billing' : 'Facturation'}
                 value={
                   subscription?.is_exempt_from_billing ? (
                     <span className="inline-flex items-center gap-1 text-violet-400">
-                      <ShieldCheck className="h-3.5 w-3.5" /> Exempt
+                      <ShieldCheck className="h-3.5 w-3.5" /> {isEn ? 'Exempt' : 'Exempt'}
                     </span>
                   ) : (
-                    'Standard'
+                    isEn ? 'Standard' : 'Standard'
                   )
                 }
               />
@@ -474,17 +520,17 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
         {/* Usage vs limites */}
         <section className="lg:col-span-2">
           <SectionHeader
-            eyebrow="Consommation"
-            title={<>Usage <span className="qc-italic-accent font-editorial italic">du plan.</span></>}
-            description="Ce que l'organisation consomme face aux limites de son plan."
+            eyebrow={isEn ? 'Consumption' : 'Consommation'}
+            title={<>{isEn ? 'Plan ' : 'Usage '}<span className="qc-italic-accent font-editorial italic">{isEn ? 'usage.' : 'du plan.'}</span></>}
+            description={isEn ? "What the organization consumes against its plan limits." : "Ce que l'organisation consomme face aux limites de son plan."}
           />
           <AppCard variant="default">
             <AppCardBody size="md" className="grid sm:grid-cols-2 gap-x-8 gap-y-4">
-              <UsageBar label="Consultants" quota={usage.consultants} />
-              <UsageBar label="Membres internes" quota={usage.members} />
-              <UsageBar label="Opportunités ouvertes" quota={usage.opportunities} />
-              <UsageBar label="Contacts" quota={usage.contacts} />
-              <UsageBar label="Missions actives" quota={usage.missions} />
+              <UsageBar label={isEn ? 'Consultants' : 'Consultants'} quota={usage.consultants} />
+              <UsageBar label={isEn ? 'Internal members' : 'Membres internes'} quota={usage.members} />
+              <UsageBar label={isEn ? 'Open opportunities' : 'Opportunités ouvertes'} quota={usage.opportunities} />
+              <UsageBar label={isEn ? 'Contacts' : 'Contacts'} quota={usage.contacts} />
+              <UsageBar label={isEn ? 'Active missions' : 'Missions actives'} quota={usage.missions} />
             </AppCardBody>
           </AppCard>
         </section>
@@ -493,18 +539,18 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
       {/* Effectifs métier */}
       <section>
         <SectionHeader
-          eyebrow="Activité métier"
-          title={<>Ce qu'ils <span className="qc-italic-accent font-editorial italic">produisent.</span></>}
-          description="Volumétrie créée dans l'outil, toutes périodes confondues."
+          eyebrow={isEn ? 'Business activity' : 'Activité métier'}
+          title={isEn ? <>What they <span className="qc-italic-accent font-editorial italic">produce.</span></> : <>Ce qu'ils <span className="qc-italic-accent font-editorial italic">produisent.</span></>}
+          description={isEn ? 'Volume created in the tool, across all periods.' : "Volumétrie créée dans l'outil, toutes périodes confondues."}
         />
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-          <Metric icon={Banknote} label="CA encaissé" value={fmtEur(counts.paidRevenue)} />
-          <Metric icon={Receipt} label="Factures" value={counts.invoices} />
-          <Metric icon={FileText} label="Contrats" value={counts.contracts} />
-          <Metric icon={Briefcase} label="Missions" value={counts.missions} />
-          <Metric icon={Target} label="Opportunités" value={counts.opportunities} />
-          <Metric icon={Contact} label="Contacts" value={counts.contacts} />
-          <Metric icon={ClipboardCheck} label="CRA" value={counts.timesheets} />
+          <Metric icon={Banknote} label={isEn ? 'Collected revenue' : 'CA encaissé'} value={fmtEur(counts.paidRevenue, isEn)} />
+          <Metric icon={Receipt} label={isEn ? 'Invoices' : 'Factures'} value={counts.invoices} />
+          <Metric icon={FileText} label={isEn ? 'Contracts' : 'Contrats'} value={counts.contracts} />
+          <Metric icon={Briefcase} label={isEn ? 'Missions' : 'Missions'} value={counts.missions} />
+          <Metric icon={Target} label={isEn ? 'Opportunities' : 'Opportunités'} value={counts.opportunities} />
+          <Metric icon={Contact} label={isEn ? 'Contacts' : 'Contacts'} value={counts.contacts} />
+          <Metric icon={ClipboardCheck} label={isEn ? 'Timesheets' : 'CRA'} value={counts.timesheets} />
         </div>
       </section>
 
@@ -512,15 +558,15 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
         {/* Membres */}
         <section>
           <SectionHeader
-            eyebrow="Accès"
-            title={<>Équipe <span className="qc-italic-accent font-editorial italic">interne.</span></>}
-            description={`${members.length} membre(s) avec accès à l'espace.`}
+            eyebrow={isEn ? 'Access' : 'Accès'}
+            title={isEn ? <>Internal <span className="qc-italic-accent font-editorial italic">team.</span></> : <>Équipe <span className="qc-italic-accent font-editorial italic">interne.</span></>}
+            description={isEn ? `${members.length} member(s) with access to the workspace.` : `${members.length} membre(s) avec accès à l'espace.`}
           />
           <AppCard variant="default">
             <AppCardBody size="sm" className="p-0">
               {members.length === 0 ? (
                 <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                  Aucun membre interne.
+                  {isEn ? 'No internal member.' : 'Aucun membre interne.'}
                 </div>
               ) : (
                 <div className="divide-y divide-hairline">
@@ -542,7 +588,7 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
                         <div className="text-[11px] text-muted-foreground truncate">{m.email}</div>
                       </div>
                       <StatusBadge tone="neutral" dot={false}>
-                        {ROLE_LABEL[m.role] ?? m.role}
+                        {roleLabel[m.role] ?? m.role}
                       </StatusBadge>
                     </div>
                   ))}
@@ -555,16 +601,16 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
         {/* Flux d'activité */}
         <section>
           <SectionHeader
-            eyebrow="Surveillance"
-            title={<>Activité <span className="qc-italic-accent font-editorial italic">récente.</span></>}
-            description="Les dernières actions effectuées dans l'outil."
+            eyebrow={isEn ? 'Monitoring' : 'Surveillance'}
+            title={isEn ? <>Recent <span className="qc-italic-accent font-editorial italic">activity.</span></> : <>Activité <span className="qc-italic-accent font-editorial italic">récente.</span></>}
+            description={isEn ? 'The latest actions performed in the tool.' : "Les dernières actions effectuées dans l'outil."}
           />
           <AppCard variant="default">
             <AppCardBody size="sm" className="p-0">
               {activities.length === 0 ? (
                 <div className="px-4 py-8 text-center text-sm text-muted-foreground">
                   <Activity className="h-5 w-5 mx-auto mb-2 text-muted-foreground/60" />
-                  Aucune activité enregistrée.
+                  {isEn ? 'No activity recorded.' : 'Aucune activité enregistrée.'}
                 </div>
               ) : (
                 <div className="divide-y divide-hairline max-h-[420px] overflow-y-auto">
@@ -574,14 +620,14 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
                       <div className="min-w-0 flex-1">
                         <div className="text-sm">
                           <span className="font-medium">
-                            {a.actor?.name ?? a.actor?.email ?? 'Quelqu’un'}
+                            {a.actor?.name ?? a.actor?.email ?? (isEn ? 'Someone' : 'Quelqu’un')}
                           </span>{' '}
                           <span className="text-muted-foreground">
-                            {ACTION_LABEL[a.action] ?? a.action}{' '}
-                            {ENTITY_LABEL[a.entity_type] ?? a.entity_type}
+                            {actionLabel[a.action] ?? a.action}{' '}
+                            {entityLabel[a.entity_type] ?? a.entity_type}
                           </span>
                         </div>
-                        <div className="text-[11px] text-muted-foreground">{relative(a.created_at)}</div>
+                        <div className="text-[11px] text-muted-foreground">{relative(a.created_at, isEn)}</div>
                       </div>
                     </div>
                   ))}
@@ -595,18 +641,19 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
       {/* ===== Zone de danger ===== */}
       <section>
         <SectionHeader
-          eyebrow="Zone de danger"
-          title={<>Supprimer <span className="qc-italic-accent font-editorial italic">l'organisation.</span></>}
-          description="Action définitive et irréversible."
+          eyebrow={isEn ? 'Danger zone' : 'Zone de danger'}
+          title={isEn ? <>Delete <span className="qc-italic-accent font-editorial italic">the organization.</span></> : <>Supprimer <span className="qc-italic-accent font-editorial italic">l'organisation.</span></>}
+          description={isEn ? 'Permanent and irreversible action.' : 'Action définitive et irréversible.'}
         />
         <div className="rounded-2xl border border-red-500/30 bg-red-500/[0.04] p-4 sm:p-5">
           {isExempt ? (
             <div className="flex items-start gap-3 text-sm text-muted-foreground">
               <ShieldCheck className="h-5 w-5 text-violet-400 shrink-0 mt-0.5" />
               <div>
-                <div className="font-medium text-foreground">Organisation protégée</div>
-                Cette organisation est exemptée de facturation (compte fondateur/interne) et ne
-                peut pas être supprimée depuis la console.
+                <div className="font-medium text-foreground">{isEn ? 'Protected organization' : 'Organisation protégée'}</div>
+                {isEn
+                  ? 'This organization is exempt from billing (founder/internal account) and cannot be deleted from the console.'
+                  : 'Cette organisation est exemptée de facturation (compte fondateur/interne) et ne peut pas être supprimée depuis la console.'}
               </div>
             </div>
           ) : (
@@ -615,13 +662,24 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
                 <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
                 <div className="max-w-xl">
                   <div className="font-medium text-foreground">
-                    Supprimer définitivement « {org.name} »
+                    {isEn ? `Permanently delete “${org.name}”` : `Supprimer définitivement « ${org.name} »`}
                   </div>
                   <p className="text-muted-foreground mt-0.5">
-                    Toutes les données de l'organisation (consultants, missions, factures,
-                    contrats, CRA, membres…) seront <strong>effacées</strong> et les comptes
-                    utilisateurs associés supprimés. L'abonnement Stripe est annulé. La demande de
-                    devis liée, elle, est conservée. Cette action est irréversible.
+                    {isEn ? (
+                      <>
+                        All the organization&apos;s data (consultants, missions, invoices,
+                        contracts, timesheets, members…) will be <strong>erased</strong> and the
+                        associated user accounts deleted. The Stripe subscription is canceled. The
+                        linked quote request, however, is kept. This action cannot be undone.
+                      </>
+                    ) : (
+                      <>
+                        Toutes les données de l'organisation (consultants, missions, factures,
+                        contrats, CRA, membres…) seront <strong>effacées</strong> et les comptes
+                        utilisateurs associés supprimés. L'abonnement Stripe est annulé. La demande de
+                        devis liée, elle, est conservée. Cette action est irréversible.
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
@@ -634,7 +692,7 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
                 }}
               >
                 <Trash2 className="h-4 w-4" />
-                Supprimer
+                {isEn ? 'Delete' : 'Supprimer'}
               </Button>
             </div>
           )}
@@ -647,11 +705,20 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-400" />
-              Supprimer « {org.name} » ?
+              {isEn ? `Delete “${org.name}”?` : `Supprimer « ${org.name} » ?`}
             </DialogTitle>
             <DialogDescription>
-              Cette action est <strong>définitive</strong>. Pour confirmer, saisis le nom exact de
-              l'organisation ci-dessous.
+              {isEn ? (
+                <>
+                  This action is <strong>permanent</strong>. To confirm, type the exact name of the
+                  organization below.
+                </>
+              ) : (
+                <>
+                  Cette action est <strong>définitive</strong>. Pour confirmer, saisis le nom exact de
+                  l'organisation ci-dessous.
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -667,13 +734,16 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
               }}
             />
             <p className="text-[11px] text-muted-foreground">
-              Tape <span className="font-mono text-foreground">{org.name}</span> pour activer le
-              bouton.
+              {isEn ? (
+                <>Type <span className="font-mono text-foreground">{org.name}</span> to enable the button.</>
+              ) : (
+                <>Tape <span className="font-mono text-foreground">{org.name}</span> pour activer le bouton.</>
+              )}
             </p>
           </div>
           <DialogFooter className="gap-2 sm:gap-2">
             <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={deleting}>
-              Annuler
+              {isEn ? 'Cancel' : 'Annuler'}
             </Button>
             <Button
               className="bg-red-600 hover:bg-red-700 text-white"
@@ -681,7 +751,7 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
               onClick={handleDelete}
             >
               {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              Supprimer définitivement
+              {isEn ? 'Delete permanently' : 'Supprimer définitivement'}
             </Button>
           </DialogFooter>
         </DialogContent>

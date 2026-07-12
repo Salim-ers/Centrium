@@ -20,6 +20,7 @@ import { jobOfferService } from '@/lib/services';
 import { consultantService } from '@/lib/services/consultant.service';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useOrganization } from '@/lib/auth/context';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import type { JobOffer, Consultant } from '@/types';
 
 type ConsultantPick = Pick<Consultant, 'id' | 'first_name' | 'last_name' | 'daily_rate_eur'>;
@@ -40,6 +41,8 @@ type Props = {
 
 export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onAssigned }: Props) {
   const { activeOrgId } = useOrganization();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
   const [tjm, setTjm] = useState<string>('');
@@ -170,15 +173,15 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
 
   async function submit() {
     if (!activeConsultant) {
-      toast.error('Consultant requis');
+      toast.error(isEn ? 'Consultant required' : 'Consultant requis');
       return;
     }
     if (!title.trim()) {
-      toast.error('Titre requis');
+      toast.error(isEn ? 'Title required' : 'Titre requis');
       return;
     }
     if (!startDate) {
-      toast.error('Date de début requise');
+      toast.error(isEn ? 'Start date required' : 'Date de début requise');
       return;
     }
     setSaving(true);
@@ -197,16 +200,18 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(body.message ?? 'Affectation impossible');
+        toast.error(body.message ?? (isEn ? 'Assignment failed' : 'Affectation impossible'));
         return;
       }
       toast.success(
-        `Mission proposée pour ${activeConsultant.first_name} ${activeConsultant.last_name} — à valider sur sa fiche.`,
+        isEn
+          ? `Mission proposed for ${activeConsultant.first_name} ${activeConsultant.last_name} — to be confirmed on their profile.`
+          : `Mission proposée pour ${activeConsultant.first_name} ${activeConsultant.last_name} — à valider sur sa fiche.`,
       );
       onAssigned?.();
       onOpenChange(false);
     } catch {
-      toast.error('Erreur réseau');
+      toast.error(isEn ? 'Network error' : 'Erreur réseau');
     } finally {
       setSaving(false);
     }
@@ -218,7 +223,7 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
         <DialogHeader>
           <DialogTitle className="inline-flex items-center gap-2">
             <Target className="h-5 w-5 text-violet-glow" />
-            Affecter à une mission
+            {isEn ? 'Assign to a mission' : 'Affecter à une mission'}
           </DialogTitle>
           <DialogDescription>
             {activeConsultant ? (
@@ -226,17 +231,33 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
                 <strong>{activeConsultant.first_name} {activeConsultant.last_name}</strong>
                 {activeOffer ? (
                   <>
-                    {' '}sur <strong>{activeOffer.title}</strong>
+                    {' '}{isEn ? 'on' : 'sur'} <strong>{activeOffer.title}</strong>
                   </>
                 ) : null}
-                . Statut initial : <em>proposed</em>. À valider ensuite depuis la fiche consultant
-                ou la page Missions.
+                {isEn ? (
+                  <>
+                    . Initial status: <em>proposed</em>. To be confirmed afterwards from the
+                    consultant profile or the Missions page.
+                  </>
+                ) : (
+                  <>
+                    . Statut initial : <em>proposed</em>. À valider ensuite depuis la fiche consultant
+                    ou la page Missions.
+                  </>
+                )}
               </>
             ) : activeOffer ? (
-              <>
-                Pousser un consultant sur <strong>{activeOffer.title}</strong>. Choisis la
-                personne et ajuste le TJM négocié.
-              </>
+              isEn ? (
+                <>
+                  Put a consultant forward for <strong>{activeOffer.title}</strong>. Choose the
+                  person and adjust the negotiated day rate.
+                </>
+              ) : (
+                <>
+                  Pousser un consultant sur <strong>{activeOffer.title}</strong>. Choisis la
+                  personne et ajuste le TJM négocié.
+                </>
+              )
             ) : null}
           </DialogDescription>
         </DialogHeader>
@@ -244,51 +265,53 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
         <div className="space-y-4 pt-2">
           {!consultantLocked && (
             <div>
-              <Label>Consultant à positionner</Label>
+              <Label>{isEn ? 'Consultant to position' : 'Consultant à positionner'}</Label>
               <Combobox
                 value={selectedConsultantId}
                 onChange={(v) => handleConsultantSelect(v)}
                 options={[
-                  { value: '', label: '— Sélectionner —' },
+                  { value: '', label: isEn ? '— Select —' : '— Sélectionner —' },
                   ...consultantsList.map((c) => ({
                     value: c.id,
-                    label: `${c.last_name.toUpperCase()} ${c.first_name}${c.daily_rate_eur ? ` · TJM ${c.daily_rate_eur}€` : ''}`,
+                    label: `${c.last_name.toUpperCase()} ${c.first_name}${c.daily_rate_eur ? ` · ${isEn ? 'Rate' : 'TJM'} ${c.daily_rate_eur}€` : ''}`,
                   })),
                 ]}
               />
               <p className="text-[11px] text-muted-foreground mt-1">
-                Plusieurs consultants peuvent être poussés sur la même offre (1 ligne par
-                proposition dans CV poussés).
+                {isEn
+                  ? 'Several consultants can be put forward for the same offer (1 line per proposal in Submitted CVs).'
+                  : 'Plusieurs consultants peuvent être poussés sur la même offre (1 ligne par proposition dans CV poussés).'}
               </p>
             </div>
           )}
           {!offerLocked && (
             <div>
-              <Label>Offre client (AO) — optionnel</Label>
+              <Label>{isEn ? 'Client offer (RFP) — optional' : 'Offre client (AO) — optionnel'}</Label>
               <Combobox
                 value={selectedOfferId}
                 onChange={(v) => handleOfferSelect(v)}
                 options={[
-                  { value: '', label: '— Mission libre (sans AO)' },
+                  { value: '', label: isEn ? '— Free mission (no RFP)' : '— Mission libre (sans AO)' },
                   ...offers.map((o) => ({
                     value: o.id,
-                    label: `${o.title}${o.daily_rate_max ? ` · jusqu'à ${o.daily_rate_max}€/j` : ''}`,
+                    label: `${o.title}${o.daily_rate_max ? ` · ${isEn ? `up to ${o.daily_rate_max}€/day` : `jusqu'à ${o.daily_rate_max}€/j`}` : ''}`,
                   })),
                 ]}
               />
               <p className="text-[11px] text-muted-foreground mt-1">
-                Sélectionne une AO ouverte pour pré-remplir, ou laisse vide pour créer une
-                mission libre.
+                {isEn
+                  ? 'Select an open RFP to pre-fill, or leave empty to create a free mission.'
+                  : 'Sélectionne une AO ouverte pour pré-remplir, ou laisse vide pour créer une mission libre.'}
               </p>
             </div>
           )}
           <div>
-            <Label>Titre de la mission</Label>
+            <Label>{isEn ? 'Mission title' : 'Titre de la mission'}</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label>TJM (€)</Label>
+              <Label>{isEn ? 'Day rate (€)' : 'TJM (€)'}</Label>
               <Input
                 type="number"
                 min="0"
@@ -298,7 +321,7 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
               />
             </div>
             <div>
-              <Label>Début</Label>
+              <Label>{isEn ? 'Start' : 'Début'}</Label>
               <Input
                 type="date"
                 value={startDate}
@@ -306,7 +329,7 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
               />
             </div>
             <div>
-              <Label>Fin (optionnel)</Label>
+              <Label>{isEn ? 'End (optional)' : 'Fin (optionnel)'}</Label>
               <Input
                 type="date"
                 value={endDate}
@@ -318,11 +341,11 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-            Annuler
+            {isEn ? 'Cancel' : 'Annuler'}
           </Button>
           <Button onClick={submit} disabled={saving}>
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            Proposer la mission
+            {isEn ? 'Propose mission' : 'Proposer la mission'}
           </Button>
         </DialogFooter>
       </DialogContent>

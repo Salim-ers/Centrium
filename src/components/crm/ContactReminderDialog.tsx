@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { contactService } from '@/lib/services';
 import { notifyError } from '@/lib/notify';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import type { Contact } from '@/types';
 
 type Props = {
@@ -41,14 +42,14 @@ function toIso(local: string): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
-const QUICK_OPTIONS: { label: string; minutesAhead: number }[] = [
-  { label: 'Dans 1 h', minutesAhead: 60 },
-  { label: 'Demain 9h', minutesAhead: -1 }, // sentinel — calculé dynamiquement
-  { label: 'Dans 3 j', minutesAhead: 60 * 24 * 3 },
-  { label: 'Dans 1 sem.', minutesAhead: 60 * 24 * 7 },
+const QUICK_OPTIONS: { label: string; labelEn: string; minutesAhead: number }[] = [
+  { label: 'Dans 1 h', labelEn: 'In 1 h', minutesAhead: 60 },
+  { label: 'Demain 9h', labelEn: 'Tomorrow 9am', minutesAhead: -1 }, // sentinel — calculé dynamiquement
+  { label: 'Dans 3 j', labelEn: 'In 3 d', minutesAhead: 60 * 24 * 3 },
+  { label: 'Dans 1 sem.', labelEn: 'In 1 wk', minutesAhead: 60 * 24 * 7 },
 ];
 
-function quickToLocal(opt: { label: string; minutesAhead: number }): string {
+function quickToLocal(opt: { label: string; labelEn: string; minutesAhead: number }): string {
   const d = new Date();
   if (opt.label === 'Demain 9h') {
     d.setDate(d.getDate() + 1);
@@ -65,6 +66,8 @@ export function ContactReminderDialog({
   contact,
   onSaved,
 }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [when, setWhen] = useState('');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
@@ -81,19 +84,19 @@ export function ContactReminderDialog({
   async function save() {
     if (!contact) return;
     if (!when) {
-      notifyError('Choisis une date / heure');
+      notifyError(isEn ? 'Pick a date / time' : 'Choisis une date / heure');
       return;
     }
     const iso = toIso(when);
     if (!iso) {
-      notifyError('Date / heure invalide');
+      notifyError(isEn ? 'Invalid date / time' : 'Date / heure invalide');
       return;
     }
     setSaving(true);
     const res = await contactService.setCallReminder(contact.id, iso, note.trim() || null);
     setSaving(false);
     if (res.error || !res.data) {
-      notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
+      notifyError((isEn ? 'Error: ' : 'Erreur : ') + (res.error?.message ?? (isEn ? 'unknown' : 'inconnue')));
       return;
     }
     onSaved?.(res.data);
@@ -106,7 +109,7 @@ export function ContactReminderDialog({
     const res = await contactService.setCallReminder(contact.id, null, null);
     setSaving(false);
     if (res.error || !res.data) {
-      notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
+      notifyError((isEn ? 'Error: ' : 'Erreur : ') + (res.error?.message ?? (isEn ? 'unknown' : 'inconnue')));
       return;
     }
     onSaved?.(res.data);
@@ -119,12 +122,12 @@ export function ContactReminderDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5 text-amber-300" />
-            Rappel — {contact.first_name} {contact.last_name}
+            {isEn ? 'Reminder' : 'Rappel'} — {contact.first_name} {contact.last_name}
           </DialogTitle>
           <DialogDescription>
-            Programme un rappel d&apos;appel. Il apparaîtra dans le centre
-            d&apos;alertes selon sa proximité (critique si dépassé, important si
-            sous 24h, modéré sous 7j).
+            {isEn
+              ? 'Schedule a call reminder. It will appear in the alert center based on how close it is (critical if overdue, important within 24h, moderate within 7 days).'
+              : 'Programme un rappel d’appel. Il apparaîtra dans le centre d’alertes selon sa proximité (critique si dépassé, important si sous 24h, modéré sous 7j).'}
           </DialogDescription>
         </DialogHeader>
 
@@ -137,13 +140,13 @@ export function ContactReminderDialog({
                 onClick={() => setWhen(quickToLocal(opt))}
                 className="text-[11px] px-2.5 py-1 rounded-md border border-violet-glow/30 bg-violet-glow/[0.06] text-violet-200 hover:bg-violet-glow/[0.12]"
               >
-                {opt.label}
+                {isEn ? opt.labelEn : opt.label}
               </button>
             ))}
           </div>
 
           <div>
-            <Label>Date / heure du rappel *</Label>
+            <Label>{isEn ? 'Reminder date / time *' : 'Date / heure du rappel *'}</Label>
             <Input
               type="datetime-local"
               value={when}
@@ -152,12 +155,12 @@ export function ContactReminderDialog({
           </div>
 
           <div>
-            <Label>Note (optionnel)</Label>
+            <Label>{isEn ? 'Note (optional)' : 'Note (optionnel)'}</Label>
             <Textarea
               rows={3}
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder='ex: "Relancer pour la signature du devis", "Envoyer la fiche de poste"…'
+              placeholder={isEn ? 'e.g. "Follow up on the quote signature", "Send the job description"…' : 'ex: "Relancer pour la signature du devis", "Envoyer la fiche de poste"…'}
             />
           </div>
         </div>
@@ -172,7 +175,7 @@ export function ContactReminderDialog({
               className="border-red-500/40 text-red-300 hover:bg-red-500/10"
             >
               <Trash2 className="h-3.5 w-3.5" />
-              Supprimer
+              {isEn ? 'Delete' : 'Supprimer'}
             </Button>
           ) : (
             <span />
@@ -185,11 +188,11 @@ export function ContactReminderDialog({
               disabled={saving}
             >
               <XIcon className="h-3.5 w-3.5" />
-              Annuler
+              {isEn ? 'Cancel' : 'Annuler'}
             </Button>
             <Button type="button" onClick={save} disabled={saving || !when}>
               {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Programmer
+              {isEn ? 'Schedule' : 'Programmer'}
             </Button>
           </div>
         </DialogFooter>

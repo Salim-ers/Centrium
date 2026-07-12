@@ -17,6 +17,7 @@ import {
 import { ContractFormDialog } from '@/components/contracts/ContractFormDialog';
 import { contractService } from '@/lib/services/contract.service';
 import { useOrganization } from '@/lib/auth/context';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import type { Contract, ContractStatus } from '@/types';
 
 const STATUS_TONE: Record<ContractStatus, StatusTone> = {
@@ -41,8 +42,22 @@ const STATUS_LABEL: Record<ContractStatus, string> = {
   cancelled: 'Annulé',
 };
 
+const STATUS_LABEL_EN: Record<ContractStatus, string> = {
+  draft: 'Draft',
+  pending_review: 'To review',
+  sent: 'Sent',
+  signed: 'Signed',
+  active: 'Active',
+  ended: 'Ended',
+  terminated: 'Terminated',
+  cancelled: 'Cancelled',
+};
+
 export default function ContractDetailPage() {
   const { activeOrgId, branding } = useOrganization();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
+  const statusLabel = isEn ? STATUS_LABEL_EN : STATUS_LABEL;
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;
@@ -84,9 +99,9 @@ export default function ContractDetailPage() {
   async function updateStatus(status: ContractStatus) {
     if (!contract) return;
     const res = await contractService.updateStatus(contract.id, status);
-    if (res.error) return toast.error('Erreur');
+    if (res.error) return toast.error(isEn ? 'Error' : 'Erreur');
     setContract({ ...contract, status });
-    toast.success('Statut mis à jour');
+    toast.success(isEn ? 'Status updated' : 'Statut mis à jour');
   }
 
   function downloadPdf() {
@@ -109,12 +124,16 @@ export default function ContractDetailPage() {
       <AppShell>
         <EmptyState
           icon={ArrowLeft}
-          title="Contrat introuvable"
-          description="Ce contrat n’existe plus ou a été supprimé."
+          title={isEn ? 'Contract not found' : 'Contrat introuvable'}
+          description={
+            isEn
+              ? 'This contract no longer exists or has been deleted.'
+              : 'Ce contrat n’existe plus ou a été supprimé.'
+          }
           action={
             <Button variant="outline" onClick={() => router.push('/contracts')}>
               <ArrowLeft className="h-4 w-4" />
-              Retour à la liste
+              {isEn ? 'Back to list' : 'Retour à la liste'}
             </Button>
           }
         />
@@ -127,7 +146,7 @@ export default function ContractDetailPage() {
       {/* Toolbar — masquée à l'impression */}
       <div className="no-print">
         <PageHeader
-          eyebrow={`Contrat · ${contract.contract_number}`}
+          eyebrow={`${isEn ? 'Contract' : 'Contrat'} · ${contract.contract_number}`}
           title={
             <>
               {contract.title}{' '}
@@ -137,36 +156,38 @@ export default function ContractDetailPage() {
           description={
             <span className="inline-flex items-center gap-2">
               <StatusBadge tone={STATUS_TONE[contract.status]}>
-                {STATUS_LABEL[contract.status]}
+                {statusLabel[contract.status]}
               </StatusBadge>
-              {contract.client_name && <span>· Client : {contract.client_name}</span>}
+              {contract.client_name && (
+                <span>· Client : {contract.client_name}</span>
+              )}
             </span>
           }
           actions={
             <>
               <Button variant="ghost" size="sm" onClick={() => router.push('/contracts')}>
                 <ArrowLeft className="h-4 w-4" />
-                Retour
+                {isEn ? 'Back' : 'Retour'}
               </Button>
               <Button variant="outline" onClick={() => setEditOpen(true)}>
                 <Edit className="h-4 w-4" />
-                Modifier
+                {isEn ? 'Edit' : 'Modifier'}
               </Button>
               {contract.status === 'draft' && (
                 <Button variant="outline" onClick={() => updateStatus('sent')}>
                   <Send className="h-4 w-4" />
-                  Marquer envoyé
+                  {isEn ? 'Mark as sent' : 'Marquer envoyé'}
                 </Button>
               )}
               {contract.status === 'sent' && (
                 <Button variant="outline" onClick={() => updateStatus('signed')}>
                   <CheckCircle2 className="h-4 w-4" />
-                  Marquer signé
+                  {isEn ? 'Mark as signed' : 'Marquer signé'}
                 </Button>
               )}
               <Button onClick={downloadPdf}>
                 <Download className="h-4 w-4" />
-                Télécharger PDF
+                {isEn ? 'Download PDF' : 'Télécharger PDF'}
               </Button>
             </>
           }

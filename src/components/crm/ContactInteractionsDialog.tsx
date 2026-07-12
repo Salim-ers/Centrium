@@ -28,6 +28,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Combobox } from '@/components/ui/Combobox';
 import { contactInteractionService } from '@/lib/services';
 import { notifyError } from '@/lib/notify';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import type { Contact, ContactInteraction, ContactInteractionKind } from '@/types';
 
 type Props = {
@@ -42,15 +43,15 @@ type Props = {
 
 const KIND_META: Record<
   ContactInteractionKind,
-  { label: string; Icon: typeof Phone; color: string }
+  { label: string; labelEn: string; Icon: typeof Phone; color: string }
 > = {
-  call: { label: 'Appel', Icon: Phone, color: 'text-emerald-300' },
-  email: { label: 'Email', Icon: Mail, color: 'text-blue-300' },
-  meeting: { label: 'Rendez-vous', Icon: Users, color: 'text-violet-300' },
-  note: { label: 'Note', Icon: StickyNote, color: 'text-amber-300' },
-  linkedin: { label: 'LinkedIn', Icon: Linkedin, color: 'text-sky-300' },
-  sms: { label: 'SMS', Icon: MessageSquare, color: 'text-fuchsia-300' },
-  other: { label: 'Autre', Icon: StickyNote, color: 'text-slate-300' },
+  call: { label: 'Appel', labelEn: 'Call', Icon: Phone, color: 'text-emerald-300' },
+  email: { label: 'Email', labelEn: 'Email', Icon: Mail, color: 'text-blue-300' },
+  meeting: { label: 'Rendez-vous', labelEn: 'Meeting', Icon: Users, color: 'text-violet-300' },
+  note: { label: 'Note', labelEn: 'Note', Icon: StickyNote, color: 'text-amber-300' },
+  linkedin: { label: 'LinkedIn', labelEn: 'LinkedIn', Icon: Linkedin, color: 'text-sky-300' },
+  sms: { label: 'SMS', labelEn: 'SMS', Icon: MessageSquare, color: 'text-fuchsia-300' },
+  other: { label: 'Autre', labelEn: 'Other', Icon: StickyNote, color: 'text-slate-300' },
 };
 
 export function ContactInteractionsDialog({
@@ -60,6 +61,8 @@ export function ContactInteractionsDialog({
   organizationId,
   onChanged,
 }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [items, setItems] = useState<ContactInteraction[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -89,7 +92,7 @@ export function ContactInteractionsDialog({
 
   async function add() {
     if (!contact || !note.trim()) {
-      notifyError('La note est obligatoire');
+      notifyError(isEn ? 'A note is required' : 'La note est obligatoire');
       return;
     }
     setAdding(true);
@@ -100,7 +103,7 @@ export function ContactInteractionsDialog({
     );
     setAdding(false);
     if (res.error || !res.data) {
-      notifyError('Erreur : ' + (res.error?.message ?? 'inconnue'));
+      notifyError((isEn ? 'Error: ' : 'Erreur : ') + (res.error?.message ?? (isEn ? 'unknown' : 'inconnue')));
       return;
     }
     setItems((prev) => [res.data!, ...prev]);
@@ -109,10 +112,10 @@ export function ContactInteractionsDialog({
   }
 
   async function remove(interaction: ContactInteraction) {
-    if (!confirm('Supprimer cette interaction ?')) return;
+    if (!confirm(isEn ? 'Delete this interaction?' : 'Supprimer cette interaction ?')) return;
     const res = await contactInteractionService.remove(interaction.id);
     if (res.error) {
-      notifyError('Erreur : ' + res.error.message);
+      notifyError((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
       return;
     }
     setItems((prev) => prev.filter((it) => it.id !== interaction.id));
@@ -125,11 +128,12 @@ export function ContactInteractionsDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-violet-glow" />
-            Historique — {contact.first_name} {contact.last_name}
+            {isEn ? 'History' : 'Historique'} — {contact.first_name} {contact.last_name}
           </DialogTitle>
           <DialogDescription>
-            Notes et interactions horodatées. La dernière en date apparaît
-            sur la ligne du contact dans la table.
+            {isEn
+              ? 'Timestamped notes and interactions. The most recent one appears on the contact row in the table.'
+              : 'Notes et interactions horodatées. La dernière en date apparaît sur la ligne du contact dans la table.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -137,13 +141,13 @@ export function ContactInteractionsDialog({
         <div className="rounded-lg border border-violet-glow/20 bg-violet-glow/[0.04] p-3 space-y-2">
           <div className="grid grid-cols-[140px_1fr] gap-2">
             <div>
-              <Label className="text-[10px] uppercase tracking-wider">Type</Label>
+              <Label className="text-[10px] uppercase tracking-wider">{isEn ? 'Type' : 'Type'}</Label>
               <Combobox
                 value={kind}
                 onChange={(v) => setKind(v as ContactInteractionKind)}
                 options={(Object.keys(KIND_META) as ContactInteractionKind[]).map((k) => ({
                   value: k,
-                  label: KIND_META[k].label,
+                  label: isEn ? KIND_META[k].labelEn : KIND_META[k].label,
                 }))}
               />
             </div>
@@ -159,7 +163,7 @@ export function ContactInteractionsDialog({
                     void add();
                   }
                 }}
-                placeholder='ex: "Envoyé les CV", "Rappelé — laissé message", "RDV fixé jeudi 14h"'
+                placeholder={isEn ? 'e.g. "Sent the CVs", "Called back — left a message", "Meeting set Thursday 2pm"' : 'ex: "Envoyé les CV", "Rappelé — laissé message", "RDV fixé jeudi 14h"'}
               />
             </div>
           </div>
@@ -170,7 +174,7 @@ export function ContactInteractionsDialog({
               ) : (
                 <Plus className="h-3.5 w-3.5" />
               )}
-              Ajouter
+              {isEn ? 'Add' : 'Ajouter'}
             </Button>
           </div>
         </div>
@@ -185,7 +189,7 @@ export function ContactInteractionsDialog({
             </div>
           ) : items.length === 0 ? (
             <div className="text-center py-6 text-xs text-muted-foreground italic">
-              Aucune interaction enregistrée. Ajoute la première ci-dessus.
+              {isEn ? 'No interaction recorded yet. Add the first one above.' : 'Aucune interaction enregistrée. Ajoute la première ci-dessus.'}
             </div>
           ) : (
             items.map((it) => {
@@ -203,16 +207,16 @@ export function ContactInteractionsDialog({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
-                        <span className={meta.color}>{meta.label}</span>
+                        <span className={meta.color}>{isEn ? meta.labelEn : meta.label}</span>
                         <span>·</span>
                         <span>
-                          {d.toLocaleDateString('fr-FR', {
+                          {d.toLocaleDateString(isEn ? 'en-GB' : 'fr-FR', {
                             day: '2-digit',
                             month: 'short',
                             year: 'numeric',
                           })}{' '}
                           ·{' '}
-                          {d.toLocaleTimeString('fr-FR', {
+                          {d.toLocaleTimeString(isEn ? 'en-GB' : 'fr-FR', {
                             hour: '2-digit',
                             minute: '2-digit',
                           })}
@@ -226,7 +230,7 @@ export function ContactInteractionsDialog({
                       type="button"
                       onClick={() => remove(it)}
                       className="opacity-0 group-hover:opacity-100 transition text-muted-foreground hover:text-red-400"
-                      title="Supprimer"
+                      title={isEn ? 'Delete' : 'Supprimer'}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -244,7 +248,7 @@ export function ContactInteractionsDialog({
             onClick={() => onOpenChange(false)}
           >
             <Send className="h-3.5 w-3.5 rotate-90" />
-            Fermer
+            {isEn ? 'Close' : 'Fermer'}
           </Button>
         </DialogFooter>
       </DialogContent>

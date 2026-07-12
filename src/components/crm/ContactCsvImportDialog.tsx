@@ -18,6 +18,7 @@ import {
   type ContactImportRowDraft,
 } from '@/lib/contacts/csv-import';
 import { notifyCreated, notifyError, notifyWarning } from '@/lib/notify';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 type Props = {
   open: boolean;
@@ -26,6 +27,8 @@ type Props = {
 };
 
 export function ContactCsvImportDialog({ open, onOpenChange, onImported }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [drafts, setDrafts] = useState<ContactImportRowDraft[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
@@ -39,17 +42,17 @@ export function ContactCsvImportDialog({ open, onOpenChange, onImported }: Props
 
   async function handleFile(file: File) {
     if (file.size > 5 * 1024 * 1024) {
-      notifyError('Fichier trop gros (5 Mo max).');
+      notifyError(isEn ? 'File too large (5 MB max).' : 'Fichier trop gros (5 Mo max).');
       return;
     }
     const text = await file.text();
     const { rows } = parseCsv(text);
     if (rows.length === 0) {
-      notifyError('CSV vide ou illisible.');
+      notifyError(isEn ? 'Empty or unreadable CSV.' : 'CSV vide ou illisible.');
       return;
     }
     if (rows.length > 1000) {
-      notifyError('Maximum 1000 lignes par import.');
+      notifyError(isEn ? 'Maximum 1000 rows per import.' : 'Maximum 1000 lignes par import.');
       return;
     }
     const parsed = csvRowsToContacts(rows);
@@ -60,7 +63,7 @@ export function ContactCsvImportDialog({ open, onOpenChange, onImported }: Props
   async function handleImport() {
     const valid = drafts.filter((d) => d.parsed !== null).map((d) => d.parsed!);
     if (valid.length === 0) {
-      notifyError('Aucune ligne valide à importer.');
+      notifyError(isEn ? 'No valid row to import.' : 'Aucune ligne valide à importer.');
       return;
     }
     setImporting(true);
@@ -72,26 +75,34 @@ export function ContactCsvImportDialog({ open, onOpenChange, onImported }: Props
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        notifyError(body.message ?? `Import échoué (${res.status})`);
+        notifyError(body.message ?? (isEn ? `Import failed (${res.status})` : `Import échoué (${res.status})`));
         return;
       }
       const inserted = body.inserted as number;
       const errCount = (body.errors as unknown[])?.length ?? 0;
       if (errCount > 0) {
         notifyWarning(
-          `${inserted} contact${inserted > 1 ? 's' : ''} importé${inserted > 1 ? 's' : ''}`,
-          { description: `${errCount} ligne${errCount > 1 ? 's' : ''} en erreur côté serveur — corrige et re-tente` },
+          isEn
+            ? `${inserted} contact${inserted > 1 ? 's' : ''} imported`
+            : `${inserted} contact${inserted > 1 ? 's' : ''} importé${inserted > 1 ? 's' : ''}`,
+          {
+            description: isEn
+              ? `${errCount} row${errCount > 1 ? 's' : ''} failed on the server — fix and retry`
+              : `${errCount} ligne${errCount > 1 ? 's' : ''} en erreur côté serveur — corrige et re-tente`,
+          },
         );
       } else {
         notifyCreated(
-          `${inserted} contact${inserted > 1 ? 's' : ''} importé${inserted > 1 ? 's' : ''} dans le carnet`,
+          isEn
+            ? `${inserted} contact${inserted > 1 ? 's' : ''} imported into the address book`
+            : `${inserted} contact${inserted > 1 ? 's' : ''} importé${inserted > 1 ? 's' : ''} dans le carnet`,
         );
       }
       onImported?.(inserted);
       onOpenChange(false);
       reset();
     } catch (e) {
-      notifyError(`Erreur réseau : ${e instanceof Error ? e.message : 'inconnue'}`);
+      notifyError((isEn ? 'Network error: ' : 'Erreur réseau : ') + (e instanceof Error ? e.message : (isEn ? 'unknown' : 'inconnue')));
     } finally {
       setImporting(false);
     }
@@ -110,22 +121,43 @@ export function ContactCsvImportDialog({ open, onOpenChange, onImported }: Props
     >
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Importer un CSV de contacts</DialogTitle>
+          <DialogTitle>{isEn ? 'Import a contacts CSV' : 'Importer un CSV de contacts'}</DialogTitle>
           <DialogDescription>
-            Headers <strong>très tolérants</strong> — virgule, point-virgule ou tab,
-            FR ou EN, casse / accents ignorés.
-            <br />
-            <span className="text-violet-300">Identité (au moins l&apos;un)</span> :
-            <code className="mx-1">first_name</code>+<code className="mx-1">last_name</code>{' '}
-            séparés <em>OU</em> <code className="mx-1">Contact Nom/Prénom</code>{' '}
-            (sera scindé sur le 1er espace).
-            <br />
-            <span className="text-violet-300">Optionnel</span> : Email / Adresse mail,
-            Téléphone / Numéro de téléphone, URL LinkedIn, Poste / Poste du contact,
-            Ville, Société / ESN / Nom ESN (ajouté en source), Description / Notes /
-            Commentaires, Statut d&apos;avancement, Date dernière (mises en notes),
-            Type (recruteur, commercial, manager, client_final, esn_partenaire,
-            acheteur, rh, consultant, autre).
+            {isEn ? (
+              <>
+                <strong>Very tolerant</strong> headers — comma, semicolon or tab,
+                FR or EN, case / accents ignored.
+                <br />
+                <span className="text-violet-300">Identity (at least one)</span> :
+                <code className="mx-1">first_name</code>+<code className="mx-1">last_name</code>{' '}
+                as separate fields <em>OR</em> <code className="mx-1">Contact Name</code>{' '}
+                (will be split on the 1st space).
+                <br />
+                <span className="text-violet-300">Optional</span> : Email / Email address,
+                Phone / Phone number, LinkedIn URL, Job title / Contact role,
+                City, Company / ESN / ESN name (added as source), Description / Notes /
+                Comments, Progress status, Last date (added to notes),
+                Type (recruteur, commercial, manager, client_final, esn_partenaire,
+                acheteur, rh, consultant, autre).
+              </>
+            ) : (
+              <>
+                Headers <strong>très tolérants</strong> — virgule, point-virgule ou tab,
+                FR ou EN, casse / accents ignorés.
+                <br />
+                <span className="text-violet-300">Identité (au moins l&apos;un)</span> :
+                <code className="mx-1">first_name</code>+<code className="mx-1">last_name</code>{' '}
+                séparés <em>OU</em> <code className="mx-1">Contact Nom/Prénom</code>{' '}
+                (sera scindé sur le 1er espace).
+                <br />
+                <span className="text-violet-300">Optionnel</span> : Email / Adresse mail,
+                Téléphone / Numéro de téléphone, URL LinkedIn, Poste / Poste du contact,
+                Ville, Société / ESN / Nom ESN (ajouté en source), Description / Notes /
+                Commentaires, Statut d&apos;avancement, Date dernière (mises en notes),
+                Type (recruteur, commercial, manager, client_final, esn_partenaire,
+                acheteur, rh, consultant, autre).
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -148,10 +180,10 @@ export function ContactCsvImportDialog({ open, onOpenChange, onImported }: Props
                 onClick={() => fileRef.current?.click()}
               >
                 <FileUp className="h-4 w-4" />
-                Choisir un CSV
+                {isEn ? 'Choose a CSV' : 'Choisir un CSV'}
               </Button>
               <p className="text-xs text-muted-foreground mt-3">
-                Jusqu&apos;à 1000 lignes, 5 Mo maximum.
+                {isEn ? 'Up to 1000 rows, 5 MB maximum.' : 'Jusqu’à 1000 lignes, 5 Mo maximum.'}
               </p>
             </div>
           ) : (
@@ -161,16 +193,16 @@ export function ContactCsvImportDialog({ open, onOpenChange, onImported }: Props
                 <div className="flex items-center gap-3">
                   <span className="inline-flex items-center gap-1 text-emerald-300">
                     <CheckCircle2 className="h-3.5 w-3.5" />
-                    {validCount} valides
+                    {validCount} {isEn ? 'valid' : 'valides'}
                   </span>
                   {errorCount > 0 && (
                     <span className="inline-flex items-center gap-1 text-red-300">
                       <AlertCircle className="h-3.5 w-3.5" />
-                      {errorCount} en erreur
+                      {errorCount} {isEn ? 'in error' : 'en erreur'}
                     </span>
                   )}
                   <Button type="button" variant="ghost" size="sm" onClick={reset}>
-                    Recommencer
+                    {isEn ? 'Start over' : 'Recommencer'}
                   </Button>
                 </div>
               </div>
@@ -181,11 +213,11 @@ export function ContactCsvImportDialog({ open, onOpenChange, onImported }: Props
                     <thead className="bg-white/[0.02] sticky top-0">
                       <tr className="text-left text-white/60">
                         <th className="px-3 py-2 font-semibold">#</th>
-                        <th className="px-3 py-2 font-semibold">Nom</th>
-                        <th className="px-3 py-2 font-semibold">Type</th>
-                        <th className="px-3 py-2 font-semibold">Poste</th>
+                        <th className="px-3 py-2 font-semibold">{isEn ? 'Name' : 'Nom'}</th>
+                        <th className="px-3 py-2 font-semibold">{isEn ? 'Type' : 'Type'}</th>
+                        <th className="px-3 py-2 font-semibold">{isEn ? 'Job title' : 'Poste'}</th>
                         <th className="px-3 py-2 font-semibold">Email</th>
-                        <th className="px-3 py-2 font-semibold">Téléphone</th>
+                        <th className="px-3 py-2 font-semibold">{isEn ? 'Phone' : 'Téléphone'}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -225,7 +257,7 @@ export function ContactCsvImportDialog({ open, onOpenChange, onImported }: Props
                                   <div className="font-semibold">
                                     {(d.raw.first_name || d.raw.prenom || '').trim()}{' '}
                                     {(d.raw.last_name || d.raw.nom || '').trim() ||
-                                      '(ligne inconnue)'}
+                                      (isEn ? '(unknown row)' : '(ligne inconnue)')}
                                   </div>
                                   <div className="text-[11px] mt-0.5">
                                     {d.errors.join(' · ')}
@@ -251,7 +283,7 @@ export function ContactCsvImportDialog({ open, onOpenChange, onImported }: Props
             onClick={() => onOpenChange(false)}
             disabled={importing}
           >
-            Annuler
+            {isEn ? 'Cancel' : 'Annuler'}
           </Button>
           <Button
             type="button"
@@ -259,7 +291,7 @@ export function ContactCsvImportDialog({ open, onOpenChange, onImported }: Props
             onClick={handleImport}
           >
             {importing && <Loader2 className="h-4 w-4 animate-spin" />}
-            Importer {validCount > 0 ? `${validCount} ` : ''}
+            {isEn ? 'Import ' : 'Importer '}{validCount > 0 ? `${validCount} ` : ''}
             contact{validCount > 1 ? 's' : ''}
           </Button>
         </DialogFooter>

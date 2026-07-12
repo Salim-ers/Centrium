@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { notifyCreated, notifyError } from '@/lib/notify';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import type { Consultant } from '@/types';
 
 // Seuls ces 4 champs sont utilisés — le Pick permet d'ouvrir le dialog
@@ -34,6 +35,8 @@ export function GrantPortalDialog({
   consultant,
   onGranted,
 }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -46,7 +49,7 @@ export function GrantPortalDialog({
   async function submit() {
     if (!consultant) return;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      notifyError('Email invalide');
+      notifyError(isEn ? 'Invalid email' : 'Email invalide');
       return;
     }
     setBusy(true);
@@ -61,7 +64,7 @@ export function GrantPortalDialog({
       );
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        notifyError(body.message ?? body.error ?? `Erreur (${res.status})`);
+        notifyError(body.message ?? body.error ?? (isEn ? `Error (${res.status})` : `Erreur (${res.status})`));
         return;
       }
       // Si l'email d'invitation n'a pas pu partir (rate-limit SMTP, etc.),
@@ -81,21 +84,27 @@ export function GrantPortalDialog({
         const { toast } = await import('sonner');
         const errCode = body?.data?.email_error_code ?? 'smtp_failed';
         toast.warning(
-          inviteUrl
-            ? `Accès portail créé, mais l'email n'a pas pu être envoyé (${errCode}). Lien d'invitation copié dans le presse-papier — envoie-le manuellement à ${email}.`
-            : `Accès portail créé, mais l'email n'a pas pu être envoyé (${errCode}) et aucun lien de secours n'a été généré. Réessaie depuis la fiche.`,
+          isEn
+            ? inviteUrl
+              ? `Portal access created, but the email could not be sent (${errCode}). Invitation link copied to the clipboard — send it manually to ${email}.`
+              : `Portal access created, but the email could not be sent (${errCode}) and no fallback link was generated. Try again from the profile.`
+            : inviteUrl
+              ? `Accès portail créé, mais l'email n'a pas pu être envoyé (${errCode}). Lien d'invitation copié dans le presse-papier — envoie-le manuellement à ${email}.`
+              : `Accès portail créé, mais l'email n'a pas pu être envoyé (${errCode}) et aucun lien de secours n'a été généré. Réessaie depuis la fiche.`,
           { duration: 12000 },
         );
       } else {
         notifyCreated(
-          `Email d'accès envoyé à ${consultant.first_name} ${consultant.last_name} (${email}). Le lien expire après 7 jours.`,
+          isEn
+            ? `Access email sent to ${consultant.first_name} ${consultant.last_name} (${email}). The link expires after 7 days.`
+            : `Email d'accès envoyé à ${consultant.first_name} ${consultant.last_name} (${email}). Le lien expire après 7 jours.`,
           { duration: 8000 },
         );
       }
       onGranted?.(consultant.id, email);
       onOpenChange(false);
     } catch (e) {
-      notifyError(`Erreur : ${e instanceof Error ? e.message : 'inconnue'}`);
+      notifyError((isEn ? 'Error: ' : 'Erreur : ') + (e instanceof Error ? e.message : (isEn ? 'unknown' : 'inconnue')));
     } finally {
       setBusy(false);
     }
@@ -109,20 +118,33 @@ export function GrantPortalDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <KeyRound className="h-5 w-5 text-violet-glow" />
-            Créer un accès portail
+            {isEn ? 'Create portal access' : 'Créer un accès portail'}
           </DialogTitle>
           <DialogDescription>
-            On envoie à{' '}
-            <strong>
-              {consultant.first_name} {consultant.last_name}
-            </strong>{' '}
-            un email Centrium avec un lien pour qu&apos;il choisisse son propre
-            mot de passe. Aucun secret n&apos;est stocké côté admin.
+            {isEn ? (
+              <>
+                We send{' '}
+                <strong>
+                  {consultant.first_name} {consultant.last_name}
+                </strong>{' '}
+                a Centrium email with a link to choose their own password. No secret is
+                stored on the admin side.
+              </>
+            ) : (
+              <>
+                On envoie à{' '}
+                <strong>
+                  {consultant.first_name} {consultant.last_name}
+                </strong>{' '}
+                un email Centrium avec un lien pour qu&apos;il choisisse son propre
+                mot de passe. Aucun secret n&apos;est stocké côté admin.
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-1.5 pt-2">
-          <Label>Email du portail *</Label>
+          <Label>{isEn ? 'Portal email *' : 'Email du portail *'}</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />
             <Input
@@ -135,17 +157,19 @@ export function GrantPortalDialog({
             />
           </div>
           <p className="text-[11px] text-violet-300/80">
-            Le lien d&apos;invitation expire après 7 jours.
+            {isEn
+              ? 'The invitation link expires after 7 days.'
+              : "Le lien d'invitation expire après 7 jours."}
           </p>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
-            Annuler
+            {isEn ? 'Cancel' : 'Annuler'}
           </Button>
           <Button onClick={submit} disabled={busy}>
             {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            Envoyer l&apos;invitation
+            {isEn ? 'Send invitation' : "Envoyer l'invitation"}
           </Button>
         </DialogFooter>
       </DialogContent>

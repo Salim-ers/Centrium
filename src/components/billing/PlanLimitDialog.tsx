@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 export type PlanLimitResource =
   | 'consultants'
@@ -53,6 +54,15 @@ const RESOURCE_LABEL: Record<PlanLimitResource, string> = {
   missions: 'missions actives',
 };
 
+// Label EN de chaque ressource (branche anglaise du dialog).
+const RESOURCE_LABEL_EN: Record<PlanLimitResource, string> = {
+  consultants: 'consultants',
+  members: 'internal users',
+  opportunities: 'open CRM opportunities',
+  contacts: 'contacts',
+  missions: 'active missions',
+};
+
 // Colonne de plans.* qui matérialise la limite pour chaque ressource.
 const RESOURCE_TO_LIMIT_COLUMN: Record<PlanLimitResource, string> = {
   consultants: 'max_consultants',
@@ -69,6 +79,8 @@ type NextPlanInfo = {
 };
 
 export function PlanLimitDialog({ payload, onOpenChange }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [upgrading, setUpgrading] = useState(false);
   const [nextPlan, setNextPlan] = useState<NextPlanInfo | null>(null);
 
@@ -79,7 +91,7 @@ export function PlanLimitDialog({ payload, onOpenChange }: Props) {
     const nextPlanId = NEXT_PLAN[payload.planId];
     if (!nextPlanId) {
       // Déjà au top du ladder (Illimité) → contact commercial
-      setNextPlan({ id: 'enterprise', name: 'Illimité', limit: null });
+      setNextPlan({ id: 'enterprise', name: isEn ? 'Unlimited' : 'Illimité', limit: null });
       return;
     }
     const col = RESOURCE_TO_LIMIT_COLUMN[payload.resource];
@@ -104,7 +116,7 @@ export function PlanLimitDialog({ payload, onOpenChange }: Props) {
 
   if (!payload) return null;
 
-  const resourceLabel = RESOURCE_LABEL[payload.resource];
+  const resourceLabel = (isEn ? RESOURCE_LABEL_EN : RESOURCE_LABEL)[payload.resource];
   const isTopOfLadder = !NEXT_PLAN[payload.planId];
 
   async function upgrade() {
@@ -126,14 +138,14 @@ export function PlanLimitDialog({ payload, onOpenChange }: Props) {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(body.message ?? 'Upgrade impossible');
+        toast.error(body.message ?? (isEn ? 'Upgrade failed' : 'Upgrade impossible'));
         return;
       }
       if (body.url) {
         window.location.href = body.url;
       }
     } catch {
-      toast.error('Erreur réseau');
+      toast.error(isEn ? 'Network error' : 'Erreur réseau');
     } finally {
       setUpgrading(false);
     }
@@ -147,36 +159,46 @@ export function PlanLimitDialog({ payload, onOpenChange }: Props) {
             <ShieldAlert className="h-6 w-6 text-amber-300" />
           </div>
           <DialogTitle className="text-center">
-            Limite du plan {payload.planName} atteinte
+            {isEn
+              ? `Plan ${payload.planName} limit reached`
+              : `Limite du plan ${payload.planName} atteinte`}
           </DialogTitle>
           <DialogDescription className="text-center pt-1">
-            Tu utilises{' '}
+            {isEn ? 'You are using' : 'Tu utilises'}{' '}
             <strong className="text-foreground">
               {payload.used} / {payload.limit} {resourceLabel}
             </strong>{' '}
-            disponibles sur ton plan actuel.
+            {isEn ? 'available on your current plan.' : 'disponibles sur ton plan actuel.'}
           </DialogDescription>
         </DialogHeader>
 
         <div className="rounded-lg border border-violet-500/30 bg-violet-500/[0.06] p-4 space-y-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-violet-200">
             <Sparkles className="h-4 w-4" />
-            {isTopOfLadder ? 'Contacter les ventes' : `Passer à ${nextPlan?.name ?? 'Medium'}`}
+            {isTopOfLadder
+              ? isEn ? 'Contact sales' : 'Contacter les ventes'
+              : isEn ? `Upgrade to ${nextPlan?.name ?? 'Medium'}` : `Passer à ${nextPlan?.name ?? 'Medium'}`}
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
             {isTopOfLadder
-              ? 'Ton compte est déjà sur Illimité — le plan sans aucune limite. Écris-nous si tu constates un blocage.'
+              ? isEn
+                ? 'Your account is already on Unlimited — the plan with no limits. Reach out to us if you hit a blocker.'
+                : 'Ton compte est déjà sur Illimité — le plan sans aucune limite. Écris-nous si tu constates un blocage.'
               : nextPlan?.limit === null
-                ? `${resourceLabel[0].toUpperCase()}${resourceLabel.slice(1)} illimités, SSO, API + Webhooks — 299,99 € HT/mois.`
+                ? isEn
+                  ? `Unlimited ${resourceLabel}, SSO, API + Webhooks — €299.99 excl. VAT/month.`
+                  : `${resourceLabel[0].toUpperCase()}${resourceLabel.slice(1)} illimités, SSO, API + Webhooks — 299,99 € HT/mois.`
                 : nextPlan
-                  ? `Jusqu'à ${nextPlan.limit} ${resourceLabel} (au lieu de ${payload.limit}). Changement immédiat, prorata appliqué automatiquement.`
-                  : 'Chargement des détails…'}
+                  ? isEn
+                    ? `Up to ${nextPlan.limit} ${resourceLabel} (instead of ${payload.limit}). Immediate change, proration applied automatically.`
+                    : `Jusqu'à ${nextPlan.limit} ${resourceLabel} (au lieu de ${payload.limit}). Changement immédiat, prorata appliqué automatiquement.`
+                  : isEn ? 'Loading details…' : 'Chargement des détails…'}
           </p>
         </div>
 
         <DialogFooter className="flex-row gap-2 sm:justify-between">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Plus tard
+            {isEn ? 'Later' : 'Plus tard'}
           </Button>
           <Button onClick={upgrade} disabled={upgrading || !nextPlan}>
             {upgrading ? (
@@ -184,7 +206,9 @@ export function PlanLimitDialog({ payload, onOpenChange }: Props) {
             ) : (
               <ArrowUpRight className="h-4 w-4" />
             )}
-            {isTopOfLadder ? 'Contacter les ventes' : 'Mettre à niveau'}
+            {isTopOfLadder
+              ? isEn ? 'Contact sales' : 'Contacter les ventes'
+              : isEn ? 'Upgrade' : 'Mettre à niveau'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { notifyCreated, notifyError } from '@/lib/notify';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { AssetUploader } from './AssetUploader';
 
 type QuoteRequest = {
@@ -68,31 +69,39 @@ type FormState = {
   billing_mode: 'trial_7d' | 'paid_only' | 'exempt';
 };
 
-const PLAN_OPTIONS: { id: FormState['plan_id']; label: string }[] = [
-  { id: 'starter', label: 'Starter — 74,99 € HT/mois' },
-  { id: 'growth', label: 'Medium — 149,99 € HT/mois' },
-  { id: 'enterprise', label: 'Illimité — 299,99 € HT/mois' },
+const planOptions = (isEn: boolean): { id: FormState['plan_id']; label: string }[] => [
+  { id: 'starter', label: isEn ? 'Starter — €74.99 excl. VAT/month' : 'Starter — 74,99 € HT/mois' },
+  { id: 'growth', label: isEn ? 'Medium — €149.99 excl. VAT/month' : 'Medium — 149,99 € HT/mois' },
+  { id: 'enterprise', label: isEn ? 'Unlimited — €299.99 excl. VAT/month' : 'Illimité — 299,99 € HT/mois' },
 ];
 
-const BILLING_MODES: {
+const billingModes = (
+  isEn: boolean,
+): {
   id: FormState['billing_mode'];
   label: string;
   hint: string;
-}[] = [
+}[] => [
   {
     id: 'paid_only',
-    label: 'Paiement requis',
-    hint: 'Email « Activer mon compte et payer » — accès dès le paiement.',
+    label: isEn ? 'Payment required' : 'Paiement requis',
+    hint: isEn
+      ? '“Activate my account and pay” email — access as soon as paid.'
+      : 'Email « Activer mon compte et payer » — accès dès le paiement.',
   },
   {
     id: 'trial_7d',
-    label: 'Essai 7 jours',
-    hint: 'Accès immédiat, paiement à la fin de l\'essai (relance auto J-3).',
+    label: isEn ? '7-day trial' : 'Essai 7 jours',
+    hint: isEn
+      ? 'Immediate access, payment at the end of the trial (auto reminder D-3).'
+      : 'Accès immédiat, paiement à la fin de l\'essai (relance auto J-3).',
   },
   {
     id: 'exempt',
-    label: 'Exempté',
-    hint: 'Partenaire / interne — jamais facturé, aucune limite.',
+    label: isEn ? 'Exempt' : 'Exempté',
+    hint: isEn
+      ? 'Partner / internal — never billed, no limit.'
+      : 'Partenaire / interne — jamais facturé, aucune limite.',
   },
 ];
 
@@ -151,6 +160,8 @@ export function ProvisionClientDialog({
   quoteRequest,
   onProvisioned,
 }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [form, setForm] = useState<FormState>(INITIAL);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -198,7 +209,11 @@ export function ProvisionClientDialog({
   async function submit() {
     setError(null);
     if (!form.name.trim() || !form.slug.trim() || !form.admin_email.trim()) {
-      setError('Nom de société, slug et email admin sont requis.');
+      setError(
+        isEn
+          ? 'Company name, slug and admin email are required.'
+          : 'Nom de société, slug et email admin sont requis.',
+      );
       return;
     }
     setBusy(true);
@@ -214,16 +229,20 @@ export function ProvisionClientDialog({
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(body.message ?? body.error ?? 'Provisioning impossible');
+        setError(
+          body.message ?? body.error ?? (isEn ? 'Provisioning failed' : 'Provisioning impossible'),
+        );
         return;
       }
       notifyCreated(
-        `Espace "${form.name}" créé — invitation envoyée à ${form.admin_email}`,
+        isEn
+          ? `Workspace "${form.name}" created — invitation sent to ${form.admin_email}`
+          : `Espace "${form.name}" créé — invitation envoyée à ${form.admin_email}`,
       );
       onProvisioned();
       onOpenChange(false);
     } catch (e) {
-      notifyError('Erreur réseau : ' + (e as Error).message);
+      notifyError((isEn ? 'Network error: ' : 'Erreur réseau : ') + (e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -235,13 +254,23 @@ export function ProvisionClientDialog({
         <DialogHeader>
           <DialogTitle className="inline-flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-violet-glow" />
-            Provisionner un nouvel espace client
+            {isEn ? 'Provision a new client workspace' : 'Provisionner un nouvel espace client'}
           </DialogTitle>
           <DialogDescription>
-            Renseigne tous les champs pour que le client retrouve son identité
-            visuelle, ses mentions légales et ses coordonnées bancaires dès la
-            première connexion. Un email d&apos;invitation est envoyé en fin de
-            processus.
+            {isEn ? (
+              <>
+                Fill in every field so the client finds their visual identity, legal
+                notices and bank details from their very first login. An invitation
+                email is sent at the end of the process.
+              </>
+            ) : (
+              <>
+                Renseigne tous les champs pour que le client retrouve son identité
+                visuelle, ses mentions légales et ses coordonnées bancaires dès la
+                première connexion. Un email d&apos;invitation est envoyé en fin de
+                processus.
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -253,16 +282,16 @@ export function ProvisionClientDialog({
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 pt-2">
           {/* Identité */}
-          <Section title="Identité" icon={<Building2 className="h-3.5 w-3.5" />}>
+          <Section title={isEn ? 'Identity' : 'Identité'} icon={<Building2 className="h-3.5 w-3.5" />}>
             <Row>
-              <Field label="Nom légal *">
+              <Field label={isEn ? 'Legal name *' : 'Nom légal *'}>
                 <Input
                   value={form.name}
                   onChange={(e) => update('name', e.target.value)}
                   placeholder="Futurmaster SAS"
                 />
               </Field>
-              <Field label="Slug (URL) *" hint="lettres minuscules, chiffres, tirets">
+              <Field label="Slug (URL) *" hint={isEn ? 'lowercase letters, digits, hyphens' : 'lettres minuscules, chiffres, tirets'}>
                 <Input
                   value={form.slug}
                   onChange={(e) => update('slug', slugify(e.target.value))}
@@ -270,7 +299,7 @@ export function ProvisionClientDialog({
                 />
               </Field>
             </Row>
-            <Field label="Nom commercial (affiché dans l'app)">
+            <Field label={isEn ? 'Trade name (shown in the app)' : "Nom commercial (affiché dans l'app)"}>
               <Input
                 value={form.brand_name}
                 onChange={(e) => update('brand_name', e.target.value)}
@@ -280,15 +309,15 @@ export function ProvisionClientDialog({
           </Section>
 
           {/* Branding visuel */}
-          <Section title="Identité visuelle" icon={<Palette className="h-3.5 w-3.5" />}>
-            <Field label="Logo (PNG/SVG, fond transparent)">
+          <Section title={isEn ? 'Visual identity' : 'Identité visuelle'} icon={<Palette className="h-3.5 w-3.5" />}>
+            <Field label={isEn ? 'Logo (PNG/SVG, transparent background)' : 'Logo (PNG/SVG, fond transparent)'}>
               <AssetUploader
                 kind="logo"
                 value={form.logo_url}
                 onChange={(url) => update('logo_url', url)}
               />
             </Field>
-            <Field label="Signature (PNG fond transparent)">
+            <Field label={isEn ? 'Signature (PNG transparent background)' : 'Signature (PNG fond transparent)'}>
               <AssetUploader
                 kind="signature"
                 value={form.signature_url}
@@ -309,35 +338,35 @@ export function ProvisionClientDialog({
                 className="inline-flex items-center gap-2 rounded-md border border-magenta/30 bg-magenta/[0.08] px-3 py-1.5 text-xs font-medium text-magenta hover:bg-magenta/[0.14] transition"
               >
                 <Wand2 className="h-3.5 w-3.5" />
-                Extraire les couleurs depuis le logo
+                {isEn ? 'Extract colors from the logo' : 'Extraire les couleurs depuis le logo'}
               </button>
             )}
             <Row>
-              <Field label="Couleur primaire">
+              <Field label={isEn ? 'Primary color' : 'Couleur primaire'}>
                 <ColorInput
                   value={form.brand_primary_color}
                   onChange={(v) => update('brand_primary_color', v)}
                 />
               </Field>
-              <Field label="Couleur accent">
+              <Field label={isEn ? 'Accent color' : 'Couleur accent'}>
                 <ColorInput
                   value={form.brand_accent_color}
                   onChange={(v) => update('brand_accent_color', v)}
                 />
               </Field>
             </Row>
-            <Field label="Footer tagline (bas de page PDF)">
+            <Field label={isEn ? 'Footer tagline (PDF footer)' : 'Footer tagline (bas de page PDF)'}>
               <Input
                 value={form.footer_tagline}
                 onChange={(e) => update('footer_tagline', e.target.value)}
-                placeholder="L'ESN qui révèle le potentiel"
+                placeholder={isEn ? 'The IT services firm that reveals potential' : "L'ESN qui révèle le potentiel"}
               />
             </Field>
           </Section>
 
           {/* Adresse */}
-          <Section title="Coordonnées" icon={<Building2 className="h-3.5 w-3.5" />}>
-            <Field label="Adresse">
+          <Section title={isEn ? 'Contact details' : 'Coordonnées'} icon={<Building2 className="h-3.5 w-3.5" />}>
+            <Field label={isEn ? 'Address' : 'Adresse'}>
               <Input
                 value={form.address}
                 onChange={(e) => update('address', e.target.value)}
@@ -345,21 +374,21 @@ export function ProvisionClientDialog({
               />
             </Field>
             <Row3>
-              <Field label="CP">
+              <Field label={isEn ? 'Postal code' : 'CP'}>
                 <Input
                   value={form.postal_code}
                   onChange={(e) => update('postal_code', e.target.value)}
                   placeholder="75001"
                 />
               </Field>
-              <Field label="Ville">
+              <Field label={isEn ? 'City' : 'Ville'}>
                 <Input
                   value={form.city}
                   onChange={(e) => update('city', e.target.value)}
                   placeholder="Paris"
                 />
               </Field>
-              <Field label="Pays">
+              <Field label={isEn ? 'Country' : 'Pays'}>
                 <Input
                   value={form.country}
                   onChange={(e) => update('country', e.target.value)}
@@ -369,22 +398,22 @@ export function ProvisionClientDialog({
           </Section>
 
           {/* Mentions légales */}
-          <Section title="Mentions légales" icon={<Scale className="h-3.5 w-3.5" />}>
+          <Section title={isEn ? 'Legal notices' : 'Mentions légales'} icon={<Scale className="h-3.5 w-3.5" />}>
             <Row3>
-              <Field label="Forme juridique">
+              <Field label={isEn ? 'Legal form' : 'Forme juridique'}>
                 <Input
                   value={form.legal_form}
                   onChange={(e) => update('legal_form', e.target.value)}
                 />
               </Field>
-              <Field label="Capital (€)">
+              <Field label={isEn ? 'Capital (€)' : 'Capital (€)'}>
                 <Input
                   type="number"
                   value={form.capital_eur}
                   onChange={(e) => update('capital_eur', e.target.value)}
                 />
               </Field>
-              <Field label="N° TVA">
+              <Field label={isEn ? 'VAT no.' : 'N° TVA'}>
                 <Input
                   value={form.vat_number}
                   onChange={(e) => update('vat_number', e.target.value)}
@@ -414,26 +443,26 @@ export function ProvisionClientDialog({
               </Field>
             </Row3>
             <Row>
-              <Field label="Nom du signataire">
+              <Field label={isEn ? 'Signatory name' : 'Nom du signataire'}>
                 <Input
                   value={form.representative_name}
                   onChange={(e) => update('representative_name', e.target.value)}
                   placeholder="Jean Dupont"
                 />
               </Field>
-              <Field label="Titre">
+              <Field label={isEn ? 'Title' : 'Titre'}>
                 <Input
                   value={form.representative_title}
                   onChange={(e) => update('representative_title', e.target.value)}
-                  placeholder="Président"
+                  placeholder={isEn ? 'CEO' : 'Président'}
                 />
               </Field>
             </Row>
           </Section>
 
           {/* Banque */}
-          <Section title="Coordonnées bancaires" icon={<Banknote className="h-3.5 w-3.5" />}>
-            <Field label="Banque">
+          <Section title={isEn ? 'Bank details' : 'Coordonnées bancaires'} icon={<Banknote className="h-3.5 w-3.5" />}>
+            <Field label={isEn ? 'Bank' : 'Banque'}>
               <Input
                 value={form.bank_name}
                 onChange={(e) => update('bank_name', e.target.value)}
@@ -459,22 +488,22 @@ export function ProvisionClientDialog({
           </Section>
 
           {/* Premier admin */}
-          <Section title="Premier administrateur du client" icon={<UserCog className="h-3.5 w-3.5" />}>
+          <Section title={isEn ? 'First client administrator' : 'Premier administrateur du client'} icon={<UserCog className="h-3.5 w-3.5" />}>
             <Row>
-              <Field label="Prénom">
+              <Field label={isEn ? 'First name' : 'Prénom'}>
                 <Input
                   value={form.admin_first_name}
                   onChange={(e) => update('admin_first_name', e.target.value)}
                 />
               </Field>
-              <Field label="Nom">
+              <Field label={isEn ? 'Last name' : 'Nom'}>
                 <Input
                   value={form.admin_last_name}
                   onChange={(e) => update('admin_last_name', e.target.value)}
                 />
               </Field>
             </Row>
-            <Field label="Email d'invitation *" hint="Recevra le lien pour activer son compte">
+            <Field label={isEn ? 'Invitation email *' : "Email d'invitation *"} hint={isEn ? 'Will receive the link to activate their account' : 'Recevra le lien pour activer son compte'}>
               <Input
                 type="email"
                 value={form.admin_email}
@@ -484,23 +513,23 @@ export function ProvisionClientDialog({
           </Section>
 
           {/* Abonnement */}
-          <Section title="Abonnement" icon={<Sparkles className="h-3.5 w-3.5" />}>
-            <Field label="Plan">
+          <Section title={isEn ? 'Subscription' : 'Abonnement'} icon={<Sparkles className="h-3.5 w-3.5" />}>
+            <Field label={isEn ? 'Plan' : 'Plan'}>
               <select
                 value={form.plan_id}
                 onChange={(e) => update('plan_id', e.target.value as FormState['plan_id'])}
                 className="flex h-9 w-full rounded-md border border-hairline bg-transparent px-3 py-1 text-sm"
               >
-                {PLAN_OPTIONS.map((p) => (
+                {planOptions(isEn).map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.label}
                   </option>
                 ))}
               </select>
             </Field>
-            <Field label="Mode de facturation">
+            <Field label={isEn ? 'Billing mode' : 'Mode de facturation'}>
               <div className="space-y-1.5">
-                {BILLING_MODES.map((m) => (
+                {billingModes(isEn).map((m) => (
                   <label
                     key={m.id}
                     className={`flex items-start gap-2.5 rounded-lg border px-3 py-2 cursor-pointer transition ${
@@ -529,7 +558,7 @@ export function ProvisionClientDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
-            Annuler
+            {isEn ? 'Cancel' : 'Annuler'}
           </Button>
           <Button
             onClick={submit}
@@ -537,7 +566,7 @@ export function ProvisionClientDialog({
             className="bg-gradient-to-r from-violet-glow to-magenta-neon hover:opacity-95"
           >
             {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            Créer l&apos;espace et inviter l&apos;admin
+            {isEn ? 'Create workspace and invite admin' : "Créer l'espace et inviter l'admin"}
           </Button>
         </DialogFooter>
       </FormDialogContent>

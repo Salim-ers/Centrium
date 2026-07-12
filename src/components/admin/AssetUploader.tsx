@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
 
 import { notifyError } from '@/lib/notify';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 type Props = {
   kind: 'logo' | 'signature';
@@ -26,6 +27,8 @@ type Props = {
  * Formats acceptés : PNG, JPG, WebP, SVG · 5 MB max.
  */
 export function AssetUploader({ kind, value, onChange, label }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -42,12 +45,14 @@ export function AssetUploader({ kind, value, onChange, label }: Props) {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        notifyError(body.message ?? body.error ?? 'Upload impossible');
+        notifyError(
+          body.message ?? body.error ?? (isEn ? 'Upload failed' : 'Upload impossible'),
+        );
         return;
       }
       onChange(body.data.url);
     } catch (e) {
-      notifyError('Erreur réseau : ' + (e as Error).message);
+      notifyError((isEn ? 'Network error: ' : 'Erreur réseau : ') + (e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -80,7 +85,9 @@ export function AssetUploader({ kind, value, onChange, label }: Props) {
           />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-semibold text-foreground/90">{friendly} prêt</div>
+          <div className="text-xs font-semibold text-foreground/90">
+            {isEn ? `${friendly} ready` : `${friendly} prêt`}
+          </div>
           <div className="text-[11px] text-muted-foreground truncate">{value}</div>
         </div>
         <div className="flex items-center gap-1">
@@ -90,14 +97,14 @@ export function AssetUploader({ kind, value, onChange, label }: Props) {
             disabled={busy}
             className="rounded-md border border-hairline px-2.5 py-1.5 text-[11px] text-foreground/80 hover-surface transition"
           >
-            Remplacer
+            {isEn ? 'Replace' : 'Remplacer'}
           </button>
           <button
             type="button"
             onClick={() => onChange('')}
             disabled={busy}
             className="rounded-md border border-red-500/30 p-1.5 text-red-500 hover:bg-red-500/10 transition"
-            title="Retirer"
+            title={isEn ? 'Remove' : 'Retirer'}
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -136,10 +143,18 @@ export function AssetUploader({ kind, value, onChange, label }: Props) {
         )}
       </div>
       <div className="text-xs font-semibold text-foreground/90">
-        {busy ? 'Upload en cours…' : `Téléverser ${friendly.toLowerCase()}`}
+        {busy
+          ? isEn
+            ? 'Uploading…'
+            : 'Upload en cours…'
+          : isEn
+            ? `Upload ${friendly.toLowerCase()}`
+            : `Téléverser ${friendly.toLowerCase()}`}
       </div>
       <div className="mt-1 text-[10.5px] text-muted-foreground">
-        Glisse-dépose ou clique · PNG, JPG, WebP, SVG · 5 MB max
+        {isEn
+          ? 'Drag & drop or click · PNG, JPG, WebP, SVG · 5 MB max'
+          : 'Glisse-dépose ou clique · PNG, JPG, WebP, SVG · 5 MB max'}
       </div>
       <input
         ref={fileRef}

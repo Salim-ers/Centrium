@@ -24,6 +24,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { downloadElementAsPdf } from '@/lib/pdf/download-document';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import type { Contract } from '@/types';
 
 const STATUS_STYLE: Partial<Record<Contract['status'], string>> = {
@@ -37,7 +38,7 @@ const STATUS_STYLE: Partial<Record<Contract['status'], string>> = {
   cancelled: 'bg-slate-600/10 text-slate-400 border-slate-600/20',
 };
 
-const STATUS_LABEL: Record<Contract['status'], string> = {
+const STATUS_LABEL_FR: Record<Contract['status'], string> = {
   draft: 'Brouillon',
   pending_review: 'En revue',
   sent: 'À signer',
@@ -48,10 +49,24 @@ const STATUS_LABEL: Record<Contract['status'], string> = {
   cancelled: 'Annulé',
 };
 
+const STATUS_LABEL_EN: Record<Contract['status'], string> = {
+  draft: 'Draft',
+  pending_review: 'In review',
+  sent: 'To sign',
+  signed: 'Signed',
+  active: 'Active',
+  ended: 'Ended',
+  terminated: 'Terminated',
+  cancelled: 'Cancelled',
+};
+
 export default function PortalContractDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { branding } = useOrganization();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
+  const STATUS_LABEL = isEn ? STATUS_LABEL_EN : STATUS_LABEL_FR;
   const docRef = useRef<HTMLDivElement | null>(null);
 
   // --- Signature ---
@@ -76,7 +91,7 @@ export default function PortalContractDetailPage() {
         .eq('id', params!.id)
         .maybeSingle();
       if (error || !data) {
-        toast.error('Contrat introuvable ou accès refusé');
+        toast.error(isEn ? 'Contract not found or access denied' : 'Contrat introuvable ou accès refusé');
         router.push('/portal/contracts');
         return null;
       }
@@ -112,15 +127,15 @@ export default function PortalContractDetailPage() {
     if (!contract) return;
     const signatureData = padRef.current?.toDataURL();
     if (!signatureData) {
-      toast.error('Trace ta signature dans le cadre avant de valider.');
+      toast.error(isEn ? 'Draw your signature in the frame before confirming.' : 'Trace ta signature dans le cadre avant de valider.');
       return;
     }
     if (signedName.trim().length < 3) {
-      toast.error('Saisis ton nom complet.');
+      toast.error(isEn ? 'Enter your full name.' : 'Saisis ton nom complet.');
       return;
     }
     if (!consent) {
-      toast.error('Coche la case de consentement pour signer.');
+      toast.error(isEn ? 'Check the consent box to sign.' : 'Coche la case de consentement pour signer.');
       return;
     }
     setSigning(true);
@@ -132,14 +147,14 @@ export default function PortalContractDetailPage() {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(body.message ?? 'Signature impossible — réessaie.');
+        toast.error(body.message ?? (isEn ? 'Signing failed — please try again.' : 'Signature impossible — réessaie.'));
         return;
       }
       setContract(body.data as Contract);
       setSignOpen(false);
-      toast.success('Contrat signé — ton employeur a été notifié.');
+      toast.success(isEn ? 'Contract signed — your employer has been notified.' : 'Contrat signé — ton employeur a été notifié.');
     } catch {
-      toast.error('Erreur réseau — vérifie ta connexion.');
+      toast.error(isEn ? 'Network error — check your connection.' : 'Erreur réseau — vérifie ta connexion.');
     } finally {
       setSigning(false);
     }
@@ -161,7 +176,7 @@ export default function PortalContractDetailPage() {
         <Button variant="ghost" size="sm" asChild>
           <Link href="/portal/contracts">
             <ArrowLeft className="h-4 w-4" />
-            Retour
+            {isEn ? 'Back' : 'Retour'}
           </Link>
         </Button>
         <div className="flex items-center gap-2 flex-wrap">
@@ -172,7 +187,7 @@ export default function PortalContractDetailPage() {
             <Button variant="outline" size="sm" asChild>
               <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
                 <Download className="h-4 w-4" />
-                PDF original
+                {isEn ? 'Original PDF' : 'PDF original'}
               </a>
             </Button>
           )}
@@ -186,12 +201,12 @@ export default function PortalContractDetailPage() {
             }
           >
             <Download className="h-4 w-4" />
-            Télécharger PDF
+            {isEn ? 'Download PDF' : 'Télécharger PDF'}
           </Button>
           {canSign && (
             <Button size="sm" onClick={() => setSignOpen(true)}>
               <PenLine className="h-4 w-4" />
-              Signer ce contrat
+              {isEn ? 'Sign this contract' : 'Signer ce contrat'}
             </Button>
           )}
         </div>
@@ -201,9 +216,19 @@ export default function PortalContractDetailPage() {
         <div className="no-print mb-4 flex items-start gap-3 rounded-xl border border-blue-500/30 bg-blue-500/[0.07] px-4 py-3">
           <PenLine className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
           <p className="text-xs leading-relaxed text-blue-600 dark:text-blue-300/90">
-            Ce contrat attend ta signature. Relis-le, puis clique sur «&nbsp;Signer ce
-            contrat&nbsp;» — ta signature manuscrite sera apposée sur le document et ton
-            employeur sera notifié.
+            {isEn ? (
+              <>
+                This contract is awaiting your signature. Review it, then click “Sign this
+                contract” — your handwritten signature will be applied to the document and your
+                employer will be notified.
+              </>
+            ) : (
+              <>
+                Ce contrat attend ta signature. Relis-le, puis clique sur «&nbsp;Signer ce
+                contrat&nbsp;» — ta signature manuscrite sera apposée sur le document et ton
+                employeur sera notifié.
+              </>
+            )}
           </p>
         </div>
       )}
@@ -215,10 +240,13 @@ export default function PortalContractDetailPage() {
       <Dialog open={signOpen} onOpenChange={(v) => !signing && setSignOpen(v)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Signer le contrat {contract.contract_number}</DialogTitle>
+            <DialogTitle>
+              {isEn ? `Sign contract ${contract.contract_number}` : `Signer le contrat ${contract.contract_number}`}
+            </DialogTitle>
             <DialogDescription>
-              Trace ta signature dans le cadre ci-dessous, comme sur papier. Elle sera
-              apposée sur le document au nom de ta société.
+              {isEn
+                ? 'Draw your signature in the frame below, just like on paper. It will be applied to the document in the name of your company.'
+                : 'Trace ta signature dans le cadre ci-dessous, comme sur papier. Elle sera apposée sur le document au nom de ta société.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -226,7 +254,7 @@ export default function PortalContractDetailPage() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Signature manuscrite
+                  {isEn ? 'Handwritten signature' : 'Signature manuscrite'}
                 </Label>
                 <Button
                   type="button"
@@ -235,7 +263,7 @@ export default function PortalContractDetailPage() {
                   onClick={() => padRef.current?.clear()}
                 >
                   <Eraser className="h-3.5 w-3.5" />
-                  Effacer
+                  {isEn ? 'Clear' : 'Effacer'}
                 </Button>
               </div>
               <SignaturePad ref={padRef} height={170} onDirtyChange={setPadDirty} />
@@ -243,13 +271,13 @@ export default function PortalContractDetailPage() {
 
             <div>
               <Label htmlFor="signed-name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Nom complet
+                {isEn ? 'Full name' : 'Nom complet'}
               </Label>
               <Input
                 id="signed-name"
                 value={signedName}
                 onChange={(e) => setSignedName(e.target.value)}
-                placeholder="Prénom Nom"
+                placeholder={isEn ? 'First Last' : 'Prénom Nom'}
                 className="mt-1.5"
                 autoComplete="name"
               />
@@ -263,19 +291,29 @@ export default function PortalContractDetailPage() {
                 className="mt-0.5 accent-current"
               />
               <span>
-                Je reconnais avoir lu l&apos;intégralité du contrat {contract.contract_number} et
-                consens à le signer électroniquement. Cette signature a valeur d&apos;engagement.
+                {isEn ? (
+                  <>
+                    I acknowledge that I have read the contract {contract.contract_number} in full
+                    and consent to signing it electronically. This signature constitutes a binding
+                    commitment.
+                  </>
+                ) : (
+                  <>
+                    Je reconnais avoir lu l&apos;intégralité du contrat {contract.contract_number} et
+                    consens à le signer électroniquement. Cette signature a valeur d&apos;engagement.
+                  </>
+                )}
               </span>
             </label>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setSignOpen(false)} disabled={signing}>
-              Annuler
+              {isEn ? 'Cancel' : 'Annuler'}
             </Button>
             <Button onClick={sign} disabled={signing || !padDirty || !consent || signedName.trim().length < 3}>
               {signing ? <Loader2 className="h-4 w-4 animate-spin" /> : <PenLine className="h-4 w-4" />}
-              Signer définitivement
+              {isEn ? 'Sign definitively' : 'Signer définitivement'}
             </Button>
           </DialogFooter>
         </DialogContent>

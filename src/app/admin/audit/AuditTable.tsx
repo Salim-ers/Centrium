@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Filter } from 'lucide-react';
 
 import { StatusBadge, type StatusTone, EmptyState } from '@/components/app';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 type Row = {
   id: string;
@@ -30,6 +31,8 @@ const ACTION_TONE: Record<string, StatusTone> = {
 };
 
 export function AuditTable({ rows }: { rows: Row[] }) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [filterEntity, setFilterEntity] = useState('');
   const [filterAction, setFilterAction] = useState('');
 
@@ -53,14 +56,14 @@ export function AuditTable({ rows }: { rows: Row[] }) {
       <div className="flex flex-wrap gap-3 mb-4 items-center">
         <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-magenta font-semibold">
           <Filter className="h-3 w-3" />
-          Filtres
+          {isEn ? 'Filters' : 'Filtres'}
         </span>
         <select
           value={filterEntity}
           onChange={(e) => setFilterEntity(e.target.value)}
           className="h-9 rounded-md border border-hairline bg-card px-3 text-sm"
         >
-          <option value="">Toutes les entités</option>
+          <option value="">{isEn ? 'All entities' : 'Toutes les entités'}</option>
           {entityTypes.map((t) => (
             <option key={t} value={t}>
               {t}
@@ -72,7 +75,7 @@ export function AuditTable({ rows }: { rows: Row[] }) {
           onChange={(e) => setFilterAction(e.target.value)}
           className="h-9 rounded-md border border-hairline bg-card px-3 text-sm"
         >
-          <option value="">Toutes les actions</option>
+          <option value="">{isEn ? 'All actions' : 'Toutes les actions'}</option>
           {actions.map((a) => (
             <option key={a} value={a}>
               {a}
@@ -88,31 +91,35 @@ export function AuditTable({ rows }: { rows: Row[] }) {
             }}
             className="h-9 px-3 rounded-md border border-hairline text-xs text-muted-foreground hover:text-foreground transition"
           >
-            Réinitialiser
+            {isEn ? 'Reset' : 'Réinitialiser'}
           </button>
         )}
         <div className="ml-auto text-xs text-muted-foreground self-center">
-          {filtered.length} / {rows.length} entrées
+          {filtered.length} / {rows.length} {isEn ? 'entries' : 'entrées'}
         </div>
       </div>
 
       {filtered.length === 0 ? (
         <EmptyState
           icon={Filter}
-          title="Aucune entrée correspondante"
-          description="Aucun événement ne correspond aux filtres sélectionnés."
+          title={isEn ? 'No matching entry' : 'Aucune entrée correspondante'}
+          description={
+            isEn
+              ? 'No event matches the selected filters.'
+              : 'Aucun événement ne correspond aux filtres sélectionnés.'
+          }
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-hairline">
           <table className="w-full text-sm">
             <thead className="bg-card/40 text-muted-foreground text-xs uppercase tracking-wider">
               <tr>
-                <th className="text-left px-4 py-2.5 font-medium">Quand</th>
-                <th className="text-left px-4 py-2.5 font-medium">Entité</th>
+                <th className="text-left px-4 py-2.5 font-medium">{isEn ? 'When' : 'Quand'}</th>
+                <th className="text-left px-4 py-2.5 font-medium">{isEn ? 'Entity' : 'Entité'}</th>
                 <th className="text-left px-4 py-2.5 font-medium">Action</th>
-                <th className="text-left px-4 py-2.5 font-medium">Organisation</th>
-                <th className="text-left px-4 py-2.5 font-medium">Utilisateur</th>
-                <th className="text-left px-4 py-2.5 font-medium">Détails</th>
+                <th className="text-left px-4 py-2.5 font-medium">{isEn ? 'Organization' : 'Organisation'}</th>
+                <th className="text-left px-4 py-2.5 font-medium">{isEn ? 'User' : 'Utilisateur'}</th>
+                <th className="text-left px-4 py-2.5 font-medium">{isEn ? 'Details' : 'Détails'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-hairline">
@@ -121,7 +128,7 @@ export function AuditTable({ rows }: { rows: Row[] }) {
                 return (
                   <tr key={r.id} className="hover-surface">
                     <td className="px-4 py-2.5 whitespace-nowrap text-foreground/80 font-mono text-xs">
-                      {new Date(r.created_at).toLocaleString('fr-FR', {
+                      {new Date(r.created_at).toLocaleString(isEn ? 'en-US' : 'fr-FR', {
                         dateStyle: 'short',
                         timeStyle: 'medium',
                       })}
@@ -142,7 +149,7 @@ export function AuditTable({ rows }: { rows: Row[] }) {
                       {r.details ? (
                         <details>
                           <summary className="cursor-pointer text-magenta hover:underline text-xs">
-                            Voir
+                            {isEn ? 'View' : 'Voir'}
                           </summary>
                           <pre className="mt-2 text-[10px] bg-muted/80 p-2 rounded overflow-x-auto text-foreground/80">
                             {JSON.stringify(r.details, null, 2)}

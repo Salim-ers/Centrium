@@ -18,6 +18,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useBrandName } from '@/components/brand/BrandingStyles';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { formatDate } from '@/lib/utils';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 // =========================================================================
 // Documents personnels du consultant (CV, certifications, pièces…) :
@@ -52,6 +53,19 @@ const DOC_KIND_LABEL: Record<string, string> = {
   other: 'Autre',
 };
 
+const DOC_KIND_LABEL_EN: Record<string, string> = {
+  cv_source: 'Source CV',
+  cv_generated: 'Generated CV',
+  certification: 'Certification',
+  id: 'ID document',
+  id_card: 'ID document',
+  kbis: 'Kbis extract',
+  rc_pro: 'Professional liability cert.',
+  rib: 'Bank details',
+  contract: 'Contract',
+  other: 'Other',
+};
+
 // Types que le consultant peut uploader lui-même (pas de 'contract')
 const UPLOADABLE_KINDS = ['cv_source', 'certification', 'id', 'other'] as const;
 
@@ -65,6 +79,10 @@ type Props = {
 
 export function ConsultantSelfDocuments({ consultantId, userId, orgId, compact = false }: Props) {
   const brandName = useBrandName();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
+  const kindLabel = (k: string) =>
+    (isEn ? DOC_KIND_LABEL_EN[k] : DOC_KIND_LABEL[k]) ?? DOC_KIND_LABEL[k] ?? k;
   const [uploading, setUploading] = useState(false);
   const [kind, setKind] = useState<string>('cv_source');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -97,7 +115,7 @@ export function ConsultantSelfDocuments({ consultantId, userId, orgId, compact =
         .from('consultant-documents')
         .upload(path, file, { contentType: file.type, upsert: false });
       if (up.error) {
-        toast.error('Upload échoué : ' + up.error.message);
+        toast.error((isEn ? 'Upload failed: ' : 'Upload échoué : ') + up.error.message);
         return;
       }
 
@@ -112,12 +130,12 @@ export function ConsultantSelfDocuments({ consultantId, userId, orgId, compact =
         visible_to_consultant: true, // imposé par la policy docs_self_insert
       });
       if (ins.error) {
-        toast.error('Enregistrement échoué : ' + ins.error.message);
+        toast.error((isEn ? 'Save failed: ' : 'Enregistrement échoué : ') + ins.error.message);
         await supabase.storage.from('consultant-documents').remove([path]);
         return;
       }
 
-      toast.success('Document ajouté');
+      toast.success(isEn ? 'Document added' : 'Document ajouté');
       reload();
     } finally {
       setUploading(false);
@@ -131,7 +149,7 @@ export function ConsultantSelfDocuments({ consultantId, userId, orgId, compact =
       .from('consultant-documents')
       .createSignedUrl(doc.storage_path, 60);
     if (error || !data) {
-      toast.error('Téléchargement impossible');
+      toast.error(isEn ? 'Download unavailable' : 'Téléchargement impossible');
       return;
     }
     window.open(data.signedUrl, '_blank');
@@ -140,19 +158,19 @@ export function ConsultantSelfDocuments({ consultantId, userId, orgId, compact =
   async function deleteDoc(doc: DocRow) {
     if (!userId) return;
     if (doc.uploaded_by !== userId) {
-      toast.error('Seul l\'auteur peut supprimer ce document');
+      toast.error(isEn ? 'Only the author can delete this document' : 'Seul l\'auteur peut supprimer ce document');
       return;
     }
-    if (!confirm(`Supprimer ${doc.file_name} ?`)) return;
+    if (!confirm(isEn ? `Delete ${doc.file_name}?` : `Supprimer ${doc.file_name} ?`)) return;
     const supabase = createClient();
     const [storageRes, dbRes] = await Promise.all([
       supabase.storage.from('consultant-documents').remove([doc.storage_path]),
       supabase.from('consultant_documents').delete().eq('id', doc.id),
     ]);
     if (storageRes.error || dbRes.error) {
-      toast.error('Suppression partielle');
+      toast.error(isEn ? 'Partial deletion' : 'Suppression partielle');
     } else {
-      toast.success('Document supprimé');
+      toast.success(isEn ? 'Document deleted' : 'Document supprimé');
     }
     reload();
   }
@@ -164,29 +182,40 @@ export function ConsultantSelfDocuments({ consultantId, userId, orgId, compact =
       <AppCard className="mb-6">
         <AppCardBody size={compact ? 'sm' : 'md'}>
           <SectionHeader
-            eyebrow="Ajouter"
+            eyebrow={isEn ? 'Add' : 'Ajouter'}
             title={
-              <>
-                Téléverser un{' '}
-                <span className="qc-italic-accent font-editorial italic">document.</span>
-              </>
+              isEn ? (
+                <>
+                  Upload a{' '}
+                  <span className="qc-italic-accent font-editorial italic">document.</span>
+                </>
+              ) : (
+                <>
+                  Téléverser un{' '}
+                  <span className="qc-italic-accent font-editorial italic">document.</span>
+                </>
+              )
             }
             description={
-              compact
-                ? 'CV, certification, pièce d\'identité…'
-                : 'CV, certification, pièce d\'identité ou autre justificatif.'
+              isEn
+                ? compact
+                  ? 'CV, certification, ID document…'
+                  : 'CV, certification, ID document or other supporting document.'
+                : compact
+                  ? 'CV, certification, pièce d\'identité…'
+                  : 'CV, certification, pièce d\'identité ou autre justificatif.'
             }
             className="mb-4"
           />
           <div className="flex items-end gap-3 flex-wrap">
             <div className="flex-1 min-w-[200px]">
               <label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/80 mb-1.5 block">
-                Type
+                {isEn ? 'Type' : 'Type'}
               </label>
               <Combobox
                 value={kind}
                 onChange={(v) => setKind(v)}
-                options={UPLOADABLE_KINDS.map((k) => ({ value: k, label: DOC_KIND_LABEL[k] }))}
+                options={UPLOADABLE_KINDS.map((k) => ({ value: k, label: kindLabel(k) }))}
               />
             </div>
             <Button
@@ -199,7 +228,7 @@ export function ConsultantSelfDocuments({ consultantId, userId, orgId, compact =
               ) : (
                 <Upload className="h-4 w-4" />
               )}
-              {uploading ? 'Upload…' : 'Choisir un fichier'}
+              {uploading ? (isEn ? 'Uploading…' : 'Upload…') : (isEn ? 'Choose a file' : 'Choisir un fichier')}
             </Button>
             <input
               ref={inputRef}
@@ -217,8 +246,12 @@ export function ConsultantSelfDocuments({ consultantId, userId, orgId, compact =
       ) : visibleDocs.length === 0 ? (
         <EmptyState
           icon={FileText}
-          title="Aucun document pour le moment"
-          description={`Téléversez votre CV, une certification ou contactez ${brandName}.`}
+          title={isEn ? 'No document yet' : 'Aucun document pour le moment'}
+          description={
+            isEn
+              ? `Upload your CV, a certification or contact ${brandName}.`
+              : `Téléversez votre CV, une certification ou contactez ${brandName}.`
+          }
         />
       ) : (
         <AppCard>
@@ -246,22 +279,22 @@ export function ConsultantSelfDocuments({ consultantId, userId, orgId, compact =
                   }
                   secondary={
                     <>
-                      {DOC_KIND_LABEL[d.kind] ?? d.kind} · Ajouté le {formatDate(d.uploaded_at)}
-                      {d.size_bytes != null && ` · ${(d.size_bytes / 1024).toFixed(0)} Ko`}
+                      {kindLabel(d.kind)} · {isEn ? 'Added on' : 'Ajouté le'} {formatDate(d.uploaded_at)}
+                      {d.size_bytes != null && ` · ${(d.size_bytes / 1024).toFixed(0)} ${isEn ? 'KB' : 'Ko'}`}
                     </>
                   }
                   trailing={
                     <>
                       <Button size="sm" variant="outline" onClick={() => download(d)}>
                         <Download className="h-3.5 w-3.5" />
-                        Télécharger
+                        {isEn ? 'Download' : 'Télécharger'}
                       </Button>
                       {ownedByMe && (
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => deleteDoc(d)}
-                          aria-label="Supprimer"
+                          aria-label={isEn ? 'Delete' : 'Supprimer'}
                         >
                           <Trash2 className="h-3.5 w-3.5 text-rose-400" />
                         </Button>

@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 type Props = {
   open: boolean;
@@ -25,13 +26,22 @@ type Props = {
   onConfirm: (reason: string) => Promise<void>;
 };
 
-const QUICK_REASONS = [
+const QUICK_REASONS_FR = [
   'Profil pas assez senior',
   'TJM trop élevé',
   'Stack technique différente',
   'Disponibilité incompatible',
   'Client a choisi un autre profil',
   'Compétences manquantes',
+];
+
+const QUICK_REASONS_EN = [
+  'Profile not senior enough',
+  'Day rate too high',
+  'Different tech stack',
+  'Incompatible availability',
+  'Client chose another profile',
+  'Missing skills',
 ];
 
 /**
@@ -46,6 +56,9 @@ export function RefuseMissionDialog({
   missionTitle,
   onConfirm,
 }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
+  const QUICK_REASONS = isEn ? QUICK_REASONS_EN : QUICK_REASONS_FR;
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -73,12 +86,13 @@ export function RefuseMissionDialog({
         <DialogHeader>
           <DialogTitle className="inline-flex items-center gap-2">
             <XCircle className="h-5 w-5 text-amber-300" />
-            Refuser la proposition
+            {isEn ? 'Reject the proposal' : 'Refuser la proposition'}
           </DialogTitle>
           <DialogDescription>
-            <strong>{consultantName}</strong> sur <em>{missionTitle}</em>.
-            Indique pourquoi le client a refusé — la trace reste accessible
-            dans « Voir les refusés » et alimente le reporting.
+            <strong>{consultantName}</strong> {isEn ? 'on' : 'sur'} <em>{missionTitle}</em>.
+            {isEn
+              ? ' State why the client declined — the record stays accessible in “View rejected” and feeds the reporting.'
+              : ' Indique pourquoi le client a refusé — la trace reste accessible dans « Voir les refusés » et alimente le reporting.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -102,25 +116,30 @@ export function RefuseMissionDialog({
           </div>
 
           <div>
-            <Label>Motif du refus *</Label>
+            <Label>{isEn ? 'Reason for rejection *' : 'Motif du refus *'}</Label>
             <Textarea
               rows={4}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Ex: Le client cherchait quelqu'un avec 10+ ans d'expérience en cloud GCP, alors que notre consultant est plus orienté AWS."
+              placeholder={
+                isEn
+                  ? 'E.g.: The client wanted someone with 10+ years of GCP cloud experience, whereas our consultant is more AWS-focused.'
+                  : "Ex: Le client cherchait quelqu'un avec 10+ ans d'expérience en cloud GCP, alors que notre consultant est plus orienté AWS."
+              }
               disabled={busy}
               autoFocus
             />
             <p className="text-[11px] text-muted-foreground mt-1">
-              Conservé sur la mission. Sera visible côté pipeline pour
-              comprendre pourquoi un positionnement n'a pas abouti.
+              {isEn
+                ? 'Kept on the mission. Will be visible in the pipeline to understand why a positioning did not succeed.'
+                : "Conservé sur la mission. Sera visible côté pipeline pour comprendre pourquoi un positionnement n'a pas abouti."}
             </p>
           </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
-            Annuler
+            {isEn ? 'Cancel' : 'Annuler'}
           </Button>
           <Button
             onClick={submit}
@@ -128,7 +147,7 @@ export function RefuseMissionDialog({
             className="bg-amber-500/90 hover:bg-amber-500 text-white"
           >
             {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            Confirmer le refus
+            {isEn ? 'Confirm rejection' : 'Confirmer le refus'}
           </Button>
         </DialogFooter>
       </DialogContent>

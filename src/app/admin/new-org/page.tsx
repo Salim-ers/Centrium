@@ -8,6 +8,7 @@ import { Sparkles, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { ProvisionClientDialog } from '@/components/admin/ProvisionClientDialog';
 import { PageHeader, AppCard, AppCardBody } from '@/components/app';
 import { Button } from '@/components/ui/button';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 /**
  * Page super_admin dédiée à la création d'une organisation client.
@@ -21,6 +22,8 @@ import { Button } from '@/components/ui/button';
  */
 export default function AdminNewOrgPage() {
   const router = useRouter();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [dialogOpen, setDialogOpen] = useState(true);
 
   // Fermeture du dialog = retour à la liste
@@ -39,20 +42,33 @@ export default function AdminNewOrgPage() {
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition mb-4"
           >
             <ArrowLeft className="h-4 w-4" />
-            Retour à la liste des clients
+            {isEn ? 'Back to client list' : 'Retour à la liste des clients'}
           </Link>
 
           <PageHeader
             eyebrow="Admin · Super-admin only"
             title={
-              <>
-                Créer un nouvel{' '}
-                <span className="qc-italic-accent font-editorial italic">
-                  espace client
-                </span>
-              </>
+              isEn ? (
+                <>
+                  Create a new{' '}
+                  <span className="qc-italic-accent font-editorial italic">
+                    client workspace
+                  </span>
+                </>
+              ) : (
+                <>
+                  Créer un nouvel{' '}
+                  <span className="qc-italic-accent font-editorial italic">
+                    espace client
+                  </span>
+                </>
+              )
             }
-            description="Provisionne une organisation ESN cliente avec son branding, ses mentions légales et son premier admin. Le formulaire complet s'ouvre automatiquement."
+            description={
+              isEn
+                ? 'Provision a client IT-services company with its branding, legal notices and first admin. The full form opens automatically.'
+                : "Provisionne une organisation ESN cliente avec son branding, ses mentions légales et son premier admin. Le formulaire complet s'ouvre automatiquement."
+            }
           />
         </div>
 
@@ -61,11 +77,12 @@ export default function AdminNewOrgPage() {
             <AppCardBody>
               <div className="flex items-center gap-2 text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-                Étape 1 — Identité
+                {isEn ? 'Step 1 — Identity' : 'Étape 1 — Identité'}
               </div>
               <p className="text-sm text-foreground/85">
-                Nom légal, slug URL, branding visuel (logo, couleurs, signature),
-                tagline footer.
+                {isEn
+                  ? 'Legal name, URL slug, visual branding (logo, colors, signature), footer tagline.'
+                  : 'Nom légal, slug URL, branding visuel (logo, couleurs, signature), tagline footer.'}
               </p>
             </AppCardBody>
           </AppCard>
@@ -74,11 +91,12 @@ export default function AdminNewOrgPage() {
             <AppCardBody>
               <div className="flex items-center gap-2 text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-                Étape 2 — Mentions légales
+                {isEn ? 'Step 2 — Legal notices' : 'Étape 2 — Mentions légales'}
               </div>
               <p className="text-sm text-foreground/85">
-                SIREN, SIRET, TVA, RCS, capital, adresse siège, signataire,
-                coordonnées bancaires.
+                {isEn
+                  ? 'SIREN, SIRET, VAT, RCS, capital, head-office address, signatory, bank details.'
+                  : 'SIREN, SIRET, TVA, RCS, capital, adresse siège, signataire, coordonnées bancaires.'}
               </p>
             </AppCardBody>
           </AppCard>
@@ -87,11 +105,20 @@ export default function AdminNewOrgPage() {
             <AppCardBody>
               <div className="flex items-center gap-2 text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-                Étape 3 — Premier admin
+                {isEn ? 'Step 3 — First admin' : 'Étape 3 — Premier admin'}
               </div>
               <p className="text-sm text-foreground/85">
-                Email + nom du contact admin. Recevra un email d&apos;invitation
-                avec un lien de création de mot de passe.
+                {isEn ? (
+                  <>
+                    Email + name of the admin contact. They will receive an
+                    invitation email with a password-creation link.
+                  </>
+                ) : (
+                  <>
+                    Email + nom du contact admin. Recevra un email d&apos;invitation
+                    avec un lien de création de mot de passe.
+                  </>
+                )}
               </p>
             </AppCardBody>
           </AppCard>
@@ -102,7 +129,7 @@ export default function AdminNewOrgPage() {
           <div className="flex justify-center">
             <Button onClick={() => setDialogOpen(true)} className="qc-cta">
               <Sparkles className="h-4 w-4 mr-2" />
-              Ouvrir le formulaire de création
+              {isEn ? 'Open the creation form' : 'Ouvrir le formulaire de création'}
             </Button>
           </div>
         )}

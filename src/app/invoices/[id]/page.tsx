@@ -15,8 +15,10 @@ import { Badge } from '@/components/ui/badge';
 import { InvoiceDocument, type InvoiceIssuer } from '@/components/invoices/InvoiceDocument';
 import { invoiceService } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { useInvoiceStatusLabels } from '@/lib/i18n/useBadges';
 import type { Invoice, Company, Mission, Consultant, Timesheet } from '@/types';
-import { INVOICE_STATUS_LABEL, INVOICE_STATUS_STYLE } from '@/constants';
+import { INVOICE_STATUS_STYLE } from '@/constants';
 
 type Detail = {
   invoice: Invoice;
@@ -28,6 +30,9 @@ type Detail = {
 
 export default function InvoiceDetailPage() {
   const { branding } = useOrganization();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
+  const invoiceStatusLabels = useInvoiceStatusLabels();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [detail, setDetail] = useState<Detail | null>(null);
@@ -79,16 +84,16 @@ export default function InvoiceDetailPage() {
   async function markSent() {
     if (!detail) return;
     const res = await invoiceService.markAsSent(detail.invoice.id);
-    if (res.error) return toast.error('Erreur');
-    toast.success('Facture marquée envoyée');
+    if (res.error) return toast.error(isEn ? 'Error' : 'Erreur');
+    toast.success(isEn ? 'Invoice marked as sent' : 'Facture marquée envoyée');
     reload();
   }
 
   async function markPaid() {
     if (!detail) return;
     const res = await invoiceService.markAsPaid(detail.invoice.id);
-    if (res.error) return toast.error('Erreur');
-    toast.success('Facture marquée payée');
+    if (res.error) return toast.error(isEn ? 'Error' : 'Erreur');
+    toast.success(isEn ? 'Invoice marked as paid' : 'Facture marquée payée');
     reload();
   }
 
@@ -104,10 +109,10 @@ export default function InvoiceDetailPage() {
     return (
       <AppShell>
         <div className="text-center py-20">
-          <h1 className="font-display text-2xl font-bold">Facture introuvable</h1>
+          <h1 className="font-display text-2xl font-bold">{isEn ? 'Invoice not found' : 'Facture introuvable'}</h1>
           <Button className="mt-6" onClick={() => router.push('/invoices')}>
             <ArrowLeft className="h-4 w-4" />
-            Retour aux factures
+            {isEn ? 'Back to invoices' : 'Retour aux factures'}
           </Button>
         </div>
       </AppShell>
@@ -122,24 +127,24 @@ export default function InvoiceDetailPage() {
         <Button variant="ghost" size="sm" asChild>
           <Link href="/invoices">
             <ArrowLeft className="h-4 w-4" />
-            Retour
+            {isEn ? 'Back' : 'Retour'}
           </Link>
         </Button>
 
         <div className="flex items-center gap-2 flex-wrap">
           <Badge variant="outline" className={INVOICE_STATUS_STYLE[invoice.status]}>
-            {INVOICE_STATUS_LABEL[invoice.status]}
+            {invoiceStatusLabels[invoice.status]}
           </Badge>
           {invoice.status === 'draft' && (
             <Button variant="outline" size="sm" onClick={markSent}>
               <Send className="h-4 w-4" />
-              Envoyer
+              {isEn ? 'Send' : 'Envoyer'}
             </Button>
           )}
           {(invoice.status === 'sent' || invoice.status === 'overdue') && (
             <Button variant="outline" size="sm" onClick={markPaid}>
               <CheckCircle2 className="h-4 w-4" />
-              Marquer payée
+              {isEn ? 'Mark as paid' : 'Marquer payée'}
             </Button>
           )}
           <Button
@@ -151,7 +156,7 @@ export default function InvoiceDetailPage() {
             }
           >
             <Download className="h-4 w-4" />
-            Télécharger PDF
+            {isEn ? 'Download PDF' : 'Télécharger PDF'}
           </Button>
         </div>
       </div>
