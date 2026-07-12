@@ -1,4 +1,14 @@
+'use client';
+
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+
 export function PrivacyPolicy() {
+  const { locale } = useLocale();
+  if (locale === 'en') return <PrivacyEn />;
+  return <PrivacyFr />;
+}
+
+function PrivacyFr() {
   return (
     <div>
       <p>
@@ -167,6 +177,185 @@ export function PrivacyPolicy() {
 
       <hr />
       <p className="text-sm text-white/50"><em>Dernière mise à jour : avril 2026</em></p>
+    </div>
+  );
+}
+
+function PrivacyEn() {
+  return (
+    <div>
+      <p>
+        <em className="text-white/50">
+          This English version is provided for convenience. The French version prevails in the event of any
+          discrepancy or dispute.
+        </em>
+      </p>
+      <p>
+        <strong>QUADCORE SAS</strong> (hereinafter &quot;QUADCORE&quot; or &quot;we&quot;) attaches essential importance
+        to the protection of the personal data of users of its SaaS platform (hereinafter the &quot;Platform&quot;).
+      </p>
+      <p>
+        This Policy describes how data is collected, used and protected, in accordance with{' '}
+        <strong>Regulation (EU) 2016/679 of 27 April 2016 (GDPR)</strong> and the French{' '}
+        <strong>Act No. 78-17 of 6 January 1978 as amended</strong> (&quot;Data Protection Act&quot;).
+      </p>
+
+      <h2>1. Data controller</h2>
+      <ul>
+        <li><strong>QuadCore SAS</strong>, represented by Mr Mouhamad Moustakine, President</li>
+        <li><strong>Registered office:</strong> 5 Rue du Docteur Roux, 60180 Nogent-sur-Oise, France</li>
+        <li><strong>SIREN:</strong> 101 694 016 — <strong>Trade register:</strong> Compiègne</li>
+        <li><strong>Controller / DPO email:</strong> contact@centrium-platform.com</li>
+      </ul>
+      <p>
+        Regarding the personal data you entrust to us about <strong>your consultants, contacts and clients</strong> as
+        part of your use of the Platform, QUADCORE acts as a{' '}
+        <strong>processor within the meaning of Article 28 of the GDPR</strong>. The terms are detailed in our{' '}
+        <strong>Data Processing Agreement (DPA)</strong>.
+      </p>
+
+      <h2>2. Data collected</h2>
+
+      <h3>2.1 Customer data (ESN account)</h3>
+      <ul>
+        <li>Signatory identity: last name, first name, role</li>
+        <li>Professional contact details: email, phone</li>
+        <li>Company information: legal name, SIREN, address, country</li>
+        <li>Connection data: credentials, access logs, IP address, user-agent</li>
+        <li>Billing and payment data (processed via Stripe — we do not store card numbers)</li>
+      </ul>
+
+      <h3>2.2 Data processed on behalf of the Customer (consultants, contacts, opportunities)</h3>
+      <p>
+        The Customer is the data controller. QUADCORE acts as processor. This data includes: CVs, professional
+        background, skills, certifications, availability, day rates, client / recruiter contacts, sales opportunities,
+        timesheets, invoices.
+      </p>
+
+      <h3>2.3 Browsing data</h3>
+      <ul>
+        <li>Strictly necessary cookies (session, preferences)</li>
+        <li>Anonymized audience measurement (if enabled)</li>
+        <li>No advertising or social-network cookies</li>
+      </ul>
+
+      <h2>3. Legal bases for processing</h2>
+      <ul>
+        <li><strong>Performance of the contract</strong> (Art. 6.1.b GDPR) — providing access to the Platform, support, billing</li>
+        <li><strong>Legitimate interest</strong> (Art. 6.1.f GDPR) — security, fraud prevention, service improvement</li>
+        <li><strong>Legal obligations</strong> (Art. 6.1.c GDPR) — accounting, anti-money laundering, invoice retention</li>
+        <li><strong>Consent</strong> (Art. 6.1.a GDPR) — newsletters, unsolicited commercial communications</li>
+      </ul>
+
+      <h2>4. Purposes of processing</h2>
+      <ul>
+        <li>Creation, management and authentication of your account</li>
+        <li>Performance of the subscription (making the Platform available, support)</li>
+        <li>Billing and collection</li>
+        <li>Service improvement and incident resolution</li>
+        <li>Securing the Platform (intrusion detection, logs)</li>
+        <li>Compliance with legal and accounting obligations</li>
+        <li>Commercial communication (only with your consent or within an existing contractual relationship)</li>
+      </ul>
+
+      <h2>5. Recipients &amp; subprocessors</h2>
+      <p>Your data may be transmitted to:</p>
+      <ul>
+        <li>QUADCORE&apos;s authorized internal teams (support, billing, product)</li>
+        <li>Our <strong>technical subprocessors</strong> listed in the DPA, in particular:
+          <ul>
+            <li><strong>Supabase</strong> (Inc., Singapore — database hosting, storage, auth — EU region: Stockholm, eu-north-1)</li>
+            <li><strong>Vercel</strong> (Inc., United States — edge application hosting, transfers outside the EU covered by SCCs)</li>
+            <li><strong>Stripe</strong> (Payments Europe Ltd., Ireland — payment)</li>
+            <li><strong>Anthropic</strong> (PBC, United States — AI models for CV Optimizer, under SCCs)</li>
+            <li><strong>Resend / Postmark</strong> (transactional email delivery)</li>
+            <li><strong>Sentry</strong> (Functional Software, Inc., United States — error supervision and observability; PII scrubbed before sending, under SCCs)</li>
+            <li><strong>Formspree</strong> (Formspree, Inc., United States — contact form reception, under SCCs)</li>
+          </ul>
+        </li>
+        <li>The competent authorities upon legal request</li>
+      </ul>
+      <p>
+        Your data is <strong>never sold, rented or transferred to third parties</strong> for commercial purposes.
+      </p>
+
+      <h2>6. Transfers outside the European Union</h2>
+      <p>
+        Some subprocessors are located outside the EU (mainly the United States). These transfers are covered by:
+      </p>
+      <ul>
+        <li>The <strong>Standard Contractual Clauses (SCCs)</strong> of the European Commission (decision 2021/914)</li>
+        <li>The <strong>Data Privacy Framework (DPF)</strong> where the subprocessor is certified under it</li>
+        <li>Additional technical measures: encryption in transit (TLS 1.2+), encryption at rest, data minimization</li>
+      </ul>
+
+      <h2>7. Retention period</h2>
+      <ul>
+        <li><strong>Active account:</strong> throughout the duration of the contract</li>
+        <li><strong>Billing data:</strong> 10 years (accounting obligation — Art. L.123-22 French Commercial Code)</li>
+        <li><strong>B2B prospecting data:</strong> 3 years from the last contact</li>
+        <li><strong>Technical / security logs:</strong> 12 months maximum</li>
+        <li><strong>Consultant &amp; client data processed on your behalf:</strong> per the Customer&apos;s instructions, with a maximum period of 30 days after termination for return, then deletion</li>
+        <li><strong>Archived items:</strong> automatic and permanent purge 30 days after archiving (monthly processing, during the contract) — a mechanism distinct from the 30-day return period applicable at termination</li>
+      </ul>
+
+      <h2>8. Your rights</h2>
+      <p>In accordance with Articles 15 to 22 of the GDPR, you have the following rights:</p>
+      <ul>
+        <li><strong>Right of access</strong> — obtain a copy of the data concerning you</li>
+        <li><strong>Right to rectification</strong> — correct inaccurate data</li>
+        <li><strong>Right to erasure</strong> (&quot;right to be forgotten&quot;)</li>
+        <li><strong>Right to restriction</strong> of processing</li>
+        <li><strong>Right to object</strong> on legitimate grounds</li>
+        <li><strong>Right to portability</strong> — receive your data in a structured format (JSON, CSV)</li>
+        <li><strong>Right to withdraw your consent</strong> at any time</li>
+        <li><strong>Right to set post-mortem directives</strong> on the fate of your data</li>
+      </ul>
+      <p>
+        These rights are exercised by email at <a href="mailto:contact@centrium-platform.com">contact@centrium-platform.com</a>,
+        together with proof of identity. We respond within a maximum of <strong>30 days</strong> (extendable by 2 months
+        for complex requests).
+      </p>
+
+      <h2>9. Security</h2>
+      <p>QUADCORE implements the following technical and organizational measures:</p>
+      <ul>
+        <li><strong>TLS 1.2+</strong> encryption of all communications</li>
+        <li>Encryption at rest (AES-256) on database and storage</li>
+        <li>Strengthened authentication (strong password, SSO / MFA support on higher plans)</li>
+        <li>Multi-tenant isolation via <strong>Row Level Security (RLS)</strong> — no data leaks between organizations</li>
+        <li>Daily encrypted backups</li>
+        <li>Audit logs and access monitoring</li>
+        <li>Regular team awareness of best practices</li>
+        <li>Security testing (code reviews, dependencies, automated scans)</li>
+      </ul>
+
+      <h2>10. Data breach</h2>
+      <p>
+        In the event of a data breach likely to create a risk to your rights and freedoms, QUADCORE undertakes to notify
+        the <strong>CNIL within 72 hours</strong> and, if the risk is high, to inform you as soon as possible, in
+        accordance with Articles 33 and 34 of the GDPR.
+      </p>
+
+      <h2>11. Complaint to the CNIL</h2>
+      <p>
+        If, after contacting us, you consider that your rights are not respected, you may lodge a complaint with the
+        French data protection authority (<strong>Commission Nationale de l&apos;Informatique et des Libertés — CNIL</strong>):
+      </p>
+      <ul>
+        <li>3 Place de Fontenoy, TSA 80715, 75334 Paris Cedex 07, France</li>
+        <li>Phone: +33 1 53 73 22 22</li>
+        <li>Website: <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer">www.cnil.fr</a></li>
+      </ul>
+
+      <h2>12. Changes</h2>
+      <p>
+        This Policy may change. Any modification will be published with an updated revision date. Substantial changes
+        will be notified to you by email or via the Platform.
+      </p>
+
+      <hr />
+      <p className="text-sm text-white/50"><em>Last updated: April 2026</em></p>
     </div>
   );
 }

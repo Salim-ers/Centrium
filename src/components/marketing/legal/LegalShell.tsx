@@ -64,9 +64,9 @@ export function LegalShell({ title, updatedAt, currentSlug, children }: Props) {
         <div className="relative border-b border-white/10 bg-white/[0.03]">
           <div className="max-w-6xl mx-auto px-6 py-3 text-xs leading-relaxed text-white/70">
             <strong className="font-semibold text-white/85">English readers.</strong> Centrium
-            is operated by QuadCore SAS (France); these legal documents are provided in French,
-            which is their <strong>legally binding version</strong>. An official English
-            translation is available on request at{' '}
+            is operated by QuadCore SAS (France). English translations, where provided, are for
+            convenience — the <strong>French version is the legally binding reference</strong>. Any
+            document still shown in French can be provided in English on request at{' '}
             <a href="mailto:contact@centrium-platform.com" className="text-magenta hover:underline">
               contact@centrium-platform.com
             </a>

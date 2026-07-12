@@ -1,4 +1,14 @@
+'use client';
+
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+
 export function TermsOfService() {
+  const { locale } = useLocale();
+  if (locale === 'en') return <TermsEn />;
+  return <TermsFr />;
+}
+
+function TermsFr() {
   return (
     <div>
       <p>
@@ -168,6 +178,180 @@ export function TermsOfService() {
 
       <hr />
       <p className="text-sm text-white/50"><em>Dernière mise à jour : avril 2026</em></p>
+    </div>
+  );
+}
+
+function TermsEn() {
+  return (
+    <div>
+      <p>
+        <em className="text-white/50">
+          This English version is provided for convenience. The French version prevails in the event of any
+          discrepancy or dispute.
+        </em>
+      </p>
+      <p>
+        These <strong>Terms of Use and Service</strong> (&quot;Terms&quot;) govern access to and use of the SaaS
+        platform <strong>Centrium</strong>, published by <strong>QUADCORE SAS</strong> (hereinafter
+        &quot;QUADCORE&quot;), by any subscribing legal entity (hereinafter the &quot;Customer&quot;) and its
+        authorized users.
+      </p>
+      <p>
+        Any subscription entails <strong>unreserved acceptance</strong> of these Terms.
+      </p>
+
+      <h2>1. Purpose</h2>
+      <p>
+        QUADCORE makes available to the Customer, on a <strong>SaaS (Software-as-a-Service)</strong> basis, a business
+        platform for IT services firms (ESN) enabling in particular:
+      </p>
+      <ul>
+        <li>management of a consultant library;</li>
+        <li>AI-powered CV optimization (proprietary QuadCore template);</li>
+        <li>consultant ↔ mission matching and management of a sales pipeline (CRM);</li>
+        <li>entry of activity reports (timesheets) and invoicing;</li>
+        <li>alert generation and activity steering via a dashboard.</li>
+      </ul>
+
+      <h2>2. Access to the service</h2>
+      <p>
+        Access to the Platform requires a paid subscription. Each of the Customer&apos;s users receives strictly
+        personal, confidential and non-transferable credentials. The Customer is responsible for the confidentiality of
+        the credentials and their use.
+      </p>
+      <p>
+        The Platform is accessible 24/7, subject to planned or urgent maintenance operations and events of force
+        majeure.
+      </p>
+
+      <h2>3. Subscription and pricing plans</h2>
+      <p>
+        Subscriptions are taken out according to the plans offered (Starter, Medium, Enterprise). Prices, limits (number
+        of consultants, internal users) and included features are described on the pricing page and stated on the
+        invoice.
+      </p>
+      <ul>
+        <li><strong>Commitment:</strong> monthly, no commitment (except the Enterprise plan — annual commitment).</li>
+        <li><strong>Billing:</strong> monthly in advance, by card or SEPA via Stripe.</li>
+        <li><strong>Plan change:</strong> possible at any time; prorated adjustment.</li>
+        <li><strong>Termination:</strong> by the Customer from their billing area, taking effect at the end of the
+          current period.</li>
+        <li><strong>Non-payment:</strong> in the event of default, QUADCORE may suspend access after a reminder and
+          formal notice remaining unsuccessful within 15 days.</li>
+      </ul>
+
+      <h2>4. Trial period</h2>
+      <p>
+        If a free trial period is offered, it is expressly limited in time. At its end, the Customer must take out a paid
+        subscription or their account will be automatically closed; data may be exported for 30 days, then deleted.
+      </p>
+
+      <h2>5. Customer&apos;s obligations</h2>
+      <p>The Customer undertakes to:</p>
+      <ul>
+        <li>use the Platform in accordance with its purpose and applicable laws;</li>
+        <li>not undermine the security or proper functioning of the Platform;</li>
+        <li>not attempt to access data of other organizations, nor circumvent multi-tenant isolation mechanisms;</li>
+        <li>hold all rights and consents necessary over the data (consultants, clients, contacts) it entrusts to the
+          Platform;</li>
+        <li>keep its account information up to date and preserve the integrity of its credentials;</li>
+        <li>report without delay any security breach or suspected fraudulent use.</li>
+      </ul>
+
+      <h2>6. QUADCORE&apos;s obligations</h2>
+      <ul>
+        <li>Provide the Customer with a Platform conforming to the description of the subscribed plan;</li>
+        <li>Ensure a target availability level of <strong>99.5%</strong> monthly (99.9% on the Enterprise plan,
+          excluding planned maintenance and events of force majeure);</li>
+        <li>Implement the security measures described in the Privacy Policy and the DPA;</li>
+        <li>Provide support according to the channel and turnaround set out in the subscribed plan (email, priority,
+          dedicated SLA);</li>
+        <li>Retain and return the Customer&apos;s data upon termination under the conditions set by the DPA.</li>
+      </ul>
+
+      <h2>7. Intellectual property</h2>
+      <p>
+        QUADCORE remains the exclusive owner of all intellectual property rights over the Platform, its components, the
+        proprietary <strong>QuadCore CV template</strong>, the matching algorithms, and any associated element. The
+        Customer benefits from a personal, non-exclusive, non-transferable right of use, limited to the duration of the
+        subscription.
+      </p>
+      <p>
+        The data of the Customer and its users belong to it. The Customer grants QUADCORE a strictly limited, free and
+        non-exclusive license, solely for the purpose of providing the service (hosting, processing, return).
+      </p>
+
+      <h2>8. Artificial intelligence features</h2>
+      <p>
+        The <strong>CV Optimizer</strong> module relies on AI models. It is designed to reformulate, restructure and
+        format information <strong>already present</strong> in the source documents. It must{' '}
+        <strong>under no circumstances fabricate</strong> experiences, certifications, languages or skills. The Customer
+        remains solely responsible for verifying the result before sending it to an end client.
+      </p>
+      <p>
+        QUADCORE does not use the Customer&apos;s data to train third-party models without explicit consent.
+      </p>
+
+      <h2>9. Liability and warranties</h2>
+      <p>
+        The Platform is provided &quot;as is&quot;. QUADCORE does not warrant that the service will be free of any
+        interruption or anomaly. QUADCORE endeavors to correct reported anomalies within reasonable timeframes.
+      </p>
+      <p>
+        QUADCORE&apos;s liability, whatever the cause, is expressly limited to the pre-tax amount of fees actually
+        collected over the <strong>last twelve (12) months</strong> preceding the triggering event. QUADCORE shall not
+        be liable for indirect damages: loss of business, loss of opportunity, reputational harm, loss of contracts.
+      </p>
+
+      <h2>10. Force majeure</h2>
+      <p>
+        No party may be held liable for a failure resulting from an event of force majeure within the meaning of Article
+        1218 of the French Civil Code (natural disaster, armed conflict, massive cyber-attack, general Internet outage,
+        governmental decision, etc.).
+      </p>
+
+      <h2>11. Confidentiality</h2>
+      <p>
+        Each party undertakes to preserve the confidentiality of information exchanged in the performance of these
+        Terms, throughout their duration and for a period of <strong>3 years</strong> after the end of the contract.
+      </p>
+
+      <h2>12. Protection of personal data</h2>
+      <p>
+        The processing of personal data is governed by the <strong>Privacy Policy</strong> and the{' '}
+        <strong>Data Processing Agreement (DPA)</strong> accessible from the Platform, which form an integral part of
+        the contract.
+      </p>
+
+      <h2>13. Subprocessing</h2>
+      <p>
+        QUADCORE reserves the right to use technical subprocessors listed in the DPA. The list is kept up to date and
+        the Customer will be notified of any substantial change with 30 days&apos; notice.
+      </p>
+
+      <h2>14. Changes to the Terms</h2>
+      <p>
+        QUADCORE may amend these Terms. Any substantial change is notified by email at least 30 days before it takes
+        effect. Continued use of the Platform after that date constitutes acceptance.
+      </p>
+
+      <h2>15. Termination for breach</h2>
+      <p>
+        In the event of a serious or repeated breach by one party, the other party may terminate the contract as of
+        right, after formal notice remaining unsuccessful within 15 days, without prejudice to damages.
+      </p>
+
+      <h2>16. Governing law &amp; jurisdiction</h2>
+      <p>
+        These Terms are governed by <strong>French law</strong>. Any dispute relating to their formation,
+        interpretation or performance, which could not be resolved amicably within 30 days, shall be submitted to the{' '}
+        <strong>exclusive jurisdiction of the courts of the registered office of QUADCORE SAS</strong>, notwithstanding
+        multiple defendants or third-party proceedings.
+      </p>
+
+      <hr />
+      <p className="text-sm text-white/50"><em>Last updated: April 2026</em></p>
     </div>
   );
 }
