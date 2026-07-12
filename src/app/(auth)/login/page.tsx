@@ -28,20 +28,27 @@ const REMEMBER_EMAIL_KEY = 'centrium-remember-email';
 // Messages FR pour les erreurs remontées par /auth/callback et
 // /auth/set-password via ?error=… — avant, le param était ignoré et
 // l'utilisateur atterrissait sur le login sans explication.
-const URL_ERROR_MESSAGES: Record<string, string> = {
-  session_expired:
-    'Ton lien a expiré ou a déjà été utilisé. Demande un nouveau lien via « Mot de passe oublié ».',
-  missing_code:
-    'Lien invalide ou incomplet. Réouvre le lien depuis ton email, ou demande-en un nouveau.',
-  otp_expired:
-    'Ce lien a expiré. Demande un nouveau lien via « Mot de passe oublié ».',
-  access_denied:
-    'Ce lien n\'est plus valide (déjà utilisé ou révoqué). Demande un nouveau lien.',
-};
+function urlErrorMessages(isEn: boolean): Record<string, string> {
+  return {
+    session_expired: isEn
+      ? 'Your link has expired or has already been used. Request a new one via "Forgot password".'
+      : 'Ton lien a expiré ou a déjà été utilisé. Demande un nouveau lien via « Mot de passe oublié ».',
+    missing_code: isEn
+      ? 'Invalid or incomplete link. Reopen the link from your email, or request a new one.'
+      : 'Lien invalide ou incomplet. Réouvre le lien depuis ton email, ou demande-en un nouveau.',
+    otp_expired: isEn
+      ? 'This link has expired. Request a new one via "Forgot password".'
+      : 'Ce lien a expiré. Demande un nouveau lien via « Mot de passe oublié ».',
+    access_denied: isEn
+      ? 'This link is no longer valid (already used or revoked). Request a new one.'
+      : 'Ce lien n\'est plus valide (déjà utilisé ou révoqué). Demande un nouveau lien.',
+  };
+}
 
 export default function LoginPage() {
   const router = useRouter();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const isEn = locale === 'en';
   const [loading, setLoading] = useState(false);
   const [remember, setRemember] = useState(true);
 
@@ -76,12 +83,16 @@ export default function LoginPage() {
     if (typeof window === 'undefined') return;
     const err = new URLSearchParams(window.location.search).get('error');
     if (!err) return;
-    toast.error(URL_ERROR_MESSAGES[err] ?? 'Connexion impossible — réessaie.', {
-      duration: 8000,
-    });
+    toast.error(
+      urlErrorMessages(isEn)[err] ??
+        (isEn ? 'Unable to sign in — try again.' : 'Connexion impossible — réessaie.'),
+      {
+        duration: 8000,
+      },
+    );
     // Nettoie l'URL pour ne pas re-toaster au refresh.
     window.history.replaceState(null, '', '/login');
-  }, []);
+  }, [isEn]);
 
   // Retour du paiement Stripe après le self-signup (/essai) : essai démarré.
   // On pré-remplit l'email et on souhaite la bienvenue.
@@ -91,11 +102,16 @@ export default function LoginPage() {
     if (params.get('welcome') !== 'trial') return;
     const email = params.get('email');
     if (email) setValue('email', email);
-    toast.success('🎉 Ton essai a démarré ! Connecte-toi pour accéder à ton espace.', {
-      duration: 9000,
-    });
+    toast.success(
+      isEn
+        ? '🎉 Your trial has started! Sign in to access your workspace.'
+        : '🎉 Ton essai a démarré ! Connecte-toi pour accéder à ton espace.',
+      {
+        duration: 9000,
+      },
+    );
     window.history.replaceState(null, '', '/login');
-  }, [setValue]);
+  }, [setValue, isEn]);
 
   async function onSubmit(values: LoginInput) {
     setLoading(true);
@@ -115,7 +131,9 @@ export default function LoginPage() {
         setLoading(false);
         toast.error(
           body.message ??
-            'Trop de tentatives. Pour ta sécurité, attends quelques minutes avant de réessayer.',
+            (isEn
+              ? 'Too many attempts. For your security, wait a few minutes before trying again.'
+              : 'Trop de tentatives. Pour ta sécurité, attends quelques minutes avant de réessayer.'),
           { duration: 8000 },
         );
         return;
@@ -270,7 +288,11 @@ export default function LoginPage() {
           </span>
           <span
             className="ml-auto text-[10px] text-white/30"
-            title="L'email est mémorisé localement. Le mot de passe reste géré par le gestionnaire de mots de passe du navigateur — beaucoup plus sécurisé."
+            title={
+              isEn
+                ? 'The email is stored locally. The password stays managed by your browser\'s password manager — much more secure.'
+                : "L'email est mémorisé localement. Le mot de passe reste géré par le gestionnaire de mots de passe du navigateur — beaucoup plus sécurisé."
+            }
           >
             {t.login.emailOnly}
           </span>

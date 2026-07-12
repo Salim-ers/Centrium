@@ -504,8 +504,12 @@ export function ContractFormDialog({
                 {...register('title')}
                 placeholder={
                   isClientContract
-                    ? 'Contrat de prestation – BNP Paribas – QA Automation'
-                    : 'Contrat AT – Alex S. – QA Automation'
+                    ? isEn
+                      ? 'Service agreement – BNP Paribas – QA Automation'
+                      : 'Contrat de prestation – BNP Paribas – QA Automation'
+                    : isEn
+                      ? 'Subcontracting agreement – Alex S. – QA Automation'
+                      : 'Contrat AT – Alex S. – QA Automation'
                 }
               />
               {errors.title && (
@@ -590,7 +594,7 @@ export function ContractFormDialog({
                 </div>
                 <div>
                   <Label>{isEn ? 'Legal name *' : 'Raison sociale *'}</Label>
-                  <Input {...register('client_name')} placeholder="ex: BNP Paribas" />
+                  <Input {...register('client_name')} placeholder={isEn ? 'e.g. BNP Paribas' : 'ex: BNP Paribas'} />
                   {errors.client_name && (
                     <p className="text-xs text-red-400 mt-1">{errors.client_name.message}</p>
                   )}
@@ -772,12 +776,12 @@ export function ContractFormDialog({
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <Label>{isEn ? 'Mission title' : 'Intitulé de la mission'}</Label>
-                <Input {...register('mission_title')} placeholder="ex: QA Automation – Projet e-commerce" />
+                <Input {...register('mission_title')} placeholder={isEn ? 'e.g. QA Automation – E-commerce project' : 'ex: QA Automation – Projet e-commerce'} />
               </div>
               {!isClientContract && (
                 <div>
                   <Label>{isEn ? 'End client' : 'Client final'}</Label>
-                  <Input {...register('client_name')} placeholder="ex: BNP Paribas" />
+                  <Input {...register('client_name')} placeholder={isEn ? 'e.g. BNP Paribas' : 'ex: BNP Paribas'} />
                 </div>
               )}
               <div>

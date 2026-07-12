@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, RefreshCw } from 'lucide-react';
 
 import { markSessionActive } from '@/hooks/useSessionPresence';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 // =========================================================================
 // /auth/complete — consommation CLIENT des tokens de fragment (#access_token)
@@ -39,6 +40,8 @@ function destinationForType(type: string | null): string {
 function CompleteInner() {
   const router = useRouter();
   const search = useSearchParams();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
@@ -113,8 +116,17 @@ function CompleteInner() {
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
         <div className="flex flex-col items-center gap-4 text-center max-w-sm">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            La connexion n&apos;a pas abouti (réseau ou lien altéré). Réessaie —
-            si le problème persiste, demande un nouveau lien.
+            {isEn ? (
+              <>
+                Sign-in didn&apos;t complete (network or altered link). Try again —
+                if the problem persists, request a new link.
+              </>
+            ) : (
+              <>
+                La connexion n&apos;a pas abouti (réseau ou lien altéré). Réessaie —
+                si le problème persiste, demande un nouveau lien.
+              </>
+            )}
           </p>
           <button
             type="button"
@@ -125,7 +137,7 @@ function CompleteInner() {
             className="inline-flex items-center gap-2 rounded-lg border border-hairline px-4 py-2 text-sm hover-surface transition"
           >
             <RefreshCw className="h-4 w-4" />
-            Réessayer
+            {isEn ? 'Try again' : 'Réessayer'}
           </button>
         </div>
       </div>
@@ -136,7 +148,7 @@ function CompleteInner() {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-3 text-muted-foreground">
         <Loader2 className="h-6 w-6 animate-spin" />
-        <p className="text-sm">Connexion en cours…</p>
+        <p className="text-sm">{isEn ? 'Signing in…' : 'Connexion en cours…'}</p>
       </div>
     </div>
   );

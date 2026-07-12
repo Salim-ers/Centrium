@@ -679,7 +679,7 @@ function ClosedOpportunitiesDialogInline({
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-foreground truncate">{opp.title}</div>
                   <div className="text-[11px] text-muted-foreground truncate">
-                    {OPPORTUNITY_STATUS_LABEL[opp.status]}
+                    {oppLabels[opp.status as keyof typeof oppLabels] ?? OPPORTUNITY_STATUS_LABEL[opp.status]}
                     {opp.expected_revenue ? ` · ${formatCurrency(Number(opp.expected_revenue))}` : ''}
                   </div>
                 </div>

@@ -236,7 +236,7 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
     setParsing(true);
     let step = 'init';
     try {
-      toast.info('Analyse du CV en cours — ça peut prendre 10-20 secondes avec l\'IA…');
+      toast.info(isEn ? 'Analyzing the CV — this can take 10-20 seconds with AI…' : 'Analyse du CV en cours — ça peut prendre 10-20 secondes avec l\'IA…');
 
       // === Étape 1 : extraction texte ===
       step = 'extract';
@@ -245,7 +245,9 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
       console.log('[QC CV] Texte extrait :', text.length, 'caractères');
       if (!text || text.trim().length < 50) {
         toast.warning(
-          'Texte du CV introuvable. Si c\'est un CV scanné (image), l\'OCR n\'est pas dispo — réuploade un PDF texte ou un DOCX.',
+          isEn
+            ? 'CV text not found. If this is a scanned CV (image), OCR is not available — re-upload a text PDF or a DOCX.'
+            : 'Texte du CV introuvable. Si c\'est un CV scanné (image), l\'OCR n\'est pas dispo — réuploade un PDF texte ou un DOCX.',
         );
         return;
       }
@@ -270,7 +272,7 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
       }
 
       if (!parsed) {
-        toast.error('Le parseur n\'a rien retourné. Voir console pour détails.');
+        toast.error(isEn ? 'The parser returned nothing. See console for details.' : 'Le parseur n\'a rien retourné. Voir console pour détails.');
         return;
       }
 
@@ -281,7 +283,9 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
         !parsed.summary
       ) {
         toast.warning(
-          'Aucune donnée détectée dans le CV. Vérifie que les sections (Expériences / Compétences / Formation) sont clairement nommées.',
+          isEn
+            ? 'No data detected in the CV. Check that the sections (Experiences / Skills / Education) are clearly named.'
+            : 'Aucune donnée détectée dans le CV. Vérifie que les sections (Expériences / Compétences / Formation) sont clairement nommées.',
         );
         return;
       }
@@ -297,26 +301,28 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
       }
 
       const parts: string[] = [];
-      if (applied.skillsAdded > 0) parts.push(`${applied.skillsAdded} compétences`);
-      if (applied.experiencesAdded > 0) parts.push(`${applied.experiencesAdded} expériences`);
-      if (applied.educationsAdded > 0) parts.push(`${applied.educationsAdded} formations`);
-      if (applied.summaryUpdated) parts.push('résumé exécutif');
-      if (applied.languagesUpdated) parts.push('langues');
+      if (applied.skillsAdded > 0) parts.push(isEn ? `${applied.skillsAdded} skills` : `${applied.skillsAdded} compétences`);
+      if (applied.experiencesAdded > 0) parts.push(isEn ? `${applied.experiencesAdded} experiences` : `${applied.experiencesAdded} expériences`);
+      if (applied.educationsAdded > 0) parts.push(isEn ? `${applied.educationsAdded} education entries` : `${applied.educationsAdded} formations`);
+      if (applied.summaryUpdated) parts.push(isEn ? 'executive summary' : 'résumé exécutif');
+      if (applied.languagesUpdated) parts.push(isEn ? 'languages' : 'langues');
 
-      const modeLabel = mode === 'llm' ? '🤖 IA' : '📝 heuristique';
+      const modeLabel = mode === 'llm' ? (isEn ? '🤖 AI' : '🤖 IA') : (isEn ? '📝 heuristic' : '📝 heuristique');
 
       if (parts.length === 0) {
         toast.info(
-          `${modeLabel} : données détectées mais déjà présentes sur la fiche.`,
+          isEn
+            ? `${modeLabel}: data detected but already present on the profile.`
+            : `${modeLabel} : données détectées mais déjà présentes sur la fiche.`,
         );
       } else {
-        toast.success(`${modeLabel} — profil enrichi : ${parts.join(', ')} importés`);
+        toast.success(isEn ? `${modeLabel} — profile enriched: ${parts.join(', ')} imported` : `${modeLabel} — profil enrichi : ${parts.join(', ')} importés`);
         onProfileUpdated?.();
       }
     } catch (e) {
       console.error(`[QC CV] Erreur à l'étape "${step}" :`, e);
       const detail = e instanceof Error ? e.message : JSON.stringify(e);
-      toast.error(`Extraction impossible (étape : ${step}) — ${detail}`);
+      toast.error(isEn ? `Extraction failed (step: ${step}) — ${detail}` : `Extraction impossible (étape : ${step}) — ${detail}`);
     } finally {
       setParsing(false);
     }
@@ -324,7 +330,7 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
 
   async function reparseDoc(doc: DocRow) {
     if (doc.kind !== 'cv_source') {
-      toast.error('Uniquement disponible pour les documents "CV source"');
+      toast.error(isEn ? 'Only available for "Source CV" documents' : 'Uniquement disponible pour les documents "CV source"');
       return;
     }
     setParsing(true);
@@ -334,7 +340,7 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
         .from(BUCKET)
         .createSignedUrl(doc.storage_path, 120);
       if (error || !data) {
-        toast.error('Impossible de récupérer le fichier');
+        toast.error(isEn ? 'Could not retrieve the file' : 'Impossible de récupérer le fichier');
         return;
       }
       const res = await fetch(data.signedUrl);
@@ -343,7 +349,7 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
       await autoFillFromCV(file);
     } catch (e) {
       console.error(e);
-      toast.error('Re-analyse échouée');
+      toast.error(isEn ? 'Re-analysis failed' : 'Re-analyse échouée');
     } finally {
       setParsing(false);
     }
@@ -355,7 +361,7 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
       .from(BUCKET)
       .createSignedUrl(doc.storage_path, 60);
     if (error || !data) {
-      toast.error('Téléchargement impossible');
+      toast.error(isEn ? 'Download failed' : 'Téléchargement impossible');
       return;
     }
     window.open(data.signedUrl, '_blank');
@@ -497,7 +503,7 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
                     variant="ghost"
                     onClick={() => reparseDoc(d)}
                     disabled={parsing}
-                    title="Re-analyser ce CV pour enrichir le profil"
+                    title={isEn ? 'Re-analyze this CV to enrich the profile' : 'Re-analyser ce CV pour enrichir le profil'}
                   >
                     {parsing ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />

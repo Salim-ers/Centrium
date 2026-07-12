@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { notifyDestructive, notifyError } from '@/lib/notify';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 type Scope = 'timesheets' | 'invoices' | 'alerts';
 
@@ -27,20 +28,28 @@ type Props = {
 // Les missions (CV poussés + En Mission) sont du pipeline commercial vivant —
 // elles ne sont JAMAIS supprimées par un reset. Pour retirer une mission, il
 // faut passer par l'action dédiée sur sa fiche (Terminer / Archiver).
-const SCOPE_LABEL: Record<Scope, { label: string; desc: string }> = {
-  timesheets: {
-    label: 'CRAs',
-    desc: 'Tous les comptes rendus d\'activité — réinitialise "CRA à valider"',
-  },
-  invoices: {
-    label: 'Factures',
-    desc: 'Uniquement les brouillons et annulées. Les factures émises (envoyées, payées, en retard) sont CONSERVÉES — ce sont des documents comptables légaux (obligation de conservation 10 ans).',
-  },
-  alerts: {
-    label: 'Alertes',
-    desc: 'Alertes manuelles enregistrées (les alertes calculées se reconstruisent automatiquement)',
-  },
-};
+function getScopeLabels(isEn: boolean): Record<Scope, { label: string; desc: string }> {
+  return {
+    timesheets: {
+      label: isEn ? 'Timesheets' : 'CRAs',
+      desc: isEn
+        ? 'All activity timesheets — resets "Timesheets to validate"'
+        : 'Tous les comptes rendus d\'activité — réinitialise "CRA à valider"',
+    },
+    invoices: {
+      label: isEn ? 'Invoices' : 'Factures',
+      desc: isEn
+        ? 'Drafts and cancelled invoices only. Issued invoices (sent, paid, overdue) are KEPT — they are legal accounting documents (10-year retention obligation).'
+        : 'Uniquement les brouillons et annulées. Les factures émises (envoyées, payées, en retard) sont CONSERVÉES — ce sont des documents comptables légaux (obligation de conservation 10 ans).',
+    },
+    alerts: {
+      label: isEn ? 'Alerts' : 'Alertes',
+      desc: isEn
+        ? 'Saved manual alerts (computed alerts rebuild automatically)'
+        : 'Alertes manuelles enregistrées (les alertes calculées se reconstruisent automatiquement)',
+    },
+  };
+}
 
 const ORDERED: Scope[] = ['timesheets', 'invoices', 'alerts'];
 
@@ -52,6 +61,9 @@ const ORDERED: Scope[] = ['timesheets', 'invoices', 'alerts'];
  * Mots-clés visibles : "remettre à zéro", "wipe", "reset démo".
  */
 export function ResetDashboardDialog({ open, onOpenChange, onReset }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
+  const SCOPE_LABEL = getScopeLabels(isEn);
   const [scopes, setScopes] = useState<Set<Scope>>(
     new Set<Scope>(['timesheets', 'invoices', 'alerts']),
   );
@@ -69,11 +81,11 @@ export function ResetDashboardDialog({ open, onOpenChange, onReset }: Props) {
 
   async function submit() {
     if (scopes.size === 0) {
-      notifyError('Sélectionne au moins une catégorie');
+      notifyError(isEn ? 'Select at least one category' : 'Sélectionne au moins une catégorie');
       return;
     }
     if (confirm.trim() !== 'RESET') {
-      notifyError('Tape RESET en majuscules pour confirmer');
+      notifyError(isEn ? 'Type RESET in uppercase to confirm' : 'Tape RESET en majuscules pour confirmer');
       return;
     }
     setBusy(true);
@@ -85,7 +97,7 @@ export function ResetDashboardDialog({ open, onOpenChange, onReset }: Props) {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        notifyError(body.message ?? 'Réinitialisation impossible');
+        notifyError(body.message ?? (isEn ? 'Reset failed' : 'Réinitialisation impossible'));
         return;
       }
       const counts = body.counts ?? {};
@@ -94,8 +106,12 @@ export function ResetDashboardDialog({ open, onOpenChange, onReset }: Props) {
       );
       notifyDestructive(
         parts.length > 0
-          ? `Réinitialisé — ${parts.join(', ')} supprimé(s).`
-          : 'Réinitialisation terminée',
+          ? isEn
+            ? `Reset — ${parts.join(', ')} deleted.`
+            : `Réinitialisé — ${parts.join(', ')} supprimé(s).`
+          : isEn
+            ? 'Reset complete'
+            : 'Réinitialisation terminée',
       );
       onReset?.();
       onOpenChange(false);
@@ -111,28 +127,52 @@ export function ResetDashboardDialog({ open, onOpenChange, onReset }: Props) {
         <DialogHeader>
           <DialogTitle className="inline-flex items-center gap-2">
             <RotateCcw className="h-5 w-5 text-amber-300" />
-            Réinitialiser le dashboard
+            {isEn ? 'Reset the dashboard' : 'Réinitialiser le dashboard'}
           </DialogTitle>
           <DialogDescription>
-            Supprime les données transactionnelles de cette organisation pour repartir
-            d&apos;un dashboard cohérent. Les consultants, offres et contacts ne sont
-            <strong> jamais</strong> touchés.
+            {isEn ? (
+              <>
+                Deletes this organization&apos;s transactional data to start over from a
+                consistent dashboard. Consultants, offers and contacts are
+                <strong> never</strong> affected.
+              </>
+            ) : (
+              <>
+                Supprime les données transactionnelles de cette organisation pour repartir
+                d&apos;un dashboard cohérent. Les consultants, offres et contacts ne sont
+                <strong> jamais</strong> touchés.
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 pt-2">
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/[0.05] p-3 flex items-start gap-2 text-xs">
             <AlertTriangle className="h-4 w-4 text-amber-300 mt-0.5 shrink-0" />
-            <div>
-              Action <strong>irréversible</strong>. Les KPI « En mission », « CA du mois »,
-              « Disponibles » et « CRA à valider » se recalculent automatiquement après
-              suppression.
-              <span className="block mt-1.5 text-amber-200/80">
-                Par obligation légale, les <strong>factures émises</strong> (envoyées/payées)
-                et les <strong>CRA qu&apos;elles référencent</strong> ne sont jamais supprimés,
-                même s&apos;ils sont cochés ci-dessous.
-              </span>
-            </div>
+            {isEn ? (
+              <div>
+                <strong>Irreversible</strong> action. The KPIs &laquo;&nbsp;On mission&nbsp;&raquo;,
+                &laquo;&nbsp;Revenue this month&nbsp;&raquo;, &laquo;&nbsp;Available&nbsp;&raquo; and
+                &laquo;&nbsp;Timesheets to validate&nbsp;&raquo; are recalculated automatically after
+                deletion.
+                <span className="block mt-1.5 text-amber-200/80">
+                  By legal obligation, <strong>issued invoices</strong> (sent/paid) and the
+                  <strong> timesheets they reference</strong> are never deleted, even if they are
+                  checked below.
+                </span>
+              </div>
+            ) : (
+              <div>
+                Action <strong>irréversible</strong>. Les KPI « En mission », « CA du mois »,
+                « Disponibles » et « CRA à valider » se recalculent automatiquement après
+                suppression.
+                <span className="block mt-1.5 text-amber-200/80">
+                  Par obligation légale, les <strong>factures émises</strong> (envoyées/payées)
+                  et les <strong>CRA qu&apos;elles référencent</strong> ne sont jamais supprimés,
+                  même s&apos;ils sont cochés ci-dessous.
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -166,7 +206,7 @@ export function ResetDashboardDialog({ open, onOpenChange, onReset }: Props) {
           </div>
 
           <div>
-            <Label>Tape « RESET » pour confirmer</Label>
+            <Label>{isEn ? 'Type « RESET » to confirm' : 'Tape « RESET » pour confirmer'}</Label>
             <Input
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
@@ -178,7 +218,7 @@ export function ResetDashboardDialog({ open, onOpenChange, onReset }: Props) {
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
-            Annuler
+            {isEn ? 'Cancel' : 'Annuler'}
           </Button>
           <Button
             onClick={submit}
@@ -186,7 +226,7 @@ export function ResetDashboardDialog({ open, onOpenChange, onReset }: Props) {
             className="bg-red-500/90 hover:bg-red-500 text-white"
           >
             {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            Réinitialiser
+            {isEn ? 'Reset' : 'Réinitialiser'}
           </Button>
         </DialogFooter>
       </DialogContent>

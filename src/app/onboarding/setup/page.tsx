@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/Combobox';
 import { useOrganization } from '@/lib/auth/context';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { CentriumMark } from '@/components/brand/CentriumMark';
 
@@ -63,6 +64,8 @@ const EMPTY_IDENTITY: IdentityForm = {
 
 export default function OnboardingSetupPage() {
   const router = useRouter();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const { activeOrgId, role, branding, reloadBranding } = useOrganization();
   const isAdmin = role === 'admin';
 
@@ -161,10 +164,10 @@ export default function OnboardingSetupPage() {
       if (!idRes.ok) throw new Error('identity');
 
       await reloadBranding();
-      toast.success('Identité enregistrée.');
+      toast.success(isEn ? 'Identity saved.' : 'Identité enregistrée.');
       setStep(2);
     } catch {
-      toast.error("Échec d'enregistrement de l'identité.");
+      toast.error(isEn ? 'Failed to save identity.' : "Échec d'enregistrement de l'identité.");
     } finally {
       setSavingIdentity(false);
     }
@@ -189,13 +192,13 @@ export default function OnboardingSetupPage() {
       if (palette) {
         setPrimary(palette.primary);
         setAccent(palette.accent);
-        toast.info("Couleurs suggérées depuis le logo. Ajustables.");
+        toast.info(isEn ? 'Colors suggested from the logo. Adjustable.' : 'Couleurs suggérées depuis le logo. Ajustables.');
       } else {
-        toast.success('Logo téléversé.');
+        toast.success(isEn ? 'Logo uploaded.' : 'Logo téléversé.');
       }
       await reloadBranding();
     } catch (e) {
-      toast.error(`Upload du logo échoué${e instanceof Error ? ` : ${e.message}` : ''}.`);
+      toast.error((isEn ? 'Logo upload failed' : 'Upload du logo échoué') + `${e instanceof Error ? ` : ${e.message}` : ''}.`);
     } finally {
       setUploadingLogo(false);
       if (logoRef.current) logoRef.current.value = '';
@@ -216,10 +219,10 @@ export default function OnboardingSetupPage() {
       });
       if (!res.ok) throw new Error();
       await reloadBranding();
-      toast.success('Couleurs enregistrées.');
+      toast.success(isEn ? 'Colors saved.' : 'Couleurs enregistrées.');
       setStep(3);
     } catch {
-      toast.error('Erreur enregistrement couleurs.');
+      toast.error(isEn ? 'Error saving colors.' : 'Erreur enregistrement couleurs.');
     } finally {
       setSavingColors(false);
     }
@@ -239,9 +242,9 @@ export default function OnboardingSetupPage() {
       if (!res.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
       setSignatureUrl((json?.data?.signature_url as string | null) ?? null);
       await reloadBranding();
-      toast.success('Signature ajoutée.');
+      toast.success(isEn ? 'Signature added.' : 'Signature ajoutée.');
     } catch (e) {
-      toast.error(`Upload signature échoué${e instanceof Error ? ` : ${e.message}` : ''}.`);
+      toast.error((isEn ? 'Signature upload failed' : 'Upload signature échoué') + `${e instanceof Error ? ` : ${e.message}` : ''}.`);
     } finally {
       setUploadingSig(false);
       if (sigRef.current) sigRef.current.value = '';
@@ -257,7 +260,11 @@ export default function OnboardingSetupPage() {
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
         <Card className="max-w-md">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            Seul un administrateur peut configurer l&apos;identité de l&apos;organisation.
+            {isEn ? (
+              <>Only an administrator can configure the organization&apos;s identity.</>
+            ) : (
+              <>Seul un administrateur peut configurer l&apos;identité de l&apos;organisation.</>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -284,19 +291,19 @@ export default function OnboardingSetupPage() {
         <div className="mb-6 flex items-center justify-between gap-3">
           <h1 className="font-display text-2xl font-bold flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-violet-glow" />
-            Personnalise ton espace
+            {isEn ? 'Personalize your workspace' : 'Personnalise ton espace'}
           </h1>
           <button
             onClick={finish}
             className="text-xs text-muted-foreground hover:text-foreground"
           >
-            Plus tard ↗
+            {isEn ? 'Later ↗' : 'Plus tard ↗'}
           </button>
         </div>
         <div className="mb-8 flex items-center gap-2">
-          <StepDot n={1} active={step === 1} done={step > 1} label="Identité" />
+          <StepDot n={1} active={step === 1} done={step > 1} label={isEn ? 'Identity' : 'Identité'} />
           <span className="h-px flex-1 bg-white/10" />
-          <StepDot n={2} active={step === 2} done={step > 2} label="Logo & couleurs" />
+          <StepDot n={2} active={step === 2} done={step > 2} label={isEn ? 'Logo & colors' : 'Logo & couleurs'} />
           <span className="h-px flex-1 bg-white/10" />
           <StepDot n={3} active={step === 3} done={false} label="Signature" />
         </div>
@@ -306,24 +313,25 @@ export default function OnboardingSetupPage() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-violet-glow" />
-                Identité de ton entreprise
+                {isEn ? 'Your company identity' : 'Identité de ton entreprise'}
               </CardTitle>
               <CardDescription>
-                Ces infos apparaîtront sur tes contrats, factures et CRA. Tu pourras tout
-                modifier plus tard depuis Paramètres → Identité visuelle.
+                {isEn
+                  ? 'This information will appear on your contracts, invoices and timesheets. You can change everything later from Settings → Visual identity.'
+                  : 'Ces infos apparaîtront sur tes contrats, factures et CRA. Tu pourras tout modifier plus tard depuis Paramètres → Identité visuelle.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
-              <Section title="Marque (visible)">
+              <Section title={isEn ? 'Brand (visible)' : 'Marque (visible)'}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <Field label="Nom de marque">
+                  <Field label={isEn ? 'Brand name' : 'Nom de marque'}>
                     <Input
                       value={identity.brand_name}
                       onChange={(e) => setIdentity({ ...identity, brand_name: e.target.value })}
-                      placeholder="Ma Société"
+                      placeholder={isEn ? 'My Company' : 'Ma Société'}
                     />
                   </Field>
-                  <Field label="Tagline du footer">
+                  <Field label={isEn ? 'Footer tagline' : 'Tagline du footer'}>
                     <Input
                       value={identity.footer_tagline}
                       onChange={(e) => setIdentity({ ...identity, footer_tagline: e.target.value })}
@@ -333,9 +341,9 @@ export default function OnboardingSetupPage() {
                 </div>
               </Section>
 
-              <Section title="Identité légale">
+              <Section title={isEn ? 'Legal identity' : 'Identité légale'}>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <Field label="Forme juridique">
+                  <Field label={isEn ? 'Legal form' : 'Forme juridique'}>
                     <Combobox
                       value={identity.legal_form}
                       onChange={(v) => setIdentity({ ...identity, legal_form: v })}
@@ -350,7 +358,7 @@ export default function OnboardingSetupPage() {
                       ]}
                     />
                   </Field>
-                  <Field label="Capital social (€)">
+                  <Field label={isEn ? 'Share capital (€)' : 'Capital social (€)'}>
                     <Input
                       type="number"
                       min="0"
@@ -360,7 +368,7 @@ export default function OnboardingSetupPage() {
                       placeholder="10000"
                     />
                   </Field>
-                  <Field label="N° RCS">
+                  <Field label={isEn ? 'RCS No.' : 'N° RCS'}>
                     <Input
                       value={identity.rcs}
                       onChange={(e) => setIdentity({ ...identity, rcs: e.target.value })}
@@ -383,7 +391,7 @@ export default function OnboardingSetupPage() {
                       placeholder="12345678900012"
                     />
                   </Field>
-                  <Field label="N° TVA intracommunautaire">
+                  <Field label={isEn ? 'Intra-EU VAT No.' : 'N° TVA intracommunautaire'}>
                     <Input
                       value={identity.vat_number}
                       onChange={(e) => setIdentity({ ...identity, vat_number: e.target.value })}
@@ -393,9 +401,9 @@ export default function OnboardingSetupPage() {
                 </div>
               </Section>
 
-              <Section title="Adresse du siège">
+              <Section title={isEn ? 'Registered office address' : 'Adresse du siège'}>
                 <div className="grid grid-cols-1 gap-3">
-                  <Field label="Adresse">
+                  <Field label={isEn ? 'Address' : 'Adresse'}>
                     <Input
                       value={identity.address}
                       onChange={(e) => setIdentity({ ...identity, address: e.target.value })}
@@ -403,21 +411,21 @@ export default function OnboardingSetupPage() {
                     />
                   </Field>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <Field label="Code postal">
+                    <Field label={isEn ? 'Postal code' : 'Code postal'}>
                       <Input
                         value={identity.postal_code}
                         onChange={(e) => setIdentity({ ...identity, postal_code: e.target.value })}
                         placeholder="75001"
                       />
                     </Field>
-                    <Field label="Ville">
+                    <Field label={isEn ? 'City' : 'Ville'}>
                       <Input
                         value={identity.city}
                         onChange={(e) => setIdentity({ ...identity, city: e.target.value })}
                         placeholder="Paris"
                       />
                     </Field>
-                    <Field label="Pays (code 2)">
+                    <Field label={isEn ? 'Country (2-letter code)' : 'Pays (code 2)'}>
                       <Input
                         maxLength={3}
                         value={identity.country}
@@ -431,9 +439,9 @@ export default function OnboardingSetupPage() {
                 </div>
               </Section>
 
-              <Section title="Représentant légal (signataire des contrats)">
+              <Section title={isEn ? 'Legal representative (contract signatory)' : 'Représentant légal (signataire des contrats)'}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <Field label="Nom complet">
+                  <Field label={isEn ? 'Full name' : 'Nom complet'}>
                     <Input
                       value={identity.representative_name}
                       onChange={(e) =>
@@ -442,7 +450,7 @@ export default function OnboardingSetupPage() {
                       placeholder="Jean Dupont"
                     />
                   </Field>
-                  <Field label="Fonction">
+                  <Field label={isEn ? 'Title' : 'Fonction'}>
                     <Input
                       value={identity.representative_title}
                       onChange={(e) =>
@@ -457,7 +465,7 @@ export default function OnboardingSetupPage() {
               <div className="flex justify-end pt-2">
                 <Button onClick={saveIdentity} disabled={savingIdentity}>
                   {savingIdentity && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Suivant : logo & couleurs
+                  {isEn ? 'Next: logo & colors' : 'Suivant : logo & couleurs'}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -470,11 +478,14 @@ export default function OnboardingSetupPage() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Palette className="h-4 w-4 text-violet-glow" />
-                Logo & couleurs
+                {isEn ? 'Logo & colors' : 'Logo & couleurs'}
               </CardTitle>
               <CardDescription>
-                Le logo apparaît dans la sidebar, les CV générés, contrats et factures. Les
-                couleurs personnalisent toute l&apos;application.
+                {isEn ? (
+                  <>The logo appears in the sidebar, generated CVs, contracts and invoices. The colors personalize the whole app.</>
+                ) : (
+                  <>Le logo apparaît dans la sidebar, les CV générés, contrats et factures. Les couleurs personnalisent toute l&apos;application.</>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -513,31 +524,40 @@ export default function OnboardingSetupPage() {
                     ) : (
                       <Upload className="h-4 w-4" />
                     )}
-                    {logoUrl ? 'Remplacer le logo' : 'Téléverser un logo'}
+                    {logoUrl
+                      ? isEn
+                        ? 'Replace logo'
+                        : 'Remplacer le logo'
+                      : isEn
+                        ? 'Upload a logo'
+                        : 'Téléverser un logo'}
                   </Button>
                   <p className="text-[11px] text-muted-foreground max-w-[280px]">
-                    PNG transparent recommandé. Les couleurs ci-dessous seront extraites
-                    automatiquement de ton logo.
+                    {isEn
+                      ? 'Transparent PNG recommended. The colors below will be extracted automatically from your logo.'
+                      : 'PNG transparent recommandé. Les couleurs ci-dessous seront extraites automatiquement de ton logo.'}
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <ColorField
-                  label="Couleur principale"
+                  label={isEn ? 'Primary color' : 'Couleur principale'}
                   value={primary}
                   onChange={setPrimary}
                 />
-                <ColorField label="Couleur d'accent" value={accent} onChange={setAccent} />
+                <ColorField label={isEn ? 'Accent color' : "Couleur d'accent"} value={accent} onChange={setAccent} />
               </div>
 
               <div
                 className="rounded-md p-4 text-white"
                 style={{ background: `linear-gradient(135deg, ${primary} 0%, ${accent} 100%)` }}
               >
-                <div className="font-semibold">Aperçu</div>
+                <div className="font-semibold">{isEn ? 'Preview' : 'Aperçu'}</div>
                 <div className="text-xs opacity-80 mt-1">
-                  Voici comment tes deux couleurs apparaîtront en gradient.
+                  {isEn
+                    ? 'Here is how your two colors will appear as a gradient.'
+                    : 'Voici comment tes deux couleurs apparaîtront en gradient.'}
                 </div>
               </div>
 
@@ -551,11 +571,11 @@ export default function OnboardingSetupPage() {
                   }}
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
-                  Réinitialiser
+                  {isEn ? 'Reset' : 'Réinitialiser'}
                 </Button>
                 <Button onClick={saveColors} disabled={savingColors}>
                   {savingColors && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Suivant : signature
+                  {isEn ? 'Next: signature' : 'Suivant : signature'}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -568,11 +588,12 @@ export default function OnboardingSetupPage() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <PenLine className="h-4 w-4 text-violet-glow" />
-                Signature officielle (optionnel)
+                {isEn ? 'Official signature (optional)' : 'Signature officielle (optionnel)'}
               </CardTitle>
               <CardDescription>
-                Image (PNG transparent) qui sera incrustée sur tes contrats, CRA et factures
-                à la place du rendu texte par défaut.
+                {isEn
+                  ? 'Image (transparent PNG) that will be embedded on your contracts, timesheets and invoices in place of the default text rendering.'
+                  : 'Image (PNG transparent) qui sera incrustée sur tes contrats, CRA et factures à la place du rendu texte par défaut.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -587,7 +608,7 @@ export default function OnboardingSetupPage() {
                     />
                   ) : (
                     <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-400">
-                      Aucune signature
+                      {isEn ? 'No signature' : 'Aucune signature'}
                     </span>
                   )}
                 </div>
@@ -613,11 +634,18 @@ export default function OnboardingSetupPage() {
                     ) : (
                       <Upload className="h-4 w-4" />
                     )}
-                    {signatureUrl ? 'Remplacer' : 'Téléverser'}
+                    {signatureUrl
+                      ? isEn
+                        ? 'Replace'
+                        : 'Remplacer'
+                      : isEn
+                        ? 'Upload'
+                        : 'Téléverser'}
                   </Button>
                   <p className="text-[11px] text-muted-foreground max-w-[280px]">
-                    PNG transparent fortement recommandé. Si pas de signature image, un
-                    rendu texte stylisé est utilisé par défaut.
+                    {isEn
+                      ? 'Transparent PNG strongly recommended. If no signature image, a styled text rendering is used by default.'
+                      : 'PNG transparent fortement recommandé. Si pas de signature image, un rendu texte stylisé est utilisé par défaut.'}
                   </p>
                 </div>
               </div>
@@ -626,10 +654,19 @@ export default function OnboardingSetupPage() {
                 <div className="flex items-start gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-300 mt-0.5 shrink-0" />
                   <div>
-                    <div className="font-semibold text-emerald-200">Configuration prête</div>
+                    <div className="font-semibold text-emerald-200">{isEn ? 'Setup ready' : 'Configuration prête'}</div>
                     <div className="text-xs text-muted-foreground mt-0.5">
-                      Tu pourras à tout moment retoucher tout ça depuis{' '}
-                      <strong>Paramètres → Identité visuelle</strong>.
+                      {isEn ? (
+                        <>
+                          You can tweak all of this at any time from{' '}
+                          <strong>Settings → Visual identity</strong>.
+                        </>
+                      ) : (
+                        <>
+                          Tu pourras à tout moment retoucher tout ça depuis{' '}
+                          <strong>Paramètres → Identité visuelle</strong>.
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -637,10 +674,10 @@ export default function OnboardingSetupPage() {
 
               <div className="flex justify-between pt-2">
                 <Button variant="outline" onClick={() => setStep(2)}>
-                  Retour
+                  {isEn ? 'Back' : 'Retour'}
                 </Button>
                 <Button onClick={finish}>
-                  Accéder au dashboard
+                  {isEn ? 'Go to dashboard' : 'Accéder au dashboard'}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>

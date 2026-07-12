@@ -32,6 +32,7 @@ import { AssignMissionDialog } from '@/components/missions/AssignMissionDialog';
 import { useOrganization } from '@/lib/auth/context';
 import type { JobOffer, Consultant } from '@/types';
 import { CONSULTANT_STATUS_LABEL, CONSULTANT_STATUS_STYLE } from '@/constants';
+import { useConsultantStatusLabels } from '@/lib/i18n/useBadges';
 import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 
 function MatchingInner() {
@@ -39,6 +40,7 @@ function MatchingInner() {
   const t = useAppT();
   const { locale } = useLocale();
   const isEn = locale === 'en';
+  const consultantStatusLabels = useConsultantStatusLabels();
   const { format: formatCurrency } = useCurrency();
   const searchParams = useSearchParams();
   const [offerId, setOfferId] = useState<string>('');
@@ -335,7 +337,7 @@ function MatchingInner() {
                           variant="outline"
                           className={CONSULTANT_STATUS_STYLE[statusKey]}
                         >
-                          {CONSULTANT_STATUS_LABEL[statusKey]}
+                          {consultantStatusLabels[statusKey] ?? CONSULTANT_STATUS_LABEL[statusKey]}
                         </Badge>
                       )}
                       <Badge variant="outline">{formatCurrency(c.daily_rate_eur ?? 0)}</Badge>

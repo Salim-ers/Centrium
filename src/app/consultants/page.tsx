@@ -230,16 +230,16 @@ function ConsultantsPageInner() {
 
   async function handleBulkArchive() {
     if (bulkSel.selectedCount === 0) return;
-    if (!confirm(`Archiver ${bulkSel.selectedCount} consultant${bulkSel.selectedCount > 1 ? 's' : ''} ?`)) return;
+    if (!confirm(isEn ? `Archive ${bulkSel.selectedCount} consultant${bulkSel.selectedCount > 1 ? 's' : ''}?` : `Archiver ${bulkSel.selectedCount} consultant${bulkSel.selectedCount > 1 ? 's' : ''} ?`)) return;
     setBulkBusy(true);
     const ids = [...bulkSel.selected];
     const res = await consultantService.archiveMany(ids);
     setBulkBusy(false);
     if (res.error) {
-      notifyError('Erreur : ' + res.error.message);
+      notifyError((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
       return;
     }
-    notifyCreated(`${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} archivé${(res.data ?? ids.length) > 1 ? 's' : ''}`);
+    notifyCreated(isEn ? `${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} archived` : `${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} archivé${(res.data ?? ids.length) > 1 ? 's' : ''}`);
     bulkSel.clear();
     bumpUsage();
     void reload();
@@ -252,10 +252,10 @@ function ConsultantsPageInner() {
     const res = await consultantService.unarchiveMany(ids);
     setBulkBusy(false);
     if (res.error) {
-      notifyError('Erreur : ' + res.error.message);
+      notifyError((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
       return;
     }
-    notifyCreated(`${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} restauré${(res.data ?? ids.length) > 1 ? 's' : ''}`);
+    notifyCreated(isEn ? `${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} restored` : `${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} restauré${(res.data ?? ids.length) > 1 ? 's' : ''}`);
     bulkSel.clear();
     bumpUsage();
     void reload();
@@ -265,7 +265,9 @@ function ConsultantsPageInner() {
     if (bulkSel.selectedCount === 0) return;
     if (
       !confirm(
-        `Supprimer DÉFINITIVEMENT ${bulkSel.selectedCount} consultant${bulkSel.selectedCount > 1 ? 's' : ''} ? Cette action est irréversible.`,
+        isEn
+          ? `PERMANENTLY delete ${bulkSel.selectedCount} consultant${bulkSel.selectedCount > 1 ? 's' : ''}? This action is irreversible.`
+          : `Supprimer DÉFINITIVEMENT ${bulkSel.selectedCount} consultant${bulkSel.selectedCount > 1 ? 's' : ''} ? Cette action est irréversible.`,
       )
     )
       return;
@@ -274,10 +276,10 @@ function ConsultantsPageInner() {
     const res = await consultantService.deleteMany(ids);
     setBulkBusy(false);
     if (res.error) {
-      notifyError('Erreur : ' + res.error.message);
+      notifyError((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
       return;
     }
-    notifyDestructive(`${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} supprimé${(res.data ?? ids.length) > 1 ? 's' : ''}`);
+    notifyDestructive(isEn ? `${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} deleted` : `${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} supprimé${(res.data ?? ids.length) > 1 ? 's' : ''}`);
     bulkSel.clear();
     bumpUsage();
     void reload();
@@ -307,7 +309,7 @@ function ConsultantsPageInner() {
     );
     const res = await consultantService.update(consultantId, { status: next });
     if (res.error) {
-      notifyError('Mise à jour du statut impossible : ' + res.error.message);
+      notifyError((isEn ? 'Could not update status: ' : 'Mise à jour du statut impossible : ') + res.error.message);
       if (previousStatus !== null) {
         const rollback = previousStatus;
         setConsultants((list) =>
@@ -318,17 +320,19 @@ function ConsultantsPageInner() {
   }
 
   async function archiveConsultant(consultant: Consultant) {
-    const displayName = `${consultant.first_name ?? ''} ${consultant.last_name ?? ''}`.trim() || 'ce consultant';
+    const displayName = `${consultant.first_name ?? ''} ${consultant.last_name ?? ''}`.trim() || (isEn ? 'this consultant' : 'ce consultant');
     if (
       !confirm(
-        `Archiver ${displayName} ? Le profil disparaît de la liste mais ses données (CV, CRA, factures) sont conservées.`,
+        isEn
+          ? `Archive ${displayName}? The profile disappears from the list but its data (CV, timesheets, invoices) is kept.`
+          : `Archiver ${displayName} ? Le profil disparaît de la liste mais ses données (CV, CRA, factures) sont conservées.`,
       )
     ) {
       return;
     }
     const res = await consultantService.archive(consultant.id);
     if (res.error) {
-      notifyError('Erreur : ' + res.error.message);
+      notifyError((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
       return;
     }
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
@@ -338,7 +342,7 @@ function ConsultantsPageInner() {
   async function unarchiveConsultant(consultant: Consultant) {
     const res = await consultantService.unarchive(consultant.id);
     if (res.error) {
-      notifyError('Erreur : ' + res.error.message);
+      notifyError((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
       return;
     }
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
@@ -349,27 +353,33 @@ function ConsultantsPageInner() {
     const fullName = `${consultant.first_name} ${consultant.last_name}`;
     if (
       !confirm(
-        `⚠️ Suppression DÉFINITIVE de ${fullName} et de toutes ses données (CV, expériences, formations, compétences, documents).\n\nCette action est IRRÉVERSIBLE. Continuer ?`,
+        isEn
+          ? `⚠️ PERMANENT deletion of ${fullName} and all their data (CV, experiences, education, skills, documents).\n\nThis action is IRREVERSIBLE. Continue?`
+          : `⚠️ Suppression DÉFINITIVE de ${fullName} et de toutes ses données (CV, expériences, formations, compétences, documents).\n\nCette action est IRRÉVERSIBLE. Continuer ?`,
       )
     ) {
       return;
     }
     const typed = prompt(
-      `Pour confirmer, tape exactement le nom complet du consultant :\n${fullName}`,
+      isEn
+        ? `To confirm, type the consultant's full name exactly:\n${fullName}`
+        : `Pour confirmer, tape exactement le nom complet du consultant :\n${fullName}`,
     );
     if (typed?.trim() !== fullName) {
-      notifyError('Confirmation incorrecte — suppression annulée.');
+      notifyError(isEn ? 'Incorrect confirmation — deletion cancelled.' : 'Confirmation incorrecte — suppression annulée.');
       return;
     }
     const res = await consultantService.delete(consultant.id);
     if (res.error) {
       const msg = /foreign key|violates foreign|reference/i.test(res.error.message)
-        ? `Impossible : ${fullName} a des CRA, factures ou contrats liés. Supprime-les d'abord.`
-        : 'Erreur : ' + res.error.message;
+        ? isEn
+          ? `Not possible: ${fullName} has linked timesheets, invoices or contracts. Delete them first.`
+          : `Impossible : ${fullName} a des CRA, factures ou contrats liés. Supprime-les d'abord.`
+        : (isEn ? 'Error: ' : 'Erreur : ') + res.error.message;
       notifyError(msg);
       return;
     }
-    notifyDestructive(`${fullName} supprimé définitivement`);
+    notifyDestructive(isEn ? `${fullName} permanently deleted` : `${fullName} supprimé définitivement`);
     setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
     bumpUsage();
   }

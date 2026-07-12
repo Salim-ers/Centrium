@@ -239,7 +239,7 @@ export default function FacturationSettingsPage() {
                 <Field
                   id="address"
                   label={isEn ? 'Address' : 'Adresse'}
-                  placeholder="12 rue de la République"
+                  placeholder={isEn ? '12 Republic Street' : '12 rue de la République'}
                   value={val('address')}
                   onChange={setText('address')}
                   disabled={!isAdmin}

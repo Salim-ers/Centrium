@@ -9,6 +9,7 @@ import { Loader2, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 type EnrolledFactor = {
   factor_id: string;
@@ -17,6 +18,8 @@ type EnrolledFactor = {
 };
 
 export function MfaEnrollForm({ next }: { next: string }) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const router = useRouter();
   const [factor, setFactor] = useState<EnrolledFactor | null>(null);
   const [code, setCode] = useState('');
@@ -34,12 +37,12 @@ export function MfaEnrollForm({ next }: { next: string }) {
         const json = await res.json();
         if (cancelled) return;
         if (!res.ok) {
-          setError(json.error ?? 'Échec de la génération du QR code.');
+          setError(json.error ?? (isEn ? 'Failed to generate the QR code.' : 'Échec de la génération du QR code.'));
           return;
         }
         setFactor(json.data);
       } catch {
-        if (!cancelled) setError('Erreur réseau. Rechargez la page.');
+        if (!cancelled) setError(isEn ? 'Network error. Please reload the page.' : 'Erreur réseau. Rechargez la page.');
       } finally {
         if (!cancelled) setEnrolling(false);
       }
@@ -57,7 +60,7 @@ export function MfaEnrollForm({ next }: { next: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Impossible de copier');
+      toast.error(isEn ? 'Unable to copy' : 'Impossible de copier');
     }
   }
 
@@ -68,7 +71,7 @@ export function MfaEnrollForm({ next }: { next: string }) {
 
     const trimmed = code.replace(/\D/g, '');
     if (trimmed.length !== 6) {
-      setError('Le code doit contenir 6 chiffres.');
+      setError(isEn ? 'The code must contain 6 digits.' : 'Le code doit contenir 6 chiffres.');
       return;
     }
 
@@ -81,14 +84,14 @@ export function MfaEnrollForm({ next }: { next: string }) {
         });
         const json = await res.json();
         if (!res.ok) {
-          setError(json.message ?? json.error ?? 'Code invalide.');
+          setError(json.message ?? json.error ?? (isEn ? 'Invalid code.' : 'Code invalide.'));
           return;
         }
-        toast.success('MFA activé');
+        toast.success(isEn ? 'MFA enabled' : 'MFA activé');
         router.push(next);
         router.refresh();
       } catch {
-        setError('Erreur réseau. Réessayez.');
+        setError(isEn ? 'Network error. Please try again.' : 'Erreur réseau. Réessayez.');
       }
     });
   }
@@ -97,7 +100,7 @@ export function MfaEnrollForm({ next }: { next: string }) {
     return (
       <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin mr-2" />
-        Génération du QR code…
+        {isEn ? 'Generating the QR code…' : 'Génération du QR code…'}
       </div>
     );
   }
@@ -105,7 +108,7 @@ export function MfaEnrollForm({ next }: { next: string }) {
   if (!factor) {
     return (
       <p className="text-sm text-rose-400">
-        {error ?? 'Impossible de générer le QR code. Rechargez la page.'}
+        {error ?? (isEn ? 'Unable to generate the QR code. Please reload the page.' : 'Impossible de générer le QR code. Rechargez la page.')}
       </p>
     );
   }
@@ -114,7 +117,7 @@ export function MfaEnrollForm({ next }: { next: string }) {
     <div className="space-y-6">
       {/* Étape 1 : scan QR */}
       <div>
-        <h2 className="text-sm font-semibold mb-2">1. Scannez le QR code</h2>
+        <h2 className="text-sm font-semibold mb-2">{isEn ? '1. Scan the QR code' : '1. Scannez le QR code'}</h2>
         <div className="rounded-lg bg-white p-4 inline-block">
           <Image
             src={factor.qr_code}
@@ -125,7 +128,7 @@ export function MfaEnrollForm({ next }: { next: string }) {
           />
         </div>
         <div className="mt-3">
-          <p className="text-xs text-muted-foreground mb-1">Ou saisie manuelle (secret) :</p>
+          <p className="text-xs text-muted-foreground mb-1">{isEn ? 'Or enter manually (secret):' : 'Ou saisie manuelle (secret) :'}</p>
           <button
             type="button"
             onClick={handleCopySecret}
@@ -145,7 +148,9 @@ export function MfaEnrollForm({ next }: { next: string }) {
       <form onSubmit={handleVerify} className="space-y-3">
         <div className="space-y-1.5">
           <Label htmlFor="enroll-code">
-            2. Entrez le code à 6 chiffres affiché dans votre app
+            {isEn
+              ? '2. Enter the 6-digit code shown in your app'
+              : '2. Entrez le code à 6 chiffres affiché dans votre app'}
           </Label>
           <Input
             id="enroll-code"
@@ -166,10 +171,10 @@ export function MfaEnrollForm({ next }: { next: string }) {
           {pending ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Activation…
+              {isEn ? 'Enabling…' : 'Activation…'}
             </>
           ) : (
-            'Activer le MFA'
+            isEn ? 'Enable MFA' : 'Activer le MFA'
           )}
         </Button>
       </form>

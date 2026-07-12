@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/card';
 import { organizationSchema, type OrganizationInput } from '@/lib/validators';
 import { useOrganization } from '@/lib/auth/context';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 type PendingInvite = {
   token: string;
@@ -31,6 +32,8 @@ type PendingInvite = {
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const { reload } = useOrganization();
   const [loading, setLoading] = useState(false);
   const [pendingInvite, setPendingInvite] = useState<PendingInvite | null>(null);
@@ -99,11 +102,11 @@ export default function OnboardingPage() {
       clearTimeout(timeoutId);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        toast.error(body.message ?? 'Création impossible');
+        toast.error(body.message ?? (isEn ? 'Creation failed' : 'Création impossible'));
         setLoading(false);
         return;
       }
-      toast.success('Organisation créée 🎉');
+      toast.success(isEn ? 'Organization created 🎉' : 'Organisation créée 🎉');
       // Ne pas bloquer la navigation sur reload() — si le contexte stall,
       // le /onboarding/setup re-chargera son propre état via son provider.
       void reload().catch(() => undefined);
@@ -114,9 +117,9 @@ export default function OnboardingPage() {
     } catch (e) {
       clearTimeout(timeoutId);
       if ((e as Error).name === 'AbortError') {
-        toast.error('Délai dépassé — réessaie dans un instant');
+        toast.error(isEn ? 'Timed out — try again in a moment' : 'Délai dépassé — réessaie dans un instant');
       } else {
-        toast.error('Erreur réseau');
+        toast.error(isEn ? 'Network error' : 'Erreur réseau');
       }
       setLoading(false);
     }
@@ -150,7 +153,7 @@ export default function OnboardingPage() {
         className="absolute top-6 left-6 z-20 inline-flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        Retour à l&apos;accueil
+        {isEn ? 'Back to home' : <>Retour à l&apos;accueil</>}
       </Link>
 
       {/* Logout — pour utiliser un autre compte si on est bloqué ici */}
@@ -160,7 +163,7 @@ export default function OnboardingPage() {
           className="inline-flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition"
         >
           <LogOut className="h-3.5 w-3.5" />
-          Se déconnecter
+          {isEn ? 'Sign out' : 'Se déconnecter'}
         </button>
       </form>
 
@@ -174,13 +177,24 @@ export default function OnboardingPage() {
               </div>
               <div className="flex-1">
                 <div className="text-sm font-semibold text-emerald-200">
-                  Invitation détectée
+                  {isEn ? 'Invitation detected' : 'Invitation détectée'}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Tu as été invité à rejoindre{' '}
-                  <strong className="text-foreground">{pendingInvite.organization_name}</strong>{' '}
-                  en tant que <strong className="text-foreground">{pendingInvite.role}</strong>.
-                  Pas besoin de créer une nouvelle organisation.
+                  {isEn ? (
+                    <>
+                      You have been invited to join{' '}
+                      <strong className="text-foreground">{pendingInvite.organization_name}</strong>{' '}
+                      as <strong className="text-foreground">{pendingInvite.role}</strong>.
+                      No need to create a new organization.
+                    </>
+                  ) : (
+                    <>
+                      Tu as été invité à rejoindre{' '}
+                      <strong className="text-foreground">{pendingInvite.organization_name}</strong>{' '}
+                      en tant que <strong className="text-foreground">{pendingInvite.role}</strong>.
+                      Pas besoin de créer une nouvelle organisation.
+                    </>
+                  )}
                 </p>
                 <Button
                   size="sm"
@@ -189,7 +203,7 @@ export default function OnboardingPage() {
                   disabled={loading}
                 >
                   {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Rejoindre {pendingInvite.organization_name}
+                  {isEn ? 'Join ' : 'Rejoindre '}{pendingInvite.organization_name}
                 </Button>
               </div>
             </div>
@@ -203,11 +217,29 @@ export default function OnboardingPage() {
             </div>
           </div>
           <CardTitle className="text-xl font-display">
-            {pendingInvite ? 'Ou crée une nouvelle organisation' : 'Crée ton organisation'}
+            {pendingInvite
+              ? isEn
+                ? 'Or create a new organization'
+                : 'Ou crée une nouvelle organisation'
+              : isEn
+                ? 'Create your organization'
+                : 'Crée ton organisation'}
           </CardTitle>
           <CardDescription>
             {pendingInvite ? (
-              <>Tu peux aussi créer ta propre ESN si l&apos;invitation ci-dessus ne te concerne pas.</>
+              isEn ? (
+                <>You can also create your own company if the invitation above doesn&apos;t concern you.</>
+              ) : (
+                <>Tu peux aussi créer ta propre ESN si l&apos;invitation ci-dessus ne te concerne pas.</>
+              )
+            ) : isEn ? (
+              <>
+                One organization = one company. You will be its admin.
+                <br />
+                <span className="text-[11px] text-violet-300/80 inline-flex items-center gap-1 mt-1">
+                  <Sparkles className="h-3 w-3" /> 7-day free trial, no credit card required
+                </span>
+              </>
             ) : (
               <>
                 Une organisation = une ESN. Tu en seras admin.
@@ -222,10 +254,10 @@ export default function OnboardingPage() {
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="name">Nom de l&apos;organisation</Label>
+              <Label htmlFor="name">{isEn ? 'Organization name' : <>Nom de l&apos;organisation</>}</Label>
               <Input
                 id="name"
-                placeholder="Mon ESN SA"
+                placeholder={isEn ? 'My Company Inc.' : 'Mon ESN SA'}
                 {...register('name', {
                   onChange: (e) => {
                     const v = e.target.value;
@@ -236,29 +268,29 @@ export default function OnboardingPage() {
               {errors.name && <p className="text-xs text-red-400">{errors.name.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="slug">Identifiant (URL)</Label>
+              <Label htmlFor="slug">{isEn ? 'Identifier (URL)' : 'Identifiant (URL)'}</Label>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-muted-foreground">centrium-platform.com/</span>
                 <Input id="slug" {...register('slug')} />
               </div>
               {errors.slug && <p className="text-xs text-red-400">{errors.slug.message}</p>}
               <p className="text-[10px] text-muted-foreground">
-                Auto-généré depuis le nom, modifiable.
+                {isEn ? 'Auto-generated from the name, editable.' : 'Auto-généré depuis le nom, modifiable.'}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="city">Ville (optionnel)</Label>
+                <Label htmlFor="city">{isEn ? 'City (optional)' : 'Ville (optionnel)'}</Label>
                 <Input id="city" placeholder="Paris" {...register('city')} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="siren">SIREN (optionnel)</Label>
+                <Label htmlFor="siren">{isEn ? 'SIREN (optional)' : 'SIREN (optionnel)'}</Label>
                 <Input id="siren" placeholder="123456789" {...register('siren')} />
               </div>
             </div>
             <Button type="submit" className="w-full" disabled={loading || !name}>
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              Créer l&apos;organisation
+              {isEn ? 'Create organization' : <>Créer l&apos;organisation</>}
             </Button>
           </form>
         </CardContent>

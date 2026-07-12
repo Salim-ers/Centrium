@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 // =========================================================================
 // Activation d'une invitation d'équipe SANS session.
@@ -28,6 +29,8 @@ import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 type Phase = 'idle' | 'sending' | 'sent' | 'error';
 
 export function InviteActivationCard({ token }: { token: string }) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [phase, setPhase] = useState<Phase>('idle');
   const [maskedEmail, setMaskedEmail] = useState<string | null>(null);
   const [orgName, setOrgName] = useState<string | null>(null);
@@ -45,7 +48,10 @@ export function InviteActivationCard({ token }: { token: string }) {
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         setErrorMsg(
-          body.message ?? 'Envoi impossible pour le moment — réessaie dans quelques minutes.',
+          body.message ??
+            (isEn
+              ? 'Unable to send right now — try again in a few minutes.'
+              : 'Envoi impossible pour le moment — réessaie dans quelques minutes.'),
         );
         setPhase('error');
         return;
@@ -54,7 +60,11 @@ export function InviteActivationCard({ token }: { token: string }) {
       setOrgName(body.data?.organization_name ?? null);
       setPhase('sent');
     } catch {
-      setErrorMsg('Erreur réseau — vérifie ta connexion puis réessaie.');
+      setErrorMsg(
+        isEn
+          ? 'Network error — check your connection then try again.'
+          : 'Erreur réseau — vérifie ta connexion puis réessaie.',
+      );
       setPhase('error');
     }
   }
@@ -77,21 +87,48 @@ export function InviteActivationCard({ token }: { token: string }) {
             </div>
           </div>
           <CardTitle className="text-xl">
-            {phase === 'sent' ? 'Email envoyé !' : 'Active ton invitation'}
+            {phase === 'sent'
+              ? isEn
+                ? 'Email sent!'
+                : 'Email envoyé !'
+              : isEn
+                ? 'Activate your invitation'
+                : 'Active ton invitation'}
           </CardTitle>
           <CardDescription>
             {phase === 'sent' ? (
+              isEn ? (
+                <>
+                  An activation link has just been sent to{' '}
+                  <strong className="text-foreground">{maskedEmail ?? 'your address'}</strong>
+                  {orgName ? (
+                    <>
+                      {' '}
+                      to join <strong className="text-foreground">{orgName}</strong>
+                    </>
+                  ) : null}
+                  . Click the link in the email to create your password — remember to
+                  check your spam folder.
+                </>
+              ) : (
+                <>
+                  Un lien d&apos;activation vient d&apos;être envoyé à{' '}
+                  <strong className="text-foreground">{maskedEmail ?? 'ton adresse'}</strong>
+                  {orgName ? (
+                    <>
+                      {' '}
+                      pour rejoindre <strong className="text-foreground">{orgName}</strong>
+                    </>
+                  ) : null}
+                  . Clique sur le lien dans l&apos;email pour créer ton mot de passe —
+                  pense à vérifier tes spams.
+                </>
+              )
+            ) : isEn ? (
               <>
-                Un lien d&apos;activation vient d&apos;être envoyé à{' '}
-                <strong className="text-foreground">{maskedEmail ?? 'ton adresse'}</strong>
-                {orgName ? (
-                  <>
-                    {' '}
-                    pour rejoindre <strong className="text-foreground">{orgName}</strong>
-                  </>
-                ) : null}
-                . Clique sur le lien dans l&apos;email pour créer ton mot de passe —
-                pense à vérifier tes spams.
+                For security reasons, your account must be activated from the link
+                received by email. Click below to (re)receive this email — it
+                establishes your session then takes you to create your password.
               </>
             ) : (
               <>
@@ -110,7 +147,13 @@ export function InviteActivationCard({ token }: { token: string }) {
               ) : (
                 <MailQuestion className="h-4 w-4" />
               )}
-              {phase === 'sending' ? 'Envoi en cours…' : "M'envoyer le lien d'activation"}
+              {phase === 'sending'
+                ? isEn
+                  ? 'Sending…'
+                  : 'Envoi en cours…'
+                : isEn
+                  ? 'Send me the activation link'
+                  : "M'envoyer le lien d'activation"}
             </Button>
           )}
           {phase === 'sent' && (
@@ -119,16 +162,16 @@ export function InviteActivationCard({ token }: { token: string }) {
               className="w-full"
               onClick={sendActivation}
             >
-              Renvoyer l&apos;email
+              {isEn ? 'Resend the email' : <>Renvoyer l&apos;email</>}
             </Button>
           )}
           {errorMsg && (
             <p className="text-xs text-rose-400 text-center leading-relaxed">{errorMsg}</p>
           )}
           <p className="text-center text-xs text-muted-foreground">
-            Déjà un compte ?{' '}
+            {isEn ? 'Already have an account? ' : 'Déjà un compte ? '}
             <Link href="/login" className="text-magenta hover:underline">
-              Se connecter
+              {isEn ? 'Sign in' : 'Se connecter'}
             </Link>
           </p>
         </CardContent>

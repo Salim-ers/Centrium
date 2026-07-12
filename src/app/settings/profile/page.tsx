@@ -484,7 +484,7 @@ export default function MyProfilePage() {
                   <Input
                     value={personal.address ?? ''}
                     onChange={(e) => setField('address', e.target.value)}
-                    placeholder="12 rue de la République"
+                    placeholder={isEn ? '12 Republic Street' : '12 rue de la République'}
                   />
                 </div>
                 <div>

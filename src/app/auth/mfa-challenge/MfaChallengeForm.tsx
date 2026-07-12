@@ -8,6 +8,7 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 export function MfaChallengeForm({
   factorId,
@@ -16,6 +17,8 @@ export function MfaChallengeForm({
   factorId: string;
   next: string;
 }) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const router = useRouter();
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +30,7 @@ export function MfaChallengeForm({
 
     const trimmed = code.replace(/\D/g, '');
     if (trimmed.length !== 6) {
-      setError('Le code doit contenir 6 chiffres.');
+      setError(isEn ? 'The code must contain 6 digits.' : 'Le code doit contenir 6 chiffres.');
       return;
     }
 
@@ -40,14 +43,14 @@ export function MfaChallengeForm({
         });
         const json = await res.json();
         if (!res.ok) {
-          setError(json.message ?? json.error ?? 'Code invalide.');
+          setError(json.message ?? json.error ?? (isEn ? 'Invalid code.' : 'Code invalide.'));
           return;
         }
-        toast.success('MFA validé');
+        toast.success(isEn ? 'MFA verified' : 'MFA validé');
         router.push(next);
         router.refresh();
       } catch {
-        setError('Erreur réseau. Réessayez.');
+        setError(isEn ? 'Network error. Please try again.' : 'Erreur réseau. Réessayez.');
       }
     });
   }
@@ -55,7 +58,7 @@ export function MfaChallengeForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="mfa-code">Code à 6 chiffres</Label>
+        <Label htmlFor="mfa-code">{isEn ? '6-digit code' : 'Code à 6 chiffres'}</Label>
         <Input
           id="mfa-code"
           inputMode="numeric"
@@ -75,10 +78,10 @@ export function MfaChallengeForm({
         {pending ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Validation…
+            {isEn ? 'Verifying…' : 'Validation…'}
           </>
         ) : (
-          'Valider'
+          isEn ? 'Verify' : 'Valider'
         )}
       </Button>
     </form>
