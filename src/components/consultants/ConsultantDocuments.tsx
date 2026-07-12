@@ -7,6 +7,7 @@ import { FileText, Upload, Trash2, Download, Loader2, Sparkles } from 'lucide-re
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/Combobox';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { createClient } from '@/lib/supabase/client';
 import { formatDate } from '@/lib/utils';
 import { extractTextFromFile } from '@/lib/cv/extract-text';
@@ -38,6 +39,23 @@ const DOC_KIND_LABEL: Record<string, string> = {
   contract: 'Contrat',
   other: 'Autre',
 };
+
+const DOC_KIND_LABEL_EN: Record<string, string> = {
+  cv_source: 'Source CV',
+  cv_generated: 'Generated CV',
+  certification: 'Certification',
+  id: 'ID document',
+  id_card: 'ID document',
+  kbis: 'Kbis extract',
+  rc_pro: 'Professional liability cert.',
+  rib: 'Bank details',
+  contract: 'Contract',
+  other: 'Other',
+};
+
+function docKindLabel(kind: string, isEn: boolean): string {
+  return (isEn ? DOC_KIND_LABEL_EN[kind] : DOC_KIND_LABEL[kind]) ?? kind;
+}
 
 // Taille maximale par fichier — au-delà, on refuse côté client (un fichier de
 // plusieurs Go bloquerait le worker et saturerait le stockage).
@@ -104,6 +122,8 @@ async function extractWithServerFallback(file: File): Promise<string> {
 }
 
 export function ConsultantDocuments({ consultantId, organizationId, onProfileUpdated }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [docs, setDocs] = useState<DocRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -132,14 +152,17 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
 
     // Garde-fou taille (par fichier).
     if (file.size > MAX_DOC_BYTES) {
+      const mb = (file.size / 1024 / 1024).toFixed(1);
       toast.error(
-        `Fichier trop volumineux (${(file.size / 1024 / 1024).toFixed(1)} Mo). Limite : 20 Mo par fichier.`,
+        isEn
+          ? `File too large (${mb} MB). Limit: 20 MB per file.`
+          : `Fichier trop volumineux (${mb} Mo). Limite : 20 Mo par fichier.`,
       );
       if (inputRef.current) inputRef.current.value = '';
       return;
     }
     if (file.size === 0) {
-      toast.error('Fichier vide.');
+      toast.error(isEn ? 'Empty file.' : 'Fichier vide.');
       if (inputRef.current) inputRef.current.value = '';
       return;
     }
@@ -150,7 +173,9 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
       const current = docs.filter((d) => d.kind === kind).length;
       if (current >= max) {
         toast.error(
-          `Limite atteinte pour « ${DOC_KIND_LABEL[kind]} » : ${max} fichier${max > 1 ? 's' : ''} maximum. Supprime un fichier existant pour en ajouter un autre.`,
+          isEn
+            ? `Limit reached for « ${docKindLabel(kind, true)} »: ${max} file${max > 1 ? 's' : ''} max. Delete an existing file to add another.`
+            : `Limite atteinte pour « ${docKindLabel(kind, false)} » : ${max} fichier${max > 1 ? 's' : ''} maximum. Supprime un fichier existant pour en ajouter un autre.`,
         );
         if (inputRef.current) inputRef.current.value = '';
         return;
@@ -163,7 +188,7 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
       const { data: userRes } = await supabase.auth.getUser();
       const userId = userRes.user?.id;
       if (!userId) {
-        toast.error('Session expirée');
+        toast.error(isEn ? 'Session expired' : 'Session expirée');
         return;
       }
 
@@ -175,7 +200,7 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
         upsert: false,
       });
       if (up.error) {
-        toast.error('Upload échoué : ' + up.error.message);
+        toast.error((isEn ? 'Upload failed: ' : 'Upload échoué : ') + up.error.message);
         return;
       }
 
@@ -189,12 +214,12 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
         uploaded_by: userId,
       });
       if (ins.error) {
-        toast.error('Enregistrement échoué : ' + ins.error.message);
+        toast.error((isEn ? 'Save failed: ' : 'Enregistrement échoué : ') + ins.error.message);
         await supabase.storage.from(BUCKET).remove([path]);
         return;
       }
 
-      toast.success('Document ajouté');
+      toast.success(isEn ? 'Document added' : 'Document ajouté');
       reload();
 
       // Auto-extraction si c'est un CV source
@@ -337,16 +362,16 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
   }
 
   async function deleteDoc(doc: DocRow) {
-    if (!confirm(`Supprimer ${doc.file_name} ?`)) return;
+    if (!confirm(isEn ? `Delete ${doc.file_name}?` : `Supprimer ${doc.file_name} ?`)) return;
     const supabase = createClient();
     const [storageRes, dbRes] = await Promise.all([
       supabase.storage.from(BUCKET).remove([doc.storage_path]),
       supabase.from('consultant_documents').delete().eq('id', doc.id),
     ]);
     if (storageRes.error || dbRes.error) {
-      toast.error('Suppression partielle');
+      toast.error(isEn ? 'Partial deletion' : 'Suppression partielle');
     } else {
-      toast.success('Document supprimé');
+      toast.success(isEn ? 'Document deleted' : 'Document supprimé');
     }
     reload();
   }
@@ -356,24 +381,24 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <FileText className="h-5 w-5 text-violet-glow" />
-          Documents &amp; CV source
+          {isEn ? 'Documents & source CV' : 'Documents & CV source'}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-end gap-2 flex-wrap">
           <div className="flex-1 min-w-[160px]">
             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              Type
+              {isEn ? 'Type' : 'Type'}
             </label>
             <Combobox
               value={kind}
               onChange={(v) => setKind(v)}
               options={[
-                { value: 'cv_source', label: 'CV source' },
-                { value: 'certification', label: 'Certification' },
-                { value: 'id', label: "Pièce d'identité" },
-                { value: 'contract', label: 'Contrat' },
-                { value: 'other', label: 'Autre' },
+                { value: 'cv_source', label: docKindLabel('cv_source', isEn) },
+                { value: 'certification', label: docKindLabel('certification', isEn) },
+                { value: 'id', label: docKindLabel('id', isEn) },
+                { value: 'contract', label: docKindLabel('contract', isEn) },
+                { value: 'other', label: docKindLabel('other', isEn) },
               ]}
             />
           </div>
@@ -387,7 +412,11 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
             ) : (
               <Upload className="h-4 w-4" />
             )}
-            {uploading ? 'Upload…' : parsing ? 'Analyse…' : 'Ajouter un fichier'}
+            {uploading
+              ? isEn ? 'Uploading…' : 'Upload…'
+              : parsing
+                ? isEn ? 'Analyzing…' : 'Analyse…'
+                : isEn ? 'Add a file' : 'Ajouter un fichier'}
           </Button>
           <input
             ref={inputRef}
@@ -401,15 +430,16 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
         <p className="text-[11px] text-muted-foreground">
           {DOC_KIND_MAX[kind] != null ? (
             <>
-              {DOC_KIND_LABEL[kind]} :{' '}
+              {docKindLabel(kind, isEn)} :{' '}
               <span className="text-foreground/80">
-                {docs.filter((d) => d.kind === kind).length} / {DOC_KIND_MAX[kind]} fichier
+                {docs.filter((d) => d.kind === kind).length} / {DOC_KIND_MAX[kind]}{' '}
+                {isEn ? 'file' : 'fichier'}
                 {DOC_KIND_MAX[kind]! > 1 ? 's' : ''}
               </span>{' '}
-              · 20 Mo max par fichier
+              · {isEn ? '20 MB max per file' : '20 Mo max par fichier'}
             </>
           ) : (
-            <>20 Mo max par fichier</>
+            <>{isEn ? '20 MB max per file' : '20 Mo max par fichier'}</>
           )}
         </p>
 
@@ -417,12 +447,25 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
           <div className="flex items-start gap-2 p-2.5 rounded-lg border border-violet-glow/20 bg-violet-glow/5">
             <Sparkles className="h-3.5 w-3.5 text-violet-glow shrink-0 mt-0.5" />
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              À l&apos;upload d&apos;un <strong className="text-foreground">CV source</strong>,
-              Claude (Sonnet 4.6) extrait automatiquement résumé, compétences, expériences,
-              formation et langues — et enrichit la fiche consultant.
-              <br />
-              Fonctionne sur PDF/DOCX texte (pas les CV scannés en image). Fallback heuristique si
-              <code className="mx-1 px-1 rounded bg-white/5">ANTHROPIC_API_KEY</code> absente.
+              {isEn ? (
+                <>
+                  When you upload a <strong className="text-foreground">source CV</strong>, Claude
+                  (Sonnet 4.6) automatically extracts summary, skills, experiences, education and
+                  languages — and enriches the consultant profile.
+                  <br />
+                  Works on text PDF/DOCX (not scanned image CVs). Heuristic fallback if
+                  <code className="mx-1 px-1 rounded bg-white/5">ANTHROPIC_API_KEY</code> is missing.
+                </>
+              ) : (
+                <>
+                  À l&apos;upload d&apos;un <strong className="text-foreground">CV source</strong>,
+                  Claude (Sonnet 4.6) extrait automatiquement résumé, compétences, expériences,
+                  formation et langues — et enrichit la fiche consultant.
+                  <br />
+                  Fonctionne sur PDF/DOCX texte (pas les CV scannés en image). Fallback heuristique si
+                  <code className="mx-1 px-1 rounded bg-white/5">ANTHROPIC_API_KEY</code> absente.
+                </>
+              )}
             </p>
           </div>
         )}
@@ -430,7 +473,9 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
         {loading ? (
           <div className="h-10 rounded bg-white/[0.02] animate-pulse" />
         ) : docs.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Aucun document pour l&apos;instant</p>
+          <p className="text-xs text-muted-foreground">
+            {isEn ? 'No document yet' : 'Aucun document pour l\'instant'}
+          </p>
         ) : (
           <div className="space-y-1.5">
             {docs.map((d) => (
@@ -442,8 +487,8 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{d.file_name}</div>
                   <div className="text-[10px] text-muted-foreground">
-                    {DOC_KIND_LABEL[d.kind] ?? d.kind} · {formatDate(d.uploaded_at)}
-                    {d.size_bytes && ` · ${(d.size_bytes / 1024).toFixed(0)} Ko`}
+                    {docKindLabel(d.kind, isEn)} · {formatDate(d.uploaded_at)}
+                    {d.size_bytes && ` · ${(d.size_bytes / 1024).toFixed(0)} ${isEn ? 'KB' : 'Ko'}`}
                   </div>
                 </div>
                 {d.kind === 'cv_source' && (

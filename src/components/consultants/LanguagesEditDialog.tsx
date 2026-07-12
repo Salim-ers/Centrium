@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/Combobox';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { consultantService } from '@/lib/services/consultant.service';
 import type { Language } from '@/types';
 
@@ -35,6 +36,8 @@ export function LanguagesEditDialog({
   languages,
   onSaved,
 }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [items, setItems] = useState<Language[]>([]);
   const [saving, setSaving] = useState(false);
   const [newCode, setNewCode] = useState('');
@@ -48,11 +51,11 @@ export function LanguagesEditDialog({
     e.preventDefault();
     const code = newCode.trim().toLowerCase();
     if (!/^[a-z]{2}$/.test(code)) {
-      toast.error('Code ISO 2 lettres (fr, en, es…)');
+      toast.error(isEn ? '2-letter ISO code (fr, en, es…)' : 'Code ISO 2 lettres (fr, en, es…)');
       return;
     }
     if (items.some((l) => l.code === code)) {
-      toast.error('Langue déjà présente');
+      toast.error(isEn ? 'Language already added' : 'Langue déjà présente');
       return;
     }
     setItems([...items, { code, level: newLevel }]);
@@ -72,10 +75,10 @@ export function LanguagesEditDialog({
     const res = await consultantService.updateLanguages(consultantId, items);
     setSaving(false);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
       return;
     }
-    toast.success('Langues mises à jour');
+    toast.success(isEn ? 'Languages updated' : 'Langues mises à jour');
     onSaved?.();
     onOpenChange(false);
   }
@@ -84,7 +87,7 @@ export function LanguagesEditDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Gérer les langues</DialogTitle>
+          <DialogTitle>{isEn ? 'Manage languages' : 'Gérer les langues'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={add} className="flex gap-2 py-3 border-b border-hairline">
@@ -103,13 +106,13 @@ export function LanguagesEditDialog({
           />
           <Button type="submit">
             <Plus className="h-4 w-4" />
-            Ajouter
+            {isEn ? 'Add' : 'Ajouter'}
           </Button>
         </form>
 
         <div className="space-y-2 pt-2">
           {items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucune langue</p>
+            <p className="text-sm text-muted-foreground">{isEn ? 'No languages' : 'Aucune langue'}</p>
           ) : (
             items.map((l) => (
               <div key={l.code} className="flex items-center gap-2">
@@ -138,11 +141,11 @@ export function LanguagesEditDialog({
 
         <DialogFooter className="pt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Annuler
+            {isEn ? 'Cancel' : 'Annuler'}
           </Button>
           <Button onClick={save} disabled={saving}>
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            Enregistrer
+            {isEn ? 'Save' : 'Enregistrer'}
           </Button>
         </DialogFooter>
       </DialogContent>

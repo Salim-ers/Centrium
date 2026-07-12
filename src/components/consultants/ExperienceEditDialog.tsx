@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { consultantService } from '@/lib/services/consultant.service';
 import type { ConsultantExperience } from '@/types';
 
@@ -33,6 +34,8 @@ export function ExperienceEditDialog({
   experience,
   onSaved,
 }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const isEdit = !!experience;
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -59,7 +62,7 @@ export function ExperienceEditDialog({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!clientName.trim() || !role.trim()) {
-      toast.error('Client et rôle requis');
+      toast.error(isEn ? 'Client and role are required' : 'Client et rôle requis');
       return;
     }
     setSaving(true);
@@ -77,25 +80,36 @@ export function ExperienceEditDialog({
       : await consultantService.createExperience(consultantId, payload);
     setSaving(false);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
       return;
     }
-    toast.success(isEdit ? 'Expérience mise à jour' : 'Expérience ajoutée');
+    toast.success(
+      isEdit
+        ? isEn ? 'Experience updated' : 'Expérience mise à jour'
+        : isEn ? 'Experience added' : 'Expérience ajoutée',
+    );
     onSaved?.();
     onOpenChange(false);
   }
 
   async function onDelete() {
     if (!experience) return;
-    if (!confirm(`Supprimer l'expérience chez ${experience.client_name} ?`)) return;
+    if (
+      !confirm(
+        isEn
+          ? `Delete the experience at ${experience.client_name}?`
+          : `Supprimer l'expérience chez ${experience.client_name} ?`,
+      )
+    )
+      return;
     setDeleting(true);
     const res = await consultantService.deleteExperience(experience.id);
     setDeleting(false);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
       return;
     }
-    toast.success('Expérience supprimée');
+    toast.success(isEn ? 'Experience deleted' : 'Expérience supprimée');
     onSaved?.();
     onOpenChange(false);
   }
@@ -104,54 +118,62 @@ export function ExperienceEditDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Éditer l\'expérience' : 'Nouvelle expérience'}</DialogTitle>
+          <DialogTitle>
+            {isEdit
+              ? isEn ? 'Edit experience' : 'Éditer l\'expérience'
+              : isEn ? 'New experience' : 'Nouvelle expérience'}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="space-y-4 pt-2">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Client / Employeur *</Label>
+              <Label>{isEn ? 'Client / Employer' : 'Client / Employeur'} *</Label>
               <Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="LVMH – Dior" />
             </div>
             <div>
-              <Label>Rôle *</Label>
+              <Label>{isEn ? 'Role' : 'Rôle'} *</Label>
               <Input value={role} onChange={(e) => setRole(e.target.value)} placeholder="QA Automation Confirmé" />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Début</Label>
+              <Label>{isEn ? 'Start' : 'Début'}</Label>
               <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </div>
             <div>
-              <Label>Fin (vide = en cours)</Label>
+              <Label>{isEn ? 'End (empty = ongoing)' : 'Fin (vide = en cours)'}</Label>
               <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
           </div>
 
           <div>
-            <Label>Contexte</Label>
+            <Label>{isEn ? 'Context' : 'Contexte'}</Label>
             <Textarea
               rows={2}
               value={context}
               onChange={(e) => setContext(e.target.value)}
-              placeholder="Contexte du projet / équipe / secteur"
+              placeholder={isEn ? 'Project / team / sector context' : 'Contexte du projet / équipe / secteur'}
             />
           </div>
 
           <div>
-            <Label>Tâches (une par ligne)</Label>
+            <Label>{isEn ? 'Tasks (one per line)' : 'Tâches (une par ligne)'}</Label>
             <Textarea
               rows={5}
               value={tasks}
               onChange={(e) => setTasks(e.target.value)}
-              placeholder={'Automatisation des tests E2E\nRédaction de la stratégie QA\n…'}
+              placeholder={
+                isEn
+                  ? 'End-to-end test automation\nQA strategy definition\n…'
+                  : 'Automatisation des tests E2E\nRédaction de la stratégie QA\n…'
+              }
             />
           </div>
 
           <div>
-            <Label>Environnement (séparé par des virgules)</Label>
+            <Label>{isEn ? 'Environment (comma-separated)' : 'Environnement (séparé par des virgules)'}</Label>
             <Input
               value={environment}
               onChange={(e) => setEnvironment(e.target.value)}
@@ -163,18 +185,20 @@ export function ExperienceEditDialog({
             {isEdit ? (
               <Button type="button" variant="ghost" onClick={onDelete} disabled={deleting} className="text-red-400 hover:text-red-300">
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                Supprimer
+                {isEn ? 'Delete' : 'Supprimer'}
               </Button>
             ) : (
               <span />
             )}
             <div className="flex gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Annuler
+                {isEn ? 'Cancel' : 'Annuler'}
               </Button>
               <Button type="submit" disabled={saving}>
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                {isEdit ? 'Enregistrer' : 'Ajouter'}
+                {isEdit
+                  ? isEn ? 'Save' : 'Enregistrer'
+                  : isEn ? 'Add' : 'Ajouter'}
               </Button>
             </div>
           </DialogFooter>

@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/Combobox';
 import { Badge } from '@/components/ui/badge';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { consultantService } from '@/lib/services/consultant.service';
 import type { ConsultantSkill } from '@/types';
 
@@ -49,6 +50,8 @@ export function SkillsEditDialog({
   skills,
   onSaved,
 }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [busy, setBusy] = useState<string | null>(null);
   const [newCategory, setNewCategory] = useState<string>('tools');
   const [newName, setNewName] = useState('');
@@ -71,10 +74,10 @@ export function SkillsEditDialog({
     });
     setBusy(null);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
       return;
     }
-    toast.success('Compétence ajoutée');
+    toast.success(isEn ? 'Skill added' : 'Compétence ajoutée');
     setNewName('');
     onSaved?.();
   }
@@ -84,7 +87,7 @@ export function SkillsEditDialog({
     const res = await consultantService.updateSkill(s.id, { is_highlighted: !s.is_highlighted });
     setBusy(null);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
       return;
     }
     onSaved?.();
@@ -95,10 +98,10 @@ export function SkillsEditDialog({
     const res = await consultantService.deleteSkill(s.id);
     setBusy(null);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
       return;
     }
-    toast.success('Supprimée');
+    toast.success(isEn ? 'Deleted' : 'Supprimée');
     onSaved?.();
   }
 
@@ -111,9 +114,11 @@ export function SkillsEditDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Gérer les compétences</DialogTitle>
+          <DialogTitle>{isEn ? 'Manage skills' : 'Gérer les compétences'}</DialogTitle>
           <DialogDescription>
-            Clique sur l&apos;étoile pour mettre une compétence en avant. Supprime avec la corbeille.
+            {isEn
+              ? 'Click the star to highlight a skill. Remove with the trash icon.'
+              : 'Clique sur l\'étoile pour mettre une compétence en avant. Supprime avec la corbeille.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -125,20 +130,20 @@ export function SkillsEditDialog({
             options={CATEGORIES.map((c) => ({ value: c, label: c }))}
           />
           <Input
-            placeholder="Nouvelle compétence (ex: Playwright)"
+            placeholder={isEn ? 'New skill (e.g. Playwright)' : 'Nouvelle compétence (ex: Playwright)'}
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             className="flex-1"
           />
           <Button type="submit" disabled={!newName.trim() || busy === 'add'}>
             {busy === 'add' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Ajouter
+            {isEn ? 'Add' : 'Ajouter'}
           </Button>
         </form>
 
         <div className="space-y-4 pt-2">
           {Object.keys(byCat).length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucune compétence</p>
+            <p className="text-sm text-muted-foreground">{isEn ? 'No skills' : 'Aucune compétence'}</p>
           ) : (
             Object.entries(byCat).map(([cat, items]) => (
               <div key={cat}>
@@ -160,7 +165,11 @@ export function SkillsEditDialog({
                         type="button"
                         onClick={() => toggleHighlight(s)}
                         disabled={busy === s.id}
-                        title={s.is_highlighted ? 'Retirer mise en avant' : 'Mettre en avant'}
+                        title={
+                          s.is_highlighted
+                            ? isEn ? 'Remove highlight' : 'Retirer mise en avant'
+                            : isEn ? 'Highlight' : 'Mettre en avant'
+                        }
                         className="p-0.5 rounded hover:bg-white/10"
                       >
                         <Star
@@ -171,7 +180,7 @@ export function SkillsEditDialog({
                         type="button"
                         onClick={() => remove(s)}
                         disabled={busy === s.id}
-                        title="Supprimer"
+                        title={isEn ? 'Delete' : 'Supprimer'}
                         className="p-0.5 rounded hover:bg-red-500/20 text-red-400"
                       >
                         <Trash2 className="h-3 w-3" />
@@ -186,7 +195,7 @@ export function SkillsEditDialog({
 
         <DialogFooter className="pt-4">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Fermer
+            {isEn ? 'Close' : 'Fermer'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { consultantService } from '@/lib/services/consultant.service';
 import type { ConsultantEducation } from '@/types';
 
@@ -32,6 +33,8 @@ export function EducationEditDialog({
   education,
   onSaved,
 }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const isEdit = !!education;
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -51,11 +54,11 @@ export function EducationEditDialog({
     e.preventDefault();
     const yearNum = parseInt(year, 10);
     if (!yearNum || yearNum < 1970 || yearNum > new Date().getFullYear() + 1) {
-      toast.error('Année invalide');
+      toast.error(isEn ? 'Invalid year' : 'Année invalide');
       return;
     }
     if (!degree.trim()) {
-      toast.error('Intitulé du diplôme requis');
+      toast.error(isEn ? 'Degree title is required' : 'Intitulé du diplôme requis');
       return;
     }
     setSaving(true);
@@ -69,25 +72,36 @@ export function EducationEditDialog({
       : await consultantService.createEducation(consultantId, payload);
     setSaving(false);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
       return;
     }
-    toast.success(isEdit ? 'Formation mise à jour' : 'Formation ajoutée');
+    toast.success(
+      isEdit
+        ? isEn ? 'Education updated' : 'Formation mise à jour'
+        : isEn ? 'Education added' : 'Formation ajoutée',
+    );
     onSaved?.();
     onOpenChange(false);
   }
 
   async function onDelete() {
     if (!education) return;
-    if (!confirm(`Supprimer la formation « ${education.degree} » ?`)) return;
+    if (
+      !confirm(
+        isEn
+          ? `Delete the education « ${education.degree} »?`
+          : `Supprimer la formation « ${education.degree} » ?`,
+      )
+    )
+      return;
     setDeleting(true);
     const res = await consultantService.deleteEducation(education.id);
     setDeleting(false);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
       return;
     }
-    toast.success('Formation supprimée');
+    toast.success(isEn ? 'Education deleted' : 'Formation supprimée');
     onSaved?.();
     onOpenChange(false);
   }
@@ -96,12 +110,16 @@ export function EducationEditDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Éditer la formation' : 'Nouvelle formation'}</DialogTitle>
+          <DialogTitle>
+            {isEdit
+              ? isEn ? 'Edit education' : 'Éditer la formation'
+              : isEn ? 'New education' : 'Nouvelle formation'}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="space-y-4 pt-2">
           <div>
-            <Label>Année *</Label>
+            <Label>{isEn ? 'Year' : 'Année'} *</Label>
             <Input
               type="number"
               min="1970"
@@ -112,19 +130,19 @@ export function EducationEditDialog({
             />
           </div>
           <div>
-            <Label>Intitulé *</Label>
+            <Label>{isEn ? 'Title' : 'Intitulé'} *</Label>
             <Input
               value={degree}
               onChange={(e) => setDegree(e.target.value)}
-              placeholder="Mastère Management et Conseil en SI"
+              placeholder={isEn ? 'MSc Information Systems Management' : 'Mastère Management et Conseil en SI'}
             />
           </div>
           <div>
-            <Label>École / université</Label>
+            <Label>{isEn ? 'School / university' : 'École / université'}</Label>
             <Input
               value={institution}
               onChange={(e) => setInstitution(e.target.value)}
-              placeholder="École polytechnique…"
+              placeholder={isEn ? 'École polytechnique…' : 'École polytechnique…'}
             />
           </div>
 
@@ -138,18 +156,20 @@ export function EducationEditDialog({
                 className="text-red-400 hover:text-red-300"
               >
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                Supprimer
+                {isEn ? 'Delete' : 'Supprimer'}
               </Button>
             ) : (
               <span />
             )}
             <div className="flex gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Annuler
+                {isEn ? 'Cancel' : 'Annuler'}
               </Button>
               <Button type="submit" disabled={saving}>
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                {isEdit ? 'Enregistrer' : 'Ajouter'}
+                {isEdit
+                  ? isEn ? 'Save' : 'Enregistrer'
+                  : isEn ? 'Add' : 'Ajouter'}
               </Button>
             </div>
           </DialogFooter>

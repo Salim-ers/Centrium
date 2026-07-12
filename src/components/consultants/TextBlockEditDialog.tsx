@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 type Props = {
   open: boolean;
@@ -40,6 +41,8 @@ export function TextBlockEditDialog({
   onSave,
   onSaved,
 }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [value, setValue] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -52,10 +55,10 @@ export function TextBlockEditDialog({
     const res = await onSave(value.trim() || null);
     setSaving(false);
     if (res.error) {
-      toast.error('Erreur : ' + res.error.message);
+      toast.error((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
       return;
     }
-    toast.success(`${title} mis à jour`);
+    toast.success(isEn ? `${title} updated` : `${title} mis à jour`);
     onSaved?.();
     onOpenChange(false);
   }
@@ -81,11 +84,11 @@ export function TextBlockEditDialog({
 
         <DialogFooter className="pt-3">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Annuler
+            {isEn ? 'Cancel' : 'Annuler'}
           </Button>
           <Button onClick={save} disabled={saving}>
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            Enregistrer
+            {isEn ? 'Save' : 'Enregistrer'}
           </Button>
         </DialogFooter>
       </DialogContent>

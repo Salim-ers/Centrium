@@ -45,13 +45,10 @@ import type {
   ConsultantExperience,
   ConsultantEducation,
 } from '@/types';
-import {
-  CONSULTANT_STATUS_LABEL,
-  CONSULTANT_STATUS_STYLE,
-  SENIORITY_LABEL,
-} from '@/constants';
+import { CONSULTANT_STATUS_STYLE } from '@/constants';
 import { formatDate, formatMonthYear } from '@/lib/utils';
 import { useCurrency } from '@/lib/i18n/CurrencyProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 
 type Detail = {
   consultant: Consultant;
@@ -64,6 +61,9 @@ export default function ConsultantDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { format: formatCurrency } = useCurrency();
+  const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -100,20 +100,22 @@ export default function ConsultantDetailPage() {
     const wasProspect = c.is_prospect;
     if (
       !confirm(
-        `Archiver ${c.first_name} ${c.last_name} ? Le consultant disparaît de la bibliothèque mais ses données (CRA, factures, CV) sont conservées.`,
+        isEn
+          ? `Archive ${c.first_name} ${c.last_name}? The consultant leaves the library but their data (timesheets, invoices, CV) is kept.`
+          : `Archiver ${c.first_name} ${c.last_name} ? Le consultant disparaît de la bibliothèque mais ses données (CRA, factures, CV) sont conservées.`,
       )
     ) {
       return;
     }
     const res = await consultantService.archive(c.id);
     if (res.error) {
-      notifyError('Erreur : ' + res.error.message);
+      notifyError((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
       return;
     }
     notifyDestructive(
       wasProspect
-        ? `${c.first_name} ${c.last_name} retiré du vivier`
-        : `${c.first_name} ${c.last_name} archivé`,
+        ? isEn ? `${c.first_name} ${c.last_name} removed from pool` : `${c.first_name} ${c.last_name} retiré du vivier`
+        : isEn ? `${c.first_name} ${c.last_name} archived` : `${c.first_name} ${c.last_name} archivé`,
     );
     // Bibliothèque + vivier sont désormais sur un onglet unique.
     router.push('/consultants');
@@ -124,7 +126,7 @@ export default function ConsultantDetailPage() {
     const { consultant: c } = detail;
     const res = await consultantService.unarchive(c.id);
     if (res.error) {
-      notifyError('Erreur : ' + res.error.message);
+      notifyError((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
       return;
     }
     reload();
@@ -151,13 +153,17 @@ export default function ConsultantDetailPage() {
     return (
       <AppShell>
         <div className="text-center py-20">
-          <h1 className="font-display text-2xl font-bold">Consultant introuvable</h1>
+          <h1 className="font-display text-2xl font-bold">
+            {isEn ? 'Consultant not found' : 'Consultant introuvable'}
+          </h1>
           <p className="text-muted-foreground mt-2">
-            Ce profil n&apos;existe plus ou a été archivé.
+            {isEn
+              ? 'This profile no longer exists or has been archived.'
+              : 'Ce profil n\'existe plus ou a été archivé.'}
           </p>
           <Button className="mt-6" onClick={() => router.push('/consultants')}>
             <ArrowLeft className="h-4 w-4" />
-            Retour à la bibliothèque
+            {isEn ? 'Back to library' : 'Retour à la bibliothèque'}
           </Button>
         </div>
       </AppShell>
@@ -212,22 +218,30 @@ export default function ConsultantDetailPage() {
       <TextBlockEditDialog
         open={summaryDialog}
         onOpenChange={setSummaryDialog}
-        title="Résumé exécutif"
+        title={isEn ? 'Executive summary' : 'Résumé exécutif'}
         initialValue={c.summary}
         maxLength={2000}
         rows={8}
-        placeholder="3-5 phrases décrivant le parcours, les expertises clés et la valeur ajoutée…"
+        placeholder={
+          isEn
+            ? '3-5 sentences describing the background, key expertise and added value…'
+            : '3-5 phrases décrivant le parcours, les expertises clés et la valeur ajoutée…'
+        }
         onSave={(v) => consultantService.updateSummary(c.id, v)}
         onSaved={() => reload()}
       />
       <TextBlockEditDialog
         open={mobilityDialog}
         onOpenChange={setMobilityDialog}
-        title="Mobilité"
+        title={isEn ? 'Mobility' : 'Mobilité'}
         initialValue={c.mobility}
         maxLength={200}
         rows={2}
-        placeholder="Île-de-France, full remote, déplacements ponctuels…"
+        placeholder={
+          isEn
+            ? 'Île-de-France, full remote, occasional travel…'
+            : 'Île-de-France, full remote, déplacements ponctuels…'
+        }
         onSave={(v) => consultantService.updateMobility(c.id, v)}
         onSaved={() => reload()}
       />
@@ -235,7 +249,7 @@ export default function ConsultantDetailPage() {
       <Button variant="ghost" size="sm" asChild className="mb-4">
         <Link href="/consultants">
           <ArrowLeft className="h-4 w-4" />
-          Retour
+          {isEn ? 'Back' : 'Retour'}
         </Link>
       </Button>
 
@@ -254,7 +268,7 @@ export default function ConsultantDetailPage() {
                   {c.first_name} {c.last_name}
                 </h1>
                 <Badge variant="outline" className={CONSULTANT_STATUS_STYLE[c.status]}>
-                  {CONSULTANT_STATUS_LABEL[c.status]}
+                  {t.consultant_status[c.status]}
                 </Badge>
               </div>
               <p className="text-lg text-muted-foreground mt-1 break-words [overflow-wrap:anywhere]">{c.job_title}</p>
@@ -263,11 +277,14 @@ export default function ConsultantDetailPage() {
               )}
 
               <div className="flex flex-wrap gap-x-6 gap-y-2 mt-4 text-sm">
-                <InfoItem label="Séniorité" value={SENIORITY_LABEL[c.seniority]} />
-                <InfoItem label="Expérience" value={`${c.years_experience} ans`} />
-                <InfoItem label="TJM" value={formatCurrency(c.daily_rate_eur)} />
+                <InfoItem label={isEn ? 'Seniority' : 'Séniorité'} value={t.seniority[c.seniority]} />
+                <InfoItem
+                  label={isEn ? 'Experience' : 'Expérience'}
+                  value={`${c.years_experience} ${isEn ? 'yrs' : 'ans'}`}
+                />
+                <InfoItem label={isEn ? 'Day rate' : 'TJM'} value={formatCurrency(c.daily_rate_eur)} />
                 {c.available_from && (
-                  <InfoItem label="Disponible dès" value={formatDate(c.available_from)} />
+                  <InfoItem label={isEn ? 'Available from' : 'Disponible dès'} value={formatDate(c.available_from)} />
                 )}
                 {c.city && (
                   <InfoItem
@@ -282,12 +299,12 @@ export default function ConsultantDetailPage() {
               <Button asChild>
                 <Link href={`/cv-optimizer?consultantId=${c.id}`}>
                   <FileText className="h-4 w-4" />
-                  Générer CV
+                  {isEn ? 'Generate CV' : 'Générer CV'}
                 </Link>
               </Button>
               <Button variant="outline" onClick={() => setEditOpen(true)}>
                 <Pencil className="h-4 w-4" />
-                Éditer
+                {isEn ? 'Edit' : 'Éditer'}
               </Button>
               {c.archived ? (
                 <Button
@@ -296,7 +313,7 @@ export default function ConsultantDetailPage() {
                   className="border-emerald-400/40 text-emerald-300 hover:text-emerald-200 hover:bg-emerald-400/10"
                 >
                   <ArchiveRestore className="h-4 w-4" />
-                  Restaurer
+                  {isEn ? 'Restore' : 'Restaurer'}
                 </Button>
               ) : (
                 <Button
@@ -305,7 +322,7 @@ export default function ConsultantDetailPage() {
                   className="border-red-400/40 text-red-300 hover:text-red-200 hover:bg-red-400/10"
                 >
                   <Archive className="h-4 w-4" />
-                  Archiver
+                  {isEn ? 'Archive' : 'Archiver'}
                 </Button>
               )}
             </div>
@@ -339,7 +356,7 @@ export default function ConsultantDetailPage() {
                   className="inline-flex items-center gap-2 text-muted-foreground hover:text-violet-glow transition-colors"
                 >
                   <Linkedin className="h-4 w-4" />
-                  Profil LinkedIn
+                  {isEn ? 'LinkedIn profile' : 'Profil LinkedIn'}
                 </a>
               )}
             </div>
@@ -351,10 +368,10 @@ export default function ConsultantDetailPage() {
         <div className="md:col-span-2 space-y-6">
           <Card>
             <CardHeader className="flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-lg">Résumé exécutif</CardTitle>
+              <CardTitle className="text-lg">{isEn ? 'Executive summary' : 'Résumé exécutif'}</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => setSummaryDialog(true)}>
                 <Pencil className="h-3.5 w-3.5" />
-                {c.summary ? 'Éditer' : 'Ajouter'}
+                {c.summary ? (isEn ? 'Edit' : 'Éditer') : (isEn ? 'Add' : 'Ajouter')}
               </Button>
             </CardHeader>
             <CardContent>
@@ -363,7 +380,9 @@ export default function ConsultantDetailPage() {
                   {c.summary}
                 </p>
               ) : (
-                <p className="text-sm text-muted-foreground italic">Aucun résumé renseigné</p>
+                <p className="text-sm text-muted-foreground italic">
+                  {isEn ? 'No summary yet' : 'Aucun résumé renseigné'}
+                </p>
               )}
             </CardContent>
           </Card>
@@ -372,7 +391,7 @@ export default function ConsultantDetailPage() {
             <CardHeader className="flex-row items-center justify-between space-y-0">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Briefcase className="h-5 w-5 text-violet-glow" />
-                Expériences professionnelles
+                {isEn ? 'Professional experience' : 'Expériences professionnelles'}
               </CardTitle>
               <Button
                 variant="ghost"
@@ -380,12 +399,14 @@ export default function ConsultantDetailPage() {
                 onClick={() => setExpDialog({ open: true, exp: null })}
               >
                 <Plus className="h-3.5 w-3.5" />
-                Ajouter
+                {isEn ? 'Add' : 'Ajouter'}
               </Button>
             </CardHeader>
             <CardContent className="space-y-5">
               {experiences.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucune expérience renseignée</p>
+                <p className="text-sm text-muted-foreground">
+                  {isEn ? 'No experience yet' : 'Aucune expérience renseignée'}
+                </p>
               ) : (
                 experiences.map((exp) => (
                   <div key={exp.id} className="relative pl-5 border-l border-hairline group">
@@ -404,23 +425,23 @@ export default function ConsultantDetailPage() {
                           size="sm"
                           className="opacity-0 group-hover:opacity-100 transition"
                           onClick={() => setExpDialog({ open: true, exp })}
-                          title="Éditer"
+                          title={isEn ? 'Edit' : 'Éditer'}
                         >
                           <Pencil className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
                     {exp.context && (
-                      <p className="text-xs text-muted-foreground/80 mt-2 italic">
+                      <p className="text-xs text-muted-foreground/80 mt-2 italic break-words [overflow-wrap:anywhere]">
                         {exp.context}
                       </p>
                     )}
                     {exp.tasks.length > 0 && (
                       <ul className="mt-2 space-y-1 text-sm">
-                        {exp.tasks.map((t, i) => (
+                        {exp.tasks.map((task, i) => (
                           <li key={i} className="flex gap-2">
                             <span className="text-violet-glow mt-0.5">▸</span>
-                            <span className="text-muted-foreground">{t}</span>
+                            <span className="text-muted-foreground break-words [overflow-wrap:anywhere]">{task}</span>
                           </li>
                         ))}
                       </ul>
@@ -444,7 +465,7 @@ export default function ConsultantDetailPage() {
             <CardHeader className="flex-row items-center justify-between space-y-0">
               <CardTitle className="text-lg flex items-center gap-2">
                 <GraduationCap className="h-5 w-5 text-violet-glow" />
-                Formation
+                {isEn ? 'Education' : 'Formation'}
               </CardTitle>
               <Button
                 variant="ghost"
@@ -452,20 +473,22 @@ export default function ConsultantDetailPage() {
                 onClick={() => setEduDialog({ open: true, edu: null })}
               >
                 <Plus className="h-3.5 w-3.5" />
-                Ajouter
+                {isEn ? 'Add' : 'Ajouter'}
               </Button>
             </CardHeader>
             <CardContent className="space-y-2">
               {educations.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucune formation renseignée</p>
+                <p className="text-sm text-muted-foreground">
+                  {isEn ? 'No education yet' : 'Aucune formation renseignée'}
+                </p>
               ) : (
                 educations.map((ed) => (
                   <div key={ed.id} className="flex items-baseline gap-4 group">
                     <span className="text-xs text-muted-foreground w-12">{ed.year}</span>
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">{ed.degree}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm break-words [overflow-wrap:anywhere]">{ed.degree}</div>
                       {ed.institution && (
-                        <div className="text-xs text-muted-foreground">{ed.institution}</div>
+                        <div className="text-xs text-muted-foreground break-words [overflow-wrap:anywhere]">{ed.institution}</div>
                       )}
                     </div>
                     <Button
@@ -473,7 +496,7 @@ export default function ConsultantDetailPage() {
                       size="sm"
                       className="opacity-0 group-hover:opacity-100 transition"
                       onClick={() => setEduDialog({ open: true, edu: ed })}
-                      title="Éditer"
+                      title={isEn ? 'Edit' : 'Éditer'}
                     >
                       <Pencil className="h-3 w-3" />
                     </Button>
@@ -487,15 +510,17 @@ export default function ConsultantDetailPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader className="flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-lg">Compétences</CardTitle>
+              <CardTitle className="text-lg">{isEn ? 'Skills' : 'Compétences'}</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => setSkillsDialog(true)}>
                 <Pencil className="h-3.5 w-3.5" />
-                Gérer
+                {isEn ? 'Manage' : 'Gérer'}
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">
               {Object.keys(skillsByCategory).length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucune compétence renseignée</p>
+                <p className="text-sm text-muted-foreground">
+                  {isEn ? 'No skills yet' : 'Aucune compétence renseignée'}
+                </p>
               ) : (
                 Object.entries(skillsByCategory).map(([cat, items]) => (
                   <div key={cat}>
@@ -527,11 +552,11 @@ export default function ConsultantDetailPage() {
             <CardHeader className="flex-row items-center justify-between space-y-0">
               <CardTitle className="text-lg flex items-center gap-2">
                 <LangIcon className="h-5 w-5 text-violet-glow" />
-                Langues
+                {isEn ? 'Languages' : 'Langues'}
               </CardTitle>
               <Button variant="ghost" size="sm" onClick={() => setLangDialog(true)}>
                 <Pencil className="h-3.5 w-3.5" />
-                Gérer
+                {isEn ? 'Manage' : 'Gérer'}
               </Button>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -552,17 +577,19 @@ export default function ConsultantDetailPage() {
 
           <Card>
             <CardHeader className="flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-lg">Mobilité</CardTitle>
+              <CardTitle className="text-lg">{isEn ? 'Mobility' : 'Mobilité'}</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => setMobilityDialog(true)}>
                 <Pencil className="h-3.5 w-3.5" />
-                {c.mobility ? 'Éditer' : 'Ajouter'}
+                {c.mobility ? (isEn ? 'Edit' : 'Éditer') : (isEn ? 'Add' : 'Ajouter')}
               </Button>
             </CardHeader>
             <CardContent>
               {c.mobility ? (
-                <p className="text-sm text-muted-foreground">{c.mobility}</p>
+                <p className="text-sm text-muted-foreground break-words [overflow-wrap:anywhere]">{c.mobility}</p>
               ) : (
-                <p className="text-sm text-muted-foreground italic">Non renseignée</p>
+                <p className="text-sm text-muted-foreground italic">
+                  {isEn ? 'Not specified' : 'Non renseignée'}
+                </p>
               )}
             </CardContent>
           </Card>
