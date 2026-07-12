@@ -40,6 +40,8 @@ import { usePagination } from '@/hooks/usePagination';
 import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import { SENIORITY_LABEL } from '@/constants';
 import { useCurrency } from '@/lib/i18n/CurrencyProvider';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { useSeniorityLabels } from '@/lib/i18n/useBadges';
 import { notifyError, notifyMilestone } from '@/lib/notify';
 
 /**
@@ -75,6 +77,9 @@ type OnMissionRow = {
 export default function EnMissionPage() {
   const { activeOrgId } = useOrganization();
   const { format: formatCurrency } = useCurrency();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
+  const seniorityLabels = useSeniorityLabels() as Record<string, string>;
   const [search, setSearch] = useState('');
   // Cible du dialog "créer l'accès portail" (bouton Portail sur la ligne)
   const [grantTarget, setGrantTarget] = useState<OnMissionRow | null>(null);
@@ -175,7 +180,9 @@ export default function EnMissionPage() {
   async function endMission(row: OnMissionRow) {
     if (
       !confirm(
-        `Terminer la mission "${row.mission_title}" pour ${row.first_name} ${row.last_name} ?\n\nLa mission passe à "terminée" et le profil revient dans l'onglet Consultants.`,
+        isEn
+          ? `End the mission "${row.mission_title}" for ${row.first_name} ${row.last_name}?\n\nThe mission is set to "ended" and the profile returns to the Consultants tab.`
+          : `Terminer la mission "${row.mission_title}" pour ${row.first_name} ${row.last_name} ?\n\nLa mission passe à "terminée" et le profil revient dans l'onglet Consultants.`,
       )
     ) {
       return;
@@ -189,11 +196,13 @@ export default function EnMissionPage() {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        notifyError(body.message ?? 'Impossible de terminer la mission');
+        notifyError(body.message ?? (isEn ? 'Could not end the mission' : 'Impossible de terminer la mission'));
         return;
       }
       notifyMilestone(
-        `Mission terminée — ${row.first_name} ${row.last_name} revient dans Consultants`,
+        isEn
+          ? `Mission ended — ${row.first_name} ${row.last_name} returns to Consultants`
+          : `Mission terminée — ${row.first_name} ${row.last_name} revient dans Consultants`,
       );
       setData((prev) => (prev ?? []).filter((r) => r.mission_id !== row.mission_id));
     } finally {
@@ -204,7 +213,9 @@ export default function EnMissionPage() {
   async function archiveMission(row: OnMissionRow) {
     if (
       !confirm(
-        `Archiver la mission "${row.mission_title}" ?\n\nElle disparaît du dashboard et du KPI "En mission". Elle reste consultable depuis "Voir les archivées".`,
+        isEn
+          ? `Archive the mission "${row.mission_title}"?\n\nIt disappears from the dashboard and the "On mission" KPI. It stays viewable from "See archived".`
+          : `Archiver la mission "${row.mission_title}" ?\n\nElle disparaît du dashboard et du KPI "En mission". Elle reste consultable depuis "Voir les archivées".`,
       )
     ) {
       return;
@@ -218,7 +229,7 @@ export default function EnMissionPage() {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        notifyError(body.message ?? 'Archivage impossible');
+        notifyError(body.message ?? (isEn ? 'Archiving failed' : 'Archivage impossible'));
         return;
       }
       setData((prev) => (prev ?? []).filter((r) => r.mission_id !== row.mission_id));
@@ -237,12 +248,12 @@ export default function EnMissionPage() {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        notifyError(body.message ?? 'Restauration impossible');
+        notifyError(body.message ?? (isEn ? 'Restore failed' : 'Restauration impossible'));
         return;
       }
       notifyMilestone(
-        `Mission restaurée — "${row.mission_title}"`,
-        { description: 'De retour dans "En Mission"' },
+        isEn ? `Mission restored — "${row.mission_title}"` : `Mission restaurée — "${row.mission_title}"`,
+        { description: isEn ? 'Back in "On mission"' : 'De retour dans "En Mission"' },
       );
       setData((prev) => (prev ?? []).filter((r) => r.mission_id !== row.mission_id));
     } finally {
@@ -253,7 +264,9 @@ export default function EnMissionPage() {
   async function hardDelete(row: OnMissionRow) {
     if (
       !confirm(
-        `⚠️ Supprimer DÉFINITIVEMENT la mission "${row.mission_title}" ?\n\nIrréversible. Échouera si un CRA ou une facture y est rattaché.`,
+        isEn
+          ? `⚠️ PERMANENTLY delete the mission "${row.mission_title}"?\n\nIrreversible. Will fail if a timesheet or invoice is attached.`
+          : `⚠️ Supprimer DÉFINITIVEMENT la mission "${row.mission_title}" ?\n\nIrréversible. Échouera si un CRA ou une facture y est rattaché.`,
       )
     ) {
       return;
@@ -263,7 +276,7 @@ export default function EnMissionPage() {
       const res = await fetch(`/api/missions/${row.mission_id}`, { method: 'DELETE' });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        notifyError(body.message ?? 'Suppression impossible');
+        notifyError(body.message ?? (isEn ? 'Deletion failed' : 'Suppression impossible'));
         return;
       }
       setData((prev) => (prev ?? []).filter((r) => r.mission_id !== row.mission_id));
@@ -275,7 +288,7 @@ export default function EnMissionPage() {
   function fmtDate(iso: string | null) {
     if (!iso) return '—';
     try {
-      return new Date(iso).toLocaleDateString('fr-FR');
+      return new Date(iso).toLocaleDateString(isEn ? 'en-GB' : 'fr-FR');
     } catch {
       return iso;
     }
@@ -289,12 +302,16 @@ export default function EnMissionPage() {
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
             <BriefcaseBusiness className="h-7 w-7 text-emerald-400" />
-            {showArchived ? 'Missions archivées' : 'En Mission'}
+            {showArchived ? (isEn ? 'Archived missions' : 'Missions archivées') : isEn ? 'On Mission' : 'En Mission'}
           </h1>
           <p className="text-muted-foreground mt-1">
             {showArchived
-              ? `${onMission.length} mission${onMission.length > 1 ? 's' : ''} archivée${onMission.length > 1 ? 's' : ''} — hors dashboard`
-              : `${onMission.length} mission${onMission.length > 1 ? 's' : ''} active${onMission.length > 1 ? 's' : ''} — ${formatCurrency(totalDailyRevenue)} / jour cumulé`}
+              ? isEn
+                ? `${onMission.length} archived mission${onMission.length > 1 ? 's' : ''} — off dashboard`
+                : `${onMission.length} mission${onMission.length > 1 ? 's' : ''} archivée${onMission.length > 1 ? 's' : ''} — hors dashboard`
+              : isEn
+                ? `${onMission.length} active mission${onMission.length > 1 ? 's' : ''} — ${formatCurrency(totalDailyRevenue)} / day combined`
+                : `${onMission.length} mission${onMission.length > 1 ? 's' : ''} active${onMission.length > 1 ? 's' : ''} — ${formatCurrency(totalDailyRevenue)} / jour cumulé`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -302,22 +319,26 @@ export default function EnMissionPage() {
             variant="outline"
             size="sm"
             onClick={() => setShowArchived((v) => !v)}
-            title={showArchived ? 'Voir les missions actives' : 'Voir les missions archivées'}
+            title={
+              showArchived
+                ? isEn ? 'See active missions' : 'Voir les missions actives'
+                : isEn ? 'See archived missions' : 'Voir les missions archivées'
+            }
           >
             {showArchived ? (
               <>
                 <ArchiveRestore className="h-4 w-4" />
-                Voir les actives
+                {isEn ? 'See active' : 'Voir les actives'}
               </>
             ) : (
               <>
                 <Archive className="h-4 w-4" />
-                Voir les archivées
+                {isEn ? 'See archived' : 'Voir les archivées'}
               </>
             )}
           </Button>
           <Button variant="outline" size="sm" onClick={() => reload()}>
-            Rafraîchir
+            {isEn ? 'Refresh' : 'Rafraîchir'}
           </Button>
         </div>
       </div>
@@ -328,7 +349,7 @@ export default function EnMissionPage() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Rechercher par nom, intitulé, mission, offre…"
+              placeholder={isEn ? 'Search by name, title, mission, offer…' : 'Rechercher par nom, intitulé, mission, offre…'}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -343,10 +364,10 @@ export default function EnMissionPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Consultant</TableHead>
-                <TableHead>Séniorité</TableHead>
-                <TableHead>Mission / Offre</TableHead>
-                <TableHead>TJM</TableHead>
-                <TableHead>Période</TableHead>
+                <TableHead>{isEn ? 'Seniority' : 'Séniorité'}</TableHead>
+                <TableHead>{isEn ? 'Mission / Offer' : 'Mission / Offre'}</TableHead>
+                <TableHead>{isEn ? 'Day rate' : 'TJM'}</TableHead>
+                <TableHead>{isEn ? 'Period' : 'Période'}</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -361,11 +382,11 @@ export default function EnMissionPage() {
                 <TableRow>
                   <TableCell colSpan={6} className="py-12 text-center">
                     <BriefcaseBusiness className="h-8 w-8 mx-auto mb-3 text-muted-foreground/40" />
-                    <p className="text-sm font-medium">Aucune mission active</p>
+                    <p className="text-sm font-medium">{isEn ? 'No active mission' : 'Aucune mission active'}</p>
                     <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-                      Quand tu validas un CV poussé depuis l&apos;onglet précédent, la mission
-                      passe « active » et apparaît ici. Elle est aussi comptabilisée dans le
-                      dashboard.
+                      {isEn
+                        ? 'When you validate a pushed CV from the previous tab, the mission becomes "active" and appears here. It is also counted in the dashboard.'
+                        : "Quand tu valides un CV poussé depuis l'onglet précédent, la mission passe « active » et apparaît ici. Elle est aussi comptabilisée dans le dashboard."}
                     </p>
                   </TableCell>
                 </TableRow>
@@ -393,7 +414,7 @@ export default function EnMissionPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {SENIORITY_LABEL[r.seniority as keyof typeof SENIORITY_LABEL] ?? r.seniority}
+                          {seniorityLabels[r.seniority] ?? SENIORITY_LABEL[r.seniority as keyof typeof SENIORITY_LABEL] ?? r.seniority}
                         </Badge>
                       </TableCell>
                       <TableCell className="max-w-[260px]">
@@ -401,11 +422,11 @@ export default function EnMissionPage() {
                         {r.job_offer_title ? (
                           <div className="text-xs text-violet-300 inline-flex items-center gap-1 mt-0.5">
                             <Briefcase className="h-3 w-3" />
-                            AO · {r.job_offer_title}
+                            {isEn ? 'RFP' : 'AO'} · {r.job_offer_title}
                           </div>
                         ) : (
                           <div className="text-[11px] text-muted-foreground italic mt-0.5">
-                            Mission libre (sans AO)
+                            {isEn ? 'Free mission (no RFP)' : 'Mission libre (sans AO)'}
                           </div>
                         )}
                       </TableCell>
@@ -423,7 +444,7 @@ export default function EnMissionPage() {
                           <Button size="sm" variant="ghost" asChild>
                             <Link href={`/consultants/${r.consultant_id}`}>
                               <Eye className="h-3.5 w-3.5" />
-                              Voir
+                              {isEn ? 'View' : 'Voir'}
                             </Link>
                           </Button>
                           {showArchived ? (
@@ -433,7 +454,7 @@ export default function EnMissionPage() {
                                 variant="ghost"
                                 onClick={() => unarchiveMission(r)}
                                 disabled={busy}
-                                title="Restaurer la mission"
+                                title={isEn ? 'Restore the mission' : 'Restaurer la mission'}
                                 className="text-emerald-300 hover:bg-emerald-500/10"
                               >
                                 {busy ? (
@@ -441,14 +462,14 @@ export default function EnMissionPage() {
                                 ) : (
                                   <ArchiveRestore className="h-3.5 w-3.5" />
                                 )}
-                                Restaurer
+                                {isEn ? 'Restore' : 'Restaurer'}
                               </Button>
                               <Button
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => hardDelete(r)}
                                 disabled={busy}
-                                title="Supprimer définitivement"
+                                title={isEn ? 'Delete permanently' : 'Supprimer définitivement'}
                                 className="text-red-400 hover:bg-red-500/10"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -462,11 +483,11 @@ export default function EnMissionPage() {
                                   variant="ghost"
                                   onClick={() => setGrantTarget(r)}
                                   disabled={busy}
-                                  title="Créer l'accès portail consultant — email d'invitation avec création de mot de passe"
+                                  title={isEn ? 'Create consultant portal access — invite email with password setup' : "Créer l'accès portail consultant — email d'invitation avec création de mot de passe"}
                                   className="text-violet-glow hover:bg-violet-glow/10"
                                 >
                                   <KeyRound className="h-3.5 w-3.5" />
-                                  Portail
+                                  {isEn ? 'Portal' : 'Portail'}
                                 </Button>
                               )}
                               <Button
@@ -474,7 +495,7 @@ export default function EnMissionPage() {
                                 variant="ghost"
                                 onClick={() => endMission(r)}
                                 disabled={busy}
-                                title="Terminer la mission — le profil revient dans Consultants"
+                                title={isEn ? 'End the mission — the profile returns to Consultants' : 'Terminer la mission — le profil revient dans Consultants'}
                                 className="text-amber-300 hover:bg-amber-500/10"
                               >
                                 {busy ? (
@@ -482,14 +503,14 @@ export default function EnMissionPage() {
                                 ) : (
                                   <CircleStop className="h-3.5 w-3.5" />
                                 )}
-                                Terminer
+                                {isEn ? 'End' : 'Terminer'}
                               </Button>
                               <Button
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => archiveMission(r)}
                                 disabled={busy}
-                                title="Archiver — retire du dashboard, garde l'historique"
+                                title={isEn ? 'Archive — removes from dashboard, keeps history' : "Archiver — retire du dashboard, garde l'historique"}
                                 className="text-muted-foreground hover:text-foreground"
                               >
                                 <Archive className="h-3.5 w-3.5" />
@@ -499,7 +520,7 @@ export default function EnMissionPage() {
                                 variant="ghost"
                                 onClick={() => hardDelete(r)}
                                 disabled={busy}
-                                title="Supprimer définitivement la mission"
+                                title={isEn ? 'Delete the mission permanently' : 'Supprimer définitivement la mission'}
                                 className="text-red-400 hover:bg-red-500/10"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -521,6 +542,7 @@ export default function EnMissionPage() {
         pagination={pagination}
         total={onMission.length}
         itemLabel="mission"
+        itemLabelPlural={isEn ? 'missions' : undefined}
       />
 
       <GrantPortalDialog
