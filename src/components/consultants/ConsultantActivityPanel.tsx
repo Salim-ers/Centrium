@@ -8,6 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge, type StatusTone } from '@/components/app';
 import { createClient } from '@/lib/supabase/client';
 import { useCurrency } from '@/lib/i18n/CurrencyProvider';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { useContractStatusLabels, useInvoiceStatusLabels } from '@/lib/i18n/useBadges';
+import { monthsShort } from '@/lib/i18n/months';
 
 // =========================================================================
 // Panneau "Activité" de la fiche consultant (côté organisation) :
@@ -19,16 +22,18 @@ import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 // consultant". Lecture seule + liens de drill-down vers les pages métier.
 // =========================================================================
 
-const MONTHS = [
-  'Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin',
-  'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc',
-];
-
 const CRA_TONE: Record<string, { label: string; tone: StatusTone }> = {
   draft: { label: 'Brouillon', tone: 'pending' },
   submitted: { label: 'À valider', tone: 'warning' },
   client_validated: { label: 'Validé', tone: 'success' },
   rejected: { label: 'Refusé', tone: 'danger' },
+};
+
+const CRA_LABEL_EN: Record<string, string> = {
+  draft: 'Draft',
+  submitted: 'To validate',
+  client_validated: 'Validated',
+  rejected: 'Rejected',
 };
 
 const CONTRACT_TONE: Record<string, StatusTone> = {
@@ -62,6 +67,11 @@ type InvoiceRow = { id: string; invoice_number: string; amount_ht: number; statu
 
 export function ConsultantActivityPanel({ consultantId }: { consultantId: string }) {
   const { format: formatCurrency } = useCurrency();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
+  const months = monthsShort(isEn);
+  const contractStatus = useContractStatusLabels() as Record<string, string>;
+  const invoiceStatus = useInvoiceStatusLabels() as Record<string, string>;
   const [hasPortal, setHasPortal] = useState<boolean | null>(null);
   const [cras, setCras] = useState<CraRow[]>([]);
   const [contracts, setContracts] = useState<ContractRow[]>([]);
@@ -120,11 +130,13 @@ export function ConsultantActivityPanel({ consultantId }: { consultantId: string
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-base">Activité</CardTitle>
+          <CardTitle className="text-base">{isEn ? 'Activity' : 'Activité'}</CardTitle>
           {hasPortal !== null && (
             <StatusBadge tone={hasPortal ? 'success' : 'neutral'} dot={hasPortal}>
               <KeyRound className="h-3 w-3 mr-0.5" />
-              {hasPortal ? 'Portail actif' : 'Pas d\'accès portail'}
+              {hasPortal
+                ? isEn ? 'Portal active' : 'Portail actif'
+                : isEn ? 'No portal access' : 'Pas d\'accès portail'}
             </StatusBadge>
           )}
         </div>
@@ -140,38 +152,41 @@ export function ConsultantActivityPanel({ consultantId }: { consultantId: string
           <>
             <SectionList
               icon={<ClipboardCheck className="h-3.5 w-3.5" />}
-              title="CRA"
-              emptyText="Aucun CRA"
+              title={isEn ? 'Timesheets' : 'CRA'}
+              emptyText={isEn ? 'No timesheet' : 'Aucun CRA'}
               rows={cras.map((t) => ({
                 key: t.id,
                 href: `/timesheets/${t.id}`,
-                label: `${MONTHS[t.period_month - 1]} ${t.period_year}`,
-                meta: `${Number(t.days_worked)} j`,
-                badge: CRA_TONE[t.status] ?? { label: t.status, tone: 'neutral' as StatusTone },
+                label: `${months[t.period_month - 1]} ${t.period_year}`,
+                meta: `${Number(t.days_worked)} ${isEn ? 'd' : 'j'}`,
+                badge: {
+                  label: isEn ? (CRA_LABEL_EN[t.status] ?? t.status) : (CRA_TONE[t.status]?.label ?? t.status),
+                  tone: CRA_TONE[t.status]?.tone ?? ('neutral' as StatusTone),
+                },
               }))}
             />
             <SectionList
               icon={<FileSignature className="h-3.5 w-3.5" />}
-              title="Contrats"
-              emptyText="Aucun contrat"
+              title={isEn ? 'Contracts' : 'Contrats'}
+              emptyText={isEn ? 'No contract' : 'Aucun contrat'}
               rows={contracts.map((c) => ({
                 key: c.id,
                 href: `/contracts/${c.id}`,
                 label: c.contract_number,
                 meta: c.title,
-                badge: { label: c.status, tone: CONTRACT_TONE[c.status] ?? 'neutral' },
+                badge: { label: contractStatus[c.status] ?? c.status, tone: CONTRACT_TONE[c.status] ?? 'neutral' },
               }))}
             />
             <SectionList
               icon={<Receipt className="h-3.5 w-3.5" />}
-              title="Factures"
-              emptyText="Aucune facture"
+              title={isEn ? 'Invoices' : 'Factures'}
+              emptyText={isEn ? 'No invoice' : 'Aucune facture'}
               rows={invoices.map((inv) => ({
                 key: inv.id,
                 href: `/invoices/${inv.id}`,
                 label: inv.invoice_number,
                 meta: formatCurrency(Number(inv.amount_ht)),
-                badge: { label: inv.status, tone: INVOICE_TONE[inv.status] ?? 'neutral' },
+                badge: { label: invoiceStatus[inv.status] ?? inv.status, tone: INVOICE_TONE[inv.status] ?? 'neutral' },
               }))}
             />
           </>

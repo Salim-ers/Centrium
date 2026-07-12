@@ -5,6 +5,7 @@ import { CheckCircle2, CircleAlert, FileWarning } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import {
   computeCompleteness,
   resolveDocRequirements,
@@ -48,6 +49,8 @@ export function ConsultantCompleteness({
   asConsultant = false,
   className,
 }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const { data } = useCachedQuery<Loaded>(
     `completeness:${organizationId}:${consultantId}`,
     async () => {
@@ -119,7 +122,9 @@ export function ConsultantCompleteness({
           ) : (
             <CircleAlert className={cn('h-4 w-4', textColor)} />
           )}
-          {asConsultant ? 'Complétude de ton profil' : 'Complétude du profil'}
+          {asConsultant
+            ? isEn ? 'Your profile completeness' : 'Complétude de ton profil'
+            : isEn ? 'Profile completeness' : 'Complétude du profil'}
         </div>
         <span className={cn('font-display text-xl font-light', textColor)}>{res.percent} %</span>
       </div>
@@ -134,7 +139,7 @@ export function ConsultantCompleteness({
       {!res.complete && (
         <div className="mt-3">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-            Manquant ({missing.length})
+            {isEn ? 'Missing' : 'Manquant'} ({missing.length})
           </div>
           <div className="flex flex-wrap gap-1.5">
             {missing.slice(0, 8).map((m) => (
@@ -157,13 +162,13 @@ export function ConsultantCompleteness({
           {res.expiredDocuments.map((d) => (
             <div key={d.kind} className="flex items-center gap-1.5 text-[11px] text-red-500 dark:text-red-300">
               <FileWarning className="h-3 w-3" />
-              {d.label} expiré — à renouveler immédiatement
+              {isEn ? `${d.label} expired — renew immediately` : `${d.label} expiré — à renouveler immédiatement`}
             </div>
           ))}
           {res.expiringSoonDocuments.map((d) => (
             <div key={d.kind} className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-300">
               <FileWarning className="h-3 w-3" />
-              {d.label} expire dans {d.days_left} j
+              {isEn ? `${d.label} expires in ${d.days_left}d` : `${d.label} expire dans ${d.days_left} j`}
             </div>
           ))}
         </div>
@@ -171,18 +176,32 @@ export function ConsultantCompleteness({
 
       {!res.complete && asConsultant && (
         <p className="mt-3 text-[11px] text-muted-foreground">
-          Complète les éléments ci-dessus (informations + documents) pour permettre ton
-          positionnement en mission et ta facturation sans blocage.
+          {isEn
+            ? 'Complete the items above (information + documents) to enable your mission staffing and invoicing without blockers.'
+            : 'Complète les éléments ci-dessus (informations + documents) pour permettre ton positionnement en mission et ta facturation sans blocage.'}
         </p>
       )}
       {!res.complete && !asConsultant && (
         <p className="mt-3 text-[11px] text-muted-foreground">
-          Le consultant reçoit des relances automatiques (email
-          {' + '}portail) tous les 7 jours jusqu'à complétion —{' '}
-          <Link href="/settings/notifications" className="underline hover:text-foreground">
-            cadence réglable
-          </Link>
-          .
+          {isEn ? (
+            <>
+              The consultant receives automatic reminders (email{' + '}portal) every 7 days until
+              completion —{' '}
+              <Link href="/settings/notifications" className="underline hover:text-foreground">
+                adjustable cadence
+              </Link>
+              .
+            </>
+          ) : (
+            <>
+              Le consultant reçoit des relances automatiques (email{' + '}portail) tous les 7 jours
+              jusqu&apos;à complétion —{' '}
+              <Link href="/settings/notifications" className="underline hover:text-foreground">
+                cadence réglable
+              </Link>
+              .
+            </>
+          )}
         </p>
       )}
     </div>

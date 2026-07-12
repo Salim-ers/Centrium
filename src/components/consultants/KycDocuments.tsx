@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import { formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 const BUCKET = 'consultant-documents';
 
@@ -29,31 +30,41 @@ export type KycSlotKind = 'kbis' | 'id_card' | 'rc_pro' | 'rib';
 export const KYC_SLOTS: Array<{
   kind: KycSlotKind;
   label: string;
+  labelEn: string;
   hint: string;
+  hintEn: string;
   icon: typeof FileText;
 }> = [
   {
     kind: 'kbis',
     label: 'Extrait Kbis',
+    labelEn: 'Kbis extract',
     hint: '< 3 mois — preuve d\'immatriculation de la société.',
+    hintEn: '< 3 months — proof of company registration.',
     icon: Building2,
   },
   {
     kind: 'id_card',
     label: "Pièce d'identité",
+    labelEn: 'ID document',
     hint: 'Carte nationale, passeport ou titre de séjour.',
+    hintEn: 'National ID card, passport or residence permit.',
     icon: Contact,
   },
   {
     kind: 'rc_pro',
     label: 'Attestation RC Pro',
+    labelEn: 'Professional liability certificate',
     hint: 'Responsabilité civile professionnelle en cours de validité.',
+    hintEn: 'Valid professional liability insurance.',
     icon: ShieldCheck,
   },
   {
     kind: 'rib',
     label: 'RIB',
+    labelEn: 'Bank details (IBAN)',
     hint: 'Coordonnées bancaires pour les règlements.',
+    hintEn: 'Bank details for payments.',
     icon: CreditCard,
   },
 ];
@@ -96,6 +107,8 @@ export function KycDocuments({
   asConsultant = false,
   currentUserId = null,
 }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [docs, setDocs] = useState<DocRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyKind, setBusyKind] = useState<KycSlotKind | null>(null);
@@ -131,11 +144,11 @@ export function KycDocuments({
       const { data: userRes } = await supabase.auth.getUser();
       const userId = userRes.user?.id;
       if (!userId) {
-        toast.error('Session expirée, reconnecte-toi.');
+        toast.error(isEn ? 'Session expired, please sign in again.' : 'Session expirée, reconnecte-toi.');
         return;
       }
       if (file.size > 10 * 1024 * 1024) {
-        toast.error('Fichier trop gros (10 Mo max).');
+        toast.error(isEn ? 'File too large (10 MB max).' : 'Fichier trop gros (10 Mo max).');
         return;
       }
 
@@ -147,7 +160,7 @@ export function KycDocuments({
         upsert: false,
       });
       if (up.error) {
-        toast.error('Upload échoué : ' + up.error.message);
+        toast.error((isEn ? 'Upload failed: ' : 'Upload échoué : ') + up.error.message);
         return;
       }
 
@@ -165,7 +178,7 @@ export function KycDocuments({
         visible_to_consultant: true,
       });
       if (ins.error) {
-        toast.error('Enregistrement échoué : ' + ins.error.message);
+        toast.error((isEn ? 'Save failed: ' : 'Enregistrement échoué : ') + ins.error.message);
         await supabase.storage.from(BUCKET).remove([path]);
         return;
       }
@@ -177,7 +190,7 @@ export function KycDocuments({
         ]);
       }
 
-      toast.success('Document ajouté');
+      toast.success(isEn ? 'Document added' : 'Document ajouté');
       reload();
     } finally {
       setBusyKind(null);
@@ -191,7 +204,10 @@ export function KycDocuments({
       .update({ expires_at: dateIso })
       .eq('id', d.id);
     if (error) {
-      toast.error("Impossible d'enregistrer la date d'expiration : " + error.message);
+      toast.error(
+        (isEn ? 'Could not save the expiry date: ' : "Impossible d'enregistrer la date d'expiration : ") +
+          error.message,
+      );
       return;
     }
     setDocs((prev) => prev.map((x) => (x.id === d.id ? { ...x, expires_at: dateIso } : x)));
@@ -203,14 +219,14 @@ export function KycDocuments({
       .from(BUCKET)
       .createSignedUrl(d.storage_path, 60);
     if (error || !data) {
-      toast.error('Téléchargement impossible');
+      toast.error(isEn ? 'Download failed' : 'Téléchargement impossible');
       return;
     }
     window.open(data.signedUrl, '_blank');
   }
 
   async function deleteDoc(d: DocRow, kind: KycSlotKind) {
-    if (!confirm(`Supprimer ${d.file_name} ?`)) return;
+    if (!confirm(isEn ? `Delete ${d.file_name}?` : `Supprimer ${d.file_name} ?`)) return;
     setBusyKind(kind);
     try {
       const supabase = createClient();
@@ -219,9 +235,9 @@ export function KycDocuments({
         supabase.from('consultant_documents').delete().eq('id', d.id),
       ]);
       if (storageRes.error || dbRes.error) {
-        toast.error('Suppression partielle');
+        toast.error(isEn ? 'Partial deletion' : 'Suppression partielle');
       } else {
-        toast.success('Document supprimé');
+        toast.success(isEn ? 'Document deleted' : 'Document supprimé');
       }
       reload();
     } finally {
@@ -234,12 +250,16 @@ export function KycDocuments({
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-violet-glow" />
-          Documents légaux & administratifs
+          {isEn ? 'Legal & administrative documents' : 'Documents légaux & administratifs'}
         </CardTitle>
         <CardDescription>
           {asConsultant
-            ? 'Dépose ici tes documents — QuadCore les utilise pour les contrats, les paiements et la conformité.'
-            : 'Documents KYC déposés par le consultant. Ils sont synchronisés avec son portail.'}
+            ? isEn
+              ? 'Upload your documents here — QuadCore uses them for contracts, payments and compliance.'
+              : 'Dépose ici tes documents — QuadCore les utilise pour les contrats, les paiements et la conformité.'
+            : isEn
+              ? 'KYC documents uploaded by the consultant. They are synced with their portal.'
+              : 'Documents KYC déposés par le consultant. Ils sont synchronisés avec son portail.'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -278,14 +298,14 @@ export function KycDocuments({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 text-sm font-semibold">
-                        {slot.label}
+                        {isEn ? slot.labelEn : slot.label}
                         {doc ? (
                           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
                         ) : (
                           <AlertCircle className="h-3.5 w-3.5 text-amber-400" />
                         )}
                       </div>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{slot.hint}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{isEn ? slot.hintEn : slot.hint}</p>
                       {doc ? (
                         <>
                           <div className="text-[11px] text-white/70 mt-2 truncate">
@@ -304,23 +324,27 @@ export function KycDocuments({
                               )}
                             >
                               {daysLeft(doc.expires_at) < 0
-                                ? `⚠ Expiré le ${formatDate(doc.expires_at)}`
-                                : `Expire le ${formatDate(doc.expires_at)} (${daysLeft(doc.expires_at)} j)`}
+                                ? isEn
+                                  ? `⚠ Expired on ${formatDate(doc.expires_at)}`
+                                  : `⚠ Expiré le ${formatDate(doc.expires_at)}`
+                                : isEn
+                                  ? `Expires on ${formatDate(doc.expires_at)} (${daysLeft(doc.expires_at)}d)`
+                                  : `Expire le ${formatDate(doc.expires_at)} (${daysLeft(doc.expires_at)} j)`}
                             </div>
                           )}
                           <label className="mt-1.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                            Expiration :
+                            {isEn ? 'Expiry:' : 'Expiration :'}
                             <input
                               type="date"
                               value={doc.expires_at ?? ''}
                               onChange={(e) => setExpiry(doc, e.target.value || null)}
                               className="rounded border border-hairline bg-transparent px-1.5 py-0.5 text-[10px] text-foreground [color-scheme:dark]"
-                              aria-label={`Date d'expiration — ${slot.label}`}
+                              aria-label={`${isEn ? 'Expiry date' : "Date d'expiration"} — ${isEn ? slot.labelEn : slot.label}`}
                             />
                           </label>
                         </>
                       ) : (
-                        <div className="text-[11px] text-amber-300/80 mt-2">Manquant</div>
+                        <div className="text-[11px] text-amber-300/80 mt-2">{isEn ? 'Missing' : 'Manquant'}</div>
                       )}
                     </div>
                   </div>
@@ -329,7 +353,7 @@ export function KycDocuments({
                     {doc && (
                       <Button size="sm" variant="ghost" onClick={() => downloadDoc(doc)}>
                         <Download className="h-3.5 w-3.5" />
-                        Télécharger
+                        {isEn ? 'Download' : 'Télécharger'}
                       </Button>
                     )}
                     {(asConsultant || (doc && (ownedByMe || !asConsultant))) && (
@@ -337,6 +361,7 @@ export function KycDocuments({
                         slot={slot.kind}
                         replacing={!!doc}
                         busy={busy}
+                        isEn={isEn}
                         onPicked={(f) => uploadFor(slot.kind, f)}
                       />
                     )}
@@ -346,7 +371,7 @@ export function KycDocuments({
                         variant="ghost"
                         onClick={() => deleteDoc(doc, slot.kind)}
                         disabled={busy}
-                        title="Supprimer"
+                        title={isEn ? 'Delete' : 'Supprimer'}
                       >
                         <Trash2 className="h-3.5 w-3.5 text-red-400" />
                       </Button>
@@ -366,11 +391,13 @@ function UploadButton({
   slot,
   replacing,
   busy,
+  isEn,
   onPicked,
 }: {
   slot: KycSlotKind;
   replacing: boolean;
   busy: boolean;
+  isEn: boolean;
   onPicked: (f: File) => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
@@ -392,11 +419,11 @@ function UploadButton({
         variant={replacing ? 'ghost' : 'outline'}
         onClick={() => ref.current?.click()}
         disabled={busy}
-        title={replacing ? 'Remplacer' : 'Téléverser'}
+        title={replacing ? (isEn ? 'Replace' : 'Remplacer') : isEn ? 'Upload' : 'Téléverser'}
         data-kind={slot}
       >
         {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-        {replacing ? 'Remplacer' : 'Téléverser'}
+        {replacing ? (isEn ? 'Replace' : 'Remplacer') : isEn ? 'Upload' : 'Téléverser'}
       </Button>
     </>
   );

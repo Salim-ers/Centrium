@@ -22,6 +22,8 @@ import { Badge } from '@/components/ui/badge';
 import { createClient } from '@/lib/supabase/client';
 import { formatDate } from '@/lib/utils';
 import { useCurrency } from '@/lib/i18n/CurrencyProvider';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { useMissionStatusLabels } from '@/lib/i18n/useBadges';
 
 type MissionRow = {
   id: string;
@@ -62,6 +64,11 @@ type Props = {
 
 export function ConsultantMissionsList({ consultantId, canManage = false, linkBase }: Props) {
   const { format: formatCurrency } = useCurrency();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
+  const missionStatus = useMissionStatusLabels();
+  const statusLabel = (s: string) =>
+    (missionStatus as Record<string, string>)[s] ?? STATUS_LABEL[s] ?? s;
   const [missions, setMissions] = useState<MissionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [actingId, setActingId] = useState<string | null>(null);
@@ -91,10 +98,10 @@ export function ConsultantMissionsList({ consultantId, canManage = false, linkBa
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(body.message ?? 'Action impossible');
+        toast.error(body.message ?? (isEn ? 'Action failed' : 'Action impossible'));
         return;
       }
-      toast.success(`Statut → ${STATUS_LABEL[status] ?? status}`);
+      toast.success(`${isEn ? 'Status' : 'Statut'} → ${statusLabel(status)}`);
       reload();
     } finally {
       setActingId(null);
@@ -102,16 +109,23 @@ export function ConsultantMissionsList({ consultantId, canManage = false, linkBa
   }
 
   async function remove(m: MissionRow) {
-    if (!confirm(`Supprimer définitivement la mission "${m.title}" ?`)) return;
+    if (
+      !confirm(
+        isEn
+          ? `Permanently delete the mission "${m.title}"?`
+          : `Supprimer définitivement la mission "${m.title}" ?`,
+      )
+    )
+      return;
     setActingId(m.id);
     try {
       const res = await fetch(`/api/missions/${m.id}`, { method: 'DELETE' });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(body.message ?? 'Suppression impossible');
+        toast.error(body.message ?? (isEn ? 'Deletion failed' : 'Suppression impossible'));
         return;
       }
-      toast.success('Mission supprimée');
+      toast.success(isEn ? 'Mission deleted' : 'Mission supprimée');
       setMissions((prev) => prev.filter((x) => x.id !== m.id));
     } finally {
       setActingId(null);
@@ -131,7 +145,11 @@ export function ConsultantMissionsList({ consultantId, canManage = false, linkBa
           <div className="h-16 bg-white/[0.02] animate-pulse rounded" />
         ) : missions.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">
-            Aucune mission. Affecte un profil depuis la page <Link href="/matching" className="text-violet-glow hover:underline">Matching</Link>.
+            {isEn ? (
+              <>No mission. Assign a profile from the <Link href="/matching" className="text-violet-glow hover:underline">Matching</Link> page.</>
+            ) : (
+              <>Aucune mission. Affecte un profil depuis la page <Link href="/matching" className="text-violet-glow hover:underline">Matching</Link>.</>
+            )}
           </p>
         ) : (
           <ul className="space-y-2">
@@ -155,7 +173,7 @@ export function ConsultantMissionsList({ consultantId, canManage = false, linkBa
                         <div className="font-medium truncate">{m.title}</div>
                       )}
                       <Badge variant="outline" className={STATUS_STYLE[m.status] ?? ''}>
-                        {STATUS_LABEL[m.status] ?? m.status}
+                        {statusLabel(m.status)}
                       </Badge>
                       {m.contract_number && (
                         <Badge variant="outline" className="gap-1">
@@ -168,11 +186,11 @@ export function ConsultantMissionsList({ consultantId, canManage = false, linkBa
                       <span className="inline-flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {formatDate(m.start_date)}
-                        {m.end_date ? ` → ${formatDate(m.end_date)}` : ' → en cours'}
+                        {m.end_date ? ` → ${formatDate(m.end_date)}` : isEn ? ' → ongoing' : ' → en cours'}
                       </span>
                       <span className="inline-flex items-center gap-1">
                         <Euro className="h-3 w-3" />
-                        {formatCurrency(m.daily_rate_eur)} / j
+                        {formatCurrency(m.daily_rate_eur)} / {isEn ? 'day' : 'j'}
                       </span>
                     </div>
                   </div>
@@ -185,17 +203,17 @@ export function ConsultantMissionsList({ consultantId, canManage = false, linkBa
                             size="sm"
                             onClick={() => changeStatus(m, 'active')}
                             disabled={acting}
-                            title="Valider la mission"
+                            title={isEn ? 'Approve the mission' : 'Valider la mission'}
                           >
                             {acting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                            Valider
+                            {isEn ? 'Approve' : 'Valider'}
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => changeStatus(m, 'rejected')}
                             disabled={acting}
-                            title="Refuser"
+                            title={isEn ? 'Reject' : 'Refuser'}
                           >
                             <XCircle className="h-3.5 w-3.5 text-red-400" />
                           </Button>
@@ -208,7 +226,7 @@ export function ConsultantMissionsList({ consultantId, canManage = false, linkBa
                             variant="outline"
                             onClick={() => changeStatus(m, 'suspended')}
                             disabled={acting}
-                            title="Suspendre"
+                            title={isEn ? 'Suspend' : 'Suspendre'}
                           >
                             <Pause className="h-3.5 w-3.5" />
                           </Button>
@@ -217,9 +235,9 @@ export function ConsultantMissionsList({ consultantId, canManage = false, linkBa
                             variant="outline"
                             onClick={() => changeStatus(m, 'ended')}
                             disabled={acting}
-                            title="Clôturer"
+                            title={isEn ? 'Close' : 'Clôturer'}
                           >
-                            Clôturer
+                            {isEn ? 'Close' : 'Clôturer'}
                           </Button>
                         </>
                       )}
@@ -228,10 +246,10 @@ export function ConsultantMissionsList({ consultantId, canManage = false, linkBa
                           size="sm"
                           onClick={() => changeStatus(m, 'active')}
                           disabled={acting}
-                          title="Reprendre"
+                          title={isEn ? 'Resume' : 'Reprendre'}
                         >
                           <Play className="h-3.5 w-3.5" />
-                          Reprendre
+                          {isEn ? 'Resume' : 'Reprendre'}
                         </Button>
                       )}
                       <Button
@@ -239,7 +257,7 @@ export function ConsultantMissionsList({ consultantId, canManage = false, linkBa
                         variant="ghost"
                         onClick={() => remove(m)}
                         disabled={acting}
-                        title="Supprimer"
+                        title={isEn ? 'Delete' : 'Supprimer'}
                       >
                         <Trash2 className="h-3.5 w-3.5 text-red-400" />
                       </Button>
