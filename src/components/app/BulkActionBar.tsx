@@ -2,6 +2,7 @@
 
 import { Archive, Trash2, X, Undo2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { cn } from '@/lib/utils';
 
 type Action = {
@@ -39,6 +40,8 @@ type Props = {
  *   />
  */
 export function BulkActionBar({ count, entityLabel, actions, onClear }: Props) {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   if (count === 0) return null;
   const plural = count > 1 ? 's' : '';
 
@@ -51,7 +54,7 @@ export function BulkActionBar({ count, entityLabel, actions, onClear }: Props) {
           </span>
           <span className="text-sm text-foreground/90 font-medium">
             {entityLabel}
-            {plural} sélectionné{plural}
+            {plural} {isEn ? 'selected' : `sélectionné${plural}`}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -81,7 +84,7 @@ export function BulkActionBar({ count, entityLabel, actions, onClear }: Props) {
           type="button"
           onClick={onClear}
           className="ml-1 rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/[0.05] transition"
-          title="Désélectionner"
+          title={isEn ? 'Clear selection' : 'Désélectionner'}
         >
           <X className="h-4 w-4" />
         </button>

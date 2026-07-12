@@ -16,8 +16,9 @@ import { createClient } from '@/lib/supabase/client';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useOrganization } from '@/lib/auth/context';
 import { useTheme } from '@/hooks/useTheme';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { useCurrency } from '@/lib/i18n/CurrencyProvider';
+import { monthsShort } from '@/lib/i18n/months';
 
 type RpcRow = {
   month: string;
@@ -41,17 +42,12 @@ type MonthlyPoint = {
   proposedCreated: number;
 };
 
-const MONTHS_SHORT = [
-  'Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin',
-  'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc',
-];
-
-function rowsToBuckets(rows: RpcRow[]): MonthlyPoint[] {
+function rowsToBuckets(rows: RpcRow[], months: string[]): MonthlyPoint[] {
   return rows.map((r) => {
     const [y, m] = r.month.split('-').map(Number);
     return {
       month: r.month,
-      monthLabel: `${MONTHS_SHORT[m - 1]} ${String(y).slice(2)}`,
+      monthLabel: `${months[m - 1]} ${String(y).slice(2)}`,
       ca: Number(r.ca),
       missionsActive: Number(r.missions_active ?? r.missions ?? 0),
       missionsProposed: Number(r.missions_proposed ?? 0),
@@ -81,6 +77,10 @@ export function RevenueChart() {
   const { activeOrgId } = useOrganization();
   const theme = useTheme();
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
+  const months = monthsShort(isEn);
+  const caLabel = isEn ? 'Revenue' : 'CA';
   const { format: formatCurrency } = useCurrency();
   // Palette adaptée au thème — 3 tons distincts pour lisibilité maximale :
   //   - DARK : magenta (CA) + violet (missions) + ambre (CV poussés)
@@ -110,7 +110,7 @@ export function RevenueChart() {
         };
 
   const { data, loading } = useCachedQuery<MonthlyPoint[]>(
-    `revenue-chart:${activeOrgId ?? 'none'}`,
+    `revenue-chart:${activeOrgId ?? 'none'}:${locale}`,
     async () => {
       const supabase = createClient();
       // 1 seul round-trip via RPC SECURITY DEFINER (cf. migration 028).
@@ -119,7 +119,7 @@ export function RevenueChart() {
         months_back: 12,
       });
       if (error || !rows) return [];
-      return rowsToBuckets(rows as RpcRow[]);
+      return rowsToBuckets(rows as RpcRow[], months);
     },
     { enabled: !!activeOrgId },
   );
@@ -183,7 +183,7 @@ export function RevenueChart() {
 
       <div className="p-5">
         <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-          <LegendItem color={chartColors.ca} label="CA" />
+          <LegendItem color={chartColors.ca} label={caLabel} />
           <LegendItem color={chartColors.missions} label={t.dashboard.missions_active} />
           <LegendItem color={chartColors.proposed} label={t.dashboard.cv_pushed_pending} dashed />
         </div>
@@ -246,7 +246,7 @@ export function RevenueChart() {
                   labelStyle={{ color: chartTheme.tooltipText, fontWeight: 600 }}
                   itemStyle={{ color: chartTheme.tooltipText }}
                   formatter={(value, name) => {
-                    if (name === 'CA') return [formatCurrency(Number(value)), 'CA'];
+                    if (name === caLabel) return [formatCurrency(Number(value)), caLabel];
                     return [value, name];
                   }}
                 />
@@ -256,7 +256,7 @@ export function RevenueChart() {
                   yAxisId="missions"
                   type="monotone"
                   dataKey="proposedCreated"
-                  name="CV poussés"
+                  name={t.dashboard.cv_pushed_pending}
                   stroke={chartColors.proposed}
                   strokeWidth={1.5}
                   fill="url(#proposed-amber)"
@@ -267,7 +267,7 @@ export function RevenueChart() {
                   yAxisId="missions"
                   type="monotone"
                   dataKey="missionsActive"
-                  name="Missions en cours"
+                  name={t.dashboard.missions_active}
                   stroke={chartColors.missions}
                   strokeWidth={1.5}
                   fill="url(#missions-violet)"
@@ -277,7 +277,7 @@ export function RevenueChart() {
                   yAxisId="ca"
                   type="monotone"
                   dataKey="ca"
-                  name="CA"
+                  name={caLabel}
                   stroke={chartColors.ca}
                   strokeWidth={2.5}
                   fill="url(#ca-pink)"

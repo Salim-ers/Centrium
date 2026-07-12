@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { LocaleToggle } from '@/components/i18n/LocaleToggle';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 // =========================================================================
 // Sidebar du portail consultant — MÊME langage que la sidebar admin :
@@ -28,10 +29,11 @@ import { LocaleToggle } from '@/components/i18n/LocaleToggle';
 // Pas d'accordéon : 7 items, tout reste visible.
 // =========================================================================
 
-export type PortalNavItem = { label: string; href: string; icon: React.ElementType };
+export type PortalNavItem = { label: string; labelEn: string; href: string; icon: React.ElementType };
 export type PortalNavGroup = {
   id: string;
   label: string;
+  labelEn: string;
   icon: React.ElementType;
   items: PortalNavItem[];
 };
@@ -43,33 +45,43 @@ export const PORTAL_GROUPS: NavGroup[] = [
   {
     id: 'espace',
     label: 'Mon espace',
+    labelEn: 'My space',
     icon: Activity,
     items: [
-      { label: 'Accueil', href: '/portal/dashboard', icon: LayoutDashboard },
-      { label: 'Mes missions', href: '/portal/missions', icon: Briefcase },
-      { label: 'Mes CRA', href: '/portal/cra', icon: ClipboardCheck },
+      { label: 'Accueil', labelEn: 'Home', href: '/portal/dashboard', icon: LayoutDashboard },
+      { label: 'Mes missions', labelEn: 'My missions', href: '/portal/missions', icon: Briefcase },
+      { label: 'Mes CRA', labelEn: 'My timesheets', href: '/portal/cra', icon: ClipboardCheck },
     ],
   },
   {
     id: 'administratif',
     label: 'Administratif',
+    labelEn: 'Administrative',
     icon: FolderOpen,
     items: [
-      { label: 'Mes factures', href: '/portal/invoices', icon: Receipt },
-      { label: 'Mes contrats', href: '/portal/contracts', icon: FileSignature },
-      { label: 'Mes documents', href: '/portal/documents', icon: FileText },
+      { label: 'Mes factures', labelEn: 'My invoices', href: '/portal/invoices', icon: Receipt },
+      { label: 'Mes contrats', labelEn: 'My contracts', href: '/portal/contracts', icon: FileSignature },
+      { label: 'Mes documents', labelEn: 'My documents', href: '/portal/documents', icon: FileText },
     ],
   },
   {
     id: 'compte',
     label: 'Compte',
+    labelEn: 'Account',
     icon: UserCircle,
-    items: [{ label: 'Mon profil', href: '/portal/profile', icon: UserCircle }],
+    items: [{ label: 'Mon profil', labelEn: 'My profile', href: '/portal/profile', icon: UserCircle }],
   },
 ];
 
+/** Libellé localisé d'un groupe/item de nav portail. */
+export function portalNavLabel(entry: { label: string; labelEn: string }, isEn: boolean): string {
+  return isEn ? entry.labelEn : entry.label;
+}
+
 export function PortalSidebar() {
   const pathname = usePathname();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
 
   const isActive = (item: NavItem) =>
     pathname === item.href || pathname.startsWith(item.href + '/');
@@ -80,7 +92,7 @@ export function PortalSidebar() {
       <Link
         href="/portal/dashboard"
         className="relative flex h-44 items-center justify-center border-b border-hairline px-3 shrink-0 hover:opacity-95 transition"
-        aria-label="Centrium — accueil portail"
+        aria-label={isEn ? 'Centrium — portal home' : 'Centrium — accueil portail'}
       >
         <CentriumWordmark size="lg" orientation="vertical" />
       </Link>
@@ -107,7 +119,7 @@ export function PortalSidebar() {
                 >
                   <GroupIcon className="h-3.5 w-3.5" />
                 </span>
-                {group.label}
+                {isEn ? group.labelEn : group.label}
               </div>
 
               <ul className="mt-1 mb-2 ml-4 pl-3 space-y-0.5 border-l border-white/[0.06]">
@@ -138,7 +150,7 @@ export function PortalSidebar() {
                             active ? 'scale-110' : 'group-hover/link:scale-105',
                           )}
                         />
-                        <span className="truncate">{item.label}</span>
+                        <span className="truncate">{isEn ? item.labelEn : item.label}</span>
                       </Link>
                     </li>
                   );
@@ -156,7 +168,7 @@ export function PortalSidebar() {
             className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-white/[0.05] hover:text-foreground transition-all"
           >
             <LogOut className="h-4 w-4 shrink-0" />
-            Se déconnecter
+            {isEn ? 'Sign out' : 'Se déconnecter'}
           </button>
         </form>
         <div className="flex items-center gap-2">

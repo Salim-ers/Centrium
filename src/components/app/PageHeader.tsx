@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -47,9 +48,11 @@ export function PageHeader({
   description,
   actions,
   backHref,
-  backLabel = 'Retour',
+  backLabel,
   className,
 }: Props) {
+  const { locale } = useLocale();
+  const resolvedBackLabel = backLabel ?? (locale === 'en' ? 'Back' : 'Retour');
   return (
     <header
       className={cn(
@@ -64,7 +67,7 @@ export function PageHeader({
             className="group -ml-1 mb-3 inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-magenta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-magenta/40"
           >
             <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
-            {backLabel}
+            {resolvedBackLabel}
           </Link>
         )}
         {eyebrow && (

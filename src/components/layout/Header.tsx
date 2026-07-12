@@ -14,12 +14,14 @@ import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
 import { LocaleToggle } from '@/components/i18n/LocaleToggle';
 import { CurrencyToggle } from '@/components/i18n/CurrencyToggle';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 
 export function Header() {
   const org = useOrganizationSafe();
   const [collapsed] = useSidebarCollapsed();
   const t = useAppT();
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   const [menuOpen, setMenuOpen] = useState(false);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -122,7 +124,7 @@ export function Header() {
           <Link
             href="/dashboard"
             className="md:hidden inline-flex items-center"
-            aria-label="Centrium — accueil"
+            aria-label={isEn ? 'Centrium — home' : 'Centrium — accueil'}
           >
             <CentriumWordmark size="sm" orientation="horizontal" />
           </Link>
@@ -154,7 +156,11 @@ export function Header() {
               <Bell className="h-4 w-4" />
               {unreadAlerts > 0 && (
                 <span
-                  aria-label={`${unreadAlerts} alerte${unreadAlerts > 1 ? 's' : ''} à traiter`}
+                  aria-label={
+                    isEn
+                      ? `${unreadAlerts} alert${unreadAlerts > 1 ? 's' : ''} to handle`
+                      : `${unreadAlerts} alerte${unreadAlerts > 1 ? 's' : ''} à traiter`
+                  }
                   className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-magenta px-1 text-[9px] font-bold leading-none text-white shadow-glow-magenta"
                 >
                   {unreadAlerts > 99 ? '99+' : unreadAlerts}
@@ -167,7 +173,7 @@ export function Header() {
             <Button
               variant="ghost"
               size="icon"
-              aria-label="Profil"
+              aria-label={isEn ? 'Profile' : 'Profil'}
               onClick={() => setMenuOpen((v) => !v)}
             >
               <User className="h-4 w-4" />
