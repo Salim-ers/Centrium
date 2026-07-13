@@ -7,7 +7,7 @@ import {
   StripeConfigError,
 } from '@/lib/billing/config';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { sendEmail } from '@/lib/email/send';
+import { sendEmail, pick, type EmailLocale } from '@/lib/email/send';
 import { logger } from '@/lib/logger';
 
 // =========================================================================
@@ -166,32 +166,60 @@ export async function POST(req: NextRequest) {
             admin.from('organizations').select('name, brand_name').eq('id', orgId).maybeSingle(),
             admin
               .from('profiles')
-              .select('email')
+              .select('email, preferred_locale')
               .eq('organization_id', orgId)
               .eq('role', 'admin'),
           ]);
           const orgName = org?.brand_name ?? org?.name ?? 'ton organisation';
-          const emails = (admins ?? [])
-            .map((p) => p.email as string | null)
-            .filter((e): e is string => !!e);
-          const trialEndLabel = sub.trial_end
-            ? new Date(sub.trial_end * 1000).toLocaleDateString('fr-FR', {
-                day: 'numeric',
-                month: 'long',
-              })
-            : 'bientôt';
+          // Regroupe les admins par langue préférée (fallback 'fr') :
+          // un envoi sendEmail PAR groupe de locale (2 max).
+          const emailsByLocale = new Map<EmailLocale, string[]>();
+          for (const p of admins ?? []) {
+            const email = p.email as string | null;
+            if (!email) continue;
+            const locale: EmailLocale = p.preferred_locale === 'en' ? 'en' : 'fr';
+            const group = emailsByLocale.get(locale) ?? [];
+            group.push(email);
+            emailsByLocale.set(locale, group);
+          }
           const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://centrium-platform.com';
-          if (emails.length > 0) {
+          for (const [locale, emails] of emailsByLocale) {
+            const trialEndLabel = sub.trial_end
+              ? new Date(sub.trial_end * 1000).toLocaleDateString(
+                  pick(locale, 'fr-FR', 'en-GB'),
+                  { day: 'numeric', month: 'long' },
+                )
+              : pick(locale, 'bientôt', 'soon');
             await sendEmail({
               to: emails,
-              subject: `Ton essai Centrium se termine le ${trialEndLabel}`,
+              locale,
+              subject: pick(
+                locale,
+                `Ton essai Centrium se termine le ${trialEndLabel}`,
+                `Your Centrium trial ends on ${trialEndLabel}`,
+              ),
               paragraphs: [
-                `Bonjour,`,
-                `L'essai gratuit de ${orgName} sur Centrium se termine le ${trialEndLabel}. Après cette date, l'accès à la plateforme sera suspendu jusqu'au choix d'un abonnement.`,
-                `Choisis ton plan en 2 minutes — tes données, consultants et documents restent intacts.`,
+                pick(locale, `Bonjour,`, `Hello,`),
+                pick(
+                  locale,
+                  `L'essai gratuit de ${orgName} sur Centrium se termine le ${trialEndLabel}. Après cette date, l'accès à la plateforme sera suspendu jusqu'au choix d'un abonnement.`,
+                  `The free trial for ${orgName} on Centrium ends on ${trialEndLabel}. After that date, access to the platform will be suspended until a plan is chosen.`,
+                ),
+                pick(
+                  locale,
+                  `Choisis ton plan en 2 minutes — tes données, consultants et documents restent intacts.`,
+                  `Choose your plan in 2 minutes — your data, consultants and documents remain intact.`,
+                ),
               ],
-              cta: { label: 'Choisir mon abonnement', url: `${appUrl}/billing` },
-              footnote: 'Une question ? Réponds simplement à cet email.',
+              cta: {
+                label: pick(locale, 'Choisir mon abonnement', 'Choose my plan'),
+                url: `${appUrl}/billing`,
+              },
+              footnote: pick(
+                locale,
+                'Une question ? Réponds simplement à cet email.',
+                'Any questions? Just reply to this email.',
+              ),
             });
           }
         }

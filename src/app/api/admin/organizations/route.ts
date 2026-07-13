@@ -327,6 +327,9 @@ export async function POST(req: NextRequest) {
   }
   await sendEmail({
     to: data.admin_email,
+    // Nouveau compte : préférence inconnue → FR par défaut ; l'email suivant
+    // respectera preferred_locale.
+    locale: 'fr',
     subject:
       data.billing_mode === 'paid_only'
         ? `${org.name} — active ton espace et ton abonnement Centrium`

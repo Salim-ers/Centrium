@@ -20,6 +20,8 @@ import { logger } from '@/lib/logger';
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 const DEFAULT_FROM = 'Centrium <noreply@centrium-platform.com>';
 
+export type EmailLocale = 'fr' | 'en';
+
 export type SendEmailInput = {
   to: string | string[];
   subject: string;
@@ -30,7 +32,19 @@ export type SendEmailInput = {
   /** Ligne de contexte grisée sous le CTA (ex: "Lien valable 7 jours"). */
   footnote?: string;
   from?: string;
+  /**
+   * Langue du destinataire (migration 093 : profiles/consultants
+   * .preferred_locale). Pilote la langue du template (lang HTML, footer) —
+   * le CONTENU (subject/paragraphs) doit être fourni déjà traduit par
+   * l'appelant. Défaut : 'fr'.
+   */
+  locale?: EmailLocale;
 };
+
+/** Petit helper pour les senders : choisit la branche selon la locale. */
+export function pick<T>(locale: EmailLocale | undefined, fr: T, en: T): T {
+  return locale === 'en' ? en : fr;
+}
 
 function escapeHtml(s: string): string {
   return s
@@ -57,8 +71,14 @@ function renderHtml(input: SendEmailInput): string {
     ? `<p style="margin:18px 0 0;font-size:12px;line-height:1.5;color:#8a8d99;text-align:center;">${escapeHtml(input.footnote)}</p>`
     : '';
 
+  const lang = input.locale === 'en' ? 'en' : 'fr';
+  const footerLine =
+    input.locale === 'en'
+      ? 'Centrium — published by QuadCore SAS'
+      : 'Centrium — édité par QuadCore SAS';
+
   return `<!doctype html>
-<html lang="fr"><body style="margin:0;padding:0;background:#f6f3ee;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<html lang="${lang}"><body style="margin:0;padding:0;background:#f6f3ee;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3ee;padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
@@ -72,7 +92,7 @@ function renderHtml(input: SendEmailInput): string {
           ${footnoteHtml}
         </td></tr>
         <tr><td style="padding:18px 8px 0;text-align:center;">
-          <p style="margin:0;font-size:11px;color:#9a9daa;">Centrium — édité par QuadCore SAS · <a href="https://centrium-platform.com" style="color:#9a3e2e;text-decoration:none;">centrium-platform.com</a></p>
+          <p style="margin:0;font-size:11px;color:#9a9daa;">${footerLine} · <a href="https://centrium-platform.com" style="color:#9a3e2e;text-decoration:none;">centrium-platform.com</a></p>
         </td></tr>
       </table>
     </td></tr>

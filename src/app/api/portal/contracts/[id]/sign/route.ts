@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { sendEmail } from '@/lib/email/send';
+import { sendEmail, pick, type EmailLocale } from '@/lib/email/send';
 
 // =========================================================================
 // POST /api/portal/contracts/[id]/sign — signature électronique du contrat
@@ -148,26 +148,44 @@ export async function POST(
   }
 
   // Notifie les admins + BM de l'org — fire-and-forget (sendEmail ne throw pas).
+  // Un envoi par groupe de locale (préférence de chaque destinataire).
   const { data: recipients } = await admin
     .from('profiles')
-    .select('email')
+    .select('email, preferred_locale')
     .eq('organization_id', contract.organization_id)
     .in('role', ['admin', 'business_manager']);
-  const emails = (recipients ?? [])
-    .map((p) => p.email as string | null)
-    .filter((e): e is string => !!e);
-  if (emails.length > 0) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+  const byLocale = new Map<EmailLocale, string[]>();
+  for (const p of recipients ?? []) {
+    const email = p.email as string | null;
+    if (!email) continue;
+    const locale: EmailLocale = p.preferred_locale === 'en' ? 'en' : 'fr';
+    byLocale.set(locale, [...(byLocale.get(locale) ?? []), email]);
+  }
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+  for (const [locale, emails] of byLocale) {
     await sendEmail({
       to: emails,
-      subject: `Contrat ${updated.contract_number} signé par ${parsed.data.signed_name}`,
+      locale,
+      subject: pick(
+        locale,
+        `Contrat ${updated.contract_number} signé par ${parsed.data.signed_name}`,
+        `Contract ${updated.contract_number} signed by ${parsed.data.signed_name}`,
+      ),
       paragraphs: [
-        'Bonjour,',
-        `${parsed.data.signed_name} vient de signer électroniquement le contrat « ${updated.title} » (${updated.contract_number}) depuis son portail consultant.`,
-        'Le document co-signé est disponible dans Centrium.',
+        pick(locale, 'Bonjour,', 'Hello,'),
+        pick(
+          locale,
+          `${parsed.data.signed_name} vient de signer électroniquement le contrat « ${updated.title} » (${updated.contract_number}) depuis son portail consultant.`,
+          `${parsed.data.signed_name} has just electronically signed the contract “${updated.title}” (${updated.contract_number}) from their consultant portal.`,
+        ),
+        pick(
+          locale,
+          'Le document co-signé est disponible dans Centrium.',
+          'The counter-signed document is available in Centrium.',
+        ),
       ],
       cta: appUrl
-        ? { label: 'Voir le contrat', url: `${appUrl}/contracts/${updated.id}` }
+        ? { label: pick(locale, 'Voir le contrat', 'View the contract'), url: `${appUrl}/contracts/${updated.id}` }
         : undefined,
     });
   }

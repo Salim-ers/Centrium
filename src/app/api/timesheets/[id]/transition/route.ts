@@ -4,7 +4,8 @@ import { z } from 'zod';
 import { requireOrg } from '@/lib/auth/guards';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { sendEmail } from '@/lib/email/send';
+import { sendEmail, pick, type EmailLocale } from '@/lib/email/send';
+import { monthsLong } from '@/lib/i18n/months';
 
 // =========================================================================
 // POST /api/timesheets/[id]/transition — transitions de CRA AVEC emails
@@ -62,13 +63,16 @@ export async function POST(
     return NextResponse.json({ error: 'not_found' }, { status: 404 });
   }
   const period = `${MONTHS[ts.period_month - 1]} ${ts.period_year}`;
+  // Libellé EN régénéré par locale (le FR ci-dessus reste la source inchangée).
+  const periodEn = `${monthsLong(true)[ts.period_month - 1]} ${ts.period_year}`;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://centrium-platform.com';
 
-  // Contexte email : nom du consultant + org
-  const [{ data: consultant }, { data: org }] = await Promise.all([
+  // Contexte email : nom du consultant + org + locale du consultant
+  // (profil portail prioritaire, sinon fiche consultant, fallback 'fr').
+  const [{ data: consultant }, { data: org }, { data: consultantProfile }] = await Promise.all([
     admin
       .from('consultants')
-      .select('first_name, last_name, email')
+      .select('first_name, last_name, email, preferred_locale')
       .eq('id', ts.consultant_id)
       .maybeSingle(),
     admin
@@ -76,10 +80,19 @@ export async function POST(
       .select('name, brand_name')
       .eq('id', ts.organization_id)
       .maybeSingle(),
+    admin
+      .from('profiles')
+      .select('preferred_locale')
+      .eq('consultant_id', ts.consultant_id)
+      .limit(1)
+      .maybeSingle(),
   ]);
   const consultantName =
     `${consultant?.first_name ?? ''} ${consultant?.last_name ?? ''}`.trim() || 'Un consultant';
-  const orgName = org?.brand_name ?? org?.name ?? 'ton organisation';
+  const consultantLocale: EmailLocale =
+    (consultantProfile?.preferred_locale ?? consultant?.preferred_locale) === 'en' ? 'en' : 'fr';
+  const orgNameFor = (locale: EmailLocale) =>
+    org?.brand_name ?? org?.name ?? pick(locale, 'ton organisation', 'your organization');
 
   if (action === 'submit') {
     if (ctx.role !== 'consultant') {
@@ -100,24 +113,40 @@ export async function POST(
         { status: 409 },
       );
     }
-    // Notifie les admins + BM de l'org
+    // Notifie les admins + BM de l'org — un envoi par groupe de locale
     const { data: recipients } = await admin
       .from('profiles')
-      .select('email')
+      .select('email, preferred_locale')
       .eq('organization_id', ts.organization_id)
       .in('role', ['admin', 'business_manager']);
-    const emails = (recipients ?? [])
-      .map((p) => p.email as string | null)
-      .filter((e): e is string => !!e);
-    if (emails.length > 0) {
+    const byLocale = new Map<EmailLocale, string[]>();
+    for (const p of recipients ?? []) {
+      const email = p.email as string | null;
+      if (!email) continue;
+      const locale: EmailLocale = p.preferred_locale === 'en' ? 'en' : 'fr';
+      byLocale.set(locale, [...(byLocale.get(locale) ?? []), email]);
+    }
+    for (const [locale, emails] of byLocale) {
       await sendEmail({
         to: emails,
-        subject: `CRA ${period} soumis par ${consultantName}`,
+        locale,
+        subject: pick(
+          locale,
+          `CRA ${period} soumis par ${consultantName}`,
+          `Timesheet ${periodEn} submitted by ${consultantName}`,
+        ),
         paragraphs: [
-          `Bonjour,`,
-          `${consultantName} vient de soumettre son CRA de ${period}. Il attend votre validation.`,
+          pick(locale, `Bonjour,`, `Hello,`),
+          pick(
+            locale,
+            `${consultantName} vient de soumettre son CRA de ${period}. Il attend votre validation.`,
+            `${consultantName} has just submitted their ${periodEn} timesheet. It is awaiting your validation.`,
+          ),
         ],
-        cta: { label: 'Vérifier et valider le CRA', url: `${appUrl}/timesheets/${ts.id}` },
+        cta: {
+          label: pick(locale, 'Vérifier et valider le CRA', 'Review and validate the timesheet'),
+          url: `${appUrl}/timesheets/${ts.id}`,
+        },
       });
     }
     return NextResponse.json({ data: { status: 'submitted' } });
@@ -148,16 +177,33 @@ export async function POST(
       );
     }
     if (consultant?.email) {
+      const locale = consultantLocale;
       await sendEmail({
         to: consultant.email,
-        subject: `Ton CRA ${period} demande une correction`,
+        locale,
+        subject: pick(
+          locale,
+          `Ton CRA ${period} demande une correction`,
+          `Your ${periodEn} timesheet needs a correction`,
+        ),
         paragraphs: [
-          `Bonjour ${consultant.first_name ?? ''}`.trim() + ',',
-          `${orgName} a examiné ton CRA de ${period} et demande une correction :`,
-          `« ${reason.trim()} »`,
-          `Corrige-le depuis ton portail puis soumets-le à nouveau.`,
+          `${pick(locale, 'Bonjour', 'Hello')} ${consultant.first_name ?? ''}`.trim() + ',',
+          pick(
+            locale,
+            `${orgNameFor(locale)} a examiné ton CRA de ${period} et demande une correction :`,
+            `${orgNameFor(locale)} has reviewed your ${periodEn} timesheet and requested a correction:`,
+          ),
+          pick(locale, `« ${reason.trim()} »`, `“${reason.trim()}”`),
+          pick(
+            locale,
+            `Corrige-le depuis ton portail puis soumets-le à nouveau.`,
+            `Fix it from your portal, then submit it again.`,
+          ),
         ],
-        cta: { label: 'Corriger mon CRA', url: `${appUrl}/portal/cra/${ts.id}` },
+        cta: {
+          label: pick(locale, 'Corriger mon CRA', 'Fix my timesheet'),
+          url: `${appUrl}/portal/cra/${ts.id}`,
+        },
       });
     }
     return NextResponse.json({ data: { status: 'rejected' } });
@@ -174,14 +220,27 @@ export async function POST(
     );
   }
   if (consultant?.email) {
+    const locale = consultantLocale;
     await sendEmail({
       to: consultant.email,
-      subject: `Ton CRA ${period} est validé ✓`,
+      locale,
+      subject: pick(
+        locale,
+        `Ton CRA ${period} est validé ✓`,
+        `Your ${periodEn} timesheet is validated ✓`,
+      ),
       paragraphs: [
-        `Bonjour ${consultant.first_name ?? ''}`.trim() + ',',
-        `Bonne nouvelle : ${orgName} a validé ton CRA de ${period}.`,
+        `${pick(locale, 'Bonjour', 'Hello')} ${consultant.first_name ?? ''}`.trim() + ',',
+        pick(
+          locale,
+          `Bonne nouvelle : ${orgNameFor(locale)} a validé ton CRA de ${period}.`,
+          `Good news: ${orgNameFor(locale)} has validated your ${periodEn} timesheet.`,
+        ),
       ],
-      cta: { label: 'Voir mon CRA', url: `${appUrl}/portal/cra/${ts.id}` },
+      cta: {
+        label: pick(locale, 'Voir mon CRA', 'View my timesheet'),
+        url: `${appUrl}/portal/cra/${ts.id}`,
+      },
     });
   }
   return NextResponse.json({ data: { notified: true } });

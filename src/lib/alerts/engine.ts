@@ -3,7 +3,7 @@ import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { sendEmail } from '@/lib/email/send';
+import { pick, sendEmail, type EmailLocale } from '@/lib/email/send';
 import { sendSms } from '@/lib/sms/send';
 import { recordHeartbeat } from '@/lib/observability/heartbeat';
 import { logger } from '@/lib/logger';
@@ -79,6 +79,7 @@ type MemberRecipient = {
   phone: string | null;
   role: string;
   first_name: string | null;
+  preferred_locale?: string | null;
   prefs: {
     email_enabled: boolean;
     sms_enabled: boolean;
@@ -119,47 +120,84 @@ function channelAllowed(
 /** Wording adressé AU CONSULTANT (portail) — jamais le titre interne. */
 function consultantFacingCopy(
   a: AlertCandidate,
+  locale: EmailLocale = 'fr',
 ): { subject: string; paragraphs: string[]; ctaLabel: string; ctaPath: string } | null {
   switch (a.kind) {
     case 'profile_incomplete':
       return {
-        subject: 'Action requise : complétez votre profil Centrium',
+        subject: pick(
+          locale,
+          'Action requise : complétez votre profil Centrium',
+          'Action required: complete your Centrium profile',
+        ),
         paragraphs: [
-          'Votre profil consultant est incomplet. Certaines informations ou documents obligatoires manquent encore.',
+          pick(
+            locale,
+            'Votre profil consultant est incomplet. Certaines informations ou documents obligatoires manquent encore.',
+            'Your consultant profile is incomplete. Some required information or documents are still missing.',
+          ),
           a.description,
-          'Sans ces éléments, votre positionnement en mission et votre facturation peuvent être bloqués.',
+          pick(
+            locale,
+            'Sans ces éléments, votre positionnement en mission et votre facturation peuvent être bloqués.',
+            'Without these items, your mission staffing and invoicing may be blocked.',
+          ),
         ],
-        ctaLabel: 'Compléter mon profil',
+        ctaLabel: pick(locale, 'Compléter mon profil', 'Complete my profile'),
         ctaPath: '/portal/profile',
       };
     case 'document_expiring':
       return {
-        subject: 'Un de vos documents expire bientôt',
+        subject: pick(
+          locale,
+          'Un de vos documents expire bientôt',
+          'One of your documents expires soon',
+        ),
         paragraphs: [
           a.description,
-          'Merci de déposer un document à jour dans votre espace pour rester en conformité.',
+          pick(
+            locale,
+            'Merci de déposer un document à jour dans votre espace pour rester en conformité.',
+            'Please upload an up-to-date document in your workspace to stay compliant.',
+          ),
         ],
-        ctaLabel: 'Mettre à jour mes documents',
+        ctaLabel: pick(locale, 'Mettre à jour mes documents', 'Update my documents'),
         ctaPath: '/portal/profile',
       };
     case 'timesheet_missing':
       return {
-        subject: 'Votre CRA du mois dernier est attendu',
+        subject: pick(
+          locale,
+          'Votre CRA du mois dernier est attendu',
+          'Your timesheet for last month is due',
+        ),
         paragraphs: [
           a.description,
-          'Complétez et soumettez votre compte rendu d’activité pour permettre la facturation.',
+          pick(
+            locale,
+            'Complétez et soumettez votre compte rendu d’activité pour permettre la facturation.',
+            'Complete and submit your timesheet to enable invoicing.',
+          ),
         ],
-        ctaLabel: 'Compléter mon CRA',
+        ctaLabel: pick(locale, 'Compléter mon CRA', 'Complete my timesheet'),
         ctaPath: '/portal/cra',
       };
     case 'contract_pending_signature':
       return {
-        subject: 'Un contrat attend votre signature',
+        subject: pick(
+          locale,
+          'Un contrat attend votre signature',
+          'A contract is awaiting your signature',
+        ),
         paragraphs: [
           a.description,
-          'Vous pouvez le consulter et le signer électroniquement depuis votre espace.',
+          pick(
+            locale,
+            'Vous pouvez le consulter et le signer électroniquement depuis votre espace.',
+            'You can review and sign it electronically from your workspace.',
+          ),
         ],
-        ctaLabel: 'Signer mon contrat',
+        ctaLabel: pick(locale, 'Signer mon contrat', 'Sign my contract'),
         ctaPath: '/portal/contracts',
       };
     default:
@@ -187,7 +225,7 @@ async function loadOrgData(admin: SupabaseClient, orgId: string) {
     admin
       .from('consultants')
       .select(
-        'id, first_name, last_name, email, phone, job_title, daily_rate_eur, contract_type, status, city, address, legal_status, company_name, siret, iban, bic, archived, is_prospect',
+        'id, first_name, last_name, email, phone, job_title, daily_rate_eur, contract_type, status, city, address, legal_status, company_name, siret, iban, bic, archived, is_prospect, preferred_locale',
       )
       .eq('organization_id', orgId),
     admin
@@ -255,7 +293,7 @@ async function loadOrgData(admin: SupabaseClient, orgId: string) {
     memberIds.length > 0
       ? await admin
           .from('profiles')
-          .select('id, email, phone, first_name, consultant_id')
+          .select('id, email, phone, first_name, consultant_id, preferred_locale')
           .in('id', memberIds)
       : { data: [], error: null };
   if (profErr) throw new Error(profErr.message);
@@ -269,6 +307,18 @@ async function loadOrgData(admin: SupabaseClient, orgId: string) {
     if (p.consultant_id) consultantUserIds.set(p.consultant_id as string, p.id as string);
   }
 
+  // Locale par consultant : préférence du profil portail si un compte existe,
+  // sinon celle de la fiche consultant, sinon 'fr'.
+  const consultantLocales = new Map<string, EmailLocale>();
+  for (const c of consultants.data ?? []) {
+    const portalUserId = consultantUserIds.get(c.id as string);
+    const prof = portalUserId ? profileById.get(portalUserId) : undefined;
+    const raw =
+      (prof?.preferred_locale as string | null | undefined) ??
+      ((c as { preferred_locale?: string | null }).preferred_locale ?? null);
+    consultantLocales.set(c.id as string, raw === 'en' ? 'en' : 'fr');
+  }
+
   const recipients: MemberRecipient[] = (members.data ?? [])
     .flatMap((m) => {
       const prof = profileById.get(m.user_id as string);
@@ -280,6 +330,7 @@ async function loadOrgData(admin: SupabaseClient, orgId: string) {
         phone: (prof.phone as string | null) ?? null,
         role: m.role as string,
         first_name: (prof.first_name as string | null) ?? null,
+        preferred_locale: (prof.preferred_locale as string | null) ?? null,
         prefs: p
           ? {
               email_enabled: p.email_enabled as boolean,
@@ -301,6 +352,7 @@ async function loadOrgData(admin: SupabaseClient, orgId: string) {
   return {
     consultants: consultants.data ?? [],
     consultantUserIds,
+    consultantLocales,
     documents: (documents.data ?? []) as unknown as Array<{
       id: string; consultant_id: string; kind: string; file_name: string; expires_at: string | null;
     }>,
@@ -559,18 +611,35 @@ export async function runOrgAlerts(
             continue;
           }
           emailBudget.set(r.email, used + 1);
+          const locale: EmailLocale = r.preferred_locale === 'en' ? 'en' : 'fr';
           const res = await sendEmail({
             to: r.email,
-            subject: `${decision.isReminder ? '[Relance] ' : ''}${alert.title}`,
+            locale,
+            subject: `${decision.isReminder ? pick(locale, '[Relance] ', '[Reminder] ') : ''}${alert.title}`,
             paragraphs: [
               alert.description ?? alert.title,
-              ...(alert.due_date ? [`Échéance : ${alert.due_date.split('-').reverse().join('/')}`] : []),
+              ...(alert.due_date
+                ? [`${pick(locale, 'Échéance :', 'Due date:')} ${alert.due_date.split('-').reverse().join('/')}`]
+                : []),
               ...(decision.isReminder
-                ? [`Relance n° ${(alert.reminder_count ?? 0) + 1} — cette alerte reste sans action.`]
+                ? [
+                    pick(
+                      locale,
+                      `Relance n° ${(alert.reminder_count ?? 0) + 1} — cette alerte reste sans action.`,
+                      `Reminder #${(alert.reminder_count ?? 0) + 1} — this alert is still unaddressed.`,
+                    ),
+                  ]
                 : []),
             ],
-            cta: { label: 'Traiter dans Centrium', url: `${APP_URL}${alert.link ?? '/alerts'}` },
-            footnote: 'Vous recevez cet email selon les réglages de notifications de votre organisation.',
+            cta: {
+              label: pick(locale, 'Traiter dans Centrium', 'Handle in Centrium'),
+              url: `${APP_URL}${alert.link ?? '/alerts'}`,
+            },
+            footnote: pick(
+              locale,
+              'Vous recevez cet email selon les réglages de notifications de votre organisation.',
+              "You receive this email according to your organization's notification settings.",
+            ),
           });
           deliveries.push({
             organization_id: org.id, dedupe_key: alert.dedupe_key!, channel: 'email',
@@ -596,8 +665,13 @@ export async function runOrgAlerts(
 
     // — Canal EMAIL/SMS (consultant concerné) —
     if (candidate.notify === 'consultant' || candidate.notify === 'both') {
-      const copy = consultantFacingCopy(candidate);
       const consultant = data.consultants.find((c) => c.id === candidate.consultant_id);
+      // Locale du consultant : profil portail > fiche consultant > 'fr'.
+      // La cloche du portail utilise la même copy — cohérent pour le destinataire.
+      const cLocale: EmailLocale = consultant
+        ? (data.consultantLocales.get(consultant.id as string) ?? 'fr')
+        : 'fr';
+      const copy = consultantFacingCopy(candidate, cLocale);
       if (copy && consultant) {
         const cKey = `${alert.dedupe_key}:consultant`;
 
@@ -647,10 +721,15 @@ export async function runOrgAlerts(
           if (decision.send && settings.channels.email && consultant.email) {
             const res = await sendEmail({
               to: consultant.email as string,
-              subject: `${decision.isReminder ? '[Rappel] ' : ''}${copy.subject}`,
+              locale: cLocale,
+              subject: `${decision.isReminder ? pick(cLocale, '[Rappel] ', '[Reminder] ') : ''}${copy.subject}`,
               paragraphs: copy.paragraphs,
               cta: { label: copy.ctaLabel, url: `${APP_URL}${copy.ctaPath}` },
-              footnote: `Message envoyé par ${org.name} via Centrium.`,
+              footnote: pick(
+                cLocale,
+                `Message envoyé par ${org.name} via Centrium.`,
+                `Message sent by ${org.name} via Centrium.`,
+              ),
             });
             deliveries.push({
               organization_id: org.id, dedupe_key: cKey, channel: 'email',
@@ -683,10 +762,15 @@ export async function runOrgAlerts(
               if (!sms.sent && sms.error !== 'no_provider' && consultant.email) {
                 await sendEmail({
                   to: consultant.email as string,
+                  locale: cLocale,
                   subject: copy.subject,
                   paragraphs: copy.paragraphs,
                   cta: { label: copy.ctaLabel, url: `${APP_URL}${copy.ctaPath}` },
-                  footnote: 'SMS non délivré — email de secours.',
+                  footnote: pick(
+                    cLocale,
+                    'SMS non délivré — email de secours.',
+                    'SMS not delivered — fallback email.',
+                  ),
                 });
               }
             }
@@ -784,16 +868,41 @@ async function maybeSendDigest(
 
   const deliveries: DeliveryLog[] = [];
   for (const r of targets) {
+    const locale: EmailLocale = r.preferred_locale === 'en' ? 'en' : 'fr';
     const res = await sendEmail({
       to: r.email,
-      subject: `${wantWeekly ? 'Récap hebdo' : 'Récap du jour'} — ${actionable.length} alerte${actionable.length > 1 ? 's' : ''} à traiter (${org.name})`,
+      locale,
+      subject: pick(
+        locale,
+        `${wantWeekly ? 'Récap hebdo' : 'Récap du jour'} — ${actionable.length} alerte${actionable.length > 1 ? 's' : ''} à traiter (${org.name})`,
+        `${wantWeekly ? 'Weekly digest' : 'Daily digest'} — ${actionable.length} alert${actionable.length > 1 ? 's' : ''} to handle (${org.name})`,
+      ),
       paragraphs: [
-        `Situation au ${today.split('-').reverse().join('/')} : ${byPriority.critical} critique(s), ${byPriority.high} importante(s), ${byPriority.medium} modérée(s), ${byPriority.low} info(s).`,
+        pick(
+          locale,
+          `Situation au ${today.split('-').reverse().join('/')} : ${byPriority.critical} critique(s), ${byPriority.high} importante(s), ${byPriority.medium} modérée(s), ${byPriority.low} info(s).`,
+          `As of ${today.split('-').reverse().join('/')}: ${byPriority.critical} critical, ${byPriority.high} important, ${byPriority.medium} moderate, ${byPriority.low} info.`,
+        ),
         ...top,
-        ...(actionable.length > 10 ? [`… et ${actionable.length - 10} autres dans le centre d'alertes.`] : []),
+        ...(actionable.length > 10
+          ? [
+              pick(
+                locale,
+                `… et ${actionable.length - 10} autres dans le centre d'alertes.`,
+                `… and ${actionable.length - 10} more in the alert center.`,
+              ),
+            ]
+          : []),
       ],
-      cta: { label: "Ouvrir le centre d'alertes", url: `${APP_URL}/alerts` },
-      footnote: 'Fréquence réglable dans Paramètres → Notifications.',
+      cta: {
+        label: pick(locale, "Ouvrir le centre d'alertes", 'Open the alert center'),
+        url: `${APP_URL}/alerts`,
+      },
+      footnote: pick(
+        locale,
+        'Fréquence réglable dans Paramètres → Notifications.',
+        'Frequency adjustable in Settings → Notifications.',
+      ),
     });
     deliveries.push({
       organization_id: org.id, dedupe_key: dedupeKey, channel: 'email',

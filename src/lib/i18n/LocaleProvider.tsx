@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
+import { createClient } from '@/lib/supabase/client';
 import { DICT, type LandingDict, type Locale } from './landing';
 import { APP_DICT, type AppDict } from './app';
 
@@ -50,6 +51,22 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     } catch {
       /* idem */
     }
+    // Synchronise la préférence côté serveur (profiles.preferred_locale,
+    // migration 093) pour que les EMAILS partent dans la langue de
+    // l'utilisateur. Fire-and-forget : visiteur non connecté (marketing,
+    // login) → getUser() null → no-op silencieux ; jamais bloquant.
+    void (async () => {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+        await supabase.from('profiles').update({ preferred_locale: l }).eq('id', user.id);
+      } catch {
+        /* offline / RLS — la préférence locale reste appliquée côté client */
+      }
+    })();
   }, []);
 
   useEffect(() => {
