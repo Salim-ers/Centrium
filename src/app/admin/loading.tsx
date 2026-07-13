@@ -1,4 +1,8 @@
+'use client';
+
 import { Sparkles } from 'lucide-react';
+
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 // =========================================================================
 // Écran de chargement instantané de la super-console.
@@ -13,6 +17,8 @@ import { Sparkles } from 'lucide-react';
 // =========================================================================
 
 export default function AdminLoading() {
+  const { locale } = useLocale();
+  const isEn = locale === 'en';
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-hairline bg-card/40 backdrop-blur-xl sticky top-0 z-10">
@@ -20,9 +26,11 @@ export default function AdminLoading() {
           <div className="flex items-center gap-3">
             <Sparkles className="h-6 w-6 text-magenta" />
             <div>
-              <h1 className="font-display text-lg font-bold tracking-tight">Console super-admin</h1>
+              <h1 className="font-display text-lg font-bold tracking-tight">
+                {isEn ? 'Super-admin console' : 'Console super-admin'}
+              </h1>
               <p className="text-[11px] text-muted-foreground">
-                Supervision · abonnements · activité
+                {isEn ? 'Supervision · subscriptions · activity' : 'Supervision · abonnements · activité'}
               </p>
             </div>
           </div>

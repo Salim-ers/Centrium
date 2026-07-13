@@ -6,7 +6,7 @@ import { Filter } from 'lucide-react';
 import { StatusBadge, type StatusTone, EmptyState } from '@/components/app';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
-type Row = {
+export type AuditRow = {
   id: string;
   organization_id: string;
   user_id: string | null;
@@ -16,6 +16,7 @@ type Row = {
   details: Record<string, unknown> | null;
   created_at: string;
 };
+type Row = AuditRow;
 
 const ACTION_TONE: Record<string, StatusTone> = {
   created: 'success',
