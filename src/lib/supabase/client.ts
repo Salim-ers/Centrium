@@ -43,7 +43,8 @@ function writeCookie(name: string, value: string, options: CookieOptions) {
   // Domaine partagé apex ↔ www : sans lui, les refreshs de token côté
   // client reposeraient des cookies host-only → doublons avec ceux posés
   // par le serveur (Domain=…) et sessions fantômes selon l'hôte.
-  const domain = opts.domain ?? sharedAuthCookieDomain();
+  // window.location.hostname = garde anti-domaine étranger (previews Vercel).
+  const domain = opts.domain ?? sharedAuthCookieDomain(window.location.hostname);
   let cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
   if (opts.path) cookie += `; Path=${opts.path}`;
   if (domain) cookie += `; Domain=${domain}`;
@@ -55,7 +56,7 @@ function writeCookie(name: string, value: string, options: CookieOptions) {
 
 function deleteCookie(name: string, options: CookieOptions) {
   if (typeof document === 'undefined') return;
-  const domain = options.domain ?? sharedAuthCookieDomain();
+  const domain = options.domain ?? sharedAuthCookieDomain(window.location.hostname);
   // Pour supprimer : Max-Age=0 (forcé même en session-only). On supprime
   // les DEUX variantes (host-only ET domaine) pour couvrir la migration.
   let base = `${encodeURIComponent(name)}=; Max-Age=0`;
@@ -74,7 +75,7 @@ function deleteCookie(name: string, options: CookieOptions) {
  */
 function purgeLegacyHostOnlyDuplicates() {
   if (typeof document === 'undefined') return;
-  if (!sharedAuthCookieDomain()) return;
+  if (!sharedAuthCookieDomain(window.location.hostname)) return;
   const names = document.cookie.split('; ').map((row) => row.split('=')[0]);
   const dupes = names.filter(
     (n, i) => n.startsWith('sb-') && names.indexOf(n) !== i,

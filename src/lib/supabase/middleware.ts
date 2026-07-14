@@ -27,12 +27,19 @@ const PROFILE_COOKIE_TTL_SEC = 300; // 5 min
  * Utile pour les machines partagées et pour respecter une attente
  * "je ferme, je suis déco" sans dépendre d'un bouton logout.
  */
-function sessionOnly(_name: string, options: CookieOptions): CookieOptions {
+function sessionOnly(
+  _name: string,
+  options: CookieOptions,
+  currentHost?: string,
+): CookieOptions {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { maxAge, expires, ...rest } = options;
   // Domain=.centrium-platform.com en prod : la session survit aux rebonds
   // apex ↔ www (cause des "liens email qui ramènent au login").
-  const domain = sharedAuthCookieDomain();
+  // currentHost = garde anti-domaine étranger (previews Vercel/staging) :
+  // hôte hors du domaine dérivé de APP_URL → pas d'attribut Domain, sinon
+  // le navigateur rejette le cookie et le login est cassé.
+  const domain = sharedAuthCookieDomain(currentHost);
   return domain ? { ...rest, domain } : rest;
 }
 
@@ -136,13 +143,13 @@ export async function updateSession(request: NextRequest) {
           return lastCookieValue(name) ?? request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          const opts = sessionOnly(name, options);
+          const opts = sessionOnly(name, options, request.nextUrl.hostname);
           request.cookies.set({ name, value, ...opts });
           response = NextResponse.next({ request: { headers: request.headers } });
           response.cookies.set({ name, value, ...opts });
         },
         remove(name: string, options: CookieOptions) {
-          const opts = sessionOnly(name, options);
+          const opts = sessionOnly(name, options, request.nextUrl.hostname);
           request.cookies.set({ name, value: '', ...opts });
           response = NextResponse.next({ request: { headers: request.headers } });
           response.cookies.set({ name, value: '', ...opts });

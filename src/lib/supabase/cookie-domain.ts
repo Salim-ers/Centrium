@@ -16,7 +16,16 @@
 // PAS de 'server-only' ici : importé aussi par le middleware (edge).
 // =========================================================================
 
-export function sharedAuthCookieDomain(): string | undefined {
+/**
+ * @param currentHost hostname RÉELLEMENT servi (window.location.hostname côté
+ *   client, request/headers côté serveur). Garde anti-domaine étranger :
+ *   si l'app tourne sur un hôte qui n'appartient PAS au domaine dérivé de
+ *   NEXT_PUBLIC_APP_URL (preview Vercel, staging, APP_URL mal configurée…),
+ *   on n'ajoute AUCUN attribut Domain — sinon le navigateur rejette
+ *   silencieusement le cookie et le login est cassé (session ouverte côté
+ *   GoTrue mais jamais persistée). Incident staging du 14/07/2026.
+ */
+export function sharedAuthCookieDomain(currentHost?: string): string | undefined {
   try {
     const host = new URL(process.env.NEXT_PUBLIC_APP_URL ?? '').hostname;
     if (!host || host === 'localhost' || host.endsWith('.localhost')) {
@@ -24,6 +33,10 @@ export function sharedAuthCookieDomain(): string | undefined {
     }
     const root = host.replace(/^www\./, '');
     if (!root.includes('.')) return undefined;
+    if (currentHost) {
+      const h = currentHost.toLowerCase().replace(/:\d+$/, '');
+      if (h !== root && !h.endsWith(`.${root}`)) return undefined;
+    }
     return `.${root}`;
   } catch {
     return undefined;
@@ -49,8 +62,8 @@ export function sharedAuthCookieDomain(): string | undefined {
 
 export const FRESH_AUTH_COOKIE = 'centrium-fresh-auth';
 
-export function freshAuthCookieOptions() {
-  const domain = sharedAuthCookieDomain();
+export function freshAuthCookieOptions(currentHost?: string) {
+  const domain = sharedAuthCookieDomain(currentHost);
   return {
     name: FRESH_AUTH_COOKIE,
     value: '1',

@@ -38,7 +38,14 @@ function lastCookieFromHeader(name: string): string | undefined {
 function sessionOnly(_name: string, options: CookieOptions): CookieOptions {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { maxAge, expires, ...rest } = options;
-  const domain = sharedAuthCookieDomain();
+  // Hôte réellement servi (garde anti-domaine étranger — previews Vercel).
+  let currentHost: string | undefined;
+  try {
+    currentHost = headers().get('host') ?? undefined;
+  } catch {
+    /* hors contexte requête */
+  }
+  const domain = sharedAuthCookieDomain(currentHost);
   return domain ? { ...rest, domain } : rest;
 }
 

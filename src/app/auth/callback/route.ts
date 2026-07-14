@@ -145,7 +145,7 @@ export async function GET(req: NextRequest) {
     const res = NextResponse.redirect(new URL(dest, url.origin));
     // Session créée par lien email : marque l'entrée comme légitime pour
     // le garde anti-restauration (sinon logout automatique ~1 s après).
-    res.cookies.set(freshAuthCookieOptions());
+    res.cookies.set(freshAuthCookieOptions(url.hostname));
     clearProfileCache(res);
     return res;
   }
@@ -159,7 +159,7 @@ export async function GET(req: NextRequest) {
     await claimIfInvited();
     const dest = explicitNext || (await defaultDestination());
     const res = NextResponse.redirect(new URL(dest, url.origin));
-    res.cookies.set(freshAuthCookieOptions());
+    res.cookies.set(freshAuthCookieOptions(url.hostname));
     clearProfileCache(res);
     return res;
   }

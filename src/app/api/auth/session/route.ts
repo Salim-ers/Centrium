@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   const res = NextResponse.json({ data: { ok: true } });
   // Session établie par lien email (fragment) : marque l'entrée comme
   // légitime pour le garde anti-restauration (cf. cookie-domain.ts).
-  res.cookies.set(freshAuthCookieOptions());
+  res.cookies.set(freshAuthCookieOptions(req.nextUrl.hostname));
   return res;
 }
 
