@@ -39,6 +39,23 @@ variables avec l'environnement **Preview** restreint à la branche **`staging`**
 | `SUPABASE_SERVICE_ROLE_KEY` | À copier depuis [le dashboard staging](https://supabase.com/dashboard/project/uedmmqkkqgtuncexfjcq/settings/api) → « service_role » (⚠️ secret, jamais commité) |
 | `NEXT_PUBLIC_APP_URL` | l'URL de preview de la branche staging (ex. `https://centrium-git-staging-<team>.vercel.app`) — ajustable après le 1er déploiement |
 
+### ⚠️ Piège : l'héritage des variables de prod
+
+Les variables existantes du projet Vercel ciblent « production, preview,
+development » → **la branche staging hérite des valeurs de PROD** pour tout ce
+qui n'est pas surchargé avec un scope branche. Deux conséquences critiques :
+
+1. **`NEXT_PUBLIC_APP_URL` est OBLIGATOIRE en scope branche** : sinon la valeur
+   prod (`centrium-platform.com`) s'applique et `sharedAuthCookieDomain()` pose
+   le cookie d'auth sur `.centrium-platform.com` depuis l'URL `vercel.app` → le
+   navigateur rejette le cookie → **login impossible sur staging**. Mettre l'URL
+   réelle du déploiement staging dès le 1er build, puis Redeploy.
+2. **Stripe hérite des clés LIVE** : surcharger en scope branche
+   `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` et
+   `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` avec des clés **TEST** (`sk_test_…`) —
+   ou une valeur vide pour désactiver le billing sur staging. Idem
+   `RESEND_API_KEY` (vide = emails loggés, pas envoyés).
+
 Optionnel (pour tester paiement/emails/IA sur staging) :
 
 | Variable | Valeur |
