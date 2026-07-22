@@ -9,120 +9,116 @@ import {
 
 import type { JobOffer } from '@/types';
 import type { CVBrand } from '@/lib/cv/branding';
-import { resolveBrand } from '@/lib/cv/branding';
+import { resolvePosterBrand } from '@/lib/cv/branding';
+import { buildPosterModel, computeFitPlan, type FitPlan } from '@/lib/offers/poster-model';
 
 // =========================================================================
-// Fiche de poste — porte exactement le design du repo
-// `Fiche-de-poste-QuadCore` (Puppeteer HTML/CSS) vers React-PDF.
+// Fiche de poste — gabarit A4 (moteur @react-pdf/renderer)
+// -------------------------------------------------------------------------
+// Identité visuelle CONSERVÉE (bandeau logo + titre, bandeau d'infos, blocs
+// numérotés 01→05, callout finalité, deux colonnes missions/profil, badges
+// techno, footer). Ce qui change : robustesse.
 //
-// Le repo source utilise des couleurs FIXES (charcoal + cuivre + sable).
-// Ici on remplace les 2 couleurs identitaires par les couleurs du
-// BRANDING utilisateur (cf. /settings/branding) :
-//   - branding.primary  → blocs sombres (hero, callout, tech badges)
-//   - branding.accent   → accent (ligne verticale, top-border banner,
-//                          col-header missions/profil, footer rule)
-// Les neutres (sable F3ECE2, taupe 9A8A78, brun-noir 2A2520) restent fixes.
-//
-// Layout : 1 page A4 portrait. mm originaux convertis en pt (1mm ≈ 2.835pt).
+//  · Couleurs identitaires = branding de l'organisation (primary / accent).
+//    Fallback NEUTRE (charbon/taupe) si l'org n'a pas configuré ses couleurs.
+//  · AUCUNE hauteur fixe : le hero et les titres de section s'étirent
+//    naturellement (flex) → plus de superposition titre / métadonnées.
+//  · Le titre passe sur 2 lignes max, taille adaptative (cf. FitPlan).
+//  · Bandeau d'infos DYNAMIQUE : seules les cellules renseignées sont
+//    affichées (3, 4… cellules), jamais de « — ».
+//  · Densité pilotée par un plan pré-rendu (poster-model) → tenue 1 page A4
+//    sans troncature silencieuse.
 // =========================================================================
 
-// === NEUTRES FIXES (charte nude / éditoriale du template original) ===
+// Neutres éditoriaux fixes (charte nude du gabarit original).
 const N = {
   white: '#ffffff',
-  sand: '#f3ece2',      // lightGray — fond des cellules info + col-body
-  taupe: '#9a8a78',     // midGray — texte secondaire footer
-  inkText: '#2a2520',   // textDark — texte principal
-  accentSoftOnDark: 'rgba(255,255,255,0.65)', // sub-texte sur fond sombre
+  sand: '#f3ece2',
+  taupe: '#9a8a78',
+  inkText: '#2a2520',
+  softOnDark: 'rgba(255,255,255,0.68)',
 };
 
-// 1 mm ≈ 2.8346 pt — converti une fois ici pour la lisibilité du code.
+// 1 mm ≈ 2.8346 pt.
 const mm = (n: number) => n * 2.8346;
 
-function buildStyles(primary: string, accent: string) {
+function buildStyles(primary: string, accent: string, plan: FitPlan) {
+  // Échelle verticale : on comprime les espacements aux paliers denses,
+  // sans toucher aux paddings horizontaux (lisibilité).
+  const v = (n: number) => mm(n * plan.scale);
+
   return StyleSheet.create({
     page: {
       backgroundColor: N.white,
       color: N.inkText,
       fontFamily: 'Helvetica',
       paddingTop: mm(7.5),
-      paddingBottom: mm(12), // place pour le footer fixé
+      paddingBottom: mm(12), // réservation footer fixe
       paddingHorizontal: mm(9),
-      fontSize: 9,
-      lineHeight: 1.35,
+      fontSize: plan.fontBase,
+      lineHeight: plan.lineHeight,
     },
 
-    // ============ HERO (logo panel + title panel) ============
+    // ============ HERO (logo | titre) — hauteur NATURELLE ============
     hero: {
       flexDirection: 'row',
-      height: mm(25),
-      marginBottom: mm(4),
+      alignItems: 'stretch',
+      marginBottom: v(4),
     },
     heroLogo: {
       backgroundColor: primary,
-      width: mm(32),
+      width: mm(31),
       alignItems: 'center',
       justifyContent: 'center',
-      padding: mm(4),
+      padding: mm(3.5),
     },
     heroLogoImg: {
       maxWidth: '100%',
-      maxHeight: mm(22),
+      maxHeight: mm(17),
       objectFit: 'contain',
     },
     heroBody: {
       backgroundColor: primary,
       flex: 1,
-      paddingTop: mm(4),
-      paddingBottom: mm(4),
-      paddingHorizontal: mm(8),
+      minWidth: 0,
+      paddingVertical: v(4.5),
+      paddingHorizontal: mm(7),
       justifyContent: 'center',
     },
     heroTag: {
       fontSize: 7.5,
       fontFamily: 'Helvetica-Bold',
-      letterSpacing: 3.8,
-      color: N.white,
-      marginBottom: mm(1.8),
+      letterSpacing: 3.4,
+      color: N.softOnDark,
+      marginBottom: v(2),
     },
     heroTitle: {
-      fontSize: 17,
+      fontSize: plan.titleFont,
       fontFamily: 'Helvetica-Bold',
       color: N.white,
-      lineHeight: 1.08,
-      marginBottom: mm(1.2),
-    },
-    heroSubtitle: {
-      fontSize: 9.5,
-      color: N.accentSoftOnDark,
-      marginBottom: mm(2.5),
+      lineHeight: 1.1,
+      maxLines: 2,
+      textOverflow: 'ellipsis',
+      marginBottom: v(1.6),
     },
     heroMeta: {
-      fontSize: 9.5,
-      color: N.accentSoftOnDark,
+      fontSize: Math.max(8, plan.fontBase - 0.5),
+      color: N.softOnDark,
+      maxLines: 2,
+      textOverflow: 'ellipsis',
     },
 
-    // ============ INFO BANNER (4 cells avec top-border accent) ============
+    // ============ INFO BANNER (cellules dynamiques) ============
     infoBanner: {
       flexDirection: 'row',
-      marginBottom: mm(4),
+      marginBottom: v(4),
     },
     bannerCell: {
       backgroundColor: N.sand,
       flex: 1,
-      paddingTop: mm(3.3),
-      paddingBottom: mm(3.3),
-      paddingHorizontal: mm(5),
-      borderTopWidth: mm(1.1),
-      borderTopColor: accent,
-      borderTopStyle: 'solid',
-      marginRight: mm(1.3),
-    },
-    bannerCellLast: {
-      backgroundColor: N.sand,
-      flex: 1,
-      paddingTop: mm(3.3),
-      paddingBottom: mm(3.3),
-      paddingHorizontal: mm(5),
+      minWidth: 0,
+      paddingVertical: v(3.2),
+      paddingHorizontal: mm(4.2),
       borderTopWidth: mm(1.1),
       borderTopColor: accent,
       borderTopStyle: 'solid',
@@ -131,60 +127,60 @@ function buildStyles(primary: string, accent: string) {
       fontSize: 6.5,
       color: accent,
       fontFamily: 'Helvetica-Bold',
-      letterSpacing: 2,
-      marginBottom: mm(1.1),
+      letterSpacing: 1.6,
+      marginBottom: v(1),
       textTransform: 'uppercase',
     },
     bannerValue: {
-      fontSize: 9.5,
+      fontSize: plan.bannerValueFont,
       color: N.inkText,
       fontFamily: 'Helvetica-Bold',
+      maxLines: 2,
+      textOverflow: 'ellipsis',
     },
 
-    // ============ SECTION TITLE (accent | num | label) ============
+    // ============ SECTION TITLE (accent | num | label) — hauteur NATURELLE ==
     sectionTitle: {
       flexDirection: 'row',
       alignItems: 'stretch',
-      marginTop: mm(3.3),
-      marginBottom: mm(1.5),
-      height: mm(4.6),
+      marginTop: v(3.2),
+      marginBottom: v(1.5),
     },
     sectionAccent: {
       width: mm(1.3),
       backgroundColor: accent,
     },
     sectionLabel: {
-      paddingHorizontal: mm(3.3),
-      fontSize: 10,
+      paddingHorizontal: mm(3),
+      paddingVertical: v(0.8),
+      fontSize: Math.max(9, plan.fontBase + 0.5),
       fontFamily: 'Helvetica-Bold',
-      letterSpacing: 1.1,
+      letterSpacing: 1,
       textTransform: 'uppercase',
       color: primary,
       flexDirection: 'row',
       alignItems: 'center',
     },
     sectionNum: {
-      fontSize: 10,
+      fontSize: Math.max(9, plan.fontBase + 0.5),
       color: accent,
       fontFamily: 'Helvetica-Bold',
-      letterSpacing: 1.1,
-      marginRight: mm(2.8),
+      letterSpacing: 1,
+      marginRight: mm(2.6),
     },
 
     // ============ 01 CONTEXTE ============
     contexte: {
-      fontSize: 9.5,
-      lineHeight: 1.5,
+      fontSize: plan.fontBase,
+      lineHeight: plan.lineHeight,
       color: N.inkText,
       textAlign: 'justify',
-      marginBottom: mm(1),
     },
 
-    // ============ 02 FINALITÉ (callout dark + left border accent) ============
+    // ============ 02 FINALITÉ (callout) ============
     callout: {
       backgroundColor: primary,
-      paddingTop: mm(3),
-      paddingBottom: mm(3),
+      paddingVertical: v(3),
       paddingHorizontal: mm(5),
       borderLeftWidth: mm(2),
       borderLeftColor: accent,
@@ -193,43 +189,43 @@ function buildStyles(primary: string, accent: string) {
     calloutLabel: {
       fontSize: 7,
       fontFamily: 'Helvetica-Bold',
-      letterSpacing: 2.4,
-      color: N.accentSoftOnDark,
-      marginBottom: mm(1.7),
+      letterSpacing: 2.2,
+      color: N.softOnDark,
+      marginBottom: v(1.5),
       textTransform: 'uppercase',
     },
     calloutText: {
-      fontSize: 9.5,
+      fontSize: plan.fontBase,
       color: N.white,
-      lineHeight: 1.5,
+      lineHeight: plan.lineHeight,
     },
 
-    // ============ 03 TWO COLUMNS (Missions / Profil) ============
+    // ============ 03 DEUX COLONNES ============
     twoColGrid: {
       flexDirection: 'row',
     },
     col: {
       flex: 1,
+      minWidth: 0,
       marginRight: mm(1.3),
     },
     colLast: {
       flex: 1,
+      minWidth: 0,
     },
     colHeader: {
       backgroundColor: accent,
       color: N.white,
-      paddingTop: mm(2.8),
-      paddingBottom: mm(2.8),
+      paddingVertical: v(2.6),
       paddingHorizontal: mm(5),
-      fontSize: 8.5,
+      fontSize: Math.max(8, plan.bulletFont - 0.2),
       fontFamily: 'Helvetica-Bold',
-      letterSpacing: 2.4,
+      letterSpacing: 2.2,
       textTransform: 'uppercase',
     },
     colBody: {
       backgroundColor: N.sand,
-      paddingTop: mm(3),
-      paddingBottom: mm(3.2),
+      paddingVertical: v(2.8),
       paddingHorizontal: mm(5),
     },
 
@@ -237,62 +233,51 @@ function buildStyles(primary: string, accent: string) {
     bulletItem: {
       flexDirection: 'row',
       alignItems: 'flex-start',
-      paddingTop: mm(0.45),
-      paddingBottom: mm(0.45),
+      paddingVertical: v(0.45),
     },
     bullet: {
       color: accent,
       fontFamily: 'Helvetica-Bold',
-      fontSize: 9,
-      marginRight: mm(2),
-      lineHeight: 1.3,
+      fontSize: plan.bulletFont,
+      marginRight: mm(1.8),
+      lineHeight: plan.bulletLineHeight,
     },
     bulletText: {
       flex: 1,
-      fontSize: 9,
+      minWidth: 0,
+      fontSize: plan.bulletFont,
       color: N.inkText,
-      lineHeight: 1.4,
+      lineHeight: plan.bulletLineHeight,
     },
 
-    // ============ 04 TECH BADGES ============
+    // ============ 04 TECH BADGES (wrap dynamique) ============
     techRow: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
     },
     techBadge: {
       backgroundColor: primary,
       color: N.white,
-      paddingTop: mm(2.8),
-      paddingBottom: mm(2.8),
-      paddingHorizontal: mm(1.7),
-      fontSize: 8.5,
+      paddingVertical: v(2.4),
+      paddingHorizontal: mm(3),
+      fontSize: Math.max(7.5, plan.bulletFont - 0.3),
       fontFamily: 'Helvetica-Bold',
       textAlign: 'center',
-      flex: 1,
       marginRight: mm(1.3),
-    },
-    techBadgeLast: {
-      backgroundColor: primary,
-      color: N.white,
-      paddingTop: mm(2.8),
-      paddingBottom: mm(2.8),
-      paddingHorizontal: mm(1.7),
-      fontSize: 8.5,
-      fontFamily: 'Helvetica-Bold',
-      textAlign: 'center',
-      flex: 1,
+      marginBottom: mm(1.3),
     },
 
     // ============ FOOTER ============
     footerWrap: {
       position: 'absolute',
-      left: mm(10),
-      right: mm(10),
-      bottom: mm(8),
+      left: mm(9),
+      right: mm(9),
+      bottom: mm(7),
     },
     footerRule: {
       height: 0.85,
       backgroundColor: accent,
-      marginBottom: mm(2),
+      marginBottom: mm(1.8),
     },
     footerRow: {
       flexDirection: 'row',
@@ -305,7 +290,6 @@ function buildStyles(primary: string, accent: string) {
     footerRight: { flex: 1, textAlign: 'right' },
     footerBrand: { color: primary, fontFamily: 'Helvetica-Bold' },
     footerMuted: { color: N.taupe },
-    footerPageBrand: { color: primary, fontFamily: 'Helvetica-Bold' },
   });
 }
 
@@ -314,80 +298,8 @@ type Props = {
   brand?: CVBrand;
   logoSrc?: string;
   contactEmail?: string;
-  /** Locale d'affichage pour les libellés statiques (FICHE DE POSTE, etc.) */
   locale?: 'fr' | 'en';
 };
-
-const SENIORITY_YEARS_MIN: Record<string, string> = {
-  junior: '0-2',
-  confirmed: '3-5',
-  senior: '6-9',
-  expert: '10+',
-  lead: '8+',
-  architect: '10+',
-};
-
-function seniorityToExperience(seniority: string | null, isEn: boolean): string {
-  if (!seniority) return '—';
-  const yrs = SENIORITY_YEARS_MIN[seniority];
-  if (!yrs) return '—';
-  return isEn ? `${yrs} yrs` : `${yrs} ans`;
-}
-
-/** Labels statiques bilingues — tout le texte fixe du gabarit. */
-function getLabels(isEn: boolean) {
-  return isEn
-    ? {
-        kicker: 'JOB POSTING',
-        bannerLocation: 'LOCATION',
-        bannerRemote: 'REMOTE',
-        bannerStart: 'START',
-        bannerExperience: 'EXPERIENCE',
-        remoteOnSite: 'On-site',
-        remotePerWeek: (d: number) => `${d} d/wk`,
-        startAsap: 'ASAP',
-        defaultContract: 'Mission',
-        defaultGenre: 'M/F',
-        hybridSuffix: '(hybrid)',
-        durationMonths: (m: number) => `${m} months`,
-        sec01: 'Context',
-        sec02: 'Mission purpose',
-        sec02Label: 'MISSION PURPOSE',
-        sec03Both: 'Main missions & profile',
-        sec03MissionsOnly: 'Main missions',
-        sec03ProfileOnly: 'Profile required',
-        sec03ColMissions: 'Missions',
-        sec03ColProfile: 'Profile required',
-        sec04: 'Tech environment',
-        sec05: 'Working conditions',
-        pageOf: (a: number, b: number) => `Page ${a} / ${b}`,
-      }
-    : {
-        kicker: 'FICHE DE POSTE',
-        bannerLocation: 'LOCALISATION',
-        bannerRemote: 'TÉLÉTRAVAIL',
-        bannerStart: 'DÉMARRAGE',
-        bannerExperience: 'EXPÉRIENCE',
-        remoteOnSite: 'Sur site',
-        remotePerWeek: (d: number) => `${d}j / sem.`,
-        startAsap: 'ASAP',
-        defaultContract: 'Mission',
-        defaultGenre: 'F/H',
-        hybridSuffix: '(hybride)',
-        durationMonths: (m: number) => `${m} mois`,
-        sec01: 'Contexte',
-        sec02: 'Finalité du poste',
-        sec02Label: 'FINALITÉ DE LA MISSION',
-        sec03Both: 'Missions principales & Profil',
-        sec03MissionsOnly: 'Missions principales',
-        sec03ProfileOnly: 'Profil recherché',
-        sec03ColMissions: 'Missions',
-        sec03ColProfile: 'Profil recherché',
-        sec04: 'Environnement technique',
-        sec05: "Conditions d'exercice",
-        pageOf: (a: number, b: number) => `Page ${a} / ${b}`,
-      };
-}
 
 export function JobOfferPosterPDF({
   offer,
@@ -396,176 +308,92 @@ export function JobOfferPosterPDF({
   contactEmail,
   locale = 'fr',
 }: Props) {
-  const b = brand ?? resolveBrand(null);
-  const isEn = locale === 'en';
-  const L = getLabels(isEn);
-  const styles = buildStyles(b.primary, b.accent);
+  const b = brand ?? resolvePosterBrand(null);
+  const plan = computeFitPlan(offer);
+  const model = buildPosterModel(offer, locale, plan.caps);
+  const L = model.L;
+  const styles = buildStyles(b.primary, b.accent, plan);
 
-  // Email de contact : prop > none. Le caller fournit normalement.
-  const email = contactEmail ?? 'contact@centrium-platform.com';
-
-  // === Hero meta (genre · type · lieu · durée) ===
-  const remoteLabel =
-    offer.remote_days && offer.remote_days > 0
-      ? L.remotePerWeek(offer.remote_days)
-      : L.remoteOnSite;
-  const startLabel = offer.start_date
-    ? new Date(offer.start_date).toLocaleDateString(isEn ? 'en-US' : 'fr-FR')
-    : L.startAsap;
-  const durationLabel = offer.duration_months
-    ? L.durationMonths(offer.duration_months)
-    : null;
-  const contractLabel = offer.contract_kind ?? L.defaultContract;
-  const metaParts = [
-    L.defaultGenre,
-    contractLabel,
-    offer.location
-      ? offer.remote_days
-        ? `${offer.location} ${L.hybridSuffix}`
-        : offer.location
-      : null,
-    durationLabel,
-  ].filter(Boolean);
-
-  // === Sections data — BORNÉES pour tenir sur 1 page (« que l'utile ») ===
-  // Au-delà de ces limites la fiche débordait sur une 2e page mal cadrée. On
-  // coupe les textes trop longs et on plafonne le nombre de puces.
-  const clamp = (s: string, max: number) =>
-    s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s;
-  const contextText = clamp((offer.context || offer.description || '').trim(), 520);
-  const purposeText = offer.mission_purpose ? clamp(offer.mission_purpose.trim(), 300) : '';
-  const tasks = (offer.tasks?.length ? offer.tasks : [])
-    .slice(0, 6)
-    .map((t) => clamp(t, 160));
-  // profile_requirements > required_skills (fallback pour les vieux AO)
-  const profile = (
-    offer.profile_requirements?.length
-      ? offer.profile_requirements
-      : offer.required_skills?.length
-        ? offer.required_skills
-        : []
-  )
-    .slice(0, 6)
-    .map((p) => clamp(p, 160));
-  const conditions = (offer.working_conditions?.length ? offer.working_conditions : [])
-    .slice(0, 4)
-    .map((c) => clamp(c, 160));
-  const tech = (offer.tech_stack?.length ? offer.tech_stack : offer.required_skills ?? []).slice(
-    0,
-    7,
-  );
-
-  // === Info banner (4 cellules) ===
-  const banner: { label: string; value: string }[] = [
-    { label: L.bannerLocation, value: offer.location ?? '—' },
-    { label: L.bannerRemote, value: remoteLabel },
-    { label: L.bannerStart, value: startLabel },
-    { label: L.bannerExperience, value: seniorityToExperience(offer.seniority, isEn) },
-  ];
-
-  // === Section 03 dynamic title ===
-  const showBoth = tasks.length > 0 && profile.length > 0;
-  const sec03Title = showBoth
-    ? L.sec03Both
-    : tasks.length > 0
-      ? L.sec03MissionsOnly
-      : L.sec03ProfileOnly;
+  const email = contactEmail ?? null;
 
   return (
     <Document
       author={b.brandName}
-      title={`${L.kicker} — ${offer.title}`}
-      subject={`${L.kicker} ${offer.title}`}
+      title={`${L.kicker} — ${model.title}`}
+      subject={`${L.kicker} ${model.title}`}
       creator={`${b.brandName} Platform`}
     >
       <Page size="A4" style={styles.page}>
-        {/* ============ HERO ============ */}
+        {/* ============ HERO : documentLabel → title → metadata (colonne) ============ */}
         <View style={styles.hero}>
           <View style={styles.heroLogo}>
             {logoSrc ? <Image src={logoSrc} style={styles.heroLogoImg} /> : <View />}
           </View>
           <View style={styles.heroBody}>
-            <Text style={styles.heroTag}>{L.kicker}</Text>
-            <Text style={styles.heroTitle}>{offer.title}</Text>
-            <Text style={styles.heroMeta}>{metaParts.join('  •  ')}</Text>
+            <Text style={styles.heroTag}>{model.documentLabel}</Text>
+            <Text style={styles.heroTitle}>{model.title}</Text>
+            {model.metaLine ? <Text style={styles.heroMeta}>{model.metaLine}</Text> : null}
           </View>
         </View>
 
-        {/* ============ INFO BANNER ============ */}
-        <View style={styles.infoBanner}>
-          {banner.map((c, i) => (
-            <View
-              key={c.label}
-              style={i === banner.length - 1 ? styles.bannerCellLast : styles.bannerCell}
-            >
-              <Text style={styles.bannerLabel}>{c.label}</Text>
-              <Text style={styles.bannerValue}>{c.value}</Text>
-            </View>
-          ))}
-        </View>
+        {/* ============ INFO BANNER (dynamique) ============ */}
+        {model.banner.length > 0 && (
+          <View style={styles.infoBanner}>
+            {model.banner.map((c, i) => (
+              <View
+                key={c.label}
+                style={[
+                  styles.bannerCell,
+                  i < model.banner.length - 1 ? { marginRight: mm(1.3) } : {},
+                ]}
+              >
+                <Text style={styles.bannerLabel}>{c.label}</Text>
+                <Text style={styles.bannerValue}>{c.value}</Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* ============ 01 CONTEXTE ============ */}
-        {contextText && (
-          <>
-            <View style={styles.sectionTitle}>
-              <View style={styles.sectionAccent} />
-              <View style={styles.sectionLabel}>
-                <Text style={styles.sectionNum}>01</Text>
-                <Text>{L.sec01}</Text>
-              </View>
-            </View>
-            <Text style={styles.contexte}>{contextText}</Text>
-          </>
-        )}
+        {model.contextText ? (
+          <View wrap={false}>
+            <SectionTitle styles={styles} num="01" label={L.sec01} />
+            <Text style={styles.contexte}>{model.contextText}</Text>
+          </View>
+        ) : null}
 
         {/* ============ 02 FINALITÉ ============ */}
-        {purposeText && (
+        {model.purposeText ? (
           <View wrap={false}>
-            <View style={styles.sectionTitle}>
-              <View style={styles.sectionAccent} />
-              <View style={styles.sectionLabel}>
-                <Text style={styles.sectionNum}>02</Text>
-                <Text>{L.sec02}</Text>
-              </View>
-            </View>
+            <SectionTitle styles={styles} num="02" label={L.sec02} />
             <View style={styles.callout}>
               <Text style={styles.calloutLabel}>{L.sec02Label}</Text>
-              <Text style={styles.calloutText}>{purposeText}</Text>
+              <Text style={styles.calloutText}>{model.purposeText}</Text>
             </View>
           </View>
-        )}
+        ) : null}
 
         {/* ============ 03 MISSIONS & PROFIL ============ */}
-        {(tasks.length > 0 || profile.length > 0) && (
+        {(model.missions.length > 0 || model.profile.length > 0) && (
           <View>
-            <View style={styles.sectionTitle} wrap={false} minPresenceAhead={50}>
-              <View style={styles.sectionAccent} />
-              <View style={styles.sectionLabel}>
-                <Text style={styles.sectionNum}>03</Text>
-                <Text>{sec03Title}</Text>
-              </View>
+            <View wrap={false} minPresenceAhead={40}>
+              <SectionTitle styles={styles} num="03" label={model.sec03Title} />
             </View>
-            {showBoth ? (
+            {model.showBoth ? (
               <View style={styles.twoColGrid}>
                 <View style={styles.col}>
                   <Text style={styles.colHeader}>{L.sec03ColMissions}</Text>
                   <View style={styles.colBody}>
-                    {tasks.map((t, i) => (
-                      <View key={i} style={styles.bulletItem}>
-                        <Text style={styles.bullet}>▪</Text>
-                        <Text style={styles.bulletText}>{t}</Text>
-                      </View>
+                    {model.missions.map((t, i) => (
+                      <Bullet key={i} styles={styles} text={t} />
                     ))}
                   </View>
                 </View>
                 <View style={styles.colLast}>
                   <Text style={styles.colHeader}>{L.sec03ColProfile}</Text>
                   <View style={styles.colBody}>
-                    {profile.map((p, i) => (
-                      <View key={i} style={styles.bulletItem}>
-                        <Text style={styles.bullet}>▪</Text>
-                        <Text style={styles.bulletText}>{p}</Text>
-                      </View>
+                    {model.profile.map((p, i) => (
+                      <Bullet key={i} styles={styles} text={p} />
                     ))}
                   </View>
                 </View>
@@ -573,14 +401,11 @@ export function JobOfferPosterPDF({
             ) : (
               <View>
                 <Text style={styles.colHeader}>
-                  {tasks.length > 0 ? L.sec03ColMissions : L.sec03ColProfile}
+                  {model.missions.length > 0 ? L.sec03ColMissions : L.sec03ColProfile}
                 </Text>
                 <View style={styles.colBody}>
-                  {(tasks.length > 0 ? tasks : profile).map((it, i) => (
-                    <View key={i} style={styles.bulletItem}>
-                      <Text style={styles.bullet}>▪</Text>
-                      <Text style={styles.bulletText}>{it}</Text>
-                    </View>
+                  {(model.missions.length > 0 ? model.missions : model.profile).map((it, i) => (
+                    <Bullet key={i} styles={styles} text={it} />
                   ))}
                 </View>
               </View>
@@ -589,21 +414,12 @@ export function JobOfferPosterPDF({
         )}
 
         {/* ============ 04 ENVIRONNEMENT TECHNIQUE ============ */}
-        {tech.length > 0 && (
+        {model.tech.length > 0 && (
           <View wrap={false}>
-            <View style={styles.sectionTitle}>
-              <View style={styles.sectionAccent} />
-              <View style={styles.sectionLabel}>
-                <Text style={styles.sectionNum}>04</Text>
-                <Text>{L.sec04}</Text>
-              </View>
-            </View>
+            <SectionTitle styles={styles} num="04" label={L.sec04} />
             <View style={styles.techRow}>
-              {tech.map((t, i, arr) => (
-                <Text
-                  key={t}
-                  style={i === arr.length - 1 ? styles.techBadgeLast : styles.techBadge}
-                >
+              {model.tech.map((t, i) => (
+                <Text key={`${t}-${i}`} style={styles.techBadge}>
                   {t}
                 </Text>
               ))}
@@ -612,25 +428,16 @@ export function JobOfferPosterPDF({
         )}
 
         {/* ============ 05 CONDITIONS ============ */}
-        {conditions.length > 0 && (
+        {model.conditions.length > 0 && (
           <View wrap={false}>
-            <View style={styles.sectionTitle}>
-              <View style={styles.sectionAccent} />
-              <View style={styles.sectionLabel}>
-                <Text style={styles.sectionNum}>05</Text>
-                <Text>{L.sec05}</Text>
-              </View>
-            </View>
-            {conditions.map((c, i) => (
-              <View key={i} style={styles.bulletItem}>
-                <Text style={styles.bullet}>▪</Text>
-                <Text style={styles.bulletText}>{c}</Text>
-              </View>
+            <SectionTitle styles={styles} num="05" label={L.sec05} />
+            {model.conditions.map((c, i) => (
+              <Bullet key={i} styles={styles} text={c} />
             ))}
           </View>
         )}
 
-        {/* ============ FOOTER (brand · email · page) ============ */}
+        {/* ============ FOOTER (marque · email · page) ============ */}
         <View style={styles.footerWrap} fixed>
           <View style={styles.footerRule} />
           <View style={styles.footerRow}>
@@ -638,7 +445,7 @@ export function JobOfferPosterPDF({
               <Text style={styles.footerBrand}>{b.brandName}</Text>
               <Text style={styles.footerMuted}> — {b.footerTagline}</Text>
             </Text>
-            <Text style={styles.footerCenter}>{email}</Text>
+            {email ? <Text style={styles.footerCenter}>{email}</Text> : <Text style={styles.footerCenter} />}
             <Text
               style={styles.footerRight}
               render={({ pageNumber, totalPages }) => L.pageOf(pageNumber, totalPages)}
@@ -647,5 +454,30 @@ export function JobOfferPosterPDF({
         </View>
       </Page>
     </Document>
+  );
+}
+
+// === Sous-composants privés ===
+
+type Styles = ReturnType<typeof buildStyles>;
+
+function SectionTitle({ styles, num, label }: { styles: Styles; num: string; label: string }) {
+  return (
+    <View style={styles.sectionTitle}>
+      <View style={styles.sectionAccent} />
+      <View style={styles.sectionLabel}>
+        <Text style={styles.sectionNum}>{num}</Text>
+        <Text>{label}</Text>
+      </View>
+    </View>
+  );
+}
+
+function Bullet({ styles, text }: { styles: Styles; text: string }) {
+  return (
+    <View style={styles.bulletItem}>
+      <Text style={styles.bullet}>▪</Text>
+      <Text style={styles.bulletText}>{text}</Text>
+    </View>
   );
 }

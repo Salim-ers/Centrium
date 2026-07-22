@@ -21,6 +21,10 @@ export type ParsedOffer = {
   profile_requirements: string[];
   working_conditions: string[];
   contract_kind: string | null;
+  // Fiche de poste v2 (optionnels — anciens payloads IA ne les ont pas)
+  work_mode?: 'onsite' | 'hybrid' | 'remote' | 'custom' | null;
+  start_type?: 'date' | 'asap' | 'immediate' | 'tbd' | 'custom' | null;
+  experience_label?: string | null;
 };
 
 export type ParseOfferImageResult = {

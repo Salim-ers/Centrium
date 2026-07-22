@@ -61,7 +61,7 @@ import type { JobOffer } from '@/types';
 import { relativeDate } from '@/lib/utils';
 import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 import { exportJobOfferPoster } from '@/lib/offers/export-poster';
-import { resolveBrand } from '@/lib/cv/branding';
+import { resolvePosterBrand } from '@/lib/cv/branding';
 import {
   classifyJobFamily,
   type JobFamilyId,
@@ -328,7 +328,9 @@ export default function OffersPage() {
   async function downloadPoster(o: JobOffer) {
     setExportingOfferId(o.id);
     try {
-      const brand = resolveBrand(branding);
+      // Fiche de poste : fallback couleur NEUTRE si l'org n'a pas de branding
+      // (les CV gardent resolveBrand / fallback QuadCore).
+      const brand = resolvePosterBrand(branding);
       const safeTitle = o.title.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 60);
       const brandSlug = brand.brandName.replace(/[^a-zA-Z0-9]/g, '') || 'Centrium';
       await exportJobOfferPoster(o, {

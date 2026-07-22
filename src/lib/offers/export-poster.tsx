@@ -2,7 +2,7 @@
 
 import type { JobOffer } from '@/types';
 import type { CVBrand } from '@/lib/cv/branding';
-import { resolveBrand } from '@/lib/cv/branding';
+import { resolvePosterBrand } from '@/lib/cv/branding';
 
 type ExportOptions = {
   /** Nom du fichier (sans extension). */
@@ -28,7 +28,7 @@ export async function exportJobOfferPoster(
     import('@/components/offers/pdf/JobOfferPosterPDF'),
   ]);
 
-  const resolved = brand ?? resolveBrand(null);
+  const resolved = brand ?? resolvePosterBrand(null);
   const effectiveLogo =
     logoSrc ??
     resolved.logoUrl ??

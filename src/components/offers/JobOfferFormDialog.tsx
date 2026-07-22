@@ -55,6 +55,7 @@ function toFormValues(o: JobOffer | null | undefined): Partial<JobOfferInput> {
       working_conditions: [],
       remote_days: 0,
       source_kind: 'client',
+      show_rate: false,
     };
   }
   // TJM unique : on lit max en priorité, fallback min, fallback eur si présent.
@@ -80,6 +81,13 @@ function toFormValues(o: JobOffer | null | undefined): Partial<JobOfferInput> {
     profile_requirements: o.profile_requirements ?? [],
     working_conditions: o.working_conditions ?? [],
     contract_kind: o.contract_kind ?? '',
+    // Fiche de poste v2 (fallbacks pour anciennes fiches sans ces colonnes).
+    show_rate: o.show_rate ?? false,
+    work_mode: o.work_mode ?? undefined,
+    work_mode_detail: o.work_mode_detail ?? '',
+    start_type: o.start_type ?? undefined,
+    start_label: o.start_label ?? '',
+    experience_label: o.experience_label ?? '',
   };
 }
 
@@ -201,6 +209,10 @@ export function JobOfferFormDialog({
         profile_requirements: profile,
         working_conditions: conditions,
         contract_kind: parsed.contract_kind ?? '',
+        work_mode: parsed.work_mode ?? undefined,
+        start_type: parsed.start_type ?? undefined,
+        experience_label: parsed.experience_label ?? '',
+        show_rate: false,
       });
       setRequiredSkills(required);
       setNiceToHave(nice);
@@ -709,7 +721,114 @@ export function JobOfferFormDialog({
                       }
                     />
                   </div>
+                  <div>
+                    <Label>{isEn ? 'Experience (free text)' : 'Expérience (texte libre)'}</Label>
+                    <Input
+                      {...register('experience_label')}
+                      placeholder={isEn ? 'e.g. 6–9 yrs, Senior…' : 'ex : 6–9 ans, Senior…'}
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {isEn
+                        ? 'Overrides the seniority level on the poster. Leave empty to derive from seniority.'
+                        : 'Prioritaire sur la séniorité sur la fiche. Vide = dérivé de la séniorité.'}
+                    </p>
+                  </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>{isEn ? 'Work mode' : 'Mode de travail'}</Label>
+                    <Combobox
+                      ariaLabel={isEn ? 'Work mode' : 'Mode de travail'}
+                      value={watch('work_mode') ?? ''}
+                      onChange={(val) =>
+                        setValue('work_mode', (val || null) as JobOfferInput['work_mode'], {
+                          shouldDirty: true,
+                        })
+                      }
+                      options={[
+                        { value: '', label: isEn ? '— Auto (from remote days)' : '— Auto (selon jours télétravail)' },
+                        { value: 'onsite', label: isEn ? 'On-site' : 'Sur site' },
+                        { value: 'hybrid', label: isEn ? 'Hybrid' : 'Hybride' },
+                        { value: 'remote', label: isEn ? 'Full remote' : 'Full remote' },
+                        { value: 'custom', label: isEn ? 'Custom…' : 'Personnalisé…' },
+                      ]}
+                    />
+                    {watch('work_mode') === 'custom' && (
+                      <Input
+                        className="mt-2"
+                        {...register('work_mode_detail')}
+                        placeholder={isEn ? 'e.g. 2 remote days / week' : 'ex : 2j télétravail / sem.'}
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <Label>{isEn ? 'Start' : 'Démarrage'}</Label>
+                    <Combobox
+                      ariaLabel={isEn ? 'Start' : 'Démarrage'}
+                      value={watch('start_type') ?? ''}
+                      onChange={(val) =>
+                        setValue('start_type', (val || null) as JobOfferInput['start_type'], {
+                          shouldDirty: true,
+                        })
+                      }
+                      options={[
+                        { value: '', label: isEn ? '— Auto (from start date)' : '— Auto (selon date de début)' },
+                        { value: 'date', label: isEn ? 'Exact date' : 'Date précise' },
+                        { value: 'asap', label: 'ASAP' },
+                        { value: 'immediate', label: isEn ? 'Immediate' : 'Immédiat' },
+                        { value: 'tbd', label: isEn ? 'To be agreed' : 'À convenir' },
+                        { value: 'custom', label: isEn ? 'Custom…' : 'Personnalisé…' },
+                      ]}
+                    />
+                    {watch('start_type') === 'custom' && (
+                      <Input
+                        className="mt-2"
+                        {...register('start_label')}
+                        placeholder={isEn ? 'e.g. September 2026' : 'ex : Septembre 2026'}
+                      />
+                    )}
+                    {watch('start_type') === 'date' && (
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        {isEn
+                          ? 'Uses the “Desired start” date above.'
+                          : 'Utilise la date « Début souhaité » ci-dessus.'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Afficher le TJM sur la fiche — masqué par défaut */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setValue('show_rate', !watch('show_rate'), { shouldDirty: true })
+                  }
+                  className="flex items-center justify-between w-full rounded-lg border border-hairline bg-card/40 px-3.5 py-2.5 text-left hover:bg-card/70 transition"
+                >
+                  <div>
+                    <div className="text-sm font-medium">
+                      {isEn ? 'Show day rate on the poster' : 'Afficher le TJM sur la fiche'}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      {isEn
+                        ? 'Off by default — the day rate line is fully hidden when disabled.'
+                        : 'Masqué par défaut — la ligne TJM est totalement retirée si désactivé.'}
+                    </div>
+                  </div>
+                  <span
+                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition ${
+                      watch('show_rate') ? 'bg-violet-brand' : 'bg-foreground/20'
+                    }`}
+                    aria-hidden
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                        watch('show_rate') ? 'translate-x-4' : 'translate-x-0.5'
+                      }`}
+                    />
+                  </span>
+                </button>
 
                 <div>
                   <Label>{isEn ? 'Context (section 01)' : 'Contexte (section 01)'}</Label>

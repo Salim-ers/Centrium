@@ -363,6 +363,20 @@ export type JobOffer = {
   profile_requirements: string[];
   working_conditions: string[];
   contract_kind: string | null;
+  // Fiche de poste v2 — tous nullable / avec défaut : les anciennes fiches
+  // (colonnes absentes) tombent sur des fallbacks dérivés (cf. poster-model).
+  /** Affichage du TJM sur la fiche PDF. Masqué par défaut. */
+  show_rate: boolean | null;
+  /** Mode de travail explicite. null = dérivé de `remote_days` (legacy). */
+  work_mode: 'onsite' | 'hybrid' | 'remote' | 'custom' | null;
+  /** Précision libre quand work_mode = 'custom' (ex. « 2j télétravail / sem. »). */
+  work_mode_detail: string | null;
+  /** Type de démarrage. null = dérivé de `start_date` (legacy). */
+  start_type: 'date' | 'asap' | 'immediate' | 'tbd' | 'custom' | null;
+  /** Libellé libre de démarrage (custom) ou surcharge d'affichage. */
+  start_label: string | null;
+  /** Expérience en clair (« 6–9 ans », « Senior »…). Prioritaire sur `seniority`. */
+  experience_label: string | null;
   created_at: string;
   updated_at: string;
 };

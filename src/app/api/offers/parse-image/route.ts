@@ -54,6 +54,10 @@ const ParsedOfferSchema = z.object({
   profile_requirements: z.array(z.string()),
   working_conditions: z.array(z.string()),
   contract_kind: z.string().nullable(),
+  // === Fiche de poste v2 — mode de travail / démarrage / expérience ===
+  work_mode: z.enum(['onsite', 'hybrid', 'remote', 'custom']).nullable(),
+  start_type: z.enum(['date', 'asap', 'immediate', 'tbd', 'custom']).nullable(),
+  experience_label: z.string().nullable(),
 });
 
 const SYSTEM_PROMPT = `Tu es un expert RH chargé d'extraire des données structurées depuis une annonce IT (capture d'écran OU texte brut, français ou anglais) pour une ESN. Ces données alimentent à la fois la fiche de l'AO en base et la fiche de poste PDF envoyée aux consultants.
@@ -125,6 +129,20 @@ FORMAT DES CHAMPS :
    Exemples : "Poste basé à Paris 9e — hybride 3j TT/sem.", "Mission 12 mois renouvelable — démarrage ASAP", "TJM 550-650 € HT / jour selon profil", "Astreintes 1 weekend / mois rémunérées".
 
 18. contract_kind (string | null) : nature de la mission telle qu'écrite. Valeurs typiques : "Mission Freelance", "CDI", "Portage", "Pré-embauche", "Régie". Null si non spécifié.
+
+19. work_mode ("onsite" | "hybrid" | "remote" | "custom" | null) : mode de travail.
+    - "remote" si full remote / 100% télétravail.
+    - "onsite" si présentiel/sur site strict.
+    - "hybrid" si télétravail partiel (ex. "3j TT/sem", "hybride").
+    - "custom" seulement si une modalité inhabituelle est décrite en toutes lettres.
+    - null si rien d'explicite (NE DEVINE PAS un nombre de jours).
+
+20. start_type ("date" | "asap" | "immediate" | "tbd" | "custom" | null) : nature du démarrage.
+    - "asap" si "ASAP"/"dès que possible". "immediate" si "immédiat".
+    - "tbd" si "à convenir"/"à définir". "date" si une date précise est donnée (remplis aussi start_date).
+    - null si rien d'explicite. NE DEVINE PAS une date.
+
+21. experience_label (string | null) : l'expérience EN CLAIR telle qu'écrite ("6-9 ans", "Senior", "5 ans minimum", "10+ ans"). Reformule fidèlement, n'invente pas de fourchette. Null si rien.
 
 SORTIE : un objet JSON conforme au schéma. Rien d'autre.`;
 

@@ -338,6 +338,12 @@ function CVOptimizerPageInner() {
       profile_requirements: [],
       working_conditions: [],
       contract_kind: null,
+      show_rate: null,
+      work_mode: null,
+      work_mode_detail: null,
+      start_type: null,
+      start_label: null,
+      experience_label: null,
       // Dates "epoch" stables : utilisées nulle part dans la logique de matching/
       // génération CV, mais le type JobOffer les requiert. Une vraie date
       // dynamique ferait regen le CV à chaque render.

@@ -133,6 +133,13 @@ export const jobOfferSchema = z.object({
   profile_requirements: z.array(z.string()).default([]),
   working_conditions: z.array(z.string()).default([]),
   contract_kind: z.string().max(80).optional().nullable(),
+  // Fiche de poste v2 — additifs, tous optionnels (rétro-compatibilité).
+  show_rate: z.coerce.boolean().optional().nullable(),
+  work_mode: z.enum(['onsite', 'hybrid', 'remote', 'custom']).optional().nullable(),
+  work_mode_detail: z.string().max(120).optional().nullable(),
+  start_type: z.enum(['date', 'asap', 'immediate', 'tbd', 'custom']).optional().nullable(),
+  start_label: z.string().max(120).optional().nullable(),
+  experience_label: z.string().max(120).optional().nullable(),
 });
 
 export type JobOfferInput = z.infer<typeof jobOfferSchema>;
