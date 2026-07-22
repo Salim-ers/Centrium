@@ -376,7 +376,14 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
   async function handleDelete() {
     setDeleting(true);
     try {
-      const res = await fetch(`/api/admin/organizations/${org.id}`, { method: 'DELETE' });
+      // Console super-admin : la confirmation par saisie du nom exact fait
+      // office de garde-fou. On lève l'obligation d'export préalable
+      // (exported: true) pour laisser l'opérateur supprimer sans y être forcé.
+      const res = await fetch(`/api/admin/organizations/${org.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exported: true }),
+      });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.error(body.message ?? (isEn ? 'Unable to delete' : 'Suppression impossible'));
