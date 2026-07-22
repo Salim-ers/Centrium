@@ -38,6 +38,11 @@ const DialogContent = React.forwardRef<
         // Évite le focus ring / I-beam disgracieux que certains
         // navigateurs (et Radix) posent sur le content au mount.
         'outline-none focus:outline-none focus-visible:outline-none',
+        // Anti-débordement : les enfants d'une grille gardent min-width:auto
+        // → un titre d'offre long faisait sortir le texte de la carte
+        // (bug d'affichage « Affecter à une mission »). min-w-0 sur chaque
+        // enfant + clip horizontal en ceinture de sécurité.
+        'overflow-x-clip [&>*]:min-w-0',
         className
       )}
       {...props}
@@ -71,7 +76,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn('text-lg font-semibold leading-none font-display', className)}
+    className={cn('text-lg font-semibold leading-none font-display break-words', className)}
     {...props}
   />
 ));
@@ -83,7 +88,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn('text-sm text-muted-foreground', className)}
+    className={cn('text-sm text-muted-foreground break-words', className)}
     {...props}
   />
 ));
