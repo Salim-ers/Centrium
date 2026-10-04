@@ -7,7 +7,6 @@ import { Menu, X, LogOut } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { LocaleToggle } from '@/components/i18n/LocaleToggle';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { PORTAL_GROUPS } from './PortalSidebar';
@@ -54,7 +53,7 @@ export function PortalMobileNav() {
   return (
     <>
       {/* Barre supérieure — visible uniquement < md */}
-      <header className="md:hidden sticky top-0 z-40 flex items-center justify-between border-b border-hairline bg-background/80 px-4 py-2.5 backdrop-blur-xl">
+      <header className="md:hidden sticky top-0 z-40 flex items-center justify-between border-b border-hairline bg-background/80 px-4 py-2.5 ">
         <Link href="/portal/dashboard" aria-label={isEn ? 'Centrium — portal home' : 'Centrium — accueil portail'}>
           <CentriumWordmark size="sm" orientation="horizontal" />
         </Link>
@@ -76,7 +75,7 @@ export function PortalMobileNav() {
             type="button"
             aria-label={isEn ? 'Close menu' : 'Fermer le menu'}
             onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-foreground/50 "
           />
           <nav className="qc-sidebar absolute right-0 top-0 flex h-full w-[82%] max-w-xs flex-col border-l border-hairline">
             <div className="flex items-center justify-between border-b border-hairline px-4 py-3">
@@ -98,7 +97,7 @@ export function PortalMobileNav() {
                     <group.icon className="h-3.5 w-3.5" />
                     {isEn ? group.labelEn : group.label}
                   </div>
-                  <ul className="ml-4 pl-3 space-y-0.5 border-l border-white/[0.06]">
+                  <ul className="ml-4 pl-3 space-y-0.5 border-l border-border">
                     {group.items.map((item) => {
                       const active = isActive(item.href);
                       return (
@@ -109,8 +108,8 @@ export function PortalMobileNav() {
                             className={cn(
                               'flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-[15px] transition-colors',
                               active
-                                ? 'bg-magenta/[0.10] text-magenta-neon font-medium'
-                                : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground',
+                                ? 'bg-primary/[0.10] text-primary font-medium'
+                                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                             )}
                           >
                             <item.icon className="h-4 w-4 shrink-0" />
@@ -128,7 +127,7 @@ export function PortalMobileNav() {
               <form action="/api/auth/logout" method="POST">
                 <button
                   type="submit"
-                  className="flex items-center gap-2 rounded-lg px-2 py-2 text-[14px] text-muted-foreground hover:bg-white/[0.05] hover:text-foreground transition"
+                  className="flex items-center gap-2 rounded-lg px-2 py-2 text-[14px] text-muted-foreground hover:bg-muted hover:text-foreground transition"
                 >
                   <LogOut className="h-4 w-4 shrink-0" />
                   {isEn ? 'Sign out' : 'Se déconnecter'}
@@ -136,7 +135,6 @@ export function PortalMobileNav() {
               </form>
               <div className="flex items-center gap-2">
                 <LocaleToggle variant="compact" />
-                <ThemeToggle />
               </div>
             </div>
           </nav>

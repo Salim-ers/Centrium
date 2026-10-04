@@ -410,7 +410,7 @@ function SideBlock({
     <div className="mb-5">
       <h4
         className="text-[9px] font-bold uppercase tracking-[0.22em] mb-2"
-        style={{ color: color ?? '#6d28d9' }}
+        style={{ color: color ?? '#C65F46' }}
       >
         {title}
       </h4>
@@ -436,7 +436,7 @@ function DenseSection({
         </h2>
         <div
           className="h-[1px] flex-1"
-          style={{ background: `linear-gradient(90deg, ${color ?? '#6d28d9'} 0%, transparent 100%)` }}
+          style={{ background: `linear-gradient(90deg, ${color ?? '#C65F46'} 0%, transparent 100%)` }}
         />
       </div>
       {children}

@@ -51,14 +51,14 @@ export function LoadingSplash({ minDuration = 1500, label = 'CHARGEMENT' }: Prop
               className="relative"
             >
               <div className="absolute inset-[-40%] rounded-[2rem] bg-[radial-gradient(circle,rgba(225,29,116,0.55),rgba(139,92,246,0.3),transparent_70%)] blur-2xl animate-pulse" />
-              <div className="relative rounded-2xl bg-[#0a0b14] border border-hairline p-6 shadow-[0_0_80px_rgba(225,29,116,0.35)] overflow-hidden">
+              <div className="relative rounded-2xl bg-card border border-hairline p-6 shadow-[0_0_80px_rgba(225,29,116,0.35)] overflow-hidden">
                 <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_at_center,rgba(225,29,116,0.18),transparent_70%)]" />
                 <CentriumWordmark size="lg" orientation="vertical" />
               </div>
             </motion.div>
 
             <div className="w-64 space-y-3">
-              <div className="relative h-0.5 w-full overflow-hidden rounded-full bg-white/5">
+              <div className="relative h-0.5 w-full overflow-hidden rounded-full bg-muted">
                 <motion.div
                   initial={{ x: '-100%' }}
                   animate={{ x: '100%' }}
@@ -67,10 +67,10 @@ export function LoadingSplash({ minDuration = 1500, label = 'CHARGEMENT' }: Prop
                     repeat: Infinity,
                     ease: 'easeInOut',
                   }}
-                  className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-magenta to-transparent"
+                  className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-primary to-transparent"
                 />
               </div>
-              <div className="text-center text-[11px] tracking-[0.3em] font-semibold text-white/50">
+              <div className="text-center text-[11px] tracking-[0.3em] font-semibold text-muted-foreground">
                 {label}
               </div>
             </div>

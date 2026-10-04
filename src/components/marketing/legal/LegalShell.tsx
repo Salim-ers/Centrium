@@ -69,8 +69,8 @@ export function LegalShell({ title, updatedAt, currentSlug, children }: Props) {
   return (
     <MarketingShell>
       {/* Bandeau "document de travail" sous le header */}
-      <div className="relative pt-20 border-b border-amber-500/30 bg-amber-500/10">
-        <div className="max-w-6xl mx-auto px-6 py-3 text-xs leading-relaxed text-amber-200">
+      <div className="relative pt-20 border-b border-warning/30 bg-warning/10">
+        <div className="max-w-6xl mx-auto px-6 py-3 text-xs leading-relaxed text-warning">
           {isEn ? (
             <>
               <strong className="font-semibold">Working document.</strong> This text is a
@@ -92,13 +92,13 @@ export function LegalShell({ title, updatedAt, currentSlug, children }: Props) {
           contrats juridiques sans validation d'avocat serait risqué — on
           affiche donc une notice claire plutôt qu'une traduction non fiable. */}
       {isEn && (
-        <div className="relative border-b border-white/10 bg-white/[0.03]">
-          <div className="max-w-6xl mx-auto px-6 py-3 text-xs leading-relaxed text-white/70">
-            <strong className="font-semibold text-white/85">English readers.</strong> Centrium
+        <div className="relative border-b border-border bg-card">
+          <div className="max-w-6xl mx-auto px-6 py-3 text-xs leading-relaxed text-muted-foreground">
+            <strong className="font-semibold text-foreground">English readers.</strong> Centrium
             is operated by QuadCore SAS (France). English translations, where provided, are for
             convenience — the <strong>French version is the legally binding reference</strong>. Any
             document still shown in French can be provided in English on request at{' '}
-            <a href="mailto:contact@centrium-platform.com" className="text-magenta hover:underline">
+            <a href="mailto:contact@centrium-platform.com" className="text-primary hover:underline">
               contact@centrium-platform.com
             </a>
             .
@@ -109,14 +109,14 @@ export function LegalShell({ title, updatedAt, currentSlug, children }: Props) {
       <main className="relative max-w-6xl mx-auto w-full px-6 py-12 md:py-16">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 mb-8 text-sm text-white/60 hover:text-white transition"
+          className="inline-flex items-center gap-1.5 mb-8 text-sm text-muted-foreground hover:text-foreground transition"
         >
           <ArrowLeft className="h-4 w-4" />
           {isEn ? 'Back to site' : 'Retour au site'}
         </Link>
         <div className="grid md:grid-cols-[230px_1fr] gap-10 md:gap-14">
           <aside className="md:sticky md:top-28 md:self-start">
-            <div className="text-[11px] font-semibold tracking-[0.2em] text-white/40 mb-3 uppercase">
+            <div className="text-[11px] font-semibold tracking-[0.2em] text-muted-foreground mb-3 uppercase">
               {isEn ? 'Legal documents' : 'Documents légaux'}
             </div>
             <nav
@@ -132,8 +132,8 @@ export function LegalShell({ title, updatedAt, currentSlug, children }: Props) {
                     aria-current={active ? 'page' : undefined}
                     className={`shrink-0 px-3 py-2 rounded-lg text-sm transition border ${
                       active
-                        ? 'bg-white/10 text-white border-white/15'
-                        : 'border-transparent text-white/60 hover:text-white hover:bg-white/5'
+                        ? 'bg-muted text-foreground border-border'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted'
                     }`}
                   >
                     {isEn ? p.labelEn : p.label}
@@ -142,8 +142,8 @@ export function LegalShell({ title, updatedAt, currentSlug, children }: Props) {
               })}
             </nav>
 
-            <div className="hidden md:block mt-8 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-xs text-white/60">
-              <div className="font-semibold text-white/80 mb-1">
+            <div className="hidden md:block mt-8 rounded-xl border border-border bg-card p-4 text-xs text-muted-foreground">
+              <div className="font-semibold text-muted-foreground mb-1">
                 {isEn ? 'A question?' : 'Une question ?'}
               </div>
               <p className="leading-relaxed mb-3">
@@ -153,7 +153,7 @@ export function LegalShell({ title, updatedAt, currentSlug, children }: Props) {
               </p>
               <a
                 href="mailto:contact@centrium-platform.com"
-                className="text-magenta hover:underline break-all"
+                className="text-primary hover:underline break-all"
               >
                 contact@centrium-platform.com
               </a>
@@ -162,33 +162,33 @@ export function LegalShell({ title, updatedAt, currentSlug, children }: Props) {
 
           <article>
             <header className="mb-10">
-              <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-magenta mb-2">
+              <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-primary mb-2">
                 {isEn ? 'Centrium · Legal' : 'Centrium · Espace légal'}
               </div>
-              <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-white">
+              <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
                 {isEn ? (LEGAL_TITLE_EN[currentSlug] ?? title) : title}
               </h1>
-              <p className="mt-3 text-sm text-white/50">
+              <p className="mt-3 text-sm text-muted-foreground">
                 {isEn ? 'Last updated: ' : 'Dernière mise à jour : '}
-                <span className="text-white/70">{localizeUpdatedAt(updatedAt, isEn)}</span>
+                <span className="text-muted-foreground">{localizeUpdatedAt(updatedAt, isEn)}</span>
               </p>
             </header>
 
-            <div className="legal-body text-[15px] leading-relaxed text-white/80">
+            <div className="legal-body text-[15px] leading-relaxed text-muted-foreground">
               {children}
             </div>
 
-            <div className="mt-14 pt-8 border-t border-white/10 text-xs text-white/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="mt-14 pt-8 border-t border-border text-xs text-muted-foreground flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 {isEn ? 'Have a remark on this document?' : 'Vous avez une remarque sur ce document ?'}{' '}
                 <a
                   href="mailto:contact@centrium-platform.com"
-                  className="text-magenta hover:underline"
+                  className="text-primary hover:underline"
                 >
                   {isEn ? 'Write to us' : 'Écrivez-nous'}
                 </a>
               </div>
-              <Link href="/legal/privacy" className="hover:text-white transition">
+              <Link href="/legal/privacy" className="hover:text-foreground transition">
                 {isEn ? 'See all documents →' : 'Voir tous les documents →'}
               </Link>
             </div>

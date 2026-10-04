@@ -73,17 +73,17 @@ export default function ForgotPasswordPage() {
         footer={
           <Link
             href="/login"
-            className="text-magenta hover:text-magenta-neon transition font-medium"
+            className="text-primary hover:text-primary transition font-medium"
           >
             {t.forgotPassword.backToLogin}
           </Link>
         }
       >
         <div className="flex flex-col items-center gap-4 py-6">
-          <div className="p-3 bg-violet-500/10 rounded-full">
-            <CheckCircle2 className="h-8 w-8 text-violet-300" />
+          <div className="p-3 bg-primary/10 rounded-full">
+            <CheckCircle2 className="h-8 w-8 text-primary" />
           </div>
-          <p className="text-center text-sm text-white/70 max-w-sm">
+          <p className="text-center text-sm text-muted-foreground max-w-sm">
             {t.forgotPassword.successBody}
           </p>
         </div>
@@ -98,7 +98,7 @@ export default function ForgotPasswordPage() {
       footer={
         <Link
           href="/login"
-          className="text-magenta hover:text-magenta-neon transition font-medium"
+          className="text-primary hover:text-primary transition font-medium"
         >
           {t.forgotPassword.backToLogin}
         </Link>
@@ -108,12 +108,12 @@ export default function ForgotPasswordPage() {
         <div className="space-y-2">
           <Label
             htmlFor="email"
-            className="text-xs font-semibold tracking-wider uppercase text-white/60"
+            className="text-xs font-semibold tracking-wider uppercase text-muted-foreground"
           >
             {t.forgotPassword.email}
           </Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               id="email"
               type="email"
@@ -124,14 +124,14 @@ export default function ForgotPasswordPage() {
             />
           </div>
           {errors.email && (
-            <p className="text-xs text-red-400">{errors.email.message}</p>
+            <p className="text-xs text-destructive">{errors.email.message}</p>
           )}
         </div>
 
         <Button
           type="submit"
           size="lg"
-          className="w-full bg-qc-gradient hover:opacity-90 shadow-glow-magenta"
+          className="w-full bg-qc-gradient hover:opacity-90 "
           disabled={loading}
         >
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}

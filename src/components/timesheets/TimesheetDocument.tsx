@@ -34,8 +34,8 @@ const DEFAULT_ISSUER: TimesheetIssuer = {
   logoUrl: null,
   footerTagline: 'IT Services & Consulting',
   signatureUrl: null,
-  primaryColor: '#6d28d9',
-  accentColor: '#e11d74',
+  primaryColor: '#C65F46',
+  accentColor: '#9D4432',
   representativeName: 'QuadCore SAS',
   representativeTitle: 'Direction commerciale',
 };
@@ -80,8 +80,8 @@ export function TimesheetDocument({
   issuer,
 }: Props) {
   const iss = issuer ?? DEFAULT_ISSUER;
-  const primary = iss.primaryColor || '#6d28d9';
-  const accent = iss.accentColor || '#e11d74';
+  const primary = iss.primaryColor || '#C65F46';
+  const accent = iss.accentColor || '#9D4432';
   const monthName = MONTH_NAMES_FR[timesheet.period_month - 1];
   const periodLabel = `${monthName} ${timesheet.period_year}`;
 
@@ -94,17 +94,17 @@ export function TimesheetDocument({
 
   return (
     <div
-      className="qc-print-doc bg-white text-neutral-900 shadow-2xl mx-auto"
+      className="qc-print-doc bg-white text-foreground shadow-2xl mx-auto"
       style={{ width: '210mm', minHeight: '297mm', fontFamily: 'Georgia, serif' }}
     >
       <header className="px-12 pt-10 pb-6">
         <div className="flex items-start justify-between gap-6">
           <QuadCoreLogo size="md" src={iss.logoUrl} alt={iss.brandName} />
           <div className="text-right">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-neutral-400">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
               Compte rendu d&apos;activité
             </div>
-            <div className="font-sans text-lg font-bold mt-1 text-neutral-900">{periodLabel}</div>
+            <div className="font-sans text-lg font-bold mt-1 text-foreground">{periodLabel}</div>
           </div>
         </div>
         <div
@@ -115,22 +115,22 @@ export function TimesheetDocument({
 
       <section className="px-12 py-4 grid grid-cols-2 gap-8">
         <div>
-          <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
+          <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-2">
             Consultant
           </div>
           <div className="text-sm font-semibold">
             {consultant ? `${consultant.first_name} ${consultant.last_name}` : '—'}
           </div>
           {consultant?.job_title && (
-            <div className="text-xs text-neutral-600 mt-1">{consultant.job_title}</div>
+            <div className="text-xs text-muted-foreground mt-1">{consultant.job_title}</div>
           )}
         </div>
 
         <div>
-          <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">Client</div>
+          <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Client</div>
           <div className="text-sm font-semibold">{company?.name ?? '—'}</div>
           {mission?.title && (
-            <div className="text-xs text-neutral-600 mt-1">Mission : {mission.title}</div>
+            <div className="text-xs text-muted-foreground mt-1">Mission : {mission.title}</div>
           )}
         </div>
       </section>
@@ -143,14 +143,14 @@ export function TimesheetDocument({
       </section>
 
       <section className="px-12 py-4">
-        <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-3">
+        <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-3">
           Détail journalier
         </div>
-        <div className="grid grid-cols-7 gap-px bg-neutral-200 rounded overflow-hidden text-xs">
+        <div className="grid grid-cols-7 gap-px bg-muted rounded overflow-hidden text-xs">
           {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((d) => (
             <div
               key={d}
-              className="bg-neutral-100 text-center py-1.5 text-[10px] uppercase tracking-wider text-neutral-500 font-semibold"
+              className="bg-muted text-center py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold"
             >
               {d}
             </div>
@@ -179,7 +179,7 @@ export function TimesheetDocument({
                 }}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-neutral-500">{c.dayNum ?? ''}</span>
+                  <span className="text-[10px] text-muted-foreground">{c.dayNum ?? ''}</span>
                   {c.kind === 'worked' && c.duration > 0 && (
                     <span
                       className="text-[10px] font-bold"
@@ -198,7 +198,7 @@ export function TimesheetDocument({
                   )}
                 </div>
                 {c.note && (
-                  <div className="text-[8px] text-neutral-500 leading-tight mt-1 truncate">
+                  <div className="text-[8px] text-muted-foreground leading-tight mt-1 truncate">
                     {c.note}
                   </div>
                 )}
@@ -212,11 +212,11 @@ export function TimesheetDocument({
         <section className="px-12 py-4 flex justify-end">
           <div className="w-72 space-y-2 text-sm">
             <div className="flex justify-between py-1">
-              <span className="text-neutral-600">TJM</span>
+              <span className="text-muted-foreground">TJM</span>
               <span className="font-medium">{formatCurrency(mission.daily_rate_eur)}</span>
             </div>
             <div className="flex justify-between py-1">
-              <span className="text-neutral-600">Jours validés</span>
+              <span className="text-muted-foreground">Jours validés</span>
               <span className="font-medium">{timesheet.days_validated}</span>
             </div>
             <div
@@ -232,15 +232,15 @@ export function TimesheetDocument({
 
       {timesheet.notes && (
         <section className="px-12 py-4">
-          <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-1">Notes</div>
-          <p className="text-xs text-neutral-700 whitespace-pre-line">{timesheet.notes}</p>
+          <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-1">Notes</div>
+          <p className="text-xs text-foreground whitespace-pre-line">{timesheet.notes}</p>
         </section>
       )}
 
-      <section className="px-12 py-6 border-t border-neutral-100 bg-neutral-50/40">
+      <section className="px-12 py-6 border-t border-border bg-muted">
         <div className="grid grid-cols-2 gap-8 items-end">
-          <div className="text-[10px] text-neutral-500 leading-relaxed">
-            <div className="font-semibold text-neutral-700 mb-1">Certification</div>
+          <div className="text-[10px] text-muted-foreground leading-relaxed">
+            <div className="font-semibold text-foreground mb-1">Certification</div>
             Ce compte rendu d&apos;activité atteste du temps réellement passé sur la mission. Il
             fait foi pour la facturation conforme aux conditions contractuelles signées avec le
             client.
@@ -267,7 +267,7 @@ export function TimesheetDocument({
           className="h-[2px] w-full mb-3"
           style={{ background: `linear-gradient(90deg, transparent 0%, ${accent} 45%, ${primary} 100%)` }}
         />
-        <div className="text-[9px] text-neutral-400 tracking-wider">
+        <div className="text-[9px] text-muted-foreground tracking-wider">
           {iss.brandName}
           {iss.footerTagline ? ` · ${iss.footerTagline}` : ''} · CRA {periodLabel}
         </div>
@@ -279,8 +279,8 @@ export function TimesheetDocument({
 function InfoField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-0.5">{label}</div>
-      <div className="font-medium text-neutral-900">{value}</div>
+      <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-0.5">{label}</div>
+      <div className="font-medium text-foreground">{value}</div>
     </div>
   );
 }

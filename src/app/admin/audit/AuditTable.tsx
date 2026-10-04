@@ -55,7 +55,7 @@ export function AuditTable({ rows }: { rows: Row[] }) {
   return (
     <div>
       <div className="flex flex-wrap gap-3 mb-4 items-center">
-        <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-magenta font-semibold">
+        <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-primary font-semibold">
           <Filter className="h-3 w-3" />
           {isEn ? 'Filters' : 'Filtres'}
         </span>
@@ -149,7 +149,7 @@ export function AuditTable({ rows }: { rows: Row[] }) {
                     <td className="px-4 py-2.5 text-muted-foreground max-w-md">
                       {r.details ? (
                         <details>
-                          <summary className="cursor-pointer text-magenta hover:underline text-xs">
+                          <summary className="cursor-pointer text-primary hover:underline text-xs">
                             {isEn ? 'View' : 'Voir'}
                           </summary>
                           <pre className="mt-2 text-[10px] bg-muted/80 p-2 rounded overflow-x-auto text-foreground/80">

@@ -126,7 +126,7 @@ export default function AdminOrganizationsPage() {
           title={
             <>
               {isEn ? 'Your ' : 'Vos '}
-              <span className="qc-italic-accent font-editorial italic">
+              <span className="text-primary font-display ">
                 {isEn ? 'organizations.' : 'organisations.'}
               </span>
             </>
@@ -169,7 +169,7 @@ export default function AdminOrganizationsPage() {
                   onClick={() => setFilter(f.key)}
                   className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                     active
-                      ? 'bg-magenta/10 text-magenta ring-1 ring-magenta/20'
+                      ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
                       : 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]'
                   }`}
                 >
@@ -188,7 +188,7 @@ export default function AdminOrganizationsPage() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="h-16 border-b border-hairline last:border-0 bg-white/[0.01] animate-pulse"
+                className="h-16 border-b border-hairline last:border-0 bg-card animate-pulse"
                 style={{ animationDelay: `${i * 60}ms` }}
               />
             ))}
@@ -259,7 +259,7 @@ export default function AdminOrganizationsPage() {
                       </span>
                       <span
                         className={`inline-flex items-center gap-1.5 ${
-                          row.activity_7d > 0 ? 'text-emerald-400' : ''
+                          row.activity_7d > 0 ? 'text-success' : ''
                         }`}
                         title={isEn ? 'Actions over 7 days' : 'Actions sur 7 jours'}
                       >
@@ -271,7 +271,7 @@ export default function AdminOrganizationsPage() {
                       </span>
                     </div>
 
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-magenta transition-colors shrink-0" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary transition-colors shrink-0" />
                   </Link>
                 ))}
               </div>

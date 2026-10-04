@@ -45,13 +45,13 @@ const KIND_META: Record<
   ContactInteractionKind,
   { label: string; labelEn: string; Icon: typeof Phone; color: string }
 > = {
-  call: { label: 'Appel', labelEn: 'Call', Icon: Phone, color: 'text-emerald-300' },
-  email: { label: 'Email', labelEn: 'Email', Icon: Mail, color: 'text-blue-300' },
-  meeting: { label: 'Rendez-vous', labelEn: 'Meeting', Icon: Users, color: 'text-violet-300' },
-  note: { label: 'Note', labelEn: 'Note', Icon: StickyNote, color: 'text-amber-300' },
-  linkedin: { label: 'LinkedIn', labelEn: 'LinkedIn', Icon: Linkedin, color: 'text-sky-300' },
-  sms: { label: 'SMS', labelEn: 'SMS', Icon: MessageSquare, color: 'text-fuchsia-300' },
-  other: { label: 'Autre', labelEn: 'Other', Icon: StickyNote, color: 'text-slate-300' },
+  call: { label: 'Appel', labelEn: 'Call', Icon: Phone, color: 'text-success' },
+  email: { label: 'Email', labelEn: 'Email', Icon: Mail, color: 'text-info' },
+  meeting: { label: 'Rendez-vous', labelEn: 'Meeting', Icon: Users, color: 'text-primary' },
+  note: { label: 'Note', labelEn: 'Note', Icon: StickyNote, color: 'text-warning' },
+  linkedin: { label: 'LinkedIn', labelEn: 'LinkedIn', Icon: Linkedin, color: 'text-info' },
+  sms: { label: 'SMS', labelEn: 'SMS', Icon: MessageSquare, color: 'text-primary' },
+  other: { label: 'Autre', labelEn: 'Other', Icon: StickyNote, color: 'text-muted-foreground' },
 };
 
 export function ContactInteractionsDialog({
@@ -127,7 +127,7 @@ export function ContactInteractionsDialog({
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-violet-glow" />
+            <MessageSquare className="h-5 w-5 text-primary" />
             {isEn ? 'History' : 'Historique'} — {contact.first_name} {contact.last_name}
           </DialogTitle>
           <DialogDescription>
@@ -138,7 +138,7 @@ export function ContactInteractionsDialog({
         </DialogHeader>
 
         {/* Add new interaction */}
-        <div className="rounded-lg border border-violet-glow/20 bg-violet-glow/[0.04] p-3 space-y-2">
+        <div className="rounded-lg border border-primary/20 bg-primary/[0.04] p-3 space-y-2">
           <div className="grid grid-cols-[140px_1fr] gap-2">
             <div>
               <Label className="text-[10px] uppercase tracking-wider">{isEn ? 'Type' : 'Type'}</Label>
@@ -184,7 +184,7 @@ export function ContactInteractionsDialog({
           {loading ? (
             <div className="space-y-2">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="h-12 rounded-lg bg-white/[0.02] animate-pulse" />
+                <div key={i} className="h-12 rounded-lg bg-card animate-pulse" />
               ))}
             </div>
           ) : items.length === 0 ? (
@@ -199,10 +199,10 @@ export function ContactInteractionsDialog({
               return (
                 <div
                   key={it.id}
-                  className="rounded-lg border border-hairline bg-white/[0.02] p-3 group hover:bg-white/[0.04]"
+                  className="rounded-lg border border-hairline bg-card p-3 group hover:bg-muted"
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`p-1.5 rounded-md bg-white/[0.04] ${meta.color}`}>
+                    <div className={`p-1.5 rounded-md bg-card ${meta.color}`}>
                       <Icon className="h-3.5 w-3.5" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -229,7 +229,7 @@ export function ContactInteractionsDialog({
                     <button
                       type="button"
                       onClick={() => remove(it)}
-                      className="opacity-0 group-hover:opacity-100 transition text-muted-foreground hover:text-red-400"
+                      className="opacity-0 group-hover:opacity-100 transition text-muted-foreground hover:text-destructive"
                       title={isEn ? 'Delete' : 'Supprimer'}
                     >
                       <Trash2 className="h-3.5 w-3.5" />

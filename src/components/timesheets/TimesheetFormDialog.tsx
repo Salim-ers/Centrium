@@ -167,12 +167,12 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
               ]}
             />
             {errors.mission_id && (
-              <p className="text-xs text-red-400 mt-1">
+              <p className="text-xs text-destructive mt-1">
                 {isEn ? 'Mission required' : 'Mission obligatoire'}
               </p>
             )}
             {!missionsLoading && missions.length === 0 && (
-              <p className="text-xs text-amber-400 mt-1">
+              <p className="text-xs text-warning mt-1">
                 {isEn
                   ? 'No active mission. Create a mission first.'
                   : "Aucune mission active. Crée une mission d'abord."}
@@ -211,7 +211,7 @@ export function TimesheetFormDialog({ open, onOpenChange, organizationId, onSave
             </div>
           </div>
 
-          <p className="text-[11px] text-violet-300/80 leading-relaxed">
+          <p className="text-[11px] text-primary leading-relaxed">
             {isEn
               ? 'Business days of the month are pre-filled as worked. You can mark holidays and absences directly on the calendar after creation.'
               : 'Les jours ouvrés du mois sont pré-remplis automatiquement comme travaillés. Tu pourras marquer les jours fériés et les absences directement sur le calendrier après création.'}

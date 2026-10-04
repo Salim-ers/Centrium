@@ -19,19 +19,19 @@ import type { LandingDict } from '@/lib/i18n/landing';
  */
 export function Footer({ t }: { t: LandingDict }) {
   return (
-    <footer className="relative border-t border-white/10 pt-12 pb-8">
+    <footer className="relative border-t border-border pt-12 pb-8">
       <div className="max-w-7xl mx-auto px-6">
         {/* === Bloc principal : 3 colonnes === */}
         <div className="grid md:grid-cols-[1.5fr_1fr_1fr] gap-10 md:gap-16">
           <div>
             <CentriumWordmark size="md" />
-            <p className="mt-4 text-sm text-white/55 max-w-sm leading-relaxed">
+            <p className="mt-4 text-sm text-muted-foreground max-w-sm leading-relaxed">
               {t.footer.tagline}
             </p>
           </div>
 
           <div>
-            <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-white/40 mb-4">
+            <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground mb-4">
               {t.footer.cols.product.title}
             </div>
             <ul className="space-y-2.5 text-sm">
@@ -39,7 +39,7 @@ export function Footer({ t }: { t: LandingDict }) {
                 <li key={l.label}>
                   <Link
                     href={l.href}
-                    className="text-white/70 hover:text-white transition"
+                    className="text-muted-foreground hover:text-foreground transition"
                   >
                     {l.label}
                   </Link>
@@ -48,7 +48,7 @@ export function Footer({ t }: { t: LandingDict }) {
               <li>
                 <Link
                   href="/engagements"
-                  className="text-white/70 hover:text-white transition"
+                  className="text-muted-foreground hover:text-foreground transition"
                 >
                   {t.footer.engagementsLabel}
                 </Link>
@@ -57,7 +57,7 @@ export function Footer({ t }: { t: LandingDict }) {
           </div>
 
           <div>
-            <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-white/40 mb-4">
+            <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted-foreground mb-4">
               {t.footer.cols.company.title}
             </div>
             <ul className="space-y-2.5 text-sm">
@@ -65,7 +65,7 @@ export function Footer({ t }: { t: LandingDict }) {
                 <li key={l.label}>
                   <Link
                     href={l.href}
-                    className="text-white/70 hover:text-white transition"
+                    className="text-muted-foreground hover:text-foreground transition"
                   >
                     {l.label}
                   </Link>
@@ -76,28 +76,28 @@ export function Footer({ t }: { t: LandingDict }) {
         </div>
 
         {/* === Rangée légale === */}
-        <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-[12px] text-white/45">
+        <div className="mt-10 pt-6 border-t border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-[12px] text-muted-foreground">
           <div>{t.footer.rights}</div>
           <nav
             aria-label={t.footer.legal.ariaLabel}
             className="flex flex-wrap items-center gap-x-5 gap-y-2"
           >
-            <Link href="/legal/privacy" className="hover:text-white transition">
+            <Link href="/legal/privacy" className="hover:text-foreground transition">
               {t.footer.legal.privacy}
             </Link>
-            <Link href="/legal/mentions" className="hover:text-white transition">
+            <Link href="/legal/mentions" className="hover:text-foreground transition">
               {t.footer.legal.mentions}
             </Link>
-            <Link href="/legal/cgu" className="hover:text-white transition">
+            <Link href="/legal/cgu" className="hover:text-foreground transition">
               {t.footer.legal.cgu}
             </Link>
-            <Link href="/legal/cookies" className="hover:text-white transition">
+            <Link href="/legal/cookies" className="hover:text-foreground transition">
               {t.footer.legal.cookies}
             </Link>
-            <Link href="/legal/dpa" className="hover:text-white transition">
+            <Link href="/legal/dpa" className="hover:text-foreground transition">
               {t.footer.legal.dpa}
             </Link>
-            <ManageCookiesLink className="hover:text-white transition" label={t.footer.legal.cookieManage} />
+            <ManageCookiesLink className="hover:text-foreground transition" label={t.footer.legal.cookieManage} />
           </nav>
         </div>
       </div>

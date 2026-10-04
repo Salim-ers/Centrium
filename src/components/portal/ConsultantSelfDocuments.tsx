@@ -187,12 +187,12 @@ export function ConsultantSelfDocuments({ consultantId, userId, orgId, compact =
               isEn ? (
                 <>
                   Upload a{' '}
-                  <span className="qc-italic-accent font-editorial italic">document.</span>
+                  <span className="text-primary font-display ">document.</span>
                 </>
               ) : (
                 <>
                   Téléverser un{' '}
-                  <span className="qc-italic-accent font-editorial italic">document.</span>
+                  <span className="text-primary font-display ">document.</span>
                 </>
               )
             }
@@ -262,7 +262,7 @@ export function ConsultantSelfDocuments({ consultantId, userId, orgId, compact =
                 <DataRow
                   key={d.id}
                   leading={
-                    <div className="rounded-xl border border-hairline bg-white/[0.04] p-2.5">
+                    <div className="rounded-xl border border-hairline bg-card p-2.5">
                       <FileText className="h-4 w-4 text-muted-foreground" />
                     </div>
                   }
@@ -296,7 +296,7 @@ export function ConsultantSelfDocuments({ consultantId, userId, orgId, compact =
                           onClick={() => deleteDoc(d)}
                           aria-label={isEn ? 'Delete' : 'Supprimer'}
                         >
-                          <Trash2 className="h-3.5 w-3.5 text-rose-400" />
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
                         </Button>
                       )}
                     </>

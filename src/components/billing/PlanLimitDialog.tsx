@@ -155,8 +155,8 @@ export function PlanLimitDialog({ payload, onOpenChange }: Props) {
     <Dialog open={!!payload} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <div className="mx-auto rounded-full bg-amber-500/15 p-3 mb-2">
-            <ShieldAlert className="h-6 w-6 text-amber-300" />
+          <div className="mx-auto rounded-full bg-warning/15 p-3 mb-2">
+            <ShieldAlert className="h-6 w-6 text-warning" />
           </div>
           <DialogTitle className="text-center">
             {isEn
@@ -172,8 +172,8 @@ export function PlanLimitDialog({ payload, onOpenChange }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-lg border border-violet-500/30 bg-violet-500/[0.06] p-4 space-y-2">
-          <div className="flex items-center gap-2 text-sm font-semibold text-violet-200">
+        <div className="rounded-lg border border-primary/30 bg-primary/[0.06] p-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-semibold text-primary">
             <Sparkles className="h-4 w-4" />
             {isTopOfLadder
               ? isEn ? 'Contact sales' : 'Contacter les ventes'

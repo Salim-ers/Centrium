@@ -110,15 +110,15 @@ export function StripeStatusBanner() {
     <div
       className={`rounded-xl border px-4 py-3.5 ${
         ok
-          ? 'border-emerald-500/30 bg-emerald-500/[0.06]'
-          : 'border-amber-500/40 bg-amber-500/[0.08]'
+          ? 'border-success/30 bg-success/[0.06]'
+          : 'border-warning/40 bg-warning/[0.08]'
       }`}
     >
       <div className="flex items-start gap-3">
         {ok ? (
-          <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
+          <CheckCircle2 className="h-5 w-5 text-success shrink-0 mt-0.5" />
         ) : (
-          <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+          <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
@@ -173,7 +173,7 @@ function Line({ label, value, good }: { label: string; value: string; good: bool
   return (
     <div className="flex items-center justify-between gap-2">
       <span className="text-muted-foreground">{label}</span>
-      <span className={good ? 'text-emerald-400 font-medium' : 'text-amber-300 font-medium'}>
+      <span className={good ? 'text-success font-medium' : 'text-warning font-medium'}>
         {value}
       </span>
     </div>

@@ -65,7 +65,7 @@ export function CookieBanner() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="cookie-prefs-title"
-        className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in-0"
+        className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-foreground/70 animate-in fade-in-0"
       >
         <div className="w-full max-w-lg rounded-2xl border border-hairline bg-card text-foreground shadow-2xl overflow-hidden">
           <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-hairline">
@@ -74,7 +74,7 @@ export function CookieBanner() {
                 id="cookie-prefs-title"
                 className="font-display text-lg font-semibold flex items-center gap-2"
               >
-                <Settings2 className="h-4 w-4 text-magenta" />
+                <Settings2 className="h-4 w-4 text-primary" />
                 {t.cookies.prefsTitle}
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
@@ -85,7 +85,7 @@ export function CookieBanner() {
               type="button"
               aria-label={t.cookies.closeAria}
               onClick={() => setView('hidden')}
-              className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-hairline hover:bg-white/5 transition"
+              className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-hairline hover:bg-muted transition"
             >
               <X className="h-4 w-4" />
             </button>
@@ -95,7 +95,7 @@ export function CookieBanner() {
             <div className="rounded-xl border border-hairline bg-muted/30 p-4">
               <div className="flex items-center justify-between gap-3 mb-1">
                 <div className="font-medium text-sm">{t.cookies.essentialTitle}</div>
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-300">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-success">
                   {t.cookies.essentialAlways}
                 </span>
               </div>
@@ -117,7 +117,7 @@ export function CookieBanner() {
                     onChange={(e) =>
                       setPrefs((p) => ({ ...p, [cat.key]: e.target.checked }))
                     }
-                    className="h-4 w-4 rounded border-border accent-magenta cursor-pointer"
+                    className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
@@ -130,7 +130,7 @@ export function CookieBanner() {
               {t.cookies.note1}{' '}
               <Link
                 href="/legal/cookies"
-                className="text-magenta hover:underline"
+                className="text-primary hover:underline"
                 onClick={() => setView('hidden')}
               >
                 {t.cookies.cookiePolicy}
@@ -143,14 +143,14 @@ export function CookieBanner() {
             <button
               type="button"
               onClick={rejectAll}
-              className="h-10 px-4 rounded-full text-sm font-medium border border-hairline text-foreground/80 hover:bg-white/5 transition"
+              className="h-10 px-4 rounded-full text-sm font-medium border border-hairline text-foreground/80 hover:bg-muted transition"
             >
               {t.cookies.refuseAll}
             </button>
             <button
               type="button"
               onClick={saveCustom}
-              className="h-10 px-4 rounded-full text-sm font-medium border border-hairline text-foreground/80 hover:bg-white/5 transition"
+              className="h-10 px-4 rounded-full text-sm font-medium border border-hairline text-foreground/80 hover:bg-muted transition"
             >
               {t.cookies.saveChoice}
             </button>
@@ -173,16 +173,16 @@ export function CookieBanner() {
       aria-label={t.cookies.bannerAria}
       className="fixed bottom-4 left-4 right-4 sm:left-6 sm:right-auto sm:bottom-6 z-[150] sm:max-w-md animate-in fade-in-0 slide-in-from-bottom-4"
     >
-      <div className="rounded-2xl border border-hairline bg-card/95 backdrop-blur-xl shadow-2xl p-5 text-foreground">
+      <div className="rounded-2xl border border-hairline bg-card/95 shadow-2xl p-5 text-foreground">
         <div className="flex items-start gap-3 mb-3">
-          <div className="h-9 w-9 rounded-lg bg-magenta/15 border border-magenta/30 flex items-center justify-center shrink-0">
-            <Cookie className="h-4 w-4 text-magenta" />
+          <div className="h-9 w-9 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
+            <Cookie className="h-4 w-4 text-primary" />
           </div>
           <div>
             <div className="font-semibold text-sm">{t.cookies.bannerTitle}</div>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               {t.cookies.bannerDesc}{' '}
-              <Link href="/legal/cookies" className="text-magenta hover:underline">
+              <Link href="/legal/cookies" className="text-primary hover:underline">
                 {t.cookies.learnMore}
               </Link>
             </p>
@@ -192,14 +192,14 @@ export function CookieBanner() {
           <button
             type="button"
             onClick={rejectAll}
-            className="h-9 px-3 rounded-full text-xs font-medium border border-hairline text-foreground/80 hover:bg-white/5 transition"
+            className="h-9 px-3 rounded-full text-xs font-medium border border-hairline text-foreground/80 hover:bg-muted transition"
           >
             {t.cookies.refuse}
           </button>
           <button
             type="button"
             onClick={() => setView('preferences')}
-            className="h-9 px-3 rounded-full text-xs font-medium border border-hairline text-foreground/80 hover:bg-white/5 transition"
+            className="h-9 px-3 rounded-full text-xs font-medium border border-hairline text-foreground/80 hover:bg-muted transition"
           >
             {t.cookies.customize}
           </button>
@@ -229,7 +229,7 @@ export function ManageCookiesLink({ className, label }: { className?: string; la
     <button
       type="button"
       onClick={open}
-      className={className ?? 'text-xs text-white/55 hover:text-white transition underline-offset-4 hover:underline'}
+      className={className ?? 'text-xs text-muted-foreground hover:text-foreground transition underline-offset-4 hover:underline'}
     >
       {label ?? t.footer.legal.cookieManage}
     </button>

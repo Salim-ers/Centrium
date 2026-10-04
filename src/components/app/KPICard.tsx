@@ -1,159 +1,119 @@
 'use client';
 
 import Link from 'next/link';
-import { type LucideIcon, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { type LucideIcon, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
+import { Sparkline } from '@/components/charts/Sparkline';
 
-type Tone = 'magenta' | 'violet' | 'emerald' | 'amber' | 'cyan' | 'rose';
+type Tone = 'magenta' | 'violet' | 'emerald' | 'amber' | 'cyan' | 'rose' | 'brand' | 'neutral';
 
-const TONE_CLASSES: Record<Tone, { glow: string; ring: string; text: string }> = {
-  magenta: {
-    glow: 'from-pink-500/30 via-magenta/15 to-transparent',
-    ring: 'hover:border-magenta/40',
-    text: 'text-magenta',
-  },
-  violet: {
-    glow: 'from-violet-500/30 via-indigo-500/15 to-transparent',
-    ring: 'hover:border-violet-500/40',
-    text: 'text-violet-400',
-  },
-  emerald: {
-    glow: 'from-emerald-500/25 via-green-500/12 to-transparent',
-    ring: 'hover:border-emerald-500/40',
-    text: 'text-emerald-400',
-  },
-  amber: {
-    glow: 'from-amber-500/25 via-orange-500/12 to-transparent',
-    ring: 'hover:border-amber-500/40',
-    text: 'text-amber-400',
-  },
-  cyan: {
-    glow: 'from-cyan-500/25 via-sky-500/12 to-transparent',
-    ring: 'hover:border-cyan-500/40',
-    text: 'text-cyan-400',
-  },
-  rose: {
-    glow: 'from-rose-500/30 via-pink-500/15 to-transparent',
-    ring: 'hover:border-rose-500/40',
-    text: 'text-rose-400',
-  },
+// Couleur de l'icône uniquement : la carte reste neutre.
+const ICON_TONE: Record<Tone, string> = {
+  brand: 'text-primary bg-brand-50',
+  magenta: 'text-primary bg-brand-50',
+  violet: 'text-primary bg-brand-50',
+  emerald: 'text-success bg-success-soft',
+  amber: 'text-warning bg-warning-soft',
+  cyan: 'text-info bg-info-soft',
+  rose: 'text-destructive bg-danger-soft',
+  neutral: 'text-sand-700 bg-sand-100',
 };
 
 type Props = {
   label: string;
-  /** Valeur numérique (animée via AnimatedNumber). Pour un texte fixe, utiliser `valueText`. */
+  /** Valeur numérique animée. Pour un texte fixe, utiliser `valueText`. */
   value?: number;
-  /** Texte fixe alternatif à `value` (ex: "—", "N/A"). */
   valueText?: string;
-  /** Préfixe affiché AVANT la valeur (ex: "€") */
+  /** Formatage de la valeur animée (devise, pourcentage…). */
+  format?: (n: number) => string;
   prefix?: string;
-  /** Suffixe (ex: "%", "k") */
   suffix?: string;
-  /** Icône lucide-react */
   icon?: LucideIcon;
-  /** Couleur de l'accent + glow */
   tone?: Tone;
-  /** Variation par rapport à la période précédente, en %. ±N → flèche colorée. */
+  /** Variation en % vs période précédente. */
   delta?: number;
-  /** Sous-titre / contexte sous la valeur */
-  hint?: string;
-  /** Si défini, rend la carte cliquable comme un Link */
+  /** Une hausse est-elle une bonne nouvelle ? (false pour l'intercontrat, les retards…) */
+  deltaPositiveIsGood?: boolean;
+  hint?: React.ReactNode;
+  /** Mini-courbe de tendance (valeurs chronologiques). */
+  trend?: number[];
   href?: string;
-  /** Affiche un skeleton à la place de la valeur (évite le flash "0" pendant le fetch). */
   loading?: boolean;
   className?: string;
 };
 
 /**
- * KPI card stylée vitrine : glass + halo de couleur (tone) + animated number.
- *
- * - Glass : border + bg semi-translucide + backdrop-blur
- * - Halo : gradient radial au coin top-right, opacité 0 → 100% au hover
- * - Animated value : AnimatedNumber framer-motion pour le compte
- * - Delta : flèche colorée (up emerald / down rose / flat slate)
- *
- * Usage :
- *   <KPICard label="Consultants actifs" value={42} icon={Users} tone="magenta" delta={+5} />
+ * Carte KPI : libellé, valeur, variation et contexte. Lisible en une
+ * seconde, cliquable vers le détail quand `href` est fourni.
  */
 export function KPICard({
   label,
   value,
   valueText,
+  format,
   prefix,
   suffix,
   icon: Icon,
-  tone = 'magenta',
+  tone = 'neutral',
   delta,
+  deltaPositiveIsGood = true,
   hint,
+  trend,
   href,
   loading = false,
   className,
 }: Props) {
-  const t = TONE_CLASSES[tone];
+  const good = delta === undefined || delta === 0 ? null : (delta > 0) === deltaPositiveIsGood;
   const DeltaIcon =
-    delta === undefined ? null : delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
-  const deltaColor =
-    delta === undefined
-      ? ''
-      : delta > 0
-        ? 'text-emerald-400'
-        : delta < 0
-          ? 'text-rose-400'
-          : 'text-muted-foreground';
+    delta === undefined ? null : delta > 0 ? ArrowUpRight : delta < 0 ? ArrowDownRight : Minus;
 
   const inner = (
     <>
-      {/* Halo radial coloré — visible UNIQUEMENT en dark.
-          En light mode (demande utilisateur : pas d'aura rose), opacity 0 →
-          la card reste sur fond crème pur, accent terracotta seulement
-          sur les bordures et icônes. */}
-      <div
-        aria-hidden
-        className={cn(
-          'absolute -top-12 -right-12 h-40 w-40 rounded-full bg-gradient-to-br blur-3xl opacity-0 dark:opacity-30 dark:group-hover:opacity-80 transition-opacity duration-500',
-          t.glow,
-        )}
-      />
-      <div className="relative z-10 flex items-start justify-between gap-3">
-        <div className="text-[11px] uppercase tracking-[0.18em] font-medium text-muted-foreground/80">
-          {label}
-        </div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="text-[13px] font-medium text-muted-foreground">{label}</div>
         {Icon && (
-          <div
-            className={cn(
-              'p-2 rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm transition-transform group-hover:scale-110',
-              t.text,
-            )}
-          >
-            <Icon className="h-4 w-4" />
-          </div>
+          <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-md', ICON_TONE[tone])}>
+            <Icon className="h-3.5 w-3.5" />
+          </span>
         )}
       </div>
-      <div className="relative z-10 mt-4 flex items-baseline gap-1 min-h-[2.5rem]">
-        {loading ? (
-          <span className="inline-block h-10 w-24 rounded-md bg-foreground/[0.08] animate-pulse" />
-        ) : (
-          <>
-            {prefix && <span className="text-2xl text-muted-foreground">{prefix}</span>}
-            <span className="font-display font-light tracking-[-0.04em] text-[clamp(1.8rem,3vw,2.5rem)] text-foreground leading-none">
+      <div className="mt-2 flex items-end justify-between gap-3">
+        <div className="num flex min-h-[2rem] items-baseline gap-0.5 font-display text-[26px] font-semibold leading-8 tracking-tight text-foreground">
+          {loading ? (
+            <span className="skeleton inline-block h-7 w-24" />
+          ) : (
+            <>
+              {prefix && <span className="mr-0.5 text-lg font-medium text-muted-foreground">{prefix}</span>}
               {valueText !== undefined ? (
                 valueText
               ) : value !== undefined && Number.isFinite(value) ? (
-                <AnimatedNumber value={value} />
+                <AnimatedNumber value={value} format={format} />
               ) : (
                 '—'
               )}
-            </span>
-            {suffix && <span className="text-2xl text-muted-foreground ml-0.5">{suffix}</span>}
-          </>
+              {suffix && <span className="ml-0.5 text-lg font-medium text-muted-foreground">{suffix}</span>}
+            </>
+          )}
+        </div>
+        {trend && trend.length > 1 && !loading && (
+          <Sparkline values={trend} className="mb-1 h-8 w-20 shrink-0" />
         )}
       </div>
       {(hint || delta !== undefined) && (
-        <div className="relative z-10 mt-3 flex items-center gap-2 text-[11px] text-muted-foreground">
+        <div className="mt-2 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
           {DeltaIcon && delta !== undefined && (
-            <span className={cn('inline-flex items-center gap-0.5 font-semibold', deltaColor)}>
+            <span
+              className={cn(
+                'num inline-flex items-center gap-0.5 rounded px-1 py-px font-medium',
+                good === null
+                  ? 'bg-muted text-muted-foreground'
+                  : good
+                    ? 'bg-success-soft text-success'
+                    : 'bg-danger-soft text-destructive',
+              )}
+            >
               <DeltaIcon className="h-3 w-3" />
               {delta > 0 ? '+' : ''}
               {delta}%
@@ -165,21 +125,18 @@ export function KPICard({
     </>
   );
 
-  const baseClasses = cn(
-    // qc-premium = gradient bg dark/cream + inner highlight + shadow profonde,
-    // qc-premium-interactive = state hover plus marqué (border + shadow plus intense)
-    'group qc-premium qc-premium-interactive relative overflow-hidden rounded-2xl border backdrop-blur-md p-5 transition-all duration-300',
-    'hover:-translate-y-0.5',
-    t.ring,
+  const base = cn(
+    'group relative block rounded-xl border border-border bg-card p-4 shadow-xs',
+    href && 'transition-[border-color,box-shadow] duration-150 hover:border-sand-300 hover:shadow-md',
     className,
   );
 
   if (href) {
     return (
-      <Link href={href} className={baseClasses} prefetch={false}>
+      <Link href={href} className={base} prefetch={false}>
         {inner}
       </Link>
     );
   }
-  return <div className={baseClasses}>{inner}</div>;
+  return <div className={base}>{inner}</div>;
 }

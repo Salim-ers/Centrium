@@ -65,14 +65,14 @@ export default function TrustCenterPage() {
       <main className="relative pt-32 pb-24">
         <div className="max-w-6xl mx-auto px-6">
           <div className="max-w-3xl">
-            <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-magenta mb-3">
+            <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-primary mb-3">
               Centrium · Trust Center
             </div>
-            <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-white">
+            <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-foreground">
               Sécurité, confidentialité,{' '}
-              <span className="qc-italic-accent font-serif italic">transparence</span>
+              <span className="text-primary font-serif italic">transparence</span>
             </h1>
-            <p className="mt-5 text-lg text-white/65 leading-relaxed max-w-2xl">
+            <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-2xl">
               Tout ce qu&apos;un DSI, un RSSI ou un Responsable Achats a besoin de
               savoir avant de signer avec Centrium. Documents téléchargeables,
               roadmap publique, contacts directs.
@@ -86,17 +86,17 @@ export default function TrustCenterPage() {
               return (
                 <article
                   key={s.title}
-                  className="qc-premium rounded-2xl border border-white/10 p-6 hover:border-magenta/30 transition"
+                  className="qc-premium rounded-2xl border border-border p-6 hover:border-primary/30 transition"
                 >
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="rounded-md bg-white/[0.06] p-2.5 text-magenta">
+                    <div className="rounded-md bg-muted p-2.5 text-primary">
                       <Icon className="h-5 w-5" />
                     </div>
-                    <h2 className="font-display font-semibold text-white text-[15px]">
+                    <h2 className="font-display font-semibold text-foreground text-[15px]">
                       {s.title}
                     </h2>
                   </div>
-                  <p className="text-sm text-white/65 leading-relaxed mb-5">
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-5">
                     {s.body}
                   </p>
                   {isExternal ? (
@@ -104,14 +104,14 @@ export default function TrustCenterPage() {
                       href={s.link.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-magenta hover:underline inline-flex items-center gap-1"
+                      className="text-xs text-primary hover:underline inline-flex items-center gap-1"
                     >
                       {s.link.label} →
                     </a>
                   ) : (
                     <Link
                       href={s.link.href}
-                      className="text-xs text-magenta hover:underline inline-flex items-center gap-1"
+                      className="text-xs text-primary hover:underline inline-flex items-center gap-1"
                     >
                       {s.link.label} →
                     </Link>
@@ -121,35 +121,35 @@ export default function TrustCenterPage() {
             })}
           </div>
 
-          <div className="mt-16 rounded-2xl border border-white/10 bg-white/[0.02] p-8 max-w-3xl">
-            <h2 className="font-display text-xl font-semibold text-white mb-3">
+          <div className="mt-16 rounded-2xl border border-border bg-card p-8 max-w-3xl">
+            <h2 className="font-display text-xl font-semibold text-foreground mb-3">
               Une question, une demande, une due diligence ?
             </h2>
-            <p className="text-sm text-white/65 leading-relaxed mb-5">
+            <p className="text-sm text-muted-foreground leading-relaxed mb-5">
               Notre équipe répond aux questionnaires de sécurité (CAIQ, SIG,
               VSA, Tisax light) en moins de 5 jours ouvrés.
             </p>
             <div className="grid sm:grid-cols-3 gap-3 text-sm">
               <a
                 href="mailto:security@centrium-platform.com"
-                className="rounded-lg border border-white/10 p-4 hover:border-magenta/40 transition"
+                className="rounded-lg border border-border p-4 hover:border-primary/40 transition"
               >
-                <div className="text-xs text-white/50 mb-1">Sécurité</div>
-                <div className="text-magenta">security@centrium-platform.com</div>
+                <div className="text-xs text-muted-foreground mb-1">Sécurité</div>
+                <div className="text-primary">security@centrium-platform.com</div>
               </a>
               <a
                 href="mailto:dpo@centrium-platform.com"
-                className="rounded-lg border border-white/10 p-4 hover:border-magenta/40 transition"
+                className="rounded-lg border border-border p-4 hover:border-primary/40 transition"
               >
-                <div className="text-xs text-white/50 mb-1">Données / DPO</div>
-                <div className="text-magenta">dpo@centrium-platform.com</div>
+                <div className="text-xs text-muted-foreground mb-1">Données / DPO</div>
+                <div className="text-primary">dpo@centrium-platform.com</div>
               </a>
               <a
                 href="mailto:sales@centrium-platform.com"
-                className="rounded-lg border border-white/10 p-4 hover:border-magenta/40 transition"
+                className="rounded-lg border border-border p-4 hover:border-primary/40 transition"
               >
-                <div className="text-xs text-white/50 mb-1">Commercial</div>
-                <div className="text-magenta">sales@centrium-platform.com</div>
+                <div className="text-xs text-muted-foreground mb-1">Commercial</div>
+                <div className="text-primary">sales@centrium-platform.com</div>
               </a>
             </div>
           </div>

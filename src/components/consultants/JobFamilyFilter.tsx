@@ -52,7 +52,7 @@ export function JobFamilyFilter({ counts, total, active, onChange }: Props) {
         className={cn(
           'h-7 px-3 rounded-full text-[11px] font-semibold uppercase tracking-wider border transition',
           active.size === 0
-            ? 'border-violet-glow/60 bg-violet-glow/15 text-violet-glow'
+            ? 'border-primary/60 bg-primary/15 text-primary'
             : 'border-hairline text-muted-foreground hover:border-foreground/25 hover:text-foreground',
         )}
       >
@@ -72,7 +72,7 @@ export function JobFamilyFilter({ counts, total, active, onChange }: Props) {
             className={cn(
               'h-7 px-3 rounded-full text-[11px] font-semibold uppercase tracking-wider border transition',
               isActive
-                ? 'border-violet-glow/60 bg-violet-glow/15 text-violet-glow'
+                ? 'border-primary/60 bg-primary/15 text-primary'
                 : 'border-hairline text-muted-foreground hover:border-foreground/25 hover:text-foreground',
             )}
           >
@@ -89,7 +89,7 @@ export function JobFamilyFilter({ counts, total, active, onChange }: Props) {
           className={cn(
             'h-7 px-3 rounded-full text-[11px] font-semibold uppercase tracking-wider border transition',
             active.has('other')
-              ? 'border-violet-glow/60 bg-violet-glow/15 text-violet-glow'
+              ? 'border-primary/60 bg-primary/15 text-primary'
               : 'border-hairline text-muted-foreground hover:border-foreground/25 hover:text-foreground',
           )}
         >

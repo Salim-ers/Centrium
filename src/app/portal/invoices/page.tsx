@@ -77,9 +77,9 @@ export default function PortalInvoicesPage() {
         eyebrow={isEn ? 'My space' : 'Mon espace'}
         title={
           isEn ? (
-            <>My <span className="qc-italic-accent font-editorial italic">invoices.</span></>
+            <>My <span className="text-primary font-display ">invoices.</span></>
           ) : (
-            <>Mes <span className="qc-italic-accent font-editorial italic">factures.</span></>
+            <>Mes <span className="text-primary font-display ">factures.</span></>
           )
         }
         description={
@@ -149,7 +149,7 @@ export default function PortalInvoicesPage() {
                   key={inv.id}
                   leading={
                     inv.status === 'paid' ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                      <CheckCircle2 className="h-4 w-4 text-success" />
                     ) : (
                       <Wallet className="h-4 w-4 text-muted-foreground/70" />
                     )
@@ -197,7 +197,7 @@ export default function PortalInvoicesPage() {
       )}
 
       {paid.length > 0 && (
-        <div className="mt-4 flex items-center gap-3 px-4 py-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5">
+        <div className="mt-4 flex items-center gap-3 px-4 py-3 rounded-2xl border border-success/20 bg-success/5">
           <StatusBadge tone="success">
             {isEn
               ? `${ytdPaid.length} paid in ${currentYear}`
@@ -205,7 +205,7 @@ export default function PortalInvoicesPage() {
           </StatusBadge>
           <span className="text-xs text-muted-foreground">
             {isEn ? 'Total collected YTD:' : 'Total encaissé YTD :'}{' '}
-            <span className="text-emerald-400 font-semibold">{formatCurrency(totalPaidYtd)}</span>
+            <span className="text-success font-semibold">{formatCurrency(totalPaidYtd)}</span>
           </span>
         </div>
       )}

@@ -138,7 +138,7 @@ export default function OnboardingPage() {
   if (checkingInvite) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-violet-glow" />
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -150,7 +150,7 @@ export default function OnboardingPage() {
       {/* Retour vers la home — accessible si l'utilisateur n'a pas encore d'org */}
       <Link
         href="/"
-        className="absolute top-6 left-6 z-20 inline-flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition"
+        className="absolute top-6 left-6 z-20 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         {isEn ? 'Back to home' : <>Retour à l&apos;accueil</>}
@@ -160,7 +160,7 @@ export default function OnboardingPage() {
       <form action="/api/auth/logout" method="POST" className="absolute top-6 right-6 z-20">
         <button
           type="submit"
-          className="inline-flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition"
         >
           <LogOut className="h-3.5 w-3.5" />
           {isEn ? 'Sign out' : 'Se déconnecter'}
@@ -170,13 +170,13 @@ export default function OnboardingPage() {
       <Card className="w-full max-w-md relative">
         {/* Banner invitation détectée — prioritaire sur la création d'org */}
         {pendingInvite && (
-          <div className="border-b border-emerald-500/30 bg-emerald-500/[0.06] p-5 rounded-t-xl">
+          <div className="border-b border-success/30 bg-success/[0.06] p-5 rounded-t-xl">
             <div className="flex items-start gap-3">
-              <div className="rounded-md bg-emerald-500/15 p-2 shrink-0">
-                <MailCheck className="h-4 w-4 text-emerald-300" />
+              <div className="rounded-md bg-success/15 p-2 shrink-0">
+                <MailCheck className="h-4 w-4 text-success" />
               </div>
               <div className="flex-1">
-                <div className="text-sm font-semibold text-emerald-200">
+                <div className="text-sm font-semibold text-success">
                   {isEn ? 'Invitation detected' : 'Invitation détectée'}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
@@ -198,7 +198,7 @@ export default function OnboardingPage() {
                 </p>
                 <Button
                   size="sm"
-                  className="w-full mt-3 bg-emerald-500/80 hover:bg-emerald-500 text-white"
+                  className="w-full mt-3 bg-success/80 hover:bg-success text-foreground"
                   onClick={acceptInvite}
                   disabled={loading}
                 >
@@ -212,8 +212,8 @@ export default function OnboardingPage() {
 
         <CardHeader className="text-center space-y-2">
           <div className="flex justify-center">
-            <div className="p-3 bg-violet-500/10 rounded-full">
-              <Building2 className="h-6 w-6 text-violet-300" />
+            <div className="p-3 bg-primary/10 rounded-full">
+              <Building2 className="h-6 w-6 text-primary" />
             </div>
           </div>
           <CardTitle className="text-xl font-display">
@@ -236,7 +236,7 @@ export default function OnboardingPage() {
               <>
                 One organization = one company. You will be its admin.
                 <br />
-                <span className="text-[11px] text-violet-300/80 inline-flex items-center gap-1 mt-1">
+                <span className="text-[11px] text-primary inline-flex items-center gap-1 mt-1">
                   <Sparkles className="h-3 w-3" /> 7-day free trial, no credit card required
                 </span>
               </>
@@ -244,7 +244,7 @@ export default function OnboardingPage() {
               <>
                 Une organisation = une ESN. Tu en seras admin.
                 <br />
-                <span className="text-[11px] text-violet-300/80 inline-flex items-center gap-1 mt-1">
+                <span className="text-[11px] text-primary inline-flex items-center gap-1 mt-1">
                   <Sparkles className="h-3 w-3" /> 7 jours d&apos;essai gratuit, aucune CB demandée
                 </span>
               </>
@@ -265,7 +265,7 @@ export default function OnboardingPage() {
                   },
                 })}
               />
-              {errors.name && <p className="text-xs text-red-400">{errors.name.message}</p>}
+              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="slug">{isEn ? 'Identifier (URL)' : 'Identifiant (URL)'}</Label>
@@ -273,7 +273,7 @@ export default function OnboardingPage() {
                 <span className="text-xs text-muted-foreground">centrium-platform.com/</span>
                 <Input id="slug" {...register('slug')} />
               </div>
-              {errors.slug && <p className="text-xs text-red-400">{errors.slug.message}</p>}
+              {errors.slug && <p className="text-xs text-destructive">{errors.slug.message}</p>}
               <p className="text-[10px] text-muted-foreground">
                 {isEn ? 'Auto-generated from the name, editable.' : 'Auto-généré depuis le nom, modifiable.'}
               </p>

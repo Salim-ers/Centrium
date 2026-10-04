@@ -317,8 +317,8 @@ export default function DevisPage() {
       <MarketingShell>
         <main className="min-h-[80vh] flex items-center justify-center px-6 pt-24">
           <div className="relative max-w-lg w-full text-center space-y-6">
-            <div className="mx-auto h-16 w-16 rounded-full bg-emerald-500/15 flex items-center justify-center">
-              <CheckCircle2 className="h-8 w-8 text-emerald-300" />
+            <div className="mx-auto h-16 w-16 rounded-full bg-success/15 flex items-center justify-center">
+              <CheckCircle2 className="h-8 w-8 text-success" />
             </div>
             <div>
               <h1 className="font-display text-3xl font-bold tracking-tight">
@@ -327,14 +327,14 @@ export default function DevisPage() {
               <p className="text-muted-foreground mt-3 leading-relaxed">
                 {t.devis.success.received1} <strong>{form.company_name}</strong>.{' '}
                 {t.devis.success.received2}
-                <strong className="text-violet-200"> {form.contact_email}</strong>{' '}
+                <strong className="text-primary"> {form.contact_email}</strong>{' '}
                 {t.devis.success.followUp}
               </p>
               <p className="text-xs text-muted-foreground mt-4">
                 {t.devis.success.question}{' '}
                 <a
                   href={`mailto:${NOTIFICATION_EMAIL}`}
-                  className="text-violet-300 hover:text-violet-200 underline underline-offset-2"
+                  className="text-primary hover:text-primary underline underline-offset-2"
                 >
                   {NOTIFICATION_EMAIL}
                 </a>
@@ -358,22 +358,22 @@ export default function DevisPage() {
     <MarketingShell>
       <main className="relative max-w-3xl mx-auto px-6 pt-32 pb-16">
         <div className="text-center mb-10">
-          <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-4">
+          <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-primary mb-4">
             {t.devis.eyebrow}
           </div>
-          <h1 className="font-display font-light tracking-[-0.04em] leading-[1] text-[clamp(2.4rem,5.5vw,4.5rem)] text-white">
+          <h1 className="font-display font-light tracking-[-0.04em] leading-[1] text-[clamp(2.4rem,5.5vw,4.5rem)] text-foreground">
             {t.devis.titleA}{' '}
-            <span className="qc-italic-accent font-editorial italic font-normal">{t.devis.titleB}</span>
+            <span className="text-primary font-display font-normal">{t.devis.titleB}</span>
           </h1>
           <p className="text-muted-foreground mt-4 max-w-2xl mx-auto leading-relaxed">
             {t.devis.sub}
           </p>
           <p className="text-xs text-muted-foreground mt-4 inline-flex items-center gap-1.5">
-            <Mail className="h-3 w-3 text-violet-300" />
+            <Mail className="h-3 w-3 text-primary" />
             {t.devis.repliesSentBy}{' '}
             <a
               href={`mailto:${NOTIFICATION_EMAIL}`}
-              className="text-violet-300 hover:text-violet-200 underline underline-offset-2 font-medium"
+              className="text-primary hover:text-primary underline underline-offset-2 font-medium"
             >
               {NOTIFICATION_EMAIL}
             </a>
@@ -382,17 +382,17 @@ export default function DevisPage() {
 
         <form
           onSubmit={submit}
-          className="qc-luminous-static relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-xl p-6 md:p-10 space-y-7"
+          className="qc-luminous-static relative rounded-3xl border border-border bg-gradient-to-br from-transparent to-transparent p-6 md:p-10 space-y-7"
         >
           {error && (
-            <div className="rounded-lg border border-red-500/30 bg-red-500/[0.07] px-4 py-3 text-sm text-red-200">
+            <div className="rounded-lg border border-destructive/30 bg-destructive/[0.07] px-4 py-3 text-sm text-destructive">
               {error}
             </div>
           )}
 
           {/* Bloc société */}
           <section className="space-y-4">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-violet-300">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-primary">
               <Building2 className="h-3.5 w-3.5" />
               {t.devis.section.company}
             </div>
@@ -452,7 +452,7 @@ export default function DevisPage() {
               console valide puis l'email d'activation porte le lien de
               paiement de CE plan. */}
           <section className="space-y-4 pt-2 border-t border-hairline">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-violet-300 pt-4">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-primary pt-4">
               <Sparkles className="h-3.5 w-3.5" />
               {t.devis.planSection}
             </div>
@@ -472,8 +472,8 @@ export default function DevisPage() {
                     className={
                       'relative rounded-2xl border px-4 py-4 text-left transition-all duration-200 ' +
                       (selected
-                        ? 'border-magenta/60 bg-magenta/[0.08] shadow-[0_0_30px_-10px_rgba(236,72,153,0.5)]'
-                        : 'border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.05]')
+                        ? 'border-primary/60 bg-primary/[0.08] shadow-[0_0_30px_-10px_rgba(236,72,153,0.5)]'
+                        : 'border-border bg-card hover:border-border hover:bg-muted')
                     }
                   >
                     {p.popular && (
@@ -486,7 +486,7 @@ export default function DevisPage() {
                       <span
                         className={
                           'h-4 w-4 rounded-full border-2 shrink-0 transition-colors ' +
-                          (selected ? 'border-magenta bg-magenta' : 'border-white/25')
+                          (selected ? 'border-primary bg-primary' : 'border-border')
                         }
                         aria-hidden
                       />
@@ -508,7 +508,7 @@ export default function DevisPage() {
 
           {/* Bloc contact */}
           <section className="space-y-4 pt-2 border-t border-hairline">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-violet-300 pt-4">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-primary pt-4">
               <UserIcon className="h-3.5 w-3.5" />
               {t.devis.section.contact}
             </div>
@@ -564,7 +564,7 @@ export default function DevisPage() {
 
           {/* Bloc besoins d'accompagnement */}
           <section className="space-y-3 pt-2 border-t border-hairline">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-violet-300 pt-4">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-primary pt-4">
               <HandHelping className="h-3.5 w-3.5" />
               {t.devis.section.help}
             </div>
@@ -584,14 +584,14 @@ export default function DevisPage() {
                     className={cn(
                       'flex items-center gap-2 rounded-md border px-3 py-2 text-xs text-left transition',
                       active
-                        ? 'border-violet-glow/60 bg-violet-glow/15 text-violet-100 shadow-[0_0_18px_-8px_rgba(168,85,247,0.6)]'
-                        : 'border-hairline bg-white/[0.02] text-muted-foreground hover:text-foreground hover:border-white/20',
+                        ? 'border-primary/60 bg-primary/15 text-primary shadow-[0_0_18px_-8px_rgba(168,85,247,0.6)]'
+                        : 'border-hairline bg-card text-muted-foreground hover:text-foreground hover:border-border',
                     )}
                   >
                     <Icon
                       className={cn(
                         'h-3.5 w-3.5 shrink-0',
-                        active ? 'text-violet-300' : 'text-muted-foreground',
+                        active ? 'text-primary' : 'text-muted-foreground',
                       )}
                     />
                     <span className="leading-tight">{opt?.short ?? key}</span>
@@ -603,7 +603,7 @@ export default function DevisPage() {
 
           {/* Logo (optionnel) */}
           <section className="space-y-3 pt-2 border-t border-hairline">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-violet-300 pt-4">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-primary pt-4">
               <ImageIcon className="h-3.5 w-3.5" />
               {t.devis.section.logo}
             </div>
@@ -611,17 +611,17 @@ export default function DevisPage() {
               {t.devis.logoIntro}
             </p>
             {logoUrl ? (
-              <div className="flex items-center gap-3 rounded-md border border-emerald-500/30 bg-emerald-500/[0.06] p-3">
+              <div className="flex items-center gap-3 rounded-md border border-success/30 bg-success/[0.06] p-3">
                 <img
                   src={logoUrl}
                   alt="Logo"
-                  className="h-12 w-12 rounded bg-white/5 object-contain p-1"
+                  className="h-12 w-12 rounded bg-muted object-contain p-1"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">
                     {logoFileName ?? 'Logo'}
                   </div>
-                  <div className="text-[10px] text-emerald-300 inline-flex items-center gap-1">
+                  <div className="text-[10px] text-success inline-flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3" />
                     {t.devis.logoReceived}
                   </div>
@@ -629,7 +629,7 @@ export default function DevisPage() {
                 <button
                   type="button"
                   onClick={removeLogo}
-                  className="h-7 w-7 rounded-md border border-hairline text-muted-foreground hover:text-foreground hover:border-white/20 inline-flex items-center justify-center"
+                  className="h-7 w-7 rounded-md border border-hairline text-muted-foreground hover:text-foreground hover:border-border inline-flex items-center justify-center"
                   title={t.devis.logoRemove}
                 >
                   <X className="h-3.5 w-3.5" />
@@ -640,14 +640,14 @@ export default function DevisPage() {
                 className={cn(
                   'flex items-center gap-3 rounded-md border border-dashed px-4 py-4 cursor-pointer transition',
                   logoUploading
-                    ? 'border-violet-glow/40 bg-violet-glow/[0.06] cursor-wait'
-                    : 'border-hairline bg-white/[0.02] hover:border-violet-glow/40 hover:bg-violet-glow/[0.04]',
+                    ? 'border-primary/40 bg-primary/[0.06] cursor-wait'
+                    : 'border-hairline bg-card hover:border-primary/40 hover:bg-primary/[0.04]',
                 )}
               >
                 {logoUploading ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-violet-300" />
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 ) : (
-                  <Upload className="h-4 w-4 text-violet-300" />
+                  <Upload className="h-4 w-4 text-primary" />
                 )}
                 <div className="flex-1">
                   <div className="text-sm font-medium">
@@ -695,7 +695,7 @@ export default function DevisPage() {
             <Button
               type="submit"
               disabled={busy}
-              className="bg-gradient-to-r from-violet-glow to-magenta-neon hover:opacity-95 shadow-[0_0_30px_-8px_rgba(236,72,153,0.5)]"
+              className="bg-gradient-to-r from-primary to-primary hover:opacity-95 shadow-[0_0_30px_-8px_rgba(236,72,153,0.5)]"
             >
               {busy ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

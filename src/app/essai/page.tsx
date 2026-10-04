@@ -24,7 +24,7 @@ const PLAN_CARDS: {
   { id: 'enterprise', name: 'Illimité', price: '299,99 €' },
 ];
 
-const LABEL = 'text-xs font-semibold tracking-wider uppercase text-white/60';
+const LABEL = 'text-xs font-semibold tracking-wider uppercase text-muted-foreground';
 
 function EssaiInner() {
   const searchParams = useSearchParams();
@@ -95,14 +95,14 @@ function EssaiInner() {
       footer={
         <>
           {isEn ? 'Already have an account?' : 'Déjà un compte ?'}{' '}
-          <Link href="/login" className="text-magenta hover:text-magenta-neon transition font-medium">
+          <Link href="/login" className="text-primary hover:text-primary transition font-medium">
             {isEn ? 'Sign in' : 'Se connecter'}
           </Link>
         </>
       }
     >
       {canceled && (
-        <div className="mb-4 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2.5 text-[13px] text-amber-200">
+        <div className="mb-4 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2.5 text-[13px] text-warning">
           {isEn
             ? 'Payment not completed. Enter your details again to restart, or sign in.'
             : 'Paiement non finalisé. Renseigne à nouveau tes infos pour redémarrer, ou connecte-toi.'}
@@ -113,7 +113,7 @@ function EssaiInner() {
         <div className="space-y-2">
           <Label htmlFor="company" className={LABEL}>{isEn ? 'Company' : 'Société'}</Label>
           <div className="relative">
-            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />
+            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               id="company"
               value={companyName}
@@ -139,7 +139,7 @@ function EssaiInner() {
         <div className="space-y-2">
           <Label htmlFor="email" className={LABEL}>{isEn ? 'Work email' : 'Email professionnel'}</Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               id="email"
               type="email"
@@ -156,7 +156,7 @@ function EssaiInner() {
         <div className="space-y-2">
           <Label htmlFor="password" className={LABEL}>{isEn ? 'Password' : 'Mot de passe'}</Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               id="password"
               type="password"
@@ -184,26 +184,26 @@ function EssaiInner() {
                   onClick={() => setPlanId(p.id)}
                   className={`flex items-center justify-between rounded-xl border px-3.5 py-2.5 text-left transition ${
                     active
-                      ? 'border-magenta-neon/60 bg-magenta/10 ring-1 ring-magenta-neon/40'
-                      : 'border-white/10 hover:border-white/25 bg-white/[0.02]'
+                      ? 'border-primary/60 bg-primary/10 ring-1 ring-primary/40'
+                      : 'border-border hover:border-border bg-card'
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm text-white">{p.name}</span>
+                    <span className="font-semibold text-sm text-foreground">{p.name}</span>
                     {p.popular && (
-                      <span className="text-[9px] uppercase tracking-wider rounded-full bg-magenta/20 text-magenta-neon px-1.5 py-0.5 font-semibold">
+                      <span className="text-[9px] uppercase tracking-wider rounded-full bg-primary/20 text-primary px-1.5 py-0.5 font-semibold">
                         {isEn ? 'Popular' : 'Populaire'}
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-white">
+                    <span className="text-sm font-semibold text-foreground">
                       {p.price}
-                      <span className="text-white/40 text-[11px] font-normal">
+                      <span className="text-muted-foreground text-[11px] font-normal">
                         {isEn ? ' excl. VAT/mo' : ' HT/mois'}
                       </span>
                     </span>
-                    {active && <Check className="h-4 w-4 text-magenta-neon" />}
+                    {active && <Check className="h-4 w-4 text-primary" />}
                   </div>
                 </button>
               );
@@ -212,7 +212,7 @@ function EssaiInner() {
         </div>
 
         {error && (
-          <div className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2.5 text-[13px] text-red-200">
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-[13px] text-destructive">
             {error}
             {emailTaken && (
               <>
@@ -226,26 +226,26 @@ function EssaiInner() {
         )}
 
         {/* Clickwrap RGPD obligatoire : acceptation CGU + Confidentialité + DPA */}
-        <label className="flex items-start gap-2.5 text-[12px] text-white/55 leading-relaxed cursor-pointer">
+        <label className="flex items-start gap-2.5 text-[12px] text-muted-foreground leading-relaxed cursor-pointer">
           <input
             type="checkbox"
             checked={acceptTerms}
             onChange={(e) => setAcceptTerms(e.target.checked)}
             required
-            className="mt-0.5 h-4 w-4 shrink-0 accent-magenta"
+            className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
           />
           {isEn ? (
             <span>
               I accept the{' '}
-              <Link href="/legal/cgu" target="_blank" className="text-magenta hover:text-magenta-neon underline">
+              <Link href="/legal/cgu" target="_blank" className="text-primary hover:text-primary underline">
                 Terms
               </Link>
               , the{' '}
-              <Link href="/legal/privacy" target="_blank" className="text-magenta hover:text-magenta-neon underline">
+              <Link href="/legal/privacy" target="_blank" className="text-primary hover:text-primary underline">
                 Privacy Policy
               </Link>{' '}
               and the{' '}
-              <Link href="/legal/dpa" target="_blank" className="text-magenta hover:text-magenta-neon underline">
+              <Link href="/legal/dpa" target="_blank" className="text-primary hover:text-primary underline">
                 Data Processing Agreement (DPA)
               </Link>
               .
@@ -253,15 +253,15 @@ function EssaiInner() {
           ) : (
             <span>
               J&apos;accepte les{' '}
-              <Link href="/legal/cgu" target="_blank" className="text-magenta hover:text-magenta-neon underline">
+              <Link href="/legal/cgu" target="_blank" className="text-primary hover:text-primary underline">
                 CGU
               </Link>
               , la{' '}
-              <Link href="/legal/privacy" target="_blank" className="text-magenta hover:text-magenta-neon underline">
+              <Link href="/legal/privacy" target="_blank" className="text-primary hover:text-primary underline">
                 Politique de confidentialité
               </Link>{' '}
               et l&apos;
-              <Link href="/legal/dpa" target="_blank" className="text-magenta hover:text-magenta-neon underline">
+              <Link href="/legal/dpa" target="_blank" className="text-primary hover:text-primary underline">
                 Accord de traitement des données (DPA)
               </Link>
               .
@@ -272,7 +272,7 @@ function EssaiInner() {
         <Button
           type="submit"
           disabled={submitting || !acceptTerms}
-          className="w-full h-11 bg-qc-gradient hover:opacity-90 shadow-glow-magenta text-white disabled:opacity-50"
+          className="w-full h-11 bg-qc-gradient hover:opacity-90 text-white disabled:opacity-50"
         >
           {submitting ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -284,7 +284,7 @@ function EssaiInner() {
           )}
         </Button>
 
-        <p className="text-[11px] text-white/40 text-center">
+        <p className="text-[11px] text-muted-foreground text-center">
           {isEn
             ? 'Secure Stripe payment · €0 charged for 7 days · cancel anytime before the end.'
             : 'Paiement sécurisé Stripe · 0 € débité pendant 7 jours · résiliable à tout moment avant la fin.'}

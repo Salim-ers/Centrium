@@ -176,7 +176,7 @@ function PrivacyFr() {
       </p>
 
       <hr />
-      <p className="text-sm text-white/50"><em>Dernière mise à jour : avril 2026</em></p>
+      <p className="text-sm text-muted-foreground"><em>Dernière mise à jour : avril 2026</em></p>
     </div>
   );
 }
@@ -185,7 +185,7 @@ function PrivacyEn() {
   return (
     <div>
       <p>
-        <em className="text-white/50">
+        <em className="text-muted-foreground">
           This English version is provided for convenience. The French version prevails in the event of any
           discrepancy or dispute.
         </em>
@@ -355,7 +355,7 @@ function PrivacyEn() {
       </p>
 
       <hr />
-      <p className="text-sm text-white/50"><em>Last updated: April 2026</em></p>
+      <p className="text-sm text-muted-foreground"><em>Last updated: April 2026</em></p>
     </div>
   );
 }

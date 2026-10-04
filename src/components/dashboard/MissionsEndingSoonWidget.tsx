@@ -91,8 +91,8 @@ export function MissionsEndingSoonWidget() {
       <div className="p-5 h-full flex flex-col">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-rose-500/15 border border-rose-400/20 flex items-center justify-center">
-              <CalendarClock className="h-4 w-4 text-rose-400" />
+            <div className="h-8 w-8 rounded-lg bg-destructive/15 border border-destructive/20 flex items-center justify-center">
+              <CalendarClock className="h-4 w-4 text-destructive" />
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -124,15 +124,15 @@ export function MissionsEndingSoonWidget() {
             {missions.map((m) => {
               const tone =
                 m.days_left < 7
-                  ? 'text-rose-300 border-rose-400/30 bg-rose-500/5'
+                  ? 'text-destructive border-destructive/30 bg-destructive/5'
                   : m.days_left < 15
-                    ? 'text-amber-300 border-amber-400/30 bg-amber-500/5'
-                    : 'text-muted-foreground border-white/10';
+                    ? 'text-warning border-warning/30 bg-warning/5'
+                    : 'text-muted-foreground border-border';
               return (
                 <li key={m.id}>
                   <Link
                     href={`/missions`}
-                    className="flex items-center justify-between gap-2 rounded-md border border-white/[0.06] hover:bg-white/[0.04] px-2.5 py-1.5 text-xs transition"
+                    className="flex items-center justify-between gap-2 rounded-md border border-border hover:bg-muted px-2.5 py-1.5 text-xs transition"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="font-medium text-foreground/90 truncate">

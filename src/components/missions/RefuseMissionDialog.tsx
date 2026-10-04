@@ -85,7 +85,7 @@ export function RefuseMissionDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="inline-flex items-center gap-2">
-            <XCircle className="h-5 w-5 text-amber-300" />
+            <XCircle className="h-5 w-5 text-warning" />
             {isEn ? 'Reject the proposal' : 'Refuser la proposition'}
           </DialogTitle>
           <DialogDescription>
@@ -106,8 +106,8 @@ export function RefuseMissionDialog({
                 disabled={busy}
                 className={`text-[11px] px-2 py-1 rounded-md border transition ${
                   reason === r
-                    ? 'border-amber-500/60 bg-amber-500/15 text-amber-200'
-                    : 'border-hairline bg-white/[0.03] text-muted-foreground hover:text-foreground hover:border-white/20'
+                    ? 'border-warning/60 bg-warning/15 text-warning'
+                    : 'border-hairline bg-card text-muted-foreground hover:text-foreground hover:border-border'
                 }`}
               >
                 {r}
@@ -144,7 +144,7 @@ export function RefuseMissionDialog({
           <Button
             onClick={submit}
             disabled={busy || !reason.trim()}
-            className="bg-amber-500/90 hover:bg-amber-500 text-white"
+            className="bg-warning/90 hover:bg-warning text-foreground"
           >
             {busy && <Loader2 className="h-4 w-4 animate-spin" />}
             {isEn ? 'Confirm rejection' : 'Confirmer le refus'}

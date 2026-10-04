@@ -105,8 +105,8 @@ export function MagneticButton({
 
   const variantClasses =
     variant === 'primary'
-      ? 'text-white bg-black/40 border border-white/15 shadow-[0_22px_60px_-22px_rgba(225,29,116,0.65)] backdrop-blur'
-      : 'text-white/90 border border-white/15 bg-white/[0.04] backdrop-blur';
+      ? 'text-white bg-foreground/40 border border-border shadow-[0_22px_60px_-22px_rgba(225,29,116,0.65)] '
+      : 'text-foreground border border-border bg-card ';
 
   const style: React.CSSProperties = {
     transform: `perspective(800px) translate3d(${translate.x}px, ${translate.y}px, 0) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
@@ -136,7 +136,7 @@ export function MagneticButton({
       {variant === 'primary' && (
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-br from-pink-500/30 via-magenta/20 to-violet-glow/20"
+          className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-br from-primary/30 via-primary/20 to-primary/20"
         />
       )}
 

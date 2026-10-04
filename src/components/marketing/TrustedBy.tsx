@@ -74,7 +74,7 @@ export function TrustedBy() {
     >
       <div className="relative max-w-7xl mx-auto px-6">
         <div className="text-center max-w-2xl mx-auto mb-14" data-reveal>
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 text-xs font-medium text-emerald-300 mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-success/30 bg-success/10 text-xs font-medium text-success mb-4">
             <Shield className="h-3 w-3" />
             {t.trustedBy.kicker}
           </div>
@@ -90,12 +90,12 @@ export function TrustedBy() {
               <div
                 key={stat.label}
                 data-reveal
-                className="rounded-2xl border border-hairline bg-white/[0.02] p-5 text-center"
+                className="rounded-2xl border border-hairline bg-card p-5 text-center"
               >
-                <div className="font-display text-3xl md:text-4xl font-bold qc-gradient-text">
+                <div className="font-display text-3xl md:text-4xl font-bold text-primary">
                   <AnimatedCounter target={v.value} suffix={v.suffix} />
                 </div>
-                <div className="text-xs text-white/60 mt-2 leading-snug">
+                <div className="text-xs text-muted-foreground mt-2 leading-snug">
                   {stat.label}
                 </div>
               </div>
@@ -112,9 +112,9 @@ export function TrustedBy() {
             return (
               <span
                 key={label}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-hairline bg-white/5 text-xs font-medium text-white/70 hover:bg-white/10 hover:text-white transition"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-hairline bg-muted text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition"
               >
-                <Icon className="h-3.5 w-3.5 text-emerald-300" />
+                <Icon className="h-3.5 w-3.5 text-success" />
                 {label}
               </span>
             );

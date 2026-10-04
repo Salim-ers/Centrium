@@ -123,11 +123,11 @@ export function UsageBanner({ resource, hideUntilWarn = false }: Props) {
   // fondateurs ("où en sommes-nous ?").
   if (usage.exempt) {
     return (
-      <div className="mb-4 rounded-lg border border-amber-500/50 dark:border-amber-400/40 bg-gradient-to-r from-amber-500/[0.12] to-rose-500/[0.08] dark:from-amber-500/[0.07] dark:to-rose-500/[0.05] px-4 py-3">
+      <div className="mb-4 rounded-lg border border-warning/50 bg-gradient-to-r from-warning/[0.12] to-destructive/[0.08] px-4 py-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 text-sm">
-            <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-300" />
-            <span className="font-semibold text-amber-700 dark:text-amber-200">
+            <Sparkles className="h-4 w-4 text-warning " />
+            <span className="font-semibold text-warning ">
               {used} / {t.usage.unlimited_word} {label}
             </span>
             <span className="text-muted-foreground text-xs">
@@ -151,25 +151,25 @@ export function UsageBanner({ resource, hideUntilWarn = false }: Props) {
 
   const tone = isFull
     ? {
-        border: 'border-red-500/50 dark:border-red-500/40',
-        bg: 'bg-red-500/[0.08] dark:bg-red-500/[0.06]',
-        text: 'text-red-700 dark:text-red-300',
-        bar: 'bg-red-500',
+        border: 'border-destructive/50 ',
+        bg: 'bg-destructive/[0.08] ',
+        text: 'text-destructive ',
+        bar: 'bg-destructive',
         Icon: ShieldAlert,
       }
     : isWarn
       ? {
-          border: 'border-amber-500/50 dark:border-amber-500/40',
-          bg: 'bg-amber-500/[0.10] dark:bg-amber-500/[0.06]',
-          text: 'text-amber-700 dark:text-amber-300',
-          bar: 'bg-amber-500',
+          border: 'border-warning/50 ',
+          bg: 'bg-warning/[0.10] ',
+          text: 'text-warning ',
+          bar: 'bg-warning',
           Icon: AlertTriangle,
         }
       : {
-          border: 'border-violet-500/40 dark:border-violet-500/30',
-          bg: 'bg-violet-500/[0.07] dark:bg-violet-500/[0.04]',
-          text: 'text-violet-700 dark:text-violet-300',
-          bar: 'bg-violet-500',
+          border: 'border-primary/40 ',
+          bg: 'bg-primary/[0.07] ',
+          text: 'text-primary ',
+          bar: 'bg-primary',
           Icon: TrendingUp,
         };
 
@@ -198,7 +198,7 @@ export function UsageBanner({ resource, hideUntilWarn = false }: Props) {
           </Button>
         )}
       </div>
-      <div className="mt-2 h-1 w-full rounded-full bg-white/5 overflow-hidden">
+      <div className="mt-2 h-1 w-full rounded-full bg-muted overflow-hidden">
         <div
           className={`h-full ${tone.bar} transition-all`}
           style={{ width: `${pct}%` }}

@@ -42,25 +42,25 @@ export function AuditContent({ rows, last24, last7d, critical, uniqueUsers }: Pr
             isEn ? (
               <>
                 Audit{' '}
-                <span className="qc-italic-accent font-editorial italic">log.</span>
+                <span className="text-primary font-display ">log.</span>
               </>
             ) : (
               <>
                 Journal{' '}
-                <span className="qc-italic-accent font-editorial italic">d&apos;audit.</span>
+                <span className="text-primary font-display ">d&apos;audit.</span>
               </>
             )
           }
           description={
             isEn ? (
               <>
-                Source: <code className="text-magenta">activities</code> table. Extend it via{' '}
-                <code className="text-magenta">logAudit()</code> in the business services.
+                Source: <code className="text-primary">activities</code> table. Extend it via{' '}
+                <code className="text-primary">logAudit()</code> in the business services.
               </>
             ) : (
               <>
-                Source : table <code className="text-magenta">activities</code>. À étendre
-                via <code className="text-magenta">logAudit()</code> dans les services
+                Source : table <code className="text-primary">activities</code>. À étendre
+                via <code className="text-primary">logAudit()</code> dans les services
                 métier.
               </>
             )
@@ -104,12 +104,12 @@ export function AuditContent({ rows, last24, last7d, critical, uniqueUsers }: Pr
             isEn ? (
               <>
                 {rows.length} latest{' '}
-                <span className="qc-italic-accent font-editorial italic">activities.</span>
+                <span className="text-primary font-display ">activities.</span>
               </>
             ) : (
               <>
                 {rows.length} dernières{' '}
-                <span className="qc-italic-accent font-editorial italic">activités.</span>
+                <span className="text-primary font-display ">activités.</span>
               </>
             )
           }

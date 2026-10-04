@@ -107,7 +107,7 @@ export function MfaEnrollForm({ next }: { next: string }) {
 
   if (!factor) {
     return (
-      <p className="text-sm text-rose-400">
+      <p className="text-sm text-destructive">
         {error ?? (isEn ? 'Unable to generate the QR code. Please reload the page.' : 'Impossible de générer le QR code. Rechargez la page.')}
       </p>
     );
@@ -132,11 +132,11 @@ export function MfaEnrollForm({ next }: { next: string }) {
           <button
             type="button"
             onClick={handleCopySecret}
-            className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-mono hover:bg-white/[0.06] transition"
+            className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-mono hover:bg-muted transition"
           >
             {factor.secret}
             {copied ? (
-              <Check className="h-3 w-3 text-emerald-300" />
+              <Check className="h-3 w-3 text-success" />
             ) : (
               <Copy className="h-3 w-3" />
             )}
@@ -164,7 +164,7 @@ export function MfaEnrollForm({ next }: { next: string }) {
             className="text-center text-2xl tracking-[0.4em] font-mono"
             disabled={pending}
           />
-          {error && <p className="text-xs text-rose-400">{error}</p>}
+          {error && <p className="text-xs text-destructive">{error}</p>}
         </div>
 
         <Button type="submit" disabled={pending || code.length !== 6} className="w-full">

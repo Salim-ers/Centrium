@@ -99,8 +99,8 @@ export function InvoicesToCollectWidget() {
       <div className="p-5 h-full flex flex-col">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-violet-glow/15 border border-violet-glow/20 flex items-center justify-center">
-              <Banknote className="h-4 w-4 text-violet-glow" />
+            <div className="h-8 w-8 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center">
+              <Banknote className="h-4 w-4 text-primary" />
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -127,7 +127,7 @@ export function InvoicesToCollectWidget() {
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-xs italic text-center px-3 text-emerald-700 dark:text-emerald-300 font-medium">
+          <div className="flex-1 flex items-center justify-center text-xs italic text-center px-3 text-success font-medium">
             {t.dashboard.invoices_to_collect_empty}
           </div>
         ) : (
@@ -163,9 +163,9 @@ export function InvoicesToCollectWidget() {
                             className={cn(
                               'text-[10px] font-medium',
                               inv.days_overdue > 30
-                                ? 'text-rose-300'
+                                ? 'text-destructive'
                                 : inv.days_overdue > 7
-                                  ? 'text-amber-300'
+                                  ? 'text-warning'
                                   : 'text-muted-foreground',
                             )}
                           >

@@ -32,8 +32,8 @@ export default function ErrorBoundary({
   return (
     <div className="min-h-screen flex items-center justify-center px-6">
       <div className="max-w-lg w-full text-center space-y-6">
-        <div className="mx-auto h-14 w-14 rounded-full bg-amber-500/15 flex items-center justify-center">
-          <AlertTriangle className="h-7 w-7 text-amber-300" />
+        <div className="mx-auto h-14 w-14 rounded-full bg-warning/15 flex items-center justify-center">
+          <AlertTriangle className="h-7 w-7 text-warning" />
         </div>
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight">
@@ -46,7 +46,7 @@ export default function ErrorBoundary({
           </p>
         </div>
         <div className="flex items-center justify-center gap-2">
-          <Button onClick={() => reset()} className="bg-violet-glow hover:bg-violet-glow/90">
+          <Button onClick={() => reset()} className="bg-primary hover:bg-primary/90">
             <RefreshCw className="h-4 w-4" />
             Réessayer
           </Button>
@@ -72,7 +72,7 @@ export default function ErrorBoundary({
             Détails techniques
           </button>
           {showDetails && (
-            <pre className="mt-3 max-h-60 overflow-auto rounded-md border border-hairline bg-white/[0.03] p-3 text-[11px] text-muted-foreground whitespace-pre-wrap break-words">
+            <pre className="mt-3 max-h-60 overflow-auto rounded-md border border-hairline bg-card p-3 text-[11px] text-muted-foreground whitespace-pre-wrap break-words">
               {error.name}: {error.message}
               {error.digest ? `\n\nref · ${error.digest}` : ''}
               {error.stack ? `\n\n${error.stack}` : ''}

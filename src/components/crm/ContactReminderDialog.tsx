@@ -121,7 +121,7 @@ export function ContactReminderDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5 text-amber-300" />
+            <Bell className="h-5 w-5 text-warning" />
             {isEn ? 'Reminder' : 'Rappel'} — {contact.first_name} {contact.last_name}
           </DialogTitle>
           <DialogDescription>
@@ -138,7 +138,7 @@ export function ContactReminderDialog({
                 key={opt.label}
                 type="button"
                 onClick={() => setWhen(quickToLocal(opt))}
-                className="text-[11px] px-2.5 py-1 rounded-md border border-violet-glow/30 bg-violet-glow/[0.06] text-violet-200 hover:bg-violet-glow/[0.12]"
+                className="text-[11px] px-2.5 py-1 rounded-md border border-primary/30 bg-primary/[0.06] text-primary hover:bg-primary/[0.12]"
               >
                 {isEn ? opt.labelEn : opt.label}
               </button>
@@ -172,7 +172,7 @@ export function ContactReminderDialog({
               variant="outline"
               onClick={clearReminder}
               disabled={saving}
-              className="border-red-500/40 text-red-300 hover:bg-red-500/10"
+              className="border-destructive/40 text-destructive hover:bg-destructive/10"
             >
               <Trash2 className="h-3.5 w-3.5" />
               {isEn ? 'Delete' : 'Supprimer'}

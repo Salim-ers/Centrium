@@ -91,8 +91,8 @@ export function HotOpportunitiesWidget() {
       <div className="p-5 h-full flex flex-col">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-magenta/15 border border-magenta/20 flex items-center justify-center">
-              <Flame className="h-4 w-4 text-magenta-neon" />
+            <div className="h-8 w-8 rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center">
+              <Flame className="h-4 w-4 text-primary" />
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -150,10 +150,10 @@ export function HotOpportunitiesWidget() {
                             className={cn(
                               'shrink-0 px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-semibold',
                               opp.status === 'negotiation'
-                                ? 'bg-amber-500/15 text-amber-300'
+                                ? 'bg-warning/15 text-warning'
                                 : opp.status === 'client_interview'
-                                  ? 'bg-fuchsia-500/15 text-fuchsia-300'
-                                  : 'bg-violet-500/15 text-violet-300',
+                                  ? 'bg-primary/15 text-primary'
+                                  : 'bg-primary/15 text-primary',
                             )}
                           >
                             {statusLabel}
@@ -161,7 +161,7 @@ export function HotOpportunitiesWidget() {
                         </div>
                       </div>
                       <div className="shrink-0 text-right">
-                        <div className="text-xs font-semibold text-magenta-neon">
+                        <div className="text-xs font-semibold text-primary">
                           {formatCurrency(opp.weighted_value)}
                         </div>
                         <div className="text-[10px] text-muted-foreground">
@@ -173,7 +173,7 @@ export function HotOpportunitiesWidget() {
                         point c'est chaud", animée à l'entrée. */}
                     <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-foreground/[0.06]">
                       <motion.div
-                        className="h-full rounded-full bg-magenta"
+                        className="h-full rounded-full bg-primary"
                         initial={{ width: 0 }}
                         animate={{ width: `${opp.probability}%` }}
                         transition={{ duration: 0.6, delay: 0.15 + i * 0.06, ease: 'easeOut' }}

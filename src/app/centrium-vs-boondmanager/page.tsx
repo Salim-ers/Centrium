@@ -331,9 +331,9 @@ const KEY_DIFFERENTIATORS = [
 function FeatureValue({ value }: { value: string | boolean }) {
   if (typeof value === 'boolean') {
     return value ? (
-      <Check className="h-5 w-5 text-emerald-400" />
+      <Check className="h-5 w-5 text-success" />
     ) : (
-      <X className="h-5 w-5 text-red-400/70" />
+      <X className="h-5 w-5 text-destructive" />
     );
   }
   return <span className="text-sm text-foreground/85">{value}</span>;
@@ -353,14 +353,14 @@ export default function CentriumVsBoondmanagerPage() {
         <div className="max-w-6xl mx-auto px-6">
           {/* Hero */}
           <div className="text-center max-w-4xl mx-auto">
-            <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-magenta mb-3">
+            <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-primary mb-3">
               Comparatif détaillé · juin 2026
             </div>
-            <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-white">
-              Centrium <span className="text-white/40">vs</span>{' '}
-              <span className="qc-italic-accent font-editorial italic">Boondmanager</span>
+            <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-foreground">
+              Centrium <span className="text-muted-foreground">vs</span>{' '}
+              <span className="text-primary font-display ">Boondmanager</span>
             </h1>
-            <p className="mt-5 text-lg text-white/65 leading-relaxed max-w-3xl mx-auto">
+            <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-3xl mx-auto">
               Pourquoi les ESN françaises qui scalent en 2026 choisissent Centrium plutôt
               que Boondmanager. Comparatif complet : fonctionnalités, IA, UX, sécurité,
               tarification — par un éditeur français.
@@ -375,19 +375,19 @@ export default function CentriumVsBoondmanagerPage() {
               </Link>
               <Link
                 href="/tarifs"
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 hover:border-white/30 transition px-7 py-3 font-semibold text-sm text-white/85"
+                className="inline-flex items-center gap-2 rounded-full border border-border hover:border-border transition px-7 py-3 font-semibold text-sm text-foreground"
               >
                 Voir les tarifs
               </Link>
             </div>
-            <p className="mt-4 text-xs text-white/40">
+            <p className="mt-4 text-xs text-muted-foreground">
               30 minutes · Devis sous 48h · Aucun engagement avant signature
             </p>
           </div>
 
           {/* Note honnêteté */}
-          <div className="mt-12 max-w-4xl mx-auto rounded-xl border border-white/10 bg-white/[0.02] p-5 text-sm text-white/65 leading-relaxed">
-            <strong className="text-white/85">Note de transparence.</strong> Ce comparatif
+          <div className="mt-12 max-w-4xl mx-auto rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground leading-relaxed">
+            <strong className="text-foreground">Note de transparence.</strong> Ce comparatif
             est rédigé par Centrium. Nous avons fait notre maximum pour rester factuels et
             sourcés. Les informations sur Boondmanager proviennent de leur site public,
             d&apos;avis utilisateurs publiés (G2, Trustpilot) et de témoignages de
@@ -399,9 +399,9 @@ export default function CentriumVsBoondmanagerPage() {
 
           {/* 5 différenciateurs clés */}
           <section className="mt-16">
-            <h2 className="font-display text-2xl md:text-3xl font-semibold text-white tracking-tight text-center">
+            <h2 className="font-display text-2xl md:text-3xl font-semibold text-foreground tracking-tight text-center">
               5 différences{' '}
-              <span className="qc-italic-accent font-editorial italic">qui comptent</span>
+              <span className="text-primary font-display ">qui comptent</span>
             </h2>
             <div className="mt-10 grid md:grid-cols-2 lg:grid-cols-3 gap-5">
               {KEY_DIFFERENTIATORS.map((diff) => {
@@ -409,15 +409,15 @@ export default function CentriumVsBoondmanagerPage() {
                 return (
                   <article
                     key={diff.title}
-                    className="qc-premium rounded-2xl border border-white/10 p-6"
+                    className="qc-premium rounded-2xl border border-border p-6"
                   >
-                    <div className="rounded-md bg-magenta/15 p-2.5 text-magenta inline-flex">
+                    <div className="rounded-md bg-primary/15 p-2.5 text-primary inline-flex">
                       <Icon className="h-5 w-5" />
                     </div>
-                    <h3 className="mt-4 font-display font-semibold text-white text-base">
+                    <h3 className="mt-4 font-display font-semibold text-foreground text-base">
                       {diff.title}
                     </h3>
-                    <p className="mt-2 text-sm text-white/65 leading-relaxed">
+                    <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                       {diff.description}
                     </p>
                   </article>
@@ -428,39 +428,39 @@ export default function CentriumVsBoondmanagerPage() {
 
           {/* Tableau comparatif complet */}
           <section className="mt-20">
-            <h2 className="font-display text-2xl md:text-3xl font-semibold text-white tracking-tight text-center">
+            <h2 className="font-display text-2xl md:text-3xl font-semibold text-foreground tracking-tight text-center">
               Comparatif{' '}
-              <span className="qc-italic-accent font-editorial italic">détaillé</span>
+              <span className="text-primary font-display ">détaillé</span>
             </h2>
-            <p className="mt-3 text-center text-white/55 text-sm">
+            <p className="mt-3 text-center text-muted-foreground text-sm">
               50+ critères répartis sur 9 catégories
             </p>
 
             <div className="mt-10 space-y-12">
               {FEATURE_COMPARISON.map((category) => (
                 <div key={category.category}>
-                  <h3 className="font-display text-lg font-semibold text-white mb-4">
+                  <h3 className="font-display text-lg font-semibold text-foreground mb-4">
                     {category.category}
                   </h3>
-                  <div className="overflow-hidden rounded-xl border border-white/10">
+                  <div className="overflow-hidden rounded-xl border border-border">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="bg-white/[0.03] border-b border-white/10">
-                          <th className="text-left px-5 py-3 font-medium text-white/60 uppercase text-[10px] tracking-wider">
+                        <tr className="bg-card border-b border-border">
+                          <th className="text-left px-5 py-3 font-medium text-muted-foreground uppercase text-[10px] tracking-wider">
                             Fonctionnalité
                           </th>
-                          <th className="text-left px-5 py-3 font-medium text-magenta uppercase text-[10px] tracking-wider w-[30%]">
+                          <th className="text-left px-5 py-3 font-medium text-primary uppercase text-[10px] tracking-wider w-[30%]">
                             Centrium
                           </th>
-                          <th className="text-left px-5 py-3 font-medium text-white/40 uppercase text-[10px] tracking-wider w-[30%]">
+                          <th className="text-left px-5 py-3 font-medium text-muted-foreground uppercase text-[10px] tracking-wider w-[30%]">
                             Boondmanager
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/5">
+                      <tbody className="divide-y divide-border">
                         {category.features.map((feature) => (
-                          <tr key={feature.name} className="hover:bg-white/[0.02]">
-                            <td className="px-5 py-3.5 text-white/80">{feature.name}</td>
+                          <tr key={feature.name} className="hover:bg-muted">
+                            <td className="px-5 py-3.5 text-muted-foreground">{feature.name}</td>
                             <td className="px-5 py-3.5">
                               <FeatureValue value={feature.centrium} />
                             </td>
@@ -479,17 +479,17 @@ export default function CentriumVsBoondmanagerPage() {
 
           {/* Quand Centrium n'est PAS le bon choix */}
           <section className="mt-20 max-w-4xl mx-auto">
-            <h2 className="font-display text-2xl md:text-3xl font-semibold text-white tracking-tight text-center">
+            <h2 className="font-display text-2xl md:text-3xl font-semibold text-foreground tracking-tight text-center">
               Quand Boondmanager{' '}
-              <span className="qc-italic-accent font-editorial italic">
+              <span className="text-primary font-display ">
                 reste le bon choix
               </span>
             </h2>
-            <p className="mt-4 text-white/65 text-center leading-relaxed">
+            <p className="mt-4 text-muted-foreground text-center leading-relaxed">
               Par souci d&apos;honnêteté, Centrium n&apos;est pas la meilleure solution pour
               toutes les ESN. Choisissez Boondmanager si :
             </p>
-            <ul className="mt-6 space-y-3 text-white/75">
+            <ul className="mt-6 space-y-3 text-muted-foreground">
               {[
                 'Vous gérez 500+ consultants et avez besoin de modules métier ultra-spécialisés (achat, RPA, GED avancée) avec un produit ultra-mature depuis 15 ans',
                 'Vous êtes déjà sous Boondmanager depuis 5+ ans avec une intégration profonde — la migration coûterait plus cher que les gains',
@@ -497,27 +497,27 @@ export default function CentriumVsBoondmanagerPage() {
                 'Vous travaillez exclusivement avec des clients qui exigent SOC 2 Type II ou ISO 27001 dès maintenant (notre roadmap : SOC 2 Type I Q4 2026, Type II Q1 2027, ISO 27001 Q2 2027)',
               ].map((item) => (
                 <li key={item} className="flex items-start gap-3">
-                  <Check className="h-4 w-4 text-emerald-400 mt-1 shrink-0" />
+                  <Check className="h-4 w-4 text-success mt-1 shrink-0" />
                   <span className="text-sm leading-relaxed">{item}</span>
                 </li>
               ))}
             </ul>
-            <p className="mt-6 text-white/55 text-sm italic text-center">
+            <p className="mt-6 text-muted-foreground text-sm italic text-center">
               Pour tous les autres cas — ESN 10 à 200 consultants, équipe moderne, ambition
               de scaling — Centrium est l&apos;alternative à essayer.
             </p>
           </section>
 
           {/* CTA Final */}
-          <section className="mt-20 rounded-3xl border border-magenta/20 bg-gradient-to-br from-magenta/[0.08] via-violet-glow/[0.04] to-transparent p-10 text-center">
+          <section className="mt-20 rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/[0.08] via-primary/[0.04] to-transparent p-10 text-center">
             <div className="max-w-2xl mx-auto">
-              <h2 className="font-display text-3xl md:text-4xl font-semibold text-white tracking-tight">
+              <h2 className="font-display text-3xl md:text-4xl font-semibold text-foreground tracking-tight">
                 Essayez Centrium{' '}
-                <span className="qc-italic-accent font-editorial italic">
+                <span className="text-primary font-display ">
                   en 30 minutes
                 </span>
               </h2>
-              <p className="mt-4 text-white/65 leading-relaxed">
+              <p className="mt-4 text-muted-foreground leading-relaxed">
                 Démo personnalisée avec vos vraies données. Devis chiffré sous 48h. Aucun
                 engagement avant signature.
               </p>
@@ -531,7 +531,7 @@ export default function CentriumVsBoondmanagerPage() {
                 </Link>
                 <Link
                   href="/tarifs"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/15 hover:border-white/30 transition px-7 py-3 font-semibold text-sm text-white/85"
+                  className="inline-flex items-center gap-2 rounded-full border border-border hover:border-border transition px-7 py-3 font-semibold text-sm text-foreground"
                 >
                   Voir les tarifs publics
                 </Link>

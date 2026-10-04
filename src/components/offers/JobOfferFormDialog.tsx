@@ -356,10 +356,10 @@ export function JobOfferFormDialog({
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
           {!isEdit && (
-            <div className="rounded-lg border border-violet-brand/25 bg-violet-brand/5 p-4 space-y-3">
+            <div className="rounded-lg border border-primary/25 bg-primary/5 p-4 space-y-3">
               <div className="flex items-start gap-3">
-                <div className="mt-0.5 rounded-md bg-violet-brand/15 p-1.5">
-                  <Sparkles className="h-4 w-4 text-violet-300" />
+                <div className="mt-0.5 rounded-md bg-primary/15 p-1.5">
+                  <Sparkles className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1">
                   <div className="text-sm font-medium">
@@ -384,14 +384,14 @@ export function JobOfferFormDialog({
               </div>
 
               {/* Toggle Image / Texte */}
-              <div className="inline-flex rounded-md border border-violet-brand/30 bg-violet-brand/5 p-0.5 text-xs">
+              <div className="inline-flex rounded-md border border-primary/30 bg-primary/5 p-0.5 text-xs">
                 <button
                   type="button"
                   onClick={() => setImportMode('image')}
                   className={`px-3 py-1.5 rounded inline-flex items-center gap-1.5 transition ${
                     importMode === 'image'
-                      ? 'bg-violet-brand/30 text-violet-50'
-                      : 'text-muted-foreground hover:text-violet-100'
+                      ? 'bg-primary/30 text-primary'
+                      : 'text-muted-foreground hover:text-primary'
                   }`}
                 >
                   <ImageUp className="h-3.5 w-3.5" />
@@ -402,8 +402,8 @@ export function JobOfferFormDialog({
                   onClick={() => setImportMode('text')}
                   className={`px-3 py-1.5 rounded inline-flex items-center gap-1.5 transition ${
                     importMode === 'text'
-                      ? 'bg-violet-brand/30 text-violet-50'
-                      : 'text-muted-foreground hover:text-violet-100'
+                      ? 'bg-primary/30 text-primary'
+                      : 'text-muted-foreground hover:text-primary'
                   }`}
                 >
                   <ClipboardPaste className="h-3.5 w-3.5" />
@@ -416,8 +416,8 @@ export function JobOfferFormDialog({
                   <label
                     className={`inline-flex items-center gap-2 h-9 px-3 rounded-md border cursor-pointer text-sm transition ${
                       parsingImage
-                        ? 'border-hairline bg-white/5 text-white/40 cursor-wait'
-                        : 'border-violet-brand/40 bg-violet-brand/10 text-violet-100 hover:bg-violet-brand/20'
+                        ? 'border-hairline bg-muted text-muted-foreground cursor-wait'
+                        : 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/20'
                     }`}
                   >
                     {parsingImage ? (
@@ -441,8 +441,8 @@ export function JobOfferFormDialog({
                     />
                   </label>
                   {imageFileName && !parsingImage && (
-                    <div className="text-xs text-white/70 truncate flex items-center gap-1.5">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                    <div className="text-xs text-muted-foreground truncate flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
                       <span className="truncate">{imageFileName}</span>
                     </div>
                   )}
@@ -496,7 +496,7 @@ export function JobOfferFormDialog({
               }
             />
             {errors.title && (
-              <p className="text-xs text-red-400 mt-1">{errors.title.message}</p>
+              <p className="text-xs text-destructive mt-1">{errors.title.message}</p>
             )}
           </div>
 
@@ -542,13 +542,13 @@ export function JobOfferFormDialog({
                   <Badge
                     key={s}
                     variant="outline"
-                    className="pr-1 gap-1 border-violet-brand/40 bg-violet-brand/10"
+                    className="pr-1 gap-1 border-primary/40 bg-primary/10"
                   >
                     {s}
                     <button
                       type="button"
                       onClick={() => removeSkill('required', s)}
-                      className="ml-0.5 rounded-sm hover:bg-white/10 p-0.5"
+                      className="ml-0.5 rounded-sm hover:bg-muted p-0.5"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -585,7 +585,7 @@ export function JobOfferFormDialog({
                     <button
                       type="button"
                       onClick={() => removeSkill('nice', s)}
-                      className="ml-0.5 rounded-sm hover:bg-white/10 p-0.5"
+                      className="ml-0.5 rounded-sm hover:bg-muted p-0.5"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -681,14 +681,14 @@ export function JobOfferFormDialog({
           </div>
 
           {/* ============ FICHE DE POSTE (PDF envoyé au consultant) ============ */}
-          <div className="rounded-lg border border-violet-brand/25 bg-violet-brand/[0.04]">
+          <div className="rounded-lg border border-primary/25 bg-primary/[0.04]">
             <button
               type="button"
               onClick={() => setShowFiche((v) => !v)}
-              className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-violet-brand/[0.02] transition"
+              className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-primary/[0.02] transition"
             >
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-violet-300" />
+                <Sparkles className="h-4 w-4 text-primary" />
                 <div>
                   <div className="text-sm font-medium">
                     {isEn ? 'Job poster (PDF)' : 'Fiche de poste (PDF)'}
@@ -708,7 +708,7 @@ export function JobOfferFormDialog({
             </button>
 
             {showFiche && (
-              <div className="border-t border-violet-brand/15 p-4 space-y-3">
+              <div className="border-t border-primary/15 p-4 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label>{isEn ? 'Mission type' : 'Type de mission'}</Label>
@@ -818,7 +818,7 @@ export function JobOfferFormDialog({
                   </div>
                   <span
                     className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition ${
-                      watch('show_rate') ? 'bg-violet-brand' : 'bg-foreground/20'
+                      watch('show_rate') ? 'bg-primary' : 'bg-foreground/20'
                     }`}
                     aria-hidden
                   >

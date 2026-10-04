@@ -1,9 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-/**
- * Apple touch icon 180×180 — utilisé quand l'utilisateur ajoute le
- * site à l'écran d'accueil iOS.
- */
+/** Icône d'écran d'accueil iOS (180×180). */
 export const runtime = 'edge';
 export const size = { width: 180, height: 180 };
 export const contentType = 'image/png';
@@ -18,25 +15,13 @@ export default function AppleIcon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#000000',
-          backgroundImage:
-            'radial-gradient(circle at 50% 50%, rgba(225,29,116,0.4), rgba(168,85,247,0.2), #000 70%)',
+          background: '#C65F46',
         }}
       >
-        <div
-          style={{
-            fontSize: 130,
-            fontWeight: 800,
-            letterSpacing: '-0.05em',
-            backgroundImage: 'linear-gradient(135deg, #f9a8d4, #ec4899, #c4b5fd)',
-            backgroundClip: 'text',
-            color: 'transparent',
-            display: 'flex',
-            lineHeight: 1,
-          }}
-        >
-          C
-        </div>
+        <svg width="180" height="180" viewBox="0 0 200 200">
+          <path d="M143.1 63.8A56 56 0 1 0 143.1 136.2" fill="none" stroke="#FFFFFF" strokeWidth="18" strokeLinecap="round" />
+          <circle cx="100" cy="100" r="18" fill="#FFFFFF" />
+        </svg>
       </div>
     ),
     { ...size },

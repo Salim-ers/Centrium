@@ -249,7 +249,7 @@ export function KycDocuments({
     <Card>
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4 text-violet-glow" />
+          <ShieldCheck className="h-4 w-4 text-primary" />
           {isEn ? 'Legal & administrative documents' : 'Documents légaux & administratifs'}
         </CardTitle>
         <CardDescription>
@@ -266,7 +266,7 @@ export function KycDocuments({
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {KYC_SLOTS.map((s) => (
-              <div key={s.kind} className="h-24 rounded-lg bg-white/[0.02] animate-pulse" />
+              <div key={s.kind} className="h-24 rounded-lg bg-card animate-pulse" />
             ))}
           </div>
         ) : (
@@ -283,15 +283,15 @@ export function KycDocuments({
                   className={cn(
                     'rounded-lg border p-3 transition-colors',
                     doc
-                      ? 'border-emerald-500/25 bg-emerald-500/[0.04]'
-                      : 'border-amber-500/25 bg-amber-500/[0.04]',
+                      ? 'border-success/25 bg-success/[0.04]'
+                      : 'border-warning/25 bg-warning/[0.04]',
                   )}
                 >
                   <div className="flex items-start gap-3">
                     <div
                       className={cn(
                         'rounded-md p-2 shrink-0',
-                        doc ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300',
+                        doc ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning',
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -300,27 +300,27 @@ export function KycDocuments({
                       <div className="flex items-center gap-1.5 text-sm font-semibold">
                         {isEn ? slot.labelEn : slot.label}
                         {doc ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                          <CheckCircle2 className="h-3.5 w-3.5 text-success" />
                         ) : (
-                          <AlertCircle className="h-3.5 w-3.5 text-amber-400" />
+                          <AlertCircle className="h-3.5 w-3.5 text-warning" />
                         )}
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">{isEn ? slot.hintEn : slot.hint}</p>
                       {doc ? (
                         <>
-                          <div className="text-[11px] text-white/70 mt-2 truncate">
+                          <div className="text-[11px] text-muted-foreground mt-2 truncate">
                             📄 {doc.file_name}{' '}
-                            <span className="text-white/40">· {formatDate(doc.uploaded_at)}</span>
+                            <span className="text-muted-foreground">· {formatDate(doc.uploaded_at)}</span>
                           </div>
                           {doc.expires_at && (
                             <div
                               className={cn(
                                 'text-[11px] mt-1 font-medium',
                                 daysLeft(doc.expires_at) < 0
-                                  ? 'text-red-400'
+                                  ? 'text-destructive'
                                   : daysLeft(doc.expires_at) <= 30
-                                    ? 'text-amber-300'
-                                    : 'text-white/50',
+                                    ? 'text-warning'
+                                    : 'text-muted-foreground',
                               )}
                             >
                               {daysLeft(doc.expires_at) < 0
@@ -344,7 +344,7 @@ export function KycDocuments({
                           </label>
                         </>
                       ) : (
-                        <div className="text-[11px] text-amber-300/80 mt-2">{isEn ? 'Missing' : 'Manquant'}</div>
+                        <div className="text-[11px] text-warning mt-2">{isEn ? 'Missing' : 'Manquant'}</div>
                       )}
                     </div>
                   </div>
@@ -373,7 +373,7 @@ export function KycDocuments({
                         disabled={busy}
                         title={isEn ? 'Delete' : 'Supprimer'}
                       >
-                        <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
                       </Button>
                     )}
                   </div>

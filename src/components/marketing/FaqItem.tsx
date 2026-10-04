@@ -22,17 +22,17 @@ export function FaqItem({ q, a }: Props) {
 
   return (
     <div
-      className={`qc-luminous-static group rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] overflow-hidden transition-colors ${
-        open ? 'bg-white/[0.05] border-magenta/30' : ''
+      className={`qc-luminous-static group rounded-xl border border-border bg-card hover:bg-muted overflow-hidden transition-colors ${
+        open ? 'bg-muted border-primary/30' : ''
       }`}
     >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="w-full text-left px-5 py-4 flex items-center justify-between gap-4 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-magenta/40 rounded-xl"
+        className="w-full text-left px-5 py-4 flex items-center justify-between gap-4 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-xl"
       >
-        <span className="font-medium text-white text-[15px] sm:text-base">
+        <span className="font-medium text-foreground text-[15px] sm:text-base">
           {q}
         </span>
         <motion.span
@@ -43,7 +43,7 @@ export function FaqItem({ q, a }: Props) {
             borderColor: open ? 'rgba(236,72,153,0.7)' : 'rgba(236,72,153,0.35)',
           }}
           transition={{ type: 'spring', stiffness: 320, damping: 22 }}
-          className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-full border text-magenta"
+          className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-full border text-primary"
         >
           <Plus className="h-3.5 w-3.5" />
         </motion.span>
@@ -62,7 +62,7 @@ export function FaqItem({ q, a }: Props) {
             }}
             className="overflow-hidden"
           >
-            <div className="px-5 pb-5 pt-1 text-sm text-white/70 leading-relaxed">
+            <div className="px-5 pb-5 pt-1 text-sm text-muted-foreground leading-relaxed">
               {a}
             </div>
           </motion.div>

@@ -59,71 +59,71 @@ const VARIANTS: Record<BrandToastVariant, ToastConfig> = {
   success: {
     Icon: Check,
     loud: false,
-    hairline: 'bg-emerald-500',
-    chip: 'bg-emerald-500/10 border-emerald-500/20',
-    icon: 'text-emerald-600 dark:text-emerald-300',
+    hairline: 'bg-success',
+    chip: 'bg-success/10 border-success/20',
+    icon: 'text-success ',
   },
   update: {
     Icon: Pencil,
     loud: false,
-    hairline: 'bg-violet-500',
-    chip: 'bg-violet-500/10 border-violet-500/20',
-    icon: 'text-violet-600 dark:text-violet-300',
+    hairline: 'bg-primary',
+    chip: 'bg-primary/10 border-primary/20',
+    icon: 'text-primary ',
   },
   destructive: {
     Icon: Trash2,
     loud: false,
-    hairline: 'bg-rose-500',
-    chip: 'bg-rose-500/10 border-rose-500/20',
-    icon: 'text-rose-600 dark:text-rose-300',
+    hairline: 'bg-destructive',
+    chip: 'bg-destructive/10 border-destructive/20',
+    icon: 'text-destructive ',
   },
   milestone: {
     Icon: ArrowRight,
     loud: false,
-    hairline: 'bg-cyan-500',
-    chip: 'bg-cyan-500/10 border-cyan-500/20',
-    icon: 'text-cyan-600 dark:text-cyan-300',
+    hairline: 'bg-info',
+    chip: 'bg-info/10 border-info/20',
+    icon: 'text-info ',
   },
   info: {
     Icon: Info,
     loud: false,
-    hairline: 'bg-sky-500',
-    chip: 'bg-sky-500/10 border-sky-500/20',
-    icon: 'text-sky-600 dark:text-sky-300',
+    hairline: 'bg-info',
+    chip: 'bg-info/10 border-info/20',
+    icon: 'text-info ',
   },
   loading: {
     Icon: Loader2,
     loud: false,
-    hairline: 'bg-violet-500',
-    chip: 'bg-violet-500/10 border-violet-500/20',
-    icon: 'text-violet-600 dark:text-violet-300',
+    hairline: 'bg-primary',
+    chip: 'bg-primary/10 border-primary/20',
+    icon: 'text-primary ',
   },
   warning: {
     Icon: AlertTriangle,
     loud: true,
-    hairline: 'bg-amber-500',
-    chip: 'bg-amber-500/15 border-amber-500/25',
-    icon: 'text-amber-600 dark:text-amber-300',
-    wash: 'from-amber-500/[0.10]',
-    loudBorder: 'border-amber-500/40 dark:border-amber-400/25',
+    hairline: 'bg-warning',
+    chip: 'bg-warning/15 border-warning/25',
+    icon: 'text-warning ',
+    wash: 'from-warning/[0.10]',
+    loudBorder: 'border-warning/40 ',
   },
   error: {
     Icon: XCircle,
     loud: true,
-    hairline: 'bg-rose-500',
-    chip: 'bg-rose-500/15 border-rose-500/25',
-    icon: 'text-rose-600 dark:text-rose-300',
-    wash: 'from-rose-500/[0.10]',
-    loudBorder: 'border-rose-500/40 dark:border-rose-400/25',
+    hairline: 'bg-destructive',
+    chip: 'bg-destructive/15 border-destructive/25',
+    icon: 'text-destructive ',
+    wash: 'from-destructive/[0.10]',
+    loudBorder: 'border-destructive/40 ',
   },
   celebration: {
     Icon: Sparkles,
     loud: true,
-    hairline: 'bg-magenta',
-    chip: 'bg-magenta/15 border-magenta/25',
-    icon: 'text-magenta dark:text-pink-300',
-    wash: 'from-magenta/[0.12]',
-    loudBorder: 'border-magenta/40 dark:border-magenta/30',
+    hairline: 'bg-primary',
+    chip: 'bg-primary/15 border-primary/25',
+    icon: 'text-primary ',
+    wash: 'from-primary/[0.12]',
+    loudBorder: 'border-primary/40 ',
   },
 };
 
@@ -142,14 +142,14 @@ function BrandToastInner({ variant, title, description, toastId }: Props) {
     <div
       role="status"
       className={cn(
-        'group relative w-[340px] max-w-[92vw] overflow-hidden rounded-xl border backdrop-blur-xl',
+        'group relative w-[340px] max-w-[92vw] overflow-hidden rounded-xl border ',
         // Carte : crème opaque en light, verre sombre en dark.
-        'bg-white/95 dark:bg-[#0d0d12]/95',
+        'bg-muted ',
         'shadow-[0_16px_48px_-16px_rgba(30,15,10,0.25),0_2px_8px_rgba(30,15,10,0.08)]',
         'dark:shadow-[0_16px_48px_-16px_rgba(0,0,0,0.8),0_2px_8px_rgba(0,0,0,0.4)]',
         cfg.loud && cfg.loudBorder
           ? cfg.loudBorder
-          : 'border-neutral-200/90 dark:border-white/[0.08]',
+          : 'border-border ',
       )}
     >
       {/* Wash teinté (variants loud uniquement) */}
@@ -183,11 +183,11 @@ function BrandToastInner({ variant, title, description, toastId }: Props) {
         </div>
 
         <div className="flex-1 min-w-0 pt-0.5">
-          <div className="text-[13.5px] font-semibold leading-snug text-neutral-900 dark:text-white/95">
+          <div className="text-[13.5px] font-semibold leading-snug text-foreground ">
             {title}
           </div>
           {description && (
-            <p className="text-[12px] text-neutral-500 dark:text-white/55 mt-1 leading-relaxed">
+            <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">
               {description}
             </p>
           )}
@@ -198,8 +198,8 @@ function BrandToastInner({ variant, title, description, toastId }: Props) {
           onClick={() => toast.dismiss(toastId)}
           className={cn(
             'shrink-0 h-6 w-6 rounded-md inline-flex items-center justify-center transition',
-            'text-neutral-400 hover:text-neutral-700 hover:bg-neutral-900/[0.06]',
-            'dark:text-white/30 dark:hover:text-white/80 dark:hover:bg-white/[0.08]',
+            'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06]',
+            '',
             'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
           )}
           aria-label="Fermer"

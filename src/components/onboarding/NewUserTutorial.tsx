@@ -54,8 +54,8 @@ const STEPS: Step[] = [
   {
     category: { fr: 'BIENVENUE', en: 'WELCOME' },
     icon: Sparkles,
-    iconBg: 'from-violet-glow to-magenta',
-    accent: 'text-violet-glow',
+    iconBg: 'from-primary to-primary',
+    accent: 'text-primary',
     title: { fr: 'Bienvenue sur Centrium', en: 'Welcome to Centrium' },
     subtitle: {
       fr: 'La plateforme tout-en-un pour ton ESN',
@@ -102,8 +102,8 @@ const STEPS: Step[] = [
   {
     category: { fr: 'ÉTAPE 1 · IDENTITÉ', en: 'STEP 1 · BRANDING' },
     icon: Palette,
-    iconBg: 'from-rose-500 to-orange-400',
-    accent: 'text-rose-300',
+    iconBg: 'from-destructive to-warning',
+    accent: 'text-destructive',
     title: { fr: 'Personnalise ton identité', en: 'Make it yours' },
     subtitle: {
       fr: 'Logo, couleurs et mentions légales — réutilisés partout',
@@ -149,8 +149,8 @@ const STEPS: Step[] = [
   {
     category: { fr: 'ÉTAPE 2 · TALENTS', en: 'STEP 2 · TALENTS' },
     icon: Users,
-    iconBg: 'from-magenta to-violet-glow',
-    accent: 'text-magenta-neon',
+    iconBg: 'from-primary to-primary',
+    accent: 'text-primary',
     title: { fr: 'Ta bibliothèque de consultants', en: 'Your talent library' },
     subtitle: {
       fr: 'Un par un, en masse, ou en mode prospection',
@@ -196,8 +196,8 @@ const STEPS: Step[] = [
   {
     category: { fr: 'ÉTAPE 3 · CV OPTIMIZER', en: 'STEP 3 · CV OPTIMIZER' },
     icon: FileText,
-    iconBg: 'from-cyan-400 to-violet-glow',
-    accent: 'text-cyan-300',
+    iconBg: 'from-info to-primary',
+    accent: 'text-info',
     title: {
       fr: 'Génère des CV parfaits en 5 secondes',
       en: 'Generate perfect CVs in seconds',
@@ -243,8 +243,8 @@ const STEPS: Step[] = [
   {
     category: { fr: 'ÉTAPE 4 · OFFRES CLIENT', en: 'STEP 4 · CLIENT OFFERS' },
     icon: Briefcase,
-    iconBg: 'from-amber-400 to-rose-500',
-    accent: 'text-amber-300',
+    iconBg: 'from-warning to-destructive',
+    accent: 'text-warning',
     title: { fr: "Capture chaque appel d'offres", en: 'Capture every RFP' },
     subtitle: {
       fr: "Capture d'écran, texte collé, ou saisie manuelle",
@@ -290,8 +290,8 @@ const STEPS: Step[] = [
   {
     category: { fr: 'ÉTAPE 5 · MATCHING IA', en: 'STEP 5 · AI MATCHING' },
     icon: Target,
-    iconBg: 'from-violet-glow to-cyan-400',
-    accent: 'text-violet-300',
+    iconBg: 'from-primary to-info',
+    accent: 'text-primary',
     title: {
       fr: 'Trouve les meilleurs profils automatiquement',
       en: 'Find the best profiles automatically',
@@ -337,8 +337,8 @@ const STEPS: Step[] = [
   {
     category: { fr: 'ÉTAPE 6 · PIPELINE COMMERCIAL', en: 'STEP 6 · SALES PIPELINE' },
     icon: TrendingUp,
-    iconBg: 'from-emerald-400 to-cyan-400',
-    accent: 'text-emerald-300',
+    iconBg: 'from-success to-info',
+    accent: 'text-success',
     title: {
       fr: 'Suis chaque opportunité commerciale',
       en: 'Track every sales opportunity',
@@ -387,8 +387,8 @@ const STEPS: Step[] = [
   {
     category: { fr: 'ÉTAPE 7 · FACTURATION', en: 'STEP 7 · BILLING' },
     icon: ClipboardCheck,
-    iconBg: 'from-emerald-500 to-violet-glow',
-    accent: 'text-emerald-300',
+    iconBg: 'from-success to-primary',
+    accent: 'text-success',
     title: {
       fr: 'Du contrat à la facture en 3 clics',
       en: 'From contract to invoice in 3 clicks',
@@ -437,8 +437,8 @@ const STEPS: Step[] = [
   {
     category: { fr: 'ÉTAPE 8 · PILOTAGE QUOTIDIEN', en: 'STEP 8 · DAILY OVERVIEW' },
     icon: Sparkles,
-    iconBg: 'from-violet-glow to-magenta',
-    accent: 'text-violet-glow',
+    iconBg: 'from-primary to-primary',
+    accent: 'text-primary',
     title: { fr: 'Ton tableau de bord quotidien', en: 'Your daily command center' },
     subtitle: {
       fr: "Tout ce qui compte, en un coup d'œil",
@@ -580,7 +580,7 @@ export function NewUserTutorial({ open: controlledOpen, onOpenChange }: Props = 
                 current.iconBg,
               )}
             >
-              <Icon className="h-7 w-7 text-white" />
+              <Icon className="h-7 w-7 text-foreground" />
             </div>
             <div className="flex-1 min-w-0">
               <div className={cn('text-[10px] font-semibold tracking-[0.22em] mb-1', current.accent)}>
@@ -616,7 +616,7 @@ export function NewUserTutorial({ open: controlledOpen, onOpenChange }: Props = 
           <div className="flex justify-end">
             <Button
               asChild
-              className="bg-gradient-to-r from-violet-glow to-magenta text-white shadow-[0_0_24px_-6px_rgba(225,29,116,0.55)] hover:brightness-110"
+              className="bg-gradient-to-r from-primary to-primary text-white shadow-[0_0_24px_-6px_rgba(225,29,116,0.55)] hover:brightness-110"
             >
               <a href={current.cta.href} onClick={() => setOpen(false)}>
                 {current.cta[lang]}
@@ -636,9 +636,9 @@ export function NewUserTutorial({ open: controlledOpen, onOpenChange }: Props = 
               className={cn(
                 'h-1.5 rounded-full transition-all',
                 i === step
-                  ? 'w-8 bg-violet-glow'
+                  ? 'w-8 bg-primary'
                   : i < step
-                    ? 'w-1.5 bg-violet-glow/50 hover:bg-violet-glow/70'
+                    ? 'w-1.5 bg-primary/50 hover:bg-primary/70'
                     : 'w-1.5 bg-foreground/15 hover:bg-foreground/30',
               )}
             />
@@ -699,8 +699,8 @@ export function TutorialButton({
   const [open, setOpen] = useState(false);
   const cls =
     variant === 'cta'
-      ? 'inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-glow to-magenta px-4 py-2 text-sm font-semibold text-white shadow-[0_0_20px_-6px_rgba(225,29,116,0.55)] hover:brightness-110 hover:shadow-[0_0_28px_-4px_rgba(225,29,116,0.7)] transition'
-      : 'inline-flex items-center gap-1.5 rounded-full border border-hairline bg-white/[0.03] px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-white/25 transition';
+      ? 'inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-primary px-4 py-2 text-sm font-semibold text-white shadow-[0_0_20px_-6px_rgba(225,29,116,0.55)] hover:brightness-110 hover:shadow-[0_0_28px_-4px_rgba(225,29,116,0.7)] transition'
+      : 'inline-flex items-center gap-1.5 rounded-full border border-hairline bg-card px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-border transition';
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className={cn(cls, className)}>

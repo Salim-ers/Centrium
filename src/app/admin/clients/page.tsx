@@ -117,11 +117,11 @@ const STATUS_TONE: Record<QuoteRequest['status'], StatusTone> = {
 };
 
 const STATUS_STYLE: Record<QuoteRequest['status'], string> = {
-  new: 'bg-violet-glow/15 text-violet-200 border-violet-glow/40',
-  contacted: 'bg-blue-500/15 text-blue-200 border-blue-500/30',
-  quoted: 'bg-amber-500/15 text-amber-200 border-amber-500/30',
-  won: 'bg-emerald-500/15 text-emerald-200 border-emerald-500/30',
-  lost: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
+  new: 'bg-primary/15 text-primary border-primary/40',
+  contacted: 'bg-info/15 text-info border-info/30',
+  quoted: 'bg-warning/15 text-warning border-warning/30',
+  won: 'bg-success/15 text-success border-success/30',
+  lost: 'bg-muted text-muted-foreground border-border',
 };
 
 export default function AdminClientsPage() {
@@ -227,7 +227,7 @@ export default function AdminClientsPage() {
           title={
             <>
               {isEn ? 'Centrium' : 'Clients'}{' '}
-              <span className="qc-italic-accent font-editorial italic">
+              <span className="text-primary font-display ">
                 {isEn ? 'clients.' : 'Centrium.'}
               </span>
             </>
@@ -279,7 +279,7 @@ export default function AdminClientsPage() {
             title={
               <>
                 {isEn ? 'Requests' : 'Demandes'}{' '}
-                <span className="qc-italic-accent font-editorial italic">
+                <span className="text-primary font-display ">
                   {isEn ? 'received.' : 'reçues.'}
                 </span>
               </>
@@ -307,7 +307,7 @@ export default function AdminClientsPage() {
                   {loading ? (
                     <TableRow>
                       <TableCell colSpan={6}>
-                        <div className="h-12 bg-white/[0.02] animate-pulse rounded" />
+                        <div className="h-12 bg-card animate-pulse rounded" />
                       </TableCell>
                     </TableRow>
                   ) : items.length === 0 ? (
@@ -341,12 +341,12 @@ export default function AdminClientsPage() {
                                 <img
                                   src={it.logo_url}
                                   alt={`Logo ${it.company_name}`}
-                                  className="h-10 w-10 rounded bg-white/[0.04] object-contain p-1 border border-hairline hover:border-magenta/40"
+                                  className="h-10 w-10 rounded bg-card object-contain p-1 border border-hairline hover:border-primary/40"
                                 />
                               </a>
                             ) : (
-                              <div className="h-10 w-10 rounded bg-white/[0.04] flex items-center justify-center shrink-0 border border-hairline">
-                                <Building2 className="h-4 w-4 text-magenta/70" />
+                              <div className="h-10 w-10 rounded bg-card flex items-center justify-center shrink-0 border border-hairline">
+                                <Building2 className="h-4 w-4 text-primary" />
                               </div>
                             )}
                             <div className="min-w-0">
@@ -377,7 +377,7 @@ export default function AdminClientsPage() {
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground space-y-0.5 max-w-[260px]">
                           {it.plan_id && (
-                            <div className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                            <div className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
                               <Sparkles className="h-2.5 w-2.5" />
                               {planLabels[it.plan_id]}
                             </div>
@@ -393,7 +393,7 @@ export default function AdminClientsPage() {
                               {it.wanted_help.map((k) => (
                                 <span
                                   key={k}
-                                  className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-magenta/15 text-magenta-neon border border-magenta/30"
+                                  className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30"
                                 >
                                   {helpLabels[k] ?? k}
                                 </span>
@@ -450,7 +450,7 @@ export default function AdminClientsPage() {
                               <Button
                                 size="sm"
                                 onClick={() => setProvisionFrom(it)}
-                                className="bg-gradient-to-r from-violet-glow to-magenta-neon hover:opacity-95"
+                                className="bg-gradient-to-r from-primary to-primary hover:opacity-95"
                               >
                                 <ArrowRight className="h-3.5 w-3.5" />
                                 {isEn ? 'Provision' : 'Provisionner'}
@@ -466,7 +466,7 @@ export default function AdminClientsPage() {
                               variant="ghost"
                               onClick={() => removeRequest(it.id, it.company_name)}
                               title={isEn ? 'Delete permanently' : 'Supprimer définitivement'}
-                              className="text-red-400 hover:bg-red-500/10"
+                              className="text-destructive hover:bg-destructive/10"
                             >
                               <XCircle className="h-3.5 w-3.5" />
                             </Button>

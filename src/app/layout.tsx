@@ -1,29 +1,25 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Space_Grotesk, Instrument_Serif } from 'next/font/google';
+import { Inter, Inter_Tight } from 'next/font/google';
 import { Toaster } from 'sonner';
 import './globals.css';
 import { GlobalToastBridge } from '@/components/ui/GlobalToastBridge';
 import { AuthHashRecovery } from '@/components/auth/AuthHashRecovery';
 import { OrganizationProvider } from '@/lib/auth/context';
-import { RouteThemeManager } from '@/components/theme/RouteThemeManager';
 import { CookieBanner } from '@/components/marketing/CookieBanner';
 import { LocaleProvider } from '@/lib/i18n/LocaleProvider';
 import { CurrencyProvider } from '@/lib/i18n/CurrencyProvider';
 import { SITE } from '@/lib/seo/config';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { PUBLIC_PATHS, PUBLIC_PREFIXES } from '@/lib/routes/public-paths';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
-const spaceGrotesk = Space_Grotesk({
+// Une seule famille pour le site et l'application : Inter pour le texte et
+// les chiffres, Inter Tight (dessin resserré) pour les titres.
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
+const interTight = Inter_Tight({
   subsets: ['latin'],
-  variable: '--font-space-grotesk',
-});
-// Serif "noble" — italique éditoriale type Vogue / The New Yorker.
-// Utilisé pour les titres XL hero, les nombres clés, les accents éditoriaux.
-const instrumentSerif = Instrument_Serif({
-  weight: '400',
-  style: ['normal', 'italic'],
-  subsets: ['latin'],
-  variable: '--font-instrument-serif',
+  weight: ['500', '600', '700'],
+  variable: '--font-inter-tight',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -90,46 +86,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: dark)', color: '#000000' },
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-  ],
+  themeColor: '#FBFAF8',
+  colorScheme: 'light',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
 };
-
-// Script inline exécuté avant l'hydratation React pour appliquer la bonne classe
-// de thème sans flash. Cas particulier : les pages publiques (landing, login,
-// devis, pricing, auth/invite) sont FORCÉES en sombre indépendamment de la
-// préférence utilisateur — seules les pages connectées de l'app proposent
-// le clair/sombre.
-const themeBootstrapScript = `
-(function() {
-  try {
-    var path = window.location.pathname;
-    var forcedDarkPaths = ['/', '/login', '/signup', '/register', '/devis', '/essai', '/pricing', '/tarifs', '/security', '/plateforme', '/manifesto', '/engagements'];
-    var forcedDarkPrefixes = ['/auth/', '/invite/', '/legal/', '/trust'];
-    var isForcedDark =
-      forcedDarkPaths.indexOf(path) !== -1 ||
-      forcedDarkPrefixes.some(function (p) { return path.indexOf(p) === 0; });
-    var theme;
-    if (isForcedDark) {
-      theme = 'dark';
-    } else {
-      var stored = localStorage.getItem('centrium-theme');
-      theme = stored;
-      if (theme !== 'light' && theme !== 'dark') {
-        theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-      }
-    }
-    if (theme === 'dark') document.documentElement.classList.add('dark');
-    document.documentElement.style.colorScheme = theme;
-  } catch (e) {
-    document.documentElement.classList.add('dark');
-  }
-})();
-`;
 
 // Script inline qui force la déconnexion IMMÉDIATE (avant tout rendu
 // React) si l'utilisateur arrive sur une page protégée sans flag
@@ -145,8 +107,8 @@ const sessionGateScript = `
   try {
     var path = window.location.pathname;
     // Pages publiques (vitrine + auth + invite + legal) : pas de check.
-    var publicPaths = ['/', '/login', '/signup', '/register', '/devis', '/essai', '/pricing', '/tarifs', '/security', '/plateforme', '/manifesto', '/engagements'];
-    var publicPrefixes = ['/auth/', '/invite/', '/legal/'];
+    var publicPaths = ${JSON.stringify(PUBLIC_PATHS)};
+    var publicPrefixes = ${JSON.stringify(PUBLIC_PREFIXES)};
     var isPublic =
       publicPaths.indexOf(path) !== -1 ||
       publicPrefixes.some(function(p) { return path.indexOf(p) === 0; });
@@ -190,18 +152,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr" className={`${inter.variable} ${spaceGrotesk.variable} ${instrumentSerif.variable}`} suppressHydrationWarning>
+    <html lang="fr" className={`${inter.variable} ${interTight.variable}`} suppressHydrationWarning>
       <head>
-        {/* Preconnect aux origines fonts Google (gain LCP 80-150 ms) */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://va.vercel-scripts.com" />
-        <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
         <script dangerouslySetInnerHTML={{ __html: sessionGateScript }} />
         <JsonLd />
       </head>
-      <body className="font-sans">
-        <RouteThemeManager />
+      <body className="font-sans bg-background text-foreground">
         <LocaleProvider>
           <CurrencyProvider>
             <OrganizationProvider>{children}</OrganizationProvider>

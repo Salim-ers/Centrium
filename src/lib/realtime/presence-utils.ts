@@ -24,14 +24,14 @@ export type PresenceColor = {
 };
 
 const PALETTE: PresenceColor[] = [
-  { bg: 'bg-violet-500',  ring: 'ring-violet-500/60',  border: 'border-violet-500/70',  glow: 'rgba(139,92,246,0.55)',  text: 'text-white', name: 'violet' },
-  { bg: 'bg-sky-500',     ring: 'ring-sky-500/60',     border: 'border-sky-500/70',     glow: 'rgba(14,165,233,0.55)',  text: 'text-white', name: 'sky' },
-  { bg: 'bg-emerald-500', ring: 'ring-emerald-500/60', border: 'border-emerald-500/70', glow: 'rgba(16,185,129,0.55)',  text: 'text-white', name: 'emerald' },
-  { bg: 'bg-amber-500',   ring: 'ring-amber-500/60',   border: 'border-amber-500/70',   glow: 'rgba(245,158,11,0.55)',  text: 'text-white', name: 'amber' },
-  { bg: 'bg-rose-500',    ring: 'ring-rose-500/60',    border: 'border-rose-500/70',    glow: 'rgba(244,63,94,0.55)',   text: 'text-white', name: 'rose' },
-  { bg: 'bg-fuchsia-500', ring: 'ring-fuchsia-500/60', border: 'border-fuchsia-500/70', glow: 'rgba(217,70,239,0.55)',  text: 'text-white', name: 'fuchsia' },
-  { bg: 'bg-cyan-500',    ring: 'ring-cyan-500/60',    border: 'border-cyan-500/70',    glow: 'rgba(6,182,212,0.55)',   text: 'text-white', name: 'cyan' },
-  { bg: 'bg-orange-500',  ring: 'ring-orange-500/60',  border: 'border-orange-500/70',  glow: 'rgba(249,115,22,0.55)',  text: 'text-white', name: 'orange' },
+  { bg: 'bg-primary',  ring: 'ring-primary/60',  border: 'border-primary/70',  glow: 'rgba(139,92,246,0.55)',  text: 'text-white', name: 'violet' },
+  { bg: 'bg-info',     ring: 'ring-info/60',     border: 'border-info/70',     glow: 'rgba(14,165,233,0.55)',  text: 'text-white', name: 'sky' },
+  { bg: 'bg-success', ring: 'ring-success/60', border: 'border-success/70', glow: 'rgba(16,185,129,0.55)',  text: 'text-white', name: 'emerald' },
+  { bg: 'bg-warning',   ring: 'ring-warning/60',   border: 'border-warning/70',   glow: 'rgba(245,158,11,0.55)',  text: 'text-white', name: 'amber' },
+  { bg: 'bg-destructive',    ring: 'ring-destructive/60',    border: 'border-destructive/70',    glow: 'rgba(244,63,94,0.55)',   text: 'text-white', name: 'rose' },
+  { bg: 'bg-primary', ring: 'ring-primary/60', border: 'border-primary/70', glow: 'rgba(217,70,239,0.55)',  text: 'text-white', name: 'fuchsia' },
+  { bg: 'bg-info',    ring: 'ring-info/60',    border: 'border-info/70',    glow: 'rgba(6,182,212,0.55)',   text: 'text-white', name: 'cyan' },
+  { bg: 'bg-warning',  ring: 'ring-warning/60',  border: 'border-warning/70',  glow: 'rgba(249,115,22,0.55)',  text: 'text-white', name: 'orange' },
 ];
 
 /** Couleur stable pour un utilisateur (même id → même couleur). */

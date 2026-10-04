@@ -37,19 +37,19 @@ export function ShaderShowcase() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-14">
-          <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-3">
+          <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-primary mb-3">
             {t.shaderShowcase.kicker}
           </div>
-          <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(2rem,4vw,3.2rem)] text-white">
+          <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(2rem,4vw,3.2rem)] text-foreground">
             {t.shaderShowcase.titleA}{' '}
-            <span className="qc-italic-accent font-editorial italic">{t.shaderShowcase.titleB}</span>
+            <span className="text-primary font-display ">{t.shaderShowcase.titleB}</span>
           </h2>
-          <p className="mt-5 sm:mt-6 text-white/55 text-[15px] leading-relaxed">
+          <p className="mt-5 sm:mt-6 text-muted-foreground text-[15px] leading-relaxed">
             {t.shaderShowcase.sub}
           </p>
         </div>
 
-        <div className="qc-luminous-static relative rounded-3xl border border-white/10 bg-black overflow-hidden shadow-[0_60px_120px_-40px_rgba(225,29,116,0.35)]">
+        <div className="qc-luminous-static relative rounded-3xl border border-border bg-foreground overflow-hidden shadow-[0_60px_120px_-40px_rgba(225,29,116,0.35)]">
           {/* Conteneur du shader — height contrainte (pas h-screen),
               ne monte que si la section est dans le viewport */}
           <div className="relative w-full h-[420px] sm:h-[560px]">
@@ -58,23 +58,23 @@ export function ShaderShowcase() {
                 <ShaderAnimation />
               </div>
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 via-violet-500/5 to-cyan-500/5" />
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-primary/5 to-info/5" />
             )}
           </div>
 
           {/* Texte par dessus le shader */}
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-4 sm:px-6">
             <div className="text-[clamp(2.4rem,7vw,5.5rem)] leading-[0.95] text-center">
-              <span className="qc-italic-accent font-editorial italic drop-shadow-[0_4px_30px_rgba(0,0,0,0.7)]">
+              <span className="text-primary font-display drop-shadow-[0_4px_30px_rgba(0,0,0,0.7)]">
                 {t.shaderShowcase.centriumLine}
               </span>
               <br />
-              <span className="font-display not-italic font-light tracking-[-0.03em] text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.7)]">
+              <span className="font-display not-italic font-light tracking-[-0.03em] text-foreground drop-shadow-[0_4px_30px_rgba(0,0,0,0.7)]">
                 {t.shaderShowcase.flowLine}
               </span>
             </div>
-            <div className="mt-6 sm:mt-8 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/20 bg-black/40 backdrop-blur text-[10px] uppercase tracking-[0.25em] text-white/80">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)] animate-pulse" />
+            <div className="mt-6 sm:mt-8 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border bg-foreground/40 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+              <span className="h-1.5 w-1.5 rounded-full bg-success shadow-[0_0_8px_rgba(52,211,153,0.7)] animate-pulse" />
               {t.shaderShowcase.live}
             </div>
           </div>

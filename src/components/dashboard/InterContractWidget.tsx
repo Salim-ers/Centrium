@@ -75,8 +75,8 @@ export function InterContractWidget() {
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-amber-500/15 border border-amber-400/20 flex items-center justify-center">
-              <UserMinus className="h-4 w-4 text-amber-400" />
+            <div className="h-8 w-8 rounded-lg bg-warning/15 border border-warning/20 flex items-center justify-center">
+              <UserMinus className="h-4 w-4 text-warning" />
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -98,11 +98,11 @@ export function InterContractWidget() {
 
         <div className="mt-4 space-y-1 text-xs text-muted-foreground">
           {stats.longTerm > 0 ? (
-            <div className="text-amber-300/80 font-medium">
+            <div className="text-warning font-medium">
               ⚠ {t.dashboard.bench_over_30.replace('{n}', String(stats.longTerm))}
             </div>
           ) : (
-            <div className="text-emerald-300/70">{t.dashboard.bench_recent}</div>
+            <div className="text-success">{t.dashboard.bench_recent}</div>
           )}
           {stats.avgDays !== null && (
             <div>

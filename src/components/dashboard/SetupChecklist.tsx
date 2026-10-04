@@ -92,7 +92,7 @@ export function SetupChecklist() {
         </button>
 
         <div className="flex items-center gap-2.5 mb-1">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-hairline bg-violet-glow/10 text-violet-glow">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-hairline bg-primary/10 text-primary">
             <Rocket className="h-4 w-4" />
           </span>
           <div>
@@ -104,7 +104,7 @@ export function SetupChecklist() {
         </div>
 
         <div className="my-3 h-1.5 w-full overflow-hidden rounded-full bg-foreground/10">
-          <div className="h-full rounded-full bg-violet-glow transition-all" style={{ width: `${pct}%` }} />
+          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2">
@@ -115,12 +115,12 @@ export function SetupChecklist() {
               className={cn(
                 'group flex items-start gap-2.5 rounded-lg border p-2.5 transition-colors',
                 s.done
-                  ? 'border-emerald-500/25 bg-emerald-500/[0.04]'
-                  : 'border-hairline hover:border-violet-glow/40 hover:bg-violet-glow/[0.04]',
+                  ? 'border-success/25 bg-success/[0.04]'
+                  : 'border-hairline hover:border-primary/40 hover:bg-primary/[0.04]',
               )}
             >
               {s.done ? (
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
               ) : (
                 <Circle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               )}

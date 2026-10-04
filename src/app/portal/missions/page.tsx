@@ -15,8 +15,8 @@ export default function PortalMissionsPage() {
       <PageHeader
         eyebrow={isEn ? 'My space' : 'Mon espace'}
         title={isEn
-          ? <>My <span className="qc-italic-accent font-editorial italic">missions.</span></>
-          : <>Mes <span className="qc-italic-accent font-editorial italic">missions.</span></>}
+          ? <>My <span className="text-primary font-display ">missions.</span></>
+          : <>Mes <span className="text-primary font-display ">missions.</span></>}
         description={isEn
           ? "All the missions you're assigned to — proposed, ongoing, completed."
           : "Toutes les missions auxquelles tu es affecté — proposées, en cours, terminées."}

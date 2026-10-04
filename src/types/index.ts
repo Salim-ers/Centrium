@@ -6,11 +6,16 @@
 
 export type UserRole =
   | 'admin'
+  // Direction (V2, migration 095) : lecture complète + pilotage.
+  | 'direction'
   | 'business_manager'
   | 'recruiter'
   | 'finance'
   | 'viewer'
   | 'consultant'
+  // Contact client avec accès au portail client (V2, migration 095).
+  // N'a jamais d'organisation active : accès via client_portal_users.
+  | 'client'
   // Fondateurs uniquement — accès super-console cross-tenant. Aligné sur
   // l'enum DB user_role (migration 048). Vérifié serveur via
   // lib/auth/super-admin.ts (rôle DB + allowlist FOUNDER_EMAILS).

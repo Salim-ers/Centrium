@@ -71,7 +71,7 @@ export function MfaChallengeForm({
           className="text-center text-2xl tracking-[0.4em] font-mono"
           disabled={pending}
         />
-        {error && <p className="text-xs text-rose-400">{error}</p>}
+        {error && <p className="text-xs text-destructive">{error}</p>}
       </div>
 
       <Button type="submit" disabled={pending || code.length !== 6} className="w-full">

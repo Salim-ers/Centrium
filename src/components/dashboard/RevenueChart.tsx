@@ -15,7 +15,6 @@ import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { createClient } from '@/lib/supabase/client';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useOrganization } from '@/lib/auth/context';
-import { useTheme } from '@/hooks/useTheme';
 import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { useCurrency } from '@/lib/i18n/CurrencyProvider';
 import { monthsShort } from '@/lib/i18n/months';
@@ -75,7 +74,7 @@ function LegendItem({ color, label, dashed }: { color: string; label: string; da
 
 export function RevenueChart() {
   const { activeOrgId } = useOrganization();
-  const theme = useTheme();
+  const theme = 'light' as 'light' | 'dark';
   const t = useAppT();
   const { locale } = useLocale();
   const isEn = locale === 'en';
@@ -88,7 +87,7 @@ export function RevenueChart() {
   //     (palette validée user "zéro jaune/violet en light")
   const chartColors =
     theme === 'dark'
-      ? { ca: '#e11d74', missions: '#8b5cf6', proposed: '#fbbf24' }
+      ? { ca: '#9D4432', missions: '#C65F46', proposed: '#fbbf24' }
       : { ca: '#9a3e2e', missions: '#5b6f3a', proposed: '#c97a1f' };
 
   // Couleurs axes/grid/tooltip — contraste WCAG AA sur fond crème/noir
@@ -134,7 +133,7 @@ export function RevenueChart() {
     <div className="qc-premium relative overflow-hidden rounded-2xl border">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline px-5 py-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-magenta/30 bg-magenta/10">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/30 bg-primary/10">
             <TrendingUp className="h-4 w-4" style={{ color: chartColors.ca }} />
           </span>
           <div>
@@ -149,7 +148,7 @@ export function RevenueChart() {
             <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
               {t.dashboard.ca_cumulative}
             </div>
-            <div className="font-display text-xl font-light tracking-[-0.02em] qc-gradient-text">
+            <div className="font-display text-xl font-light tracking-[-0.02em] text-primary">
               <AnimatedNumber
                 value={loading ? null : totalCA}
                 format={(n) => formatCurrency(n)}

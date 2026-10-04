@@ -25,8 +25,8 @@ import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { CentriumMark } from '@/components/brand/CentriumMark';
 
-const DEFAULT_PRIMARY = '#6d28d9';
-const DEFAULT_ACCENT = '#e11d74';
+const DEFAULT_PRIMARY = '#C65F46';
+const DEFAULT_ACCENT = '#9D4432';
 
 type IdentityForm = {
   brand_name: string;
@@ -274,7 +274,7 @@ export default function OnboardingSetupPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-violet-glow" />
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -290,7 +290,7 @@ export default function OnboardingSetupPage() {
         {/* Stepper */}
         <div className="mb-6 flex items-center justify-between gap-3">
           <h1 className="font-display text-2xl font-bold flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-violet-glow" />
+            <Sparkles className="h-5 w-5 text-primary" />
             {isEn ? 'Personalize your workspace' : 'Personnalise ton espace'}
           </h1>
           <button
@@ -302,9 +302,9 @@ export default function OnboardingSetupPage() {
         </div>
         <div className="mb-8 flex items-center gap-2">
           <StepDot n={1} active={step === 1} done={step > 1} label={isEn ? 'Identity' : 'Identité'} />
-          <span className="h-px flex-1 bg-white/10" />
+          <span className="h-px flex-1 bg-muted" />
           <StepDot n={2} active={step === 2} done={step > 2} label={isEn ? 'Logo & colors' : 'Logo & couleurs'} />
-          <span className="h-px flex-1 bg-white/10" />
+          <span className="h-px flex-1 bg-muted" />
           <StepDot n={3} active={step === 3} done={false} label="Signature" />
         </div>
 
@@ -312,7 +312,7 @@ export default function OnboardingSetupPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-violet-glow" />
+                <Building2 className="h-4 w-4 text-primary" />
                 {isEn ? 'Your company identity' : 'Identité de ton entreprise'}
               </CardTitle>
               <CardDescription>
@@ -477,7 +477,7 @@ export default function OnboardingSetupPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <Palette className="h-4 w-4 text-violet-glow" />
+                <Palette className="h-4 w-4 text-primary" />
                 {isEn ? 'Logo & colors' : 'Logo & couleurs'}
               </CardTitle>
               <CardDescription>
@@ -490,7 +490,7 @@ export default function OnboardingSetupPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-start gap-5">
-                <div className="h-28 w-44 rounded-md border border-border bg-neutral-900/40 flex items-center justify-center overflow-hidden">
+                <div className="h-28 w-44 rounded-md border border-border bg-foreground/40 flex items-center justify-center overflow-hidden">
                   {logoUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
@@ -550,7 +550,7 @@ export default function OnboardingSetupPage() {
               </div>
 
               <div
-                className="rounded-md p-4 text-white"
+                className="rounded-md p-4 text-foreground"
                 style={{ background: `linear-gradient(135deg, ${primary} 0%, ${accent} 100%)` }}
               >
                 <div className="font-semibold">{isEn ? 'Preview' : 'Aperçu'}</div>
@@ -587,7 +587,7 @@ export default function OnboardingSetupPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <PenLine className="h-4 w-4 text-violet-glow" />
+                <PenLine className="h-4 w-4 text-primary" />
                 {isEn ? 'Official signature (optional)' : 'Signature officielle (optionnel)'}
               </CardTitle>
               <CardDescription>
@@ -598,7 +598,7 @@ export default function OnboardingSetupPage() {
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="flex items-start gap-5">
-                <div className="h-24 w-44 rounded-md border border-border bg-neutral-50 flex items-center justify-center overflow-hidden">
+                <div className="h-24 w-44 rounded-md border border-border bg-muted flex items-center justify-center overflow-hidden">
                   {signatureUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
@@ -607,7 +607,7 @@ export default function OnboardingSetupPage() {
                       className="max-h-full max-w-full object-contain"
                     />
                   ) : (
-                    <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-400">
+                    <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                       {isEn ? 'No signature' : 'Aucune signature'}
                     </span>
                   )}
@@ -650,11 +650,11 @@ export default function OnboardingSetupPage() {
                 </div>
               </div>
 
-              <div className="rounded-md border border-emerald-500/30 bg-emerald-500/[0.06] p-4 text-sm">
+              <div className="rounded-md border border-success/30 bg-success/[0.06] p-4 text-sm">
                 <div className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-300 mt-0.5 shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
                   <div>
-                    <div className="font-semibold text-emerald-200">{isEn ? 'Setup ready' : 'Configuration prête'}</div>
+                    <div className="font-semibold text-success">{isEn ? 'Setup ready' : 'Configuration prête'}</div>
                     <div className="text-xs text-muted-foreground mt-0.5">
                       {isEn ? (
                         <>
@@ -705,17 +705,17 @@ function StepDot({
       <div
         className={`h-7 w-7 rounded-full flex items-center justify-center text-[11px] font-bold ${
           done
-            ? 'bg-emerald-500/20 text-emerald-300'
+            ? 'bg-success/20 text-success'
             : active
-              ? 'bg-violet-glow/20 text-violet-glow ring-2 ring-violet-glow/50'
-              : 'bg-white/[0.05] text-white/40'
+              ? 'bg-primary/20 text-primary ring-2 ring-primary/50'
+              : 'bg-muted text-muted-foreground'
         }`}
       >
         {done ? <CheckCircle2 className="h-4 w-4" /> : n}
       </div>
       <span
         className={
-          active ? 'font-semibold text-foreground' : done ? 'text-emerald-300' : 'text-white/40'
+          active ? 'font-semibold text-foreground' : done ? 'text-success' : 'text-muted-foreground'
         }
       >
         {label}
@@ -727,7 +727,7 @@ function StepDot({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-3 pt-1">
-      <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-violet-glow">
+      <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
         {title}
       </div>
       <div className="space-y-3">{children}</div>

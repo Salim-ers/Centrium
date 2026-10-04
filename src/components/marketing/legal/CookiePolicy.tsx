@@ -108,11 +108,11 @@ function CookiePolicyFr() {
       <p>
         Pour toute question relative aux cookies, écrivez à{' '}
         <a href="mailto:contact@centrium-platform.com">contact@centrium-platform.com</a> ou consultez notre{' '}
-        <a href="/legal/privacy" className="text-magenta hover:underline">Politique de confidentialité</a>.
+        <a href="/legal/privacy" className="text-primary hover:underline">Politique de confidentialité</a>.
       </p>
 
       <hr />
-      <p className="text-sm text-white/50"><em>Dernière mise à jour : juillet 2026</em></p>
+      <p className="text-sm text-muted-foreground"><em>Dernière mise à jour : juillet 2026</em></p>
     </div>
   );
 }
@@ -121,7 +121,7 @@ function CookiePolicyEn() {
   return (
     <div>
       <p>
-        <em className="text-white/50">
+        <em className="text-muted-foreground">
           This English version is provided for convenience. The French version prevails in the event of any
           discrepancy or dispute.
         </em>
@@ -220,11 +220,11 @@ function CookiePolicyEn() {
       <p>
         For any question about cookies, write to{' '}
         <a href="mailto:contact@centrium-platform.com">contact@centrium-platform.com</a> or consult our{' '}
-        <a href="/legal/privacy" className="text-magenta hover:underline">Privacy Policy</a>.
+        <a href="/legal/privacy" className="text-primary hover:underline">Privacy Policy</a>.
       </p>
 
       <hr />
-      <p className="text-sm text-white/50"><em>Last updated: July 2026</em></p>
+      <p className="text-sm text-muted-foreground"><em>Last updated: July 2026</em></p>
     </div>
   );
 }

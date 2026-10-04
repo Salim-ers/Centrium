@@ -1,46 +1,29 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { cn } from '@/lib/utils';
 
 type Props = {
-  /** Petit label en haut (CAPS letterspacing) — ex: "Pilotage" */
+  /** Fil d'Ariane court au-dessus du titre (ex. section de navigation). */
   eyebrow?: string;
-  /** Titre principal. Peut contenir <span className="qc-italic-accent font-editorial italic">…</span> */
   title: React.ReactNode;
-  /** Description sous le titre */
   description?: React.ReactNode;
-  /** Actions à droite (boutons, filtres rapides…) */
+  /** Actions alignées à droite (bouton principal en dernier). */
   actions?: React.ReactNode;
-  /**
-   * Cible d'un lien "retour" affiché au-dessus de l'eyebrow (flèche + label).
-   * Ex: backHref="/settings" sur une sous-page de Paramètres.
-   */
+  /** Lien retour affiché au-dessus du titre. */
   backHref?: string;
-  /** Libellé du lien retour (défaut : "Retour"). */
   backLabel?: string;
+  /** Contenu sous le titre : onglets, filtres, méta-informations. */
+  children?: React.ReactNode;
   className?: string;
 };
 
 /**
- * En-tête standard pour toutes les pages de l'app interne.
- * Pattern vitrine appliqué :
- *   - eyebrow en CAPS letterspacing magenta
- *   - titre h1 en font-display tracking serré
- *   - support de span qc-italic-accent pour les mots emphase
- *   - sub en muted-foreground 15px
- *   - actions alignées à droite sur desktop, en dessous sur mobile
- *
- * Usage :
- *   <PageHeader
- *     eyebrow="Pilotage"
- *     title={<>Votre <span className="qc-italic-accent font-editorial italic">tableau de bord.</span></>}
- *     description="KPIs, alertes, missions ouvertes en un coup d'œil."
- *     actions={<Button>Exporter</Button>}
- *   />
+ * En-tête standard des pages de l'application.
+ * Titre net, description courte, actions à droite (en dessous sur mobile).
  */
 export function PageHeader({
   eyebrow,
@@ -49,44 +32,37 @@ export function PageHeader({
   actions,
   backHref,
   backLabel,
+  children,
   className,
 }: Props) {
   const { locale } = useLocale();
   const resolvedBackLabel = backLabel ?? (locale === 'en' ? 'Back' : 'Retour');
   return (
-    <header
-      className={cn(
-        'mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between',
-        className,
+    <header className={cn('mb-6', className)}>
+      {backHref && (
+        <Link
+          href={backHref}
+          className="group -ml-1 mb-2 inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ChevronLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+          {resolvedBackLabel}
+        </Link>
       )}
-    >
-      <div className="min-w-0">
-        {backHref && (
-          <Link
-            href={backHref}
-            className="group -ml-1 mb-3 inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-magenta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-magenta/40"
-          >
-            <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
-            {resolvedBackLabel}
-          </Link>
-        )}
-        {eyebrow && (
-          <div className="text-[10px] sm:text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-2">
-            {eyebrow}
-          </div>
-        )}
-        <h1 className="font-display font-light tracking-[-0.03em] leading-[1.05] text-[clamp(1.75rem,3.5vw,2.5rem)] text-foreground">
-          {title}
-        </h1>
-        {description && (
-          <p className="mt-2 text-[14px] sm:text-[15px] text-muted-foreground leading-relaxed max-w-2xl">
-            {description}
-          </p>
-        )}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          {eyebrow && (
+            <div className="mb-1 text-xs font-medium text-muted-foreground">{eyebrow}</div>
+          )}
+          <h1 className="font-display text-[22px] font-semibold leading-7 tracking-tight text-foreground sm:text-2xl">
+            {title}
+          </h1>
+          {description && (
+            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">{description}</p>
+          )}
+        </div>
+        {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
       </div>
-      {actions && (
-        <div className="flex flex-wrap items-center gap-2 shrink-0">{actions}</div>
-      )}
+      {children && <div className="mt-4">{children}</div>}
     </header>
   );
 }

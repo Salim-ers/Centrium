@@ -58,37 +58,37 @@ const KIND_META: Record<
 > = {
   worked: {
     label: 'Travaillé',
-    bg: 'bg-violet-500/15',
-    border: 'border-violet-500/40',
-    text: 'text-violet-300',
+    bg: 'bg-primary/15',
+    border: 'border-primary/40',
+    text: 'text-primary',
     icon: Briefcase,
   },
   paid_leave: {
     label: 'Congés payés',
-    bg: 'bg-amber-500/15',
-    border: 'border-amber-500/40',
-    text: 'text-amber-300',
+    bg: 'bg-warning/15',
+    border: 'border-warning/40',
+    text: 'text-warning',
     icon: Palmtree,
   },
   sick_leave: {
     label: 'Maladie',
-    bg: 'bg-red-500/15',
-    border: 'border-red-500/40',
-    text: 'text-red-300',
+    bg: 'bg-destructive/15',
+    border: 'border-destructive/40',
+    text: 'text-destructive',
     icon: HeartPulse,
   },
   unpaid_leave: {
     label: 'Sans solde',
-    bg: 'bg-slate-500/15',
-    border: 'border-slate-500/40',
-    text: 'text-slate-300',
+    bg: 'bg-muted',
+    border: 'border-border',
+    text: 'text-muted-foreground',
     icon: MinusCircle,
   },
   holiday: {
     label: 'Férié',
-    bg: 'bg-orange-500/15',
-    border: 'border-orange-500/40',
-    text: 'text-orange-300',
+    bg: 'bg-warning/15',
+    border: 'border-warning/40',
+    text: 'text-warning',
     icon: Sparkles,
   },
 };
@@ -120,7 +120,7 @@ function buildBrushes(isEn: boolean): Brush[] {
     { id: 'sick_leave', kind: 'sick_leave', label: kindLabel('sick_leave', isEn), icon: HeartPulse, activeClass: `${KIND_META.sick_leave.border} ${KIND_META.sick_leave.bg} ${KIND_META.sick_leave.text}` },
     { id: 'unpaid_leave', kind: 'unpaid_leave', label: kindLabel('unpaid_leave', isEn), icon: MinusCircle, activeClass: `${KIND_META.unpaid_leave.border} ${KIND_META.unpaid_leave.bg} ${KIND_META.unpaid_leave.text}` },
     { id: 'holiday', kind: 'holiday', label: kindLabel('holiday', isEn), icon: Sparkles, activeClass: `${KIND_META.holiday.border} ${KIND_META.holiday.bg} ${KIND_META.holiday.text}` },
-    { id: 'clear', kind: null, label: isEn ? 'Clear' : 'Vider', icon: Trash2, activeClass: 'border-red-500/40 bg-red-500/10 text-red-300' },
+    { id: 'clear', kind: null, label: isEn ? 'Clear' : 'Vider', icon: Trash2, activeClass: 'border-destructive/40 bg-destructive/10 text-destructive' },
   ];
 }
 
@@ -253,7 +253,7 @@ export function TimesheetCalendar({
       )}
 
       {/* En-têtes jours */}
-      <div className="grid grid-cols-7 gap-1.5 text-[10px] uppercase tracking-wider text-neutral-500">
+      <div className="grid grid-cols-7 gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
         {(isEn
           ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
           : ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
@@ -347,7 +347,7 @@ function CalendarCell({
 
   if (cell.isWeekend) {
     return (
-      <div className="aspect-[1.1/1] rounded-md border border-hairline surface-1 p-1.5 text-[10px] text-neutral-600 flex flex-col">
+      <div className="aspect-[1.1/1] rounded-md border border-hairline surface-1 p-1.5 text-[10px] text-muted-foreground flex flex-col">
         <div className="flex items-baseline justify-between">
           <span>{cell.dayNum}</span>
           <span className="text-[8px] uppercase tracking-wider">WE</span>
@@ -362,19 +362,19 @@ function CalendarCell({
   const pendingPreview =
     isPending && brush
       ? brush.kind
-        ? `${baseClasses} ${KIND_META[brush.kind].border} ${KIND_META[brush.kind].bg} ${KIND_META[brush.kind].text} ring-2 ring-violet-glow/50`
-        : `${baseClasses} border-dashed border-red-500/50 bg-red-500/[0.06] text-red-300 ring-2 ring-red-500/40`
+        ? `${baseClasses} ${KIND_META[brush.kind].border} ${KIND_META[brush.kind].bg} ${KIND_META[brush.kind].text} ring-2 ring-primary/50`
+        : `${baseClasses} border-dashed border-destructive/50 bg-destructive/[0.06] text-destructive ring-2 ring-destructive/40`
       : null;
   const cellClasses =
     pendingPreview ??
     (meta
       ? `${baseClasses} ${meta.border} ${meta.bg} ${meta.text}`
-      : `${baseClasses} border-hairline surface-1 text-neutral-400`);
+      : `${baseClasses} border-hairline surface-1 text-muted-foreground`);
 
   const interactive = editable
     ? brush
-      ? 'cursor-crosshair hover:ring-1 hover:ring-violet-glow/50'
-      : 'cursor-pointer hover:brightness-125 hover:ring-1 hover:ring-violet-glow/40'
+      ? 'cursor-crosshair hover:ring-1 hover:ring-primary/50'
+      : 'cursor-pointer hover:brightness-125 hover:ring-1 hover:ring-primary/40'
     : '';
 
   async function handlePick(
@@ -442,7 +442,7 @@ function CalendarCell({
                 key={k}
                 type="button"
                 onClick={() => handlePick(k, k === 'worked' ? 1 : undefined)}
-                className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-white/[0.04] ${km.text} ${isCurrent ? 'bg-white/[0.04]' : ''}`}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted ${km.text} ${isCurrent ? 'bg-card' : ''}`}
               >
                 <KI className="h-3.5 w-3.5" />
                 <span className="flex-1 text-left">{kindLabel(k, isEn)}</span>
@@ -454,7 +454,7 @@ function CalendarCell({
           <button
             type="button"
             onClick={() => handlePick('worked', 0.5)}
-            className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-white/[0.04] text-violet-200 border-t border-hairline"
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted text-primary border-t border-hairline"
           >
             <Briefcase className="h-3.5 w-3.5" />
             <span className="flex-1 text-left">{isEn ? 'Half day' : 'Demi-journée'}</span>
@@ -467,7 +467,7 @@ function CalendarCell({
             <button
               type="button"
               onClick={() => handlePick(null)}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-red-500/10 text-red-300 border-t border-hairline"
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-destructive/10 text-destructive border-t border-hairline"
             >
               <Trash2 className="h-3.5 w-3.5" />
               <span className="flex-1 text-left">{isEn ? 'Clear' : 'Vider'}</span>

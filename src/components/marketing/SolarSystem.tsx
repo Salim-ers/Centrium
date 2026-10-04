@@ -463,11 +463,11 @@ export function SolarSystem({ className }: { className?: string }) {
         className="block w-full h-full"
         style={{ display: 'block' }}
       />
-      <div className="absolute top-6 left-6 font-mono text-[10px] tracking-[0.18em] text-white/35 select-none">
+      <div className="absolute top-6 left-6 font-mono text-[10px] tracking-[0.18em] text-muted-foreground select-none">
         <div>CENTRIUM // SYSTEM 01</div>
         <div className="mt-1">ORBITS: 6 · NODES: 10 · STATE: NOMINAL</div>
       </div>
-      <div className="absolute bottom-6 right-6 font-mono text-[10px] tracking-[0.18em] text-white/35 select-none text-right">
+      <div className="absolute bottom-6 right-6 font-mono text-[10px] tracking-[0.18em] text-muted-foreground select-none text-right">
         <div>UPLINK · 99.97 %</div>
         <div className="mt-1">SYNCED</div>
       </div>

@@ -428,7 +428,7 @@ function SectionTitle({ children, color }: { children: React.ReactNode; color?: 
       <div
         className="h-[1px] flex-1"
         style={{
-          background: `linear-gradient(90deg, ${color ?? '#6d28d9'} 0%, transparent 100%)`,
+          background: `linear-gradient(90deg, ${color ?? '#C65F46'} 0%, transparent 100%)`,
         }}
       />
     </div>

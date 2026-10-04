@@ -76,10 +76,10 @@ export function Editable({
 
   const editClasses =
     'outline-none rounded-sm transition-colors ' +
-    'hover:bg-violet-500/5 focus:bg-violet-500/10 ' +
-    'focus:ring-2 focus:ring-violet-400/40 ' +
+    'hover:bg-primary/5 focus:bg-primary/10 ' +
+    'focus:ring-2 focus:ring-primary/40 ' +
     'cursor-text empty:before:content-[attr(data-placeholder)] ' +
-    'empty:before:text-neutral-400 empty:before:italic';
+    'empty:before:text-muted-foreground empty:before:italic';
 
   const handleBlur = (e: React.FocusEvent<HTMLElement>) => {
     const text = e.currentTarget.innerText ?? '';

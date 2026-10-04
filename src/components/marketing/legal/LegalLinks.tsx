@@ -26,14 +26,14 @@ export function LegalLinks() {
     <>
       <nav
         aria-label="Documents légaux"
-        className="flex flex-wrap items-center justify-center sm:justify-start gap-x-5 gap-y-2 text-xs text-white/55"
+        className="flex flex-wrap items-center justify-center sm:justify-start gap-x-5 gap-y-2 text-xs text-muted-foreground"
       >
         {(Object.keys(DOCS) as LegalKey[]).map((k) => (
           <button
             key={k}
             type="button"
             onClick={() => setOpen(k)}
-            className="hover:text-white transition underline-offset-4 hover:underline"
+            className="hover:text-foreground transition underline-offset-4 hover:underline"
           >
             {DOCS[k].label}
           </button>

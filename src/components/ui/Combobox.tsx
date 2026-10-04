@@ -203,7 +203,7 @@ export function Combobox({
         onKeyDown={handleKeyDown}
         className={cn(
           'flex h-10 w-full items-center gap-2 rounded-md border border-hairline surface-1 px-3 text-sm text-left',
-          'focus-visible:outline-none focus-visible:border-violet-glow/60 focus-visible:ring-1 focus-visible:ring-violet-glow/30',
+          'focus-visible:outline-none focus-visible:border-primary/60 focus-visible:ring-1 focus-visible:ring-primary/30',
           'disabled:cursor-not-allowed disabled:opacity-50 transition-colors',
           triggerClassName,
         )}
@@ -212,7 +212,7 @@ export function Combobox({
           {selected ? (
             <span className="inline-flex items-center gap-1.5">
               {selected.badge && (
-                <span className="text-[10px] uppercase tracking-wider text-amber-400/90 font-semibold shrink-0">
+                <span className="text-[10px] uppercase tracking-wider text-warning font-semibold shrink-0">
                   {selected.badge}
                 </span>
               )}
@@ -317,7 +317,7 @@ export function Combobox({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           {o.badge && (
-                            <span className="text-[10px] uppercase tracking-wider text-amber-400/90 font-semibold shrink-0">
+                            <span className="text-[10px] uppercase tracking-wider text-warning font-semibold shrink-0">
                               {o.badge}
                             </span>
                           )}
@@ -327,7 +327,7 @@ export function Combobox({
                           <div className="text-xs text-muted-foreground truncate">{o.sublabel}</div>
                         )}
                       </div>
-                      {isSelected && <Check className="h-4 w-4 text-magenta-neon shrink-0" />}
+                      {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
                     </li>
                   );
                 })

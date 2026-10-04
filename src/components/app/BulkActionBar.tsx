@@ -47,9 +47,9 @@ export function BulkActionBar({ count, entityLabel, actions, onClear }: Props) {
 
   return (
     <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center pointer-events-none">
-      <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-magenta/40 bg-card/95 backdrop-blur-xl px-4 py-2 shadow-[0_8px_30px_-10px_rgba(225,29,116,0.4)]">
+      <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-primary/40 bg-card/95 px-4 py-2 shadow-[0_8px_30px_-10px_rgba(225,29,116,0.4)]">
         <div className="flex items-center gap-2 pr-3 border-r border-hairline">
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-magenta/15 text-magenta text-xs font-bold tabular-nums">
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-bold tabular-nums">
             {count}
           </span>
           <span className="text-sm text-foreground/90 font-medium">
@@ -67,7 +67,7 @@ export function BulkActionBar({ count, entityLabel, actions, onClear }: Props) {
               disabled={action.busy}
               className={cn(
                 action.variant === 'destructive'
-                  ? 'text-red-500 border-red-500/30 hover:bg-red-500/10 hover:text-red-500'
+                  ? 'text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive'
                   : '',
               )}
             >
@@ -83,7 +83,7 @@ export function BulkActionBar({ count, entityLabel, actions, onClear }: Props) {
         <button
           type="button"
           onClick={onClear}
-          className="ml-1 rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/[0.05] transition"
+          className="ml-1 rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition"
           title={isEn ? 'Clear selection' : 'Désélectionner'}
         >
           <X className="h-4 w-4" />

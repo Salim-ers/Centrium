@@ -2,1564 +2,221 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Zoom global +20% — toutes les tailles Tailwind sont en rem, donc tout
-   scale automatiquement (typo, espacements, padding…). Override possible
-   via prefers-reduced-motion ou un toggle utilisateur plus tard. */
+/* =========================================================================
+   Centrium V2 — feuille de style globale
+   Mode clair uniquement. Palette chaude, bordures fines, ombres légères.
+   Les valeurs sont des triplets HSL consommés via hsl(var(--x)).
+   ========================================================================= */
+
 html {
-  font-size: 120%;
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
-/* Laisse un espace pour le header fixe lors d'un scroll vers un anchor */
 section[id] {
-  scroll-margin-top: 96px;
+  scroll-margin-top: 88px;
 }
 
-/* ============ CONTENT-VISIBILITY OPT-IN ============
-   Optimisation Lighthouse / CWV : les sections marquées `qc-cv-auto`
-   sont skip-rendered si elles sont hors viewport, économisant du temps
-   de layout/paint. À appliquer SEULEMENT sur les sections below-fold
-   (pas le Hero qui doit être paint immédiatement pour le LCP).
-
-   `contain-intrinsic-size` réserve un placeholder pour éviter le
-   layout shift quand la section entre dans le viewport.
-
-   Usage : <section className="qc-cv-auto">...</section> */
+/* Sections sous la ligne de flottaison : rendu différé (CWV). */
 .qc-cv-auto {
   content-visibility: auto;
-  contain-intrinsic-size: auto 600px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
+  contain-intrinsic-size: auto 640px;
 }
 
 @layer base {
-  /* ============ LIGHT MODE — blanc crème + terracotta ============
-     Demande utilisateur : pas d'aura rose en light, fond blanc crème,
-     boutons et accents en rouge terracotta. Palette chaleureuse type
-     argile / lin / soleil couchant. Lisible, professionnelle, distincte
-     de la palette dark rose/violet.
-
-     Couleurs clés :
-       - Background : 40 30% 96% — blanc crème (warm white, hint d'ocre)
-       - Card       : 38 35% 98% — crème légèrement plus claire
-       - Primary    : 12 60% 48% — terracotta (#C25B40 type)
-       - Accent     : 18 70% 52% — terracotta plus orangé (hover/focus)
-       - Hairline   : 32 18% 80% — trait fin teinté chaud
-   */
   :root {
-    --background: 40 30% 96%;             /* #F8F4ED — blanc crème */
-    --foreground: 24 25% 12%;             /* brun très foncé, lisible sur crème */
+    --background: 40 27% 98%;          /* #FBFAF8 blanc chaud */
+    --foreground: 30 4% 9%;            /* #191817 */
 
-    --card: 38 35% 98%;                   /* #FCF8F1 — cartes encore plus claires */
-    --card-foreground: 24 25% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 30 4% 9%;
 
-    --popover: 38 40% 99%;
-    --popover-foreground: 24 25% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 30 4% 9%;
 
-    --primary: 12 60% 48%;                /* TERRACOTTA principal */
-    --primary-foreground: 38 40% 98%;
+    --primary: 12 53% 53%;             /* #C65F46 terracotta */
+    --primary-deep: 10 52% 41%;        /* #9D4432 terracotta profond */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 36 22% 90%;
-    --secondary-foreground: 24 25% 12%;
+    --secondary: 30 20% 95%;
+    --secondary-foreground: 30 4% 9%;
 
-    --muted: 36 22% 90%;
-    --muted-foreground: 24 22% 22%;       /* brun foncé bien lisible sur crème */
+    --sand: 26 39% 93%;                /* #F4ECE6 sable */
+    --sidebar: 30 30% 96%;             /* fond de la barre latérale */
 
-    --accent: 18 70% 52%;                 /* TERRACOTTA orangé */
-    --accent-foreground: 38 40% 98%;
+    --muted: 30 20% 95%;
+    --muted-foreground: 24 5% 42%;     /* #706A66 */
 
-    --destructive: 0 70% 42%;
-    --destructive-foreground: 38 40% 98%;
+    --accent: 26 39% 95%;
+    --accent-foreground: 30 4% 9%;
 
-    --border: 32 18% 80%;
-    --input: 32 18% 80%;
-    --ring: 12 60% 48%;
+    --destructive: 4 76% 40%;
+    --destructive-foreground: 0 0% 100%;
+    --danger-soft: 6 80% 96%;
 
-    --radius: 0.75rem;
+    --success: 154 45% 34%;
+    --success-foreground: 0 0% 100%;
+    --success-soft: 150 35% 94%;
 
-    /* Surfaces neutres réutilisables — toutes teintées crème. */
-    --surface-1: 38 35% 98%;
-    --surface-2: 38 30% 94%;
-    --surface-3: 36 22% 90%;
-    --hairline: 32 18% 80%;
-  }
+    --warning: 26 90% 37%;
+    --warning-foreground: 0 0% 100%;
+    --warning-soft: 38 90% 94%;
 
-  /* ============ DARK MODE — ultra-deep midnight + couleurs vibrantes ============ */
-  .dark {
-    --background: 228 50% 3%;             /* #050610 — noir profond presque absolu */
-    --foreground: 210 45% 99%;             /* blanc plus pur pour contraste max */
+    --info: 206 37% 39%;
+    --info-foreground: 0 0% 100%;
+    --info-soft: 206 35% 95%;
 
-    --card: 230 38% 6%;                   /* #0a0b13 — card plus foncée qu'avant */
-    --card-foreground: 210 45% 99%;
+    --border: 28 22% 88%;              /* #E8E1DB */
+    --input: 28 22% 85%;
+    --ring: 12 53% 53%;
 
-    --popover: 230 30% 9%;
-    --popover-foreground: 210 40% 98%;
+    --radius: 0.625rem;
 
-    --primary: 328 90% 60%;               /* rose-magenta dominant */
-    --primary-foreground: 210 40% 98%;
+    /* Surfaces historiques (classes surface-1/2/3, hover-surface). */
+    --surface-1: 0 0% 100%;
+    --surface-2: 30 20% 96%;
+    --surface-3: 26 39% 93%;
+    --hairline: 28 22% 88%;
 
-    --secondary: 231 18% 16%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 231 18% 16%;
-    --muted-foreground: 217 10% 65%;
-
-    --accent: 270 91% 65%;                /* violet en accent */
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 63% 51%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 231 18% 18%;
-    --input: 231 18% 18%;
-    --ring: 328 90% 60%;
-
-    /* Surfaces : les blancs translucides historiques deviennent des tokens. */
-    --surface-1: 0 0% 100% / 0.02;
-    --surface-2: 0 0% 100% / 0.04;
-    --surface-3: 0 0% 100% / 0.06;
-    --hairline: 0 0% 100% / 0.08;
-  }
-
-  * { @apply border-border; }
-  html {
     color-scheme: light;
   }
-  html.dark {
-    color-scheme: dark;
+
+  * {
+    @apply border-border;
   }
+
+  html {
+    background-color: hsl(var(--background));
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    text-rendering: optimizeLegibility;
   }
 
-  /* ============ LIGHT MODE COLOR OVERRIDES ============
-     En LIGHT mode, on suit la directive : pas d'aura rose, palette
-     terracotta + chaud. On rebind toutes les classes magenta/rose/
-     violet vers des variantes terracotta (rouge orangé profond) ou
-     brun chaud, et on garde les couleurs sémantiques (emerald/amber/
-     blue) en versions foncées lisibles.
-
-     Pattern : :root:not(.dark) cible UNIQUEMENT le mode clair. */
-  :root:not(.dark) {
-    /* Anciennement violet/rose/magenta → désormais TERRACOTTA en light */
-    --text-violet-300: 158 50 30;         /* terracotta foncé */
-    --text-violet-200: 138 42 25;         /* terracotta très foncé */
-    --text-violet-100: 122 38 22;
-    --text-pink-300: 178 58 38;           /* terracotta moyen */
-    --text-rose-300: 178 58 38;
-    --text-magenta-neon: 178 58 38;
-    /* Vert (statut OK, gain, validation) — inchangé, sémantique */
-    --text-emerald-300: 4 120 87;
-    --text-emerald-200: 6 95 70;
-    --text-emerald-400: 4 120 87;
-    /* Ambre (avertissement, attente) */
-    --text-amber-300: 180 83 9;
-    --text-amber-200: 146 64 14;
-    --text-amber-400: 180 83 9;
-    /* Rouge (erreur, destructif) */
-    --text-red-300: 185 28 28;
-    --text-red-400: 185 28 28;
-    /* Bleu (info, en attente) */
-    --text-blue-300: 29 78 216;
-    --text-blue-400: 29 78 216;
-    /* Slate (neutre) */
-    --text-slate-300: 51 65 85;
-    --text-slate-400: 51 65 85;
+  ::selection {
+    background-color: hsl(var(--primary) / 0.16);
+    color: hsl(var(--foreground));
   }
 
-  :root:not(.dark) .text-violet-300 { color: rgb(var(--text-violet-300)); }
-  :root:not(.dark) .text-violet-200 { color: rgb(var(--text-violet-200)); }
-  :root:not(.dark) .text-violet-100 { color: rgb(var(--text-violet-100)); }
-  :root:not(.dark) .text-pink-300 { color: rgb(var(--text-pink-300)); }
-  :root:not(.dark) .text-rose-300 { color: rgb(var(--text-rose-300)); }
-  :root:not(.dark) .text-magenta-neon { color: rgb(var(--text-magenta-neon)); }
-  :root:not(.dark) .text-emerald-300 { color: rgb(var(--text-emerald-300)); }
-  :root:not(.dark) .text-emerald-200 { color: rgb(var(--text-emerald-200)); }
-  :root:not(.dark) .text-emerald-400 { color: rgb(var(--text-emerald-400)); }
-  :root:not(.dark) .text-amber-300 { color: rgb(var(--text-amber-300)); }
-  :root:not(.dark) .text-amber-200 { color: rgb(var(--text-amber-200)); }
-  :root:not(.dark) .text-amber-400 { color: rgb(var(--text-amber-400)); }
-  :root:not(.dark) .text-red-300 { color: rgb(var(--text-red-300)); }
-  :root:not(.dark) .text-red-400 { color: rgb(var(--text-red-400)); }
-  :root:not(.dark) .text-blue-300 { color: rgb(var(--text-blue-300)); }
-  :root:not(.dark) .text-blue-400 { color: rgb(var(--text-blue-400)); }
-  :root:not(.dark) .text-slate-300 { color: rgb(var(--text-slate-300)); }
-  :root:not(.dark) .text-slate-400 { color: rgb(var(--text-slate-400)); }
+  /* Focus clavier visible et cohérent partout. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: none;
+  }
 
-  /* En light : violet-glow et magenta-neon deviennent terracotta. */
-  :root:not(.dark) .text-violet-glow { color: rgb(178 58 38); }
-  :root:not(.dark) .bg-violet-glow\/15 { background-color: rgb(178 58 38 / 0.10); }
-  :root:not(.dark) .border-violet-glow\/30 { border-color: rgb(178 58 38 / 0.30); }
-  :root:not(.dark) .border-violet-glow\/40 { border-color: rgb(178 58 38 / 0.40); }
-  :root:not(.dark) .border-violet-glow\/60 { border-color: rgb(178 58 38 / 0.55); }
+  h1, h2, h3, h4 {
+    @apply font-display;
+    letter-spacing: -0.015em;
+  }
 
-  /* Tailwind-direct overrides : les classes hex magenta/pink/violet
-     présentes en dur sur les KPICard/AppCard/StatusBadge en light deviennent
-     terracotta. On cible les bgs et borders couramment utilisés. */
-  :root:not(.dark) .text-magenta { color: rgb(178 58 38); }
-  :root:not(.dark) .bg-magenta { background-color: rgb(178 58 38); }
-  :root:not(.dark) .border-magenta\/30 { border-color: rgb(178 58 38 / 0.30); }
-  :root:not(.dark) .border-magenta\/40 { border-color: rgb(178 58 38 / 0.40); }
-  :root:not(.dark) .bg-magenta\/10 { background-color: rgb(178 58 38 / 0.10); }
-  :root:not(.dark) .bg-magenta\/\\[0\\.12\\] { background-color: rgb(178 58 38 / 0.12); }
-  :root:not(.dark) .bg-magenta\/\\[0\\.04\\] { background-color: rgb(178 58 38 / 0.04); }
-  :root:not(.dark) .bg-magenta\/\\[0\\.06\\] { background-color: rgb(178 58 38 / 0.06); }
-  :root:not(.dark) .hover\:border-magenta\/30:hover { border-color: rgb(178 58 38 / 0.30); }
-  :root:not(.dark) .hover\:border-magenta\/40:hover { border-color: rgb(178 58 38 / 0.40); }
+  /* Barres de défilement discrètes. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
 }
 
 @layer utilities {
-  .qc-gradient-text {
-    @apply bg-qc-gradient bg-clip-text text-transparent;
+  /* Chiffres alignés pour les montants et KPI. */
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum', 'cv11';
   }
-  .qc-card {
-    background: hsl(var(--card) / 0.85);
-    backdrop-filter: blur(8px);
-    border: 1px solid hsl(var(--hairline));
-  }
-  .qc-card-hover {
-    @apply transition-all hover:border-violet-glow/40 hover:shadow-glow;
-  }
-  /* Surfaces auto-adaptatives — remplacent les `bg-white/[0.0X]` historiques. */
+
+  .bg-sand-surface { background-color: hsl(var(--sand)); }
+
+  /* Surfaces historiques, conservées pour les pages non encore réécrites. */
   .surface-1 { background-color: hsl(var(--surface-1)); }
   .surface-2 { background-color: hsl(var(--surface-2)); }
   .surface-3 { background-color: hsl(var(--surface-3)); }
   .hover-surface:hover { background-color: hsl(var(--surface-2)); }
   .border-hairline { border-color: hsl(var(--hairline)); }
 
-  /* Glow gradient "façon bannière" pour les accents visuels (logo, KPIs). */
-  .glow-c {
-    box-shadow:
-      0 0 60px -20px rgba(225, 29, 116, 0.45),
-      0 0 80px -40px rgba(139, 92, 246, 0.45);
-  }
-  .glow-c-soft {
-    box-shadow:
-      0 0 40px -16px rgba(225, 29, 116, 0.25),
-      0 0 60px -30px rgba(139, 92, 246, 0.25);
-  }
-
-  /* ============ AURORA BACKGROUND ANIMÉ ============
-     3 blobs gradient animés en arrière-plan fixe — l'effet "aurora boréale"
-     genre Stripe/Linear/Vercel. Très subtil en clair, plus présent en sombre.
-     Performant : pas de canvas, juste background-position qui glisse. */
-  .app-bg {
-    position: relative;
-    isolation: isolate;
-    background: hsl(var(--background));
-  }
-  /* Light mode : PAS D'AURA ROSE (demande utilisateur). Fond crème uniforme,
-     juste un très subtil dégradé chaleureux pour éviter l'effet "papier blanc".
-     Aucun halo, aucune animation aurora. */
-  .app-bg::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    background:
-      radial-gradient(ellipse 60% 50% at 20% 10%, hsl(38 40% 92% / 0.6), transparent 70%),
-      radial-gradient(ellipse 60% 50% at 80% 90%, hsl(28 30% 90% / 0.5), transparent 70%);
-  }
-  /* Dark mode : aurora drift INTENSIFIÉE — 6 sources de lumière colorées
-     (rose, magenta, violet, indigo, cyan, lavande) qui dérivent en
-     continu. Plus de couleurs, plus de vie, plus de "truc de fou". */
-  .dark .app-bg::before {
-    background:
-      radial-gradient(ellipse 55% 45% at 15% 20%, hsl(328 92% 55% / 0.42), transparent 62%),
-      radial-gradient(ellipse 50% 55% at 85% 70%, hsl(285 90% 60% / 0.38), transparent 62%),
-      radial-gradient(ellipse 65% 50% at 50% 100%, hsl(328 92% 55% / 0.30), transparent 62%),
-      radial-gradient(ellipse 45% 40% at 75% 15%, hsl(265 90% 65% / 0.28), transparent 62%),
-      radial-gradient(ellipse 40% 35% at 10% 90%, hsl(195 90% 65% / 0.22), transparent 62%),
-      radial-gradient(ellipse 35% 30% at 92% 30%, hsl(225 85% 65% / 0.20), transparent 62%);
-    background-size: 220% 220%;
-    animation: aurora-drift 22s ease-in-out infinite;
-    filter: blur(48px);
-  }
-
-  @keyframes aurora-drift {
-    0%, 100% { background-position: 0% 0%; transform: translate3d(0, 0, 0) scale(1); }
-    33% { background-position: 30% 70%; transform: translate3d(2%, -1%, 0) scale(1.05); }
-    66% { background-position: 100% 30%; transform: translate3d(-2%, 1%, 0) scale(1.02); }
-  }
-
-  /* Hero glow — pour titres/blocs accent qui doivent vraiment ressortir. */
-  .hero-glow {
-    text-shadow:
-      0 0 32px rgba(236, 72, 153, 0.55),
-      0 0 60px rgba(225, 29, 116, 0.35),
-      0 0 100px rgba(168, 85, 247, 0.25);
-  }
-
-  /* ============ HOVER FX SUR CARDS ============
-     Subtle scale + glow border rose au hover. À appliquer sur .qc-card-fx. */
-  .qc-card-fx {
-    @apply transition-all duration-300 ease-out;
-    will-change: transform, box-shadow;
-  }
-  .qc-card-fx:hover {
-    transform: translateY(-2px);
-    box-shadow:
-      0 8px 30px -10px rgba(236, 72, 153, 0.35),
-      0 0 0 1px rgba(236, 72, 153, 0.25);
-    border-color: rgba(236, 72, 153, 0.4);
-  }
-
-  /* ============ SECTION DIVIDER ÉLÉGANT ============
-     Remplace les `border-t border-white/5` durs entre sections marketing
-     par un divider lumineux centré : gradient horizontal qui s'estompe
-     vers les bords + petit point lumineux central. Plus chic, cohérent
-     avec l'identité cosmos/Centrium. À appliquer sur les <section>.
-
-     Usage :
-       <section className="qc-section-divider py-28">...</section>      */
-  .qc-section-divider {
-    position: relative;
-  }
-  .qc-section-divider::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(420px, 65%);
-    height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(236, 72, 153, 0.35) 25%,
-      rgba(168, 85, 247, 0.5) 50%,
-      rgba(236, 72, 153, 0.35) 75%,
-      transparent 100%
-    );
-    pointer-events: none;
-  }
-  .qc-section-divider::after {
-    content: '';
-    position: absolute;
-    top: -2.5px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.85) 0%, rgba(236, 72, 153, 0.5) 60%, transparent 100%);
-    box-shadow: 0 0 14px rgba(236, 72, 153, 0.65), 0 0 28px rgba(168, 85, 247, 0.35);
-    pointer-events: none;
-  }
-
-  /* ============ ITALIC ACCENT GRADIENT (signature Centrium)
-     Tous les mots en italique éditoriale (font-editorial italic) qui
-     servent d'accent éditorial sur les titres / quotes / nav prennent
-     ce gradient rose→magenta→violet animé — signature visuelle du
-     "C'est Centrium qui orchestre".
-
-     Usage : <span class="qc-italic-accent">orchestrée.</span> */
-  .qc-italic-accent {
-    background-image: linear-gradient(
-      90deg,
-      rgb(249, 168, 212) 0%,
-      rgb(236, 72, 153) 50%,
-      rgb(196, 181, 253) 100%
-    );
-    background-size: 200% 100%;
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-    animation: gradient-pan 6s ease-in-out infinite;
-    filter:
-      drop-shadow(0 4px 30px rgba(225, 29, 116, 0.4))
-      drop-shadow(0 0 60px rgba(168, 85, 247, 0.2));
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .qc-italic-accent {
-      animation: none;
-    }
-  }
-
-  /* ============ DARK MODE EXPLICITE : gradient rose-magenta-violet ============
-     Garde-fou pour la vitrine publique (dark forcé). En cas de cache CSS
-     navigateur/CDN qui aurait servi une ancienne version sur /plateforme
-     ou /engagements, cette règle re-déclare le gradient signature et
-     bypass toute autre override. !important pour bloquer définitivement. */
-  .dark .qc-italic-accent {
-    background-image: linear-gradient(
-      90deg,
-      rgb(249, 168, 212) 0%,    /* pink-300 */
-      rgb(236, 72, 153) 50%,    /* magenta */
-      rgb(196, 181, 253) 100%   /* violet-300 */
-    ) !important;
-    filter:
-      drop-shadow(0 4px 30px rgba(225, 29, 116, 0.4))
-      drop-shadow(0 0 60px rgba(168, 85, 247, 0.2)) !important;
-  }
-
-  /* ============ LIGHT MODE OVERRIDE : terracotta gradient ============
-     En light, pas de rose/violet. Gradient terracotta chaud :
-     argile claire → terracotta principal → ocre orangé. */
-  :root:not(.dark) .qc-italic-accent {
-    background-image: linear-gradient(
-      90deg,
-      rgb(214 142 105) 0%,    /* argile clair */
-      rgb(178 58 38) 50%,     /* terracotta */
-      rgb(196 90 50) 100%     /* ocre orangé */
-    );
-    filter:
-      drop-shadow(0 4px 30px rgba(178, 58, 38, 0.3))
-      drop-shadow(0 0 50px rgba(196, 90, 50, 0.15));
-  }
-
-  /* ============ DECORATIVE ELEMENTS — no focus outline, no caret
-     Évite que les wrappers de fond animés (Starfield, FluidField,
-     GalaxyField, etc.) attrapent le focus au tab/clic et affichent
-     un outline blanc disgracieux qui apparaît comme un "trait
-     d'écriture" sur le bord du viewport. */
-  [aria-hidden="true"],
-  [aria-hidden="true"] *,
-  canvas {
-    outline: none !important;
-    -webkit-tap-highlight-color: transparent;
-    caret-color: transparent;
-  }
-  /* Pas de caret de saisie sur les zones non-éditables (le caret n'est
-     valide que sur input/textarea/contenteditable). Évite que le bord
-     d'un élément non-éditable affiche un curseur clignotant après un
-     clic. */
-  body,
-  div,
-  section,
-  main,
-  article,
-  header,
-  footer,
-  nav,
-  aside,
-  span,
-  p,
-  h1, h2, h3, h4, h5, h6 {
-    caret-color: transparent;
-  }
-  input,
-  textarea,
-  [contenteditable="true"],
-  [contenteditable=""] {
-    caret-color: auto;
-  }
-
-  /* ============ NON-INTERACTIVE CARDS — curseur default + pas de sélection
-     Les cards .qc-luminous-static qui ne sont PAS des <a>/<button> sont
-     décoratives : on évite le curseur I-beam au survol et la sélection
-     accidentelle au drag. Si une card devient cliquable (a un href ou un
-     onClick), elle passe en <a>/<button> et reprend automatiquement le
-     cursor:pointer natif. */
-  .qc-luminous-static:not(a):not(button) {
-    cursor: default;
-    user-select: none;
-  }
-
-  /* ============ LUMINOUS GLOW SYSTEM ============
-     Système de glow signature aligné sur l'identité visuelle du logo
-     Centrium (rose magenta + violet). À appliquer sur cards, boutons,
-     encadrés pour donner un look "ultra haut de gamme néon" cohérent
-     partout sur le site.
-
-     Variantes :
-       .qc-luminous          → bordure dégradée rose→violet + glow pulse
-                                en CONTINU (subtil au repos, marqué au hover)
-       .qc-luminous-static   → même look mais sans pulse (cards calmes)
-       .qc-luminous-hover    → glow uniquement au hover (CTA discrets) */
-
-  @keyframes qc-luminous-pulse {
-    0%, 100% {
-      box-shadow:
-        0 0 0 1px rgba(236, 72, 153, 0.18),
-        0 0 22px -6px rgba(236, 72, 153, 0.28),
-        0 0 60px -20px rgba(168, 85, 247, 0.22);
-    }
-    50% {
-      box-shadow:
-        0 0 0 1px rgba(168, 85, 247, 0.25),
-        0 0 32px -6px rgba(236, 72, 153, 0.45),
-        0 0 80px -20px rgba(168, 85, 247, 0.35);
-    }
-  }
-
-  @keyframes qc-luminous-border-pan {
-    0% { background-position: 0% 50%; }
-    100% { background-position: 200% 50%; }
-  }
-
-  .qc-luminous {
-    position: relative;
-    isolation: isolate;
-    animation: qc-luminous-pulse 4.5s ease-in-out infinite;
-    transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1);
-    will-change: transform, box-shadow;
-  }
-  .qc-luminous::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(
-      120deg,
-      rgba(236, 72, 153, 0.6),
-      rgba(168, 85, 247, 0.55),
-      rgba(34, 211, 238, 0.45),
-      rgba(236, 72, 153, 0.6)
-    );
-    background-size: 200% 100%;
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    opacity: 0.5;
-    animation: qc-luminous-border-pan 6s linear infinite;
-    pointer-events: none;
-    z-index: 1;
-    transition: opacity 320ms ease-out;
-  }
-  /** Au hover : bascule rose → violet/indigo/cyan + lift 3px + pulse accéléré */
-  .qc-luminous:hover {
-    transform: translateY(-3px);
-    animation-duration: 2s;
-    animation-name: qc-luminous-pulse-violet;
-  }
-  .qc-luminous:hover::before {
-    opacity: 1;
-    background: linear-gradient(
-      120deg,
-      rgba(168, 85, 247, 0.75),
-      rgba(99, 102, 241, 0.65),
-      rgba(34, 211, 238, 0.5),
-      rgba(168, 85, 247, 0.75)
-    );
-    background-size: 200% 100%;
-    animation-duration: 3.5s;
-  }
-
-  @keyframes qc-luminous-pulse-violet {
-    0%, 100% {
-      box-shadow:
-        0 0 0 1px rgba(168, 85, 247, 0.4),
-        0 0 30px -6px rgba(168, 85, 247, 0.45),
-        0 0 80px -20px rgba(99, 102, 241, 0.35);
-    }
-    50% {
-      box-shadow:
-        0 0 0 1px rgba(99, 102, 241, 0.5),
-        0 0 42px -6px rgba(168, 85, 247, 0.6),
-        0 0 110px -20px rgba(34, 211, 238, 0.4);
-    }
-  }
-
-  /* Variante "static" — même look mais sans pulse continu */
+  /* Anciennes cartes « premium / luminous » : carte sobre. */
+  .qc-card,
+  .qc-premium,
+  .qc-luminous,
   .qc-luminous-static {
-    position: relative;
-    isolation: isolate;
-    box-shadow:
-      0 0 0 1px rgba(236, 72, 153, 0.15),
-      0 0 22px -8px rgba(236, 72, 153, 0.25),
-      0 0 50px -20px rgba(168, 85, 247, 0.20);
-    transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1),
-                box-shadow 380ms cubic-bezier(0.16, 1, 0.3, 1);
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 1px 2px 0 rgba(25, 24, 23, 0.04);
   }
-  .qc-luminous-static::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(
-      120deg,
-      rgba(236, 72, 153, 0.5),
-      rgba(168, 85, 247, 0.45),
-      rgba(34, 211, 238, 0.3),
-      rgba(236, 72, 153, 0.5)
-    );
-    background-size: 200% 100%;
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    opacity: 0.4;
-    animation: qc-luminous-border-pan 8s linear infinite;
-    pointer-events: none;
-    z-index: 1;
-    transition: opacity 320ms ease-out;
+  .qc-premium-interactive,
+  .qc-card-hover,
+  .qc-luminous-hover,
+  .qc-card-fx {
+    transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
   }
-  /** Au hover : la teinte BASCULE vers le violet/indigo (au lieu de rester
-   *  rose). Box-shadow intensifié, border-gradient remplacé par une variante
-   *  violet→indigo→cyan pour vraiment marquer le changement. Transition
-   *  600ms ease-out pour une bascule smooth, pas brutale. */
-  .qc-luminous-static:hover {
-    transform: translateY(-3px);
-    box-shadow:
-      0 0 0 1px rgba(168, 85, 247, 0.55),
-      0 0 36px -6px rgba(168, 85, 247, 0.55),
-      0 0 90px -20px rgba(99, 102, 241, 0.45),
-      0 0 140px -40px rgba(34, 211, 238, 0.25);
+  .qc-premium-interactive:hover,
+  .qc-card-hover:hover,
+  .qc-luminous-hover:hover,
+  .qc-card-fx:hover {
+    border-color: hsl(var(--primary) / 0.35);
+    box-shadow: 0 2px 6px -1px rgba(25, 24, 23, 0.06), 0 1px 3px -1px rgba(25, 24, 23, 0.04);
   }
-  .qc-luminous-static:hover::before {
-    opacity: 1;
-    background: linear-gradient(
-      120deg,
-      rgba(168, 85, 247, 0.7),
-      rgba(99, 102, 241, 0.6),
-      rgba(34, 211, 238, 0.45),
-      rgba(168, 85, 247, 0.7)
-    );
-    background-size: 200% 100%;
-    animation-duration: 4s;
+  .qc-premium-link:hover { color: hsl(var(--primary)); }
+
+  .qc-section-divider {
+    border-top: 1px solid hsl(var(--border));
   }
 
-  /* Variante "hover only" — glow apparaît au hover */
-  .qc-luminous-hover {
-    transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1),
-                box-shadow 380ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .qc-luminous-hover:hover {
-    transform: translateY(-2px);
-    box-shadow:
-      0 0 0 1px rgba(236, 72, 153, 0.4),
-      0 0 28px -6px rgba(236, 72, 153, 0.45),
-      0 0 70px -20px rgba(168, 85, 247, 0.32);
+  /* Ancien accent dégradé en italique → accent terracotta. */
+  .qc-italic-accent,
+  .qc-gradient-text {
+    color: hsl(var(--primary));
+    font-style: normal;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .qc-luminous, .qc-luminous::before,
-    .qc-luminous-static::before {
-      animation: none !important;
-    }
+  .app-bg {
+    background-color: hsl(var(--background));
   }
 
-  /* ============ LIGHT MODE OVERRIDES — qc-luminous + qc-card-fx + hero-glow
-     Demande utilisateur : pas d'aura rose en light. Tous les glows rose/violet
-     deviennent terracotta (#B23A26) + ocre (#C45A32). */
-  :root:not(.dark) .qc-luminous-static {
-    box-shadow:
-      0 0 0 1px rgba(178, 58, 38, 0.12),
-      0 0 22px -8px rgba(178, 58, 38, 0.18),
-      0 0 50px -20px rgba(196, 90, 50, 0.14);
-  }
-  :root:not(.dark) .qc-luminous-static::before {
-    background: linear-gradient(
-      120deg,
-      rgba(178, 58, 38, 0.4),
-      rgba(196, 90, 50, 0.35),
-      rgba(214, 142, 105, 0.25),
-      rgba(178, 58, 38, 0.4)
-    );
-    opacity: 0.3;
-  }
-  :root:not(.dark) .qc-luminous-static:hover {
-    box-shadow:
-      0 0 0 1px rgba(178, 58, 38, 0.45),
-      0 0 36px -6px rgba(178, 58, 38, 0.4),
-      0 0 90px -20px rgba(196, 90, 50, 0.3);
-  }
-  :root:not(.dark) .qc-luminous-static:hover::before {
-    background: linear-gradient(
-      120deg,
-      rgba(178, 58, 38, 0.55),
-      rgba(196, 90, 50, 0.5),
-      rgba(214, 142, 105, 0.35),
-      rgba(178, 58, 38, 0.55)
-    );
-  }
-  :root:not(.dark) .qc-luminous-hover:hover {
-    box-shadow:
-      0 0 0 1px rgba(178, 58, 38, 0.3),
-      0 0 28px -6px rgba(178, 58, 38, 0.32),
-      0 0 70px -20px rgba(196, 90, 50, 0.22);
-  }
-  :root:not(.dark) .qc-card-fx:hover {
-    box-shadow:
-      0 8px 30px -10px rgba(178, 58, 38, 0.28),
-      0 0 0 1px rgba(178, 58, 38, 0.2);
-    border-color: rgba(178, 58, 38, 0.35);
-  }
-  :root:not(.dark) .glow-c {
-    box-shadow:
-      0 0 60px -20px rgba(178, 58, 38, 0.35),
-      0 0 80px -40px rgba(196, 90, 50, 0.3);
-  }
-  :root:not(.dark) .glow-c-soft {
-    box-shadow:
-      0 0 40px -16px rgba(178, 58, 38, 0.2),
-      0 0 60px -30px rgba(196, 90, 50, 0.18);
-  }
-  :root:not(.dark) .hero-glow {
-    text-shadow:
-      0 0 28px rgba(178, 58, 38, 0.4),
-      0 0 50px rgba(178, 58, 38, 0.25);
-  }
-
-  /* ============ PREMIUM CARD STYLE (DARK MODE) ============
-     Pour donner aux KPICard / AppCard un rendu vraiment "haut de gamme"
-     en dark : fond très foncé presque noir avec un léger gradient
-     top-bottom (highlight haut + ombre bas) + bordure subtile blanche
-     + ring inset + shadow profonde noire. Effet : objet sculpté.
-
-     Light : on garde simplement la card crème opaque, sans gradient. */
-  .dark .qc-premium {
-    /* Background composé en 3 couches pour donner un vrai effet
-       "papier noir épais haut de gamme" :
-         1. Spotlight radial subtle en haut → lueur douce qui donne
-            l'illusion d'un éclairage indirect (façon studio photo).
-         2. Gradient vertical : haut un peu plus clair (#1a1d2c)
-            qui descend vers le fond profond (#0e1019). Le top du
-            relief capte plus de lumière.
-         3. Fond solide opaque qui MASQUE complètement le Starfield
-            sous-jacent → vraie sensation de carte posée, pas de
-            transparence cheap.
-       Le tout = card clairement détachée du fond noir profond. */
-    background:
-      radial-gradient(ellipse 90% 60% at 50% 0%,
-        hsla(265, 30%, 18%, 0.40) 0%,
-        transparent 70%
-      ),
-      linear-gradient(180deg,
-        hsla(230, 32%, 12%, 1) 0%,
-        hsla(230, 38%, 7%, 1) 100%
-      );
-    border-color: hsla(0, 0%, 100%, 0.10);
-    box-shadow:
-      /* Highlight intérieur en haut — bord lumineux subtle */
-      inset 0 1px 0 0 hsla(0, 0%, 100%, 0.10),
-      /* Ring intérieur très fin pour la définition */
-      inset 0 0 0 0.5px hsla(0, 0%, 100%, 0.04),
-      /* Ombre intérieure inférieure subtle (donne du volume) */
-      inset 0 -1px 0 0 hsla(0, 0%, 0%, 0.40),
-      /* Ombre portée principale, douce mais nette */
-      0 12px 36px -12px hsla(0, 0%, 0%, 0.70),
-      /* Ombre proche pour ancrer la card au fond */
-      0 3px 8px -2px hsla(0, 0%, 0%, 0.45),
-      /* Halo très subtile autour (donne du "souffle") */
-      0 0 0 1px hsla(0, 0%, 100%, 0.02);
-    position: relative;
-  }
-  /* Animated border gradient (rose → violet → cyan → violet → rose) qui pan
-     en continu, visible au hover des cards interactives. Effet "objet
-     sculpté irisé" très haut de gamme. */
-  .dark .qc-premium::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(
-      135deg,
-      rgba(236, 72, 153, 0.55) 0%,
-      rgba(168, 85, 247, 0.45) 25%,
-      rgba(34, 211, 238, 0.35) 50%,
-      rgba(168, 85, 247, 0.45) 75%,
-      rgba(236, 72, 153, 0.55) 100%
-    );
-    background-size: 200% 100%;
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    opacity: 0;
-    animation: qc-border-shimmer 5s linear infinite;
-    transition: opacity 380ms ease-out;
-    pointer-events: none;
-    z-index: 1;
-  }
-  .dark .qc-premium-interactive:hover::after {
-    opacity: 1;
-  }
-  @keyframes qc-border-shimmer {
-    0% { background-position: 0% 0%; }
-    100% { background-position: 200% 0%; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .dark .qc-premium::after { animation: none; }
-  }
-  :root:not(.dark) .qc-premium {
-    background: hsla(38, 35%, 99%, 0.95);
-    border-color: hsla(32, 18%, 75%, 1);
-    box-shadow:
-      inset 0 1px 0 0 hsla(0, 0%, 100%, 0.8),
-      0 4px 16px -8px hsla(24, 25%, 30%, 0.10),
-      0 1px 3px -1px hsla(24, 25%, 25%, 0.08);
-  }
-  /* Hover dark : card se relève + lueur intérieure plus marquée +
-     spotlight magenta-violet en haut → effet "card sous spotlight
-     premium" qui complète l'animated border shimmer (déjà actif via
-     .qc-premium::after). */
-  .dark .qc-premium-interactive:hover {
-    background:
-      radial-gradient(ellipse 90% 60% at 50% 0%,
-        hsla(285, 50%, 25%, 0.55) 0%,
-        transparent 70%
-      ),
-      linear-gradient(180deg,
-        hsla(230, 35%, 14%, 1) 0%,
-        hsla(230, 40%, 8%, 1) 100%
-      );
-    border-color: hsla(0, 0%, 100%, 0.16);
-    box-shadow:
-      inset 0 1px 0 0 hsla(0, 0%, 100%, 0.14),
-      inset 0 0 0 0.5px hsla(0, 0%, 100%, 0.06),
-      inset 0 -1px 0 0 hsla(0, 0%, 0%, 0.45),
-      0 18px 50px -16px hsla(285, 60%, 30%, 0.25),
-      0 12px 30px -8px hsla(0, 0%, 0%, 0.75),
-      0 4px 10px -2px hsla(0, 0%, 0%, 0.5),
-      0 0 0 1px hsla(0, 0%, 100%, 0.04);
-  }
-  :root:not(.dark) .qc-premium-interactive:hover {
-    border-color: hsla(12, 60%, 48%, 0.35);
-    box-shadow:
-      inset 0 1px 0 0 hsla(0, 0%, 100%, 0.9),
-      0 12px 36px -14px hsla(12, 60%, 35%, 0.18),
-      0 2px 6px -2px hsla(24, 25%, 25%, 0.10);
-  }
-
-  /* ============ LIGHT MODE — palette statuts repensée ============
-     Demande utilisateur : en light mode, plus de jaune/vert/rouge
-     "criards" qui clashent avec la palette crème + terracotta. On
-     remplace par une palette éditoriale terre / sage / ocre / marine
-     qui reste sémantique (success/warning/danger/info distinguables)
-     mais cohérente avec l'identité boutique haut de gamme.
-
-       success → sage green sourd  #7A9B7E (HSL 130 14% 55%)
-       warning → ocre doré sourd   #B68B30 (HSL 40 56% 45%)
-       danger  → terracotta sang   #9A3E2E (HSL 9 54% 39%)
-       info    → bleu marine       #3B5577 (HSL 213 33% 35%)
-       neutral → gris chaud        #8B7E6F (HSL 30 11% 49%)
-
-     On override les classes Tailwind les plus utilisées (bg-{color}-500/10,
-     border-{color}-500/25, text-{color}-400/300/200/100) en light. */
-  :root:not(.dark) {
-    /* SAGE pour success (vert sourd) */
-    --bg-emerald-500-10: 122 25% 55% / 0.10;
-    --border-emerald-500-25: 122 25% 55% / 0.30;
-    --text-emerald-400-soft: 130 18% 32%;
-    /* OCRE pour warning (jaune sourd) */
-    --bg-amber-500-10: 38 60% 48% / 0.10;
-    --border-amber-500-25: 38 60% 48% / 0.30;
-    --text-amber-400-soft: 32 70% 30%;
-    /* TERRACOTTA SANG pour danger (rouge sourd différencié du primary) */
-    --bg-rose-500-10: 9 50% 42% / 0.10;
-    --border-rose-500-25: 9 50% 42% / 0.30;
-    --text-rose-400-soft: 9 55% 32%;
-    --bg-red-500-10: 9 50% 42% / 0.10;
-    --border-red-500-25: 9 50% 42% / 0.30;
-    /* MARINE pour info (bleu sourd) */
-    --bg-cyan-500-10: 213 30% 38% / 0.10;
-    --border-cyan-500-25: 213 30% 38% / 0.30;
-    --text-cyan-400-soft: 213 35% 28%;
-    --bg-blue-500-10: 213 30% 38% / 0.10;
-    --border-blue-500-25: 213 30% 38% / 0.30;
-    /* GRIS CHAUD pour neutral */
-    --bg-slate-500-10: 30 12% 48% / 0.10;
-    --border-slate-500-25: 30 12% 48% / 0.30;
-  }
-  /* Apply : bg + border + text overrides en light. Les classes Tailwind
-     directes qui matchent ces patterns sont remappées. */
-  :root:not(.dark) .bg-emerald-500\/10 { background-color: hsl(var(--bg-emerald-500-10)); }
-  :root:not(.dark) .bg-emerald-500\/15 { background-color: hsl(var(--bg-emerald-500-10)); }
-  :root:not(.dark) .bg-emerald-500\/20 { background-color: hsl(122 25% 55% / 0.18); }
-  :root:not(.dark) .border-emerald-500\/25 { border-color: hsl(var(--border-emerald-500-25)); }
-  :root:not(.dark) .border-emerald-500\/30 { border-color: hsl(var(--border-emerald-500-25)); }
-  :root:not(.dark) .border-emerald-500\/40 { border-color: hsl(122 25% 45% / 0.40); }
-  :root:not(.dark) .text-emerald-400 { color: hsl(var(--text-emerald-400-soft)); }
-  :root:not(.dark) .text-emerald-300 { color: hsl(var(--text-emerald-400-soft)); }
-  :root:not(.dark) .text-green-400 { color: hsl(var(--text-emerald-400-soft)); }
-  :root:not(.dark) .from-emerald-500\/30 { --tw-gradient-from: hsl(122 25% 55% / 0.20) var(--tw-gradient-from-position); }
-  :root:not(.dark) .from-emerald-500\/25 { --tw-gradient-from: hsl(122 25% 55% / 0.18) var(--tw-gradient-from-position); }
-  :root:not(.dark) .via-green-500\/12 { --tw-gradient-via: hsl(122 25% 55% / 0.10) var(--tw-gradient-via-position); }
-  :root:not(.dark) .hover\:border-emerald-500\/40:hover { border-color: hsl(122 25% 45% / 0.40); }
-
-  :root:not(.dark) .bg-amber-500\/10 { background-color: hsl(var(--bg-amber-500-10)); }
-  :root:not(.dark) .bg-amber-500\/15 { background-color: hsl(var(--bg-amber-500-10)); }
-  :root:not(.dark) .border-amber-500\/25 { border-color: hsl(var(--border-amber-500-25)); }
-  :root:not(.dark) .border-amber-500\/30 { border-color: hsl(var(--border-amber-500-25)); }
-  :root:not(.dark) .border-amber-500\/40 { border-color: hsl(38 60% 40% / 0.40); }
-  :root:not(.dark) .text-amber-400 { color: hsl(var(--text-amber-400-soft)); }
-  :root:not(.dark) .text-amber-300 { color: hsl(var(--text-amber-400-soft)); }
-  :root:not(.dark) .from-amber-500\/25 { --tw-gradient-from: hsl(38 60% 48% / 0.18) var(--tw-gradient-from-position); }
-  :root:not(.dark) .via-orange-500\/12 { --tw-gradient-via: hsl(28 60% 48% / 0.10) var(--tw-gradient-via-position); }
-  :root:not(.dark) .hover\:border-amber-500\/40:hover { border-color: hsl(38 60% 40% / 0.40); }
-
-  :root:not(.dark) .bg-rose-500\/10 { background-color: hsl(var(--bg-rose-500-10)); }
-  :root:not(.dark) .bg-rose-500\/15 { background-color: hsl(var(--bg-rose-500-10)); }
-  :root:not(.dark) .border-rose-500\/25 { border-color: hsl(var(--border-rose-500-25)); }
-  :root:not(.dark) .border-rose-500\/30 { border-color: hsl(var(--border-rose-500-25)); }
-  :root:not(.dark) .border-rose-500\/40 { border-color: hsl(9 50% 38% / 0.40); }
-  :root:not(.dark) .text-rose-400 { color: hsl(var(--text-rose-400-soft)); }
-  :root:not(.dark) .text-rose-300 { color: hsl(var(--text-rose-400-soft)); }
-  :root:not(.dark) .from-rose-500\/30 { --tw-gradient-from: hsl(9 50% 42% / 0.18) var(--tw-gradient-from-position); }
-  :root:not(.dark) .via-pink-500\/15 { --tw-gradient-via: hsl(9 50% 50% / 0.10) var(--tw-gradient-via-position); }
-  :root:not(.dark) .hover\:border-rose-500\/40:hover { border-color: hsl(9 50% 38% / 0.40); }
-
-  :root:not(.dark) .bg-cyan-500\/10 { background-color: hsl(var(--bg-cyan-500-10)); }
-  :root:not(.dark) .bg-cyan-500\/15 { background-color: hsl(var(--bg-cyan-500-10)); }
-  :root:not(.dark) .border-cyan-500\/25 { border-color: hsl(var(--border-cyan-500-25)); }
-  :root:not(.dark) .border-cyan-500\/30 { border-color: hsl(var(--border-cyan-500-25)); }
-  :root:not(.dark) .border-cyan-500\/40 { border-color: hsl(213 30% 32% / 0.40); }
-  :root:not(.dark) .text-cyan-400 { color: hsl(var(--text-cyan-400-soft)); }
-  :root:not(.dark) .text-cyan-300 { color: hsl(var(--text-cyan-400-soft)); }
-  :root:not(.dark) .from-cyan-500\/25 { --tw-gradient-from: hsl(213 30% 38% / 0.18) var(--tw-gradient-from-position); }
-  :root:not(.dark) .via-sky-500\/12 { --tw-gradient-via: hsl(213 30% 38% / 0.10) var(--tw-gradient-via-position); }
-  :root:not(.dark) .hover\:border-cyan-500\/40:hover { border-color: hsl(213 30% 32% / 0.40); }
-
-  :root:not(.dark) .bg-slate-500\/10 { background-color: hsl(var(--bg-slate-500-10)); }
-  :root:not(.dark) .border-slate-500\/25 { border-color: hsl(var(--border-slate-500-25)); }
-  /* Violet → terracotta orangé en light (déjà fait pour tones primaires, on
-     traite ici les bg/from utilisés par AppCard et KPICard glow) */
-  :root:not(.dark) .from-violet-500\/30 { --tw-gradient-from: hsl(18 70% 52% / 0.20) var(--tw-gradient-from-position); }
-  :root:not(.dark) .from-violet-500\/22 { --tw-gradient-from: hsl(18 70% 52% / 0.16) var(--tw-gradient-from-position); }
-  :root:not(.dark) .via-indigo-500\/15 { --tw-gradient-via: hsl(15 60% 48% / 0.10) var(--tw-gradient-via-position); }
-  :root:not(.dark) .via-indigo-500\/10 { --tw-gradient-via: hsl(15 60% 48% / 0.08) var(--tw-gradient-via-position); }
-  :root:not(.dark) .border-violet-500\/40 { border-color: hsl(18 70% 45% / 0.40); }
-  :root:not(.dark) .hover\:border-violet-500\/40:hover { border-color: hsl(18 70% 45% / 0.40); }
-
-  /* Pink/Magenta → terracotta principal en light (zéro rose) */
-  :root:not(.dark) .from-pink-500\/30 { --tw-gradient-from: hsl(12 60% 48% / 0.20) var(--tw-gradient-from-position); }
-  :root:not(.dark) .from-pink-500\/22 { --tw-gradient-from: hsl(12 60% 48% / 0.16) var(--tw-gradient-from-position); }
-  :root:not(.dark) .via-magenta\/15 { --tw-gradient-via: hsl(12 60% 48% / 0.10) var(--tw-gradient-via-position); }
-  :root:not(.dark) .via-magenta\/10 { --tw-gradient-via: hsl(12 60% 48% / 0.08) var(--tw-gradient-via-position); }
-
-  /* ============ LIGHT — VIOLET/PURPLE/FUCHSIA EXHAUSTIF ============
-     Demande utilisateur : "elements en violets change le dans tout le
-     site, les onglets etc.. partout". Override TOUS les shades 50-900
-     de violet, purple, fuchsia, indigo → terracotta. */
-
-  /* text-violet-* (50 → 900) */
-  :root:not(.dark) .text-violet-50 { color: rgb(252 230 215); }
-  :root:not(.dark) .text-violet-400 { color: rgb(196 90 50); }
-  :root:not(.dark) .text-violet-500 { color: rgb(178 58 38); }
-  :root:not(.dark) .text-violet-600 { color: rgb(154 46 30); }
-  :root:not(.dark) .text-violet-700 { color: rgb(138 40 25); }
-  :root:not(.dark) .text-violet-800 { color: rgb(122 36 22); }
-  :root:not(.dark) .text-violet-900 { color: rgb(102 28 16); }
-
-  /* bg-violet-* (50 → 900) */
-  :root:not(.dark) .bg-violet-50 { background-color: rgb(252 230 215); }
-  :root:not(.dark) .bg-violet-100 { background-color: rgb(248 215 198); }
-  :root:not(.dark) .bg-violet-200 { background-color: rgb(238 188 168); }
-  :root:not(.dark) .bg-violet-300 { background-color: rgb(218 145 115); }
-  :root:not(.dark) .bg-violet-500 { background-color: rgb(178 58 38); }
-  :root:not(.dark) .bg-violet-600 { background-color: rgb(154 46 30); }
-  :root:not(.dark) .bg-violet-700 { background-color: rgb(138 40 25); }
-  :root:not(.dark) .bg-violet-800 { background-color: rgb(122 36 22); }
-  :root:not(.dark) .bg-violet-900 { background-color: rgb(102 28 16); }
-  /* bg-violet-X/Y opacity variants courants */
-  :root:not(.dark) .bg-violet-100\/50 { background-color: rgb(248 215 198 / 0.5); }
-  :root:not(.dark) .bg-violet-200\/50 { background-color: rgb(238 188 168 / 0.5); }
-  :root:not(.dark) .bg-violet-500\/10 { background-color: rgb(178 58 38 / 0.10); }
-  :root:not(.dark) .bg-violet-500\/15 { background-color: rgb(178 58 38 / 0.15); }
-  :root:not(.dark) .bg-violet-500\/20 { background-color: rgb(178 58 38 / 0.20); }
-
-  /* border-violet-* */
-  :root:not(.dark) .border-violet-200 { border-color: rgb(238 188 168); }
-  :root:not(.dark) .border-violet-300 { border-color: rgb(218 145 115); }
-  :root:not(.dark) .border-violet-400 { border-color: rgb(196 90 50); }
-  :root:not(.dark) .border-violet-500 { border-color: rgb(178 58 38); }
-  :root:not(.dark) .border-violet-500\/30 { border-color: rgb(178 58 38 / 0.30); }
-  :root:not(.dark) .border-violet-500\/50 { border-color: rgb(178 58 38 / 0.50); }
-
-  /* text/bg/border-purple-* (alias de violet en Tailwind) */
-  :root:not(.dark) .text-purple-200 { color: rgb(138 40 25); }
-  :root:not(.dark) .text-purple-300 { color: rgb(154 46 30); }
-  :root:not(.dark) .text-purple-400 { color: rgb(196 90 50); }
-  :root:not(.dark) .text-purple-500 { color: rgb(178 58 38); }
-  :root:not(.dark) .text-purple-600 { color: rgb(154 46 30); }
-  :root:not(.dark) .text-purple-700 { color: rgb(138 40 25); }
-  :root:not(.dark) .bg-purple-50 { background-color: rgb(252 230 215); }
-  :root:not(.dark) .bg-purple-100 { background-color: rgb(248 215 198); }
-  :root:not(.dark) .bg-purple-200 { background-color: rgb(238 188 168); }
-  :root:not(.dark) .bg-purple-500 { background-color: rgb(178 58 38); }
-  :root:not(.dark) .bg-purple-500\/10 { background-color: rgb(178 58 38 / 0.10); }
-  :root:not(.dark) .bg-purple-500\/15 { background-color: rgb(178 58 38 / 0.15); }
-  :root:not(.dark) .border-purple-200 { border-color: rgb(238 188 168); }
-  :root:not(.dark) .border-purple-300 { border-color: rgb(218 145 115); }
-  :root:not(.dark) .border-purple-500 { border-color: rgb(178 58 38); }
-
-  /* text/bg/border-fuchsia-* */
-  :root:not(.dark) .text-fuchsia-300 { color: rgb(154 46 30); }
-  :root:not(.dark) .text-fuchsia-400 { color: rgb(178 58 38); }
-  :root:not(.dark) .text-fuchsia-500 { color: rgb(154 46 30); }
-  :root:not(.dark) .text-fuchsia-600 { color: rgb(138 40 25); }
-  :root:not(.dark) .bg-fuchsia-50 { background-color: rgb(252 230 215); }
-  :root:not(.dark) .bg-fuchsia-100 { background-color: rgb(248 215 198); }
-  :root:not(.dark) .bg-fuchsia-500 { background-color: rgb(154 46 30); }
-  :root:not(.dark) .border-fuchsia-300 { border-color: rgb(218 145 115); }
-  :root:not(.dark) .border-fuchsia-500 { border-color: rgb(154 46 30); }
-
-  /* text/bg-indigo-* (similar light-violet) */
-  :root:not(.dark) .text-indigo-300 { color: rgb(154 46 30); }
-  :root:not(.dark) .text-indigo-400 { color: rgb(178 58 38); }
-  :root:not(.dark) .text-indigo-500 { color: rgb(154 46 30); }
-  :root:not(.dark) .bg-indigo-50 { background-color: rgb(252 230 215); }
-  :root:not(.dark) .bg-indigo-100 { background-color: rgb(248 215 198); }
-  :root:not(.dark) .bg-indigo-500 { background-color: rgb(154 46 30); }
-  :root:not(.dark) .bg-indigo-500\/10 { background-color: rgb(154 46 30 / 0.10); }
-  :root:not(.dark) .border-indigo-300 { border-color: rgb(218 145 115); }
-  :root:not(.dark) .border-indigo-500 { border-color: rgb(154 46 30); }
-  :root:not(.dark) .border-indigo-500\/25 { border-color: rgb(154 46 30 / 0.30); }
-
-  /* ============ LIGHT — OPACITY VARIANTS (grep-driven) ============
-     Toutes les classes opacity exact utilisées dans le code source
-     (CRA dialog, Facture dialog, Assistant comptable, etc.) qui n'étaient
-     pas couvertes ci-dessus. Liste extraite via grep. */
-
-  /* text-violet-{shade}/{opacity} */
-  :root:not(.dark) .text-violet-300\/80 { color: rgb(178 58 38 / 0.85); }
-  :root:not(.dark) .text-violet-300\/70 { color: rgb(178 58 38 / 0.78); }
-  :root:not(.dark) .text-violet-300\/60 { color: rgb(178 58 38 / 0.70); }
-  :root:not(.dark) .text-violet-200\/80 { color: rgb(154 46 30 / 0.85); }
-  :root:not(.dark) .text-violet-200\/70 { color: rgb(154 46 30 / 0.78); }
-  :root:not(.dark) .text-violet-400\/80 { color: rgb(196 90 50 / 0.85); }
-  :root:not(.dark) .text-violet-glow\/80 { color: rgb(178 58 38 / 0.85); }
-  :root:not(.dark) .text-violet-glow\/70 { color: rgb(178 58 38 / 0.78); }
-  :root:not(.dark) .text-violet-glow\/60 { color: rgb(178 58 38 / 0.70); }
-
-  /* bg-violet-{shade}/{opacity} */
-  :root:not(.dark) .bg-violet-400\/70 { background-color: rgb(196 90 50 / 0.70); }
-  :root:not(.dark) .bg-violet-500\/5 { background-color: rgb(178 58 38 / 0.05); }
-  :root:not(.dark) .bg-violet-500\/25 { background-color: rgb(178 58 38 / 0.25); }
-  :root:not(.dark) .bg-violet-500\/30 { background-color: rgb(178 58 38 / 0.30); }
-
-  /* border-violet-{shade}/{opacity} */
-  :root:not(.dark) .border-violet-400\/50 { border-color: rgb(196 90 50 / 0.50); }
-  :root:not(.dark) .border-violet-500\/20 { border-color: rgb(178 58 38 / 0.25); }
-  :root:not(.dark) .border-violet-500\/25 { border-color: rgb(178 58 38 / 0.30); }
-  :root:not(.dark) .border-violet-500\/40 { border-color: rgb(178 58 38 / 0.40); }
-  :root:not(.dark) .border-violet-500\/70 { border-color: rgb(178 58 38 / 0.60); }
-
-  /* bg-fuchsia-{shade}/{opacity} + border */
-  :root:not(.dark) .bg-fuchsia-500\/10 { background-color: rgb(154 46 30 / 0.10); }
-  :root:not(.dark) .bg-fuchsia-500\/15 { background-color: rgb(154 46 30 / 0.15); }
-  :root:not(.dark) .bg-fuchsia-500\/20 { background-color: rgb(154 46 30 / 0.20); }
-  :root:not(.dark) .border-fuchsia-500\/30 { border-color: rgb(154 46 30 / 0.32); }
-  :root:not(.dark) .border-fuchsia-500\/50 { border-color: rgb(154 46 30 / 0.50); }
-  :root:not(.dark) .border-fuchsia-500\/70 { border-color: rgb(154 46 30 / 0.60); }
-  :root:not(.dark) .text-fuchsia-300\/80 { color: rgb(154 46 30 / 0.85); }
-  :root:not(.dark) .text-fuchsia-400\/80 { color: rgb(178 58 38 / 0.85); }
-
-  /* text/bg/border purple opacity variants (alias violet) */
-  :root:not(.dark) .text-purple-300\/80 { color: rgb(178 58 38 / 0.85); }
-  :root:not(.dark) .bg-purple-500\/10 { background-color: rgb(178 58 38 / 0.10); }
-  :root:not(.dark) .bg-purple-500\/15 { background-color: rgb(178 58 38 / 0.15); }
-  :root:not(.dark) .border-purple-500\/25 { border-color: rgb(178 58 38 / 0.30); }
-  :root:not(.dark) .border-purple-500\/30 { border-color: rgb(178 58 38 / 0.32); }
-
-  /* ============ LIGHT MODE — couleurs custom Tailwind config ============
-     Les couleurs magenta-neon, violet-glow, violet-brand sont définies en
-     dur dans tailwind.config.ts et utilisées partout dans l'app interne
-     (chips actifs, badges skills, boutons gradient). En light, on les
-     remappe vers la palette terracotta pour rester cohérent. */
-
-  /* magenta-neon (#ec4899) → terracotta principal */
-  :root:not(.dark) .bg-magenta-neon { background-color: rgb(178 58 38); }
-  :root:not(.dark) .bg-magenta-neon\/15 { background-color: rgb(178 58 38 / 0.10); }
-  :root:not(.dark) .bg-magenta-neon\/25 { background-color: rgb(178 58 38 / 0.18); }
-  :root:not(.dark) .text-magenta-neon { color: rgb(154 46 30); }
-  :root:not(.dark) .border-magenta-neon\/30 { border-color: rgb(178 58 38 / 0.30); }
-  :root:not(.dark) .border-magenta-neon\/40 { border-color: rgb(178 58 38 / 0.40); }
-
-  /* magenta (DEFAULT #e11d74, muted #9d174d) → terracotta foncé */
-  :root:not(.dark) .bg-magenta\/15 { background-color: rgb(178 58 38 / 0.10); }
-  :root:not(.dark) .bg-magenta\/20 { background-color: rgb(178 58 38 / 0.14); }
-  :root:not(.dark) .bg-magenta\/25 { background-color: rgb(178 58 38 / 0.18); }
-
-  /* violet-glow (#8b5cf6) → terracotta orangé secondaire */
-  :root:not(.dark) .bg-violet-glow { background-color: rgb(196 90 50); }
-  :root:not(.dark) .bg-violet-glow\/5 { background-color: rgb(196 90 50 / 0.05); }
-  :root:not(.dark) .bg-violet-glow\/10 { background-color: rgb(196 90 50 / 0.08); }
-  :root:not(.dark) .bg-violet-glow\/15 { background-color: rgb(196 90 50 / 0.10); }
-  :root:not(.dark) .bg-violet-glow\/20 { background-color: rgb(196 90 50 / 0.14); }
-  :root:not(.dark) .bg-violet-glow\/25 { background-color: rgb(196 90 50 / 0.18); }
-  :root:not(.dark) .border-violet-glow\/20 { border-color: rgb(196 90 50 / 0.25); }
-  :root:not(.dark) .border-violet-glow\/50 { border-color: rgb(196 90 50 / 0.40); }
-  :root:not(.dark) .border-violet-glow\/70 { border-color: rgb(196 90 50 / 0.55); }
-  :root:not(.dark) .text-violet-50 { color: rgb(154 46 30); }
-
-  /* violet-brand (#6d28d9) → terracotta sang foncé (pour badges skills) */
-  :root:not(.dark) .bg-violet-brand { background-color: rgb(154 46 30); }
-  :root:not(.dark) .bg-violet-brand\/10 { background-color: rgb(154 46 30 / 0.08); }
-  :root:not(.dark) .bg-violet-brand\/5 { background-color: rgb(154 46 30 / 0.05); }
-  :root:not(.dark) .border-violet-brand\/40 { border-color: rgb(154 46 30 / 0.32); }
-
-  /* ============ GRADIENTS BUTTONS ============
-     bg-qc-gradient-pink → linear-gradient terracotta (au lieu de rose-magenta) */
-  :root:not(.dark) .bg-qc-gradient-pink {
+  /* Squelettes de chargement. */
+  .skeleton {
+    background-color: hsl(var(--muted));
     background-image: linear-gradient(
-      135deg,
-      rgb(214 142 105) 0%,    /* argile clair */
-      rgb(178 58 38) 45%,     /* terracotta */
-      rgb(154 46 30) 100%     /* terracotta sang */
+      90deg,
+      hsl(var(--muted)) 0px,
+      hsl(30 20% 98%) 120px,
+      hsl(var(--muted)) 240px
     );
-  }
-  :root:not(.dark) .bg-qc-gradient {
-    background-image: linear-gradient(
-      135deg,
-      rgb(196 90 50) 0%,      /* terracotta orangé */
-      rgb(178 58 38) 100%     /* terracotta principal */
-    );
-  }
-  :root:not(.dark) .bg-qc-gradient-aurora {
-    background-image: linear-gradient(
-      135deg,
-      rgb(225 175 145) 0%,
-      rgb(214 142 105) 25%,
-      rgb(178 58 38) 50%,
-      rgb(154 46 30) 75%,
-      rgb(196 90 50) 100%
-    );
+    background-size: 800px 100%;
+    animation: shimmer 1.4s linear infinite;
+    border-radius: 6px;
   }
 
-  /* gradient-to-r from-violet-glow to-magenta-neon → terracotta gradient */
-  :root:not(.dark) .from-violet-glow { --tw-gradient-from: rgb(196 90 50) var(--tw-gradient-from-position); }
-  :root:not(.dark) .to-magenta-neon { --tw-gradient-to: rgb(178 58 38) var(--tw-gradient-to-position); }
-  :root:not(.dark) .to-magenta { --tw-gradient-to: rgb(178 58 38) var(--tw-gradient-to-position); }
-  :root:not(.dark) .from-magenta\/10 { --tw-gradient-from: rgb(178 58 38 / 0.08) var(--tw-gradient-from-position); }
-  :root:not(.dark) .to-violet-brand\/5 { --tw-gradient-to: rgb(154 46 30 / 0.05) var(--tw-gradient-to-position); }
-  :root:not(.dark) .via-violet-300 { --tw-gradient-via: rgb(214 142 105) var(--tw-gradient-via-position); }
+  /* Défilement horizontal sans barre (tabs, pipelines). */
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
 
-  /* ============ SHADOWS TAILWIND-NAMED → terracotta en light ============ */
-  :root:not(.dark) .shadow-glow {
-    --tw-shadow: 0 0 40px -10px rgb(178 58 38 / 0.25);
-    --tw-shadow-colored: 0 0 40px -10px var(--tw-shadow-color);
-    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
-  }
-  :root:not(.dark) .shadow-glow-magenta {
-    --tw-shadow: 0 0 40px -10px rgb(178 58 38 / 0.30);
-    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
-  }
-  :root:not(.dark) .shadow-glow-pink {
-    --tw-shadow: 0 0 50px -10px rgb(178 58 38 / 0.35);
-    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
-  }
-  :root:not(.dark) .shadow-glow-pink-strong,
-  :root:not(.dark) .hover\:shadow-glow-pink-strong:hover {
-    --tw-shadow: 0 0 30px -4px rgb(178 58 38 / 0.4), 0 0 60px -20px rgb(196 90 50 / 0.25);
-    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
-  }
-  :root:not(.dark) .hover\:shadow-glow-pink:hover {
-    --tw-shadow: 0 0 50px -10px rgb(178 58 38 / 0.35);
-    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
-  }
+  /* Mode compact (Paramètres → Apparence). */
+  [data-density='compact'] .app-main > div { padding-top: 1rem; padding-bottom: 1rem; }
+  [data-density='compact'] .app-main .grid { gap: 0.75rem; }
+  [data-density='compact'] .app-main .space-y-6 > * + * { margin-top: 1rem; }
+}
 
-  /* ============ DARK MODE — SIDEBAR gradient violet-noir → noir profond ============
-     Dark : gradient vertical subtle, soupçon de violet en haut (cohérent
-     avec le wordmark) qui se fond vers le noir profond en bas. Effet
-     "rideau de nuit" haut de gamme. */
-  .dark .qc-sidebar {
-    background: linear-gradient(180deg,
-      hsla(265, 35%, 7%, 0.96) 0%,    /* tinté violet en haut */
-      hsla(228, 45%, 3%, 0.97) 60%,
-      hsla(228, 50%, 2%, 0.97) 100%   /* noir absolu en bas */
-    );
-    border-color: hsla(0, 0%, 100%, 0.06);
-  }
-  .dark .qc-app-header {
-    background: linear-gradient(180deg,
-      hsla(228, 45%, 4%, 0.94) 0%,
-      hsla(228, 45%, 3%, 0.94) 100%
-    );
-    border-color: hsla(0, 0%, 100%, 0.06);
-  }
-
-  /* ============ LIGHT MODE — SIDEBAR FULL TERRACOTTA ROUGE ============
-     Demande utilisateur : "le menu à gauche mets en full terracota rouge".
-     En light, la sidebar passe d'un fond crème à un panel terracotta sang
-     (#9a3e2e) avec texte crème, donnant une présence visuelle forte sur
-     le fond crème de l'app. */
-  :root:not(.dark) .qc-sidebar {
-    background: linear-gradient(180deg,
-      rgb(154 46 30) 0%,    /* terracotta sang en haut */
-      rgb(138 40 25) 100%   /* un poil plus foncé en bas */
-    );
-    border-color: rgb(122 36 22);
-    color: rgb(252 245 235);  /* crème pour le texte par défaut */
-  }
-  /* Tous les textes/icônes dans la sidebar en light → crème */
-  :root:not(.dark) .qc-sidebar .text-foreground,
-  :root:not(.dark) .qc-sidebar .text-muted-foreground,
-  :root:not(.dark) .qc-sidebar .text-muted-foreground\/70,
-  :root:not(.dark) .qc-sidebar .text-muted-foreground\/80 {
-    color: rgb(252 245 235);
-  }
-  :root:not(.dark) .qc-sidebar .text-violet-glow {
-    color: rgb(255 250 240);  /* texte généraux de la sidebar : crème */
-  }
-  :root:not(.dark) .qc-sidebar .text-amber-400,
-  :root:not(.dark) .qc-sidebar .text-amber-300 {
-    color: rgb(255 250 240);
-  }
-  /* EXCEPTION : le bouton ThemeToggle a un fond surface-1 (crème) →
-     la Moon icon en cream serait invisible (crème sur crème). On la
-     remet en TERRACOTTA visible sur le bouton crème. Pareil pour Sun. */
-  :root:not(.dark) .qc-sidebar button .text-violet-glow {
-    color: rgb(154 46 30);   /* terracotta sang foncé, visible sur cream */
-  }
-  :root:not(.dark) .qc-sidebar button .text-amber-400,
-  :root:not(.dark) .qc-sidebar button .text-amber-300 {
-    color: rgb(178 58 38);   /* terracotta, visible sur cream */
-  }
-  /* Active state d'un item dans la sidebar en light : fond plus clair
-     (crème transparent) + texte crème vif + bordure crème. Plus de
-     bg-magenta/[0.12] rose. */
-  :root:not(.dark) .qc-sidebar .text-magenta-neon {
-    color: rgb(252 245 235);
-  }
-  :root:not(.dark) .qc-sidebar .bg-magenta\/\[0\.12\] {
-    background-color: rgb(252 245 235 / 0.14);
-  }
-  :root:not(.dark) .qc-sidebar .border-magenta\/40 {
-    border-color: rgb(252 245 235 / 0.35);
-  }
-  /* Hover surface dans la sidebar en light : voile crème transparent */
-  :root:not(.dark) .qc-sidebar .hover-surface:hover {
-    background-color: rgb(252 245 235 / 0.08);
-  }
-  /* Bordures internes (séparateurs) : crème transparent */
-  :root:not(.dark) .qc-sidebar .border-hairline,
-  :root:not(.dark) .qc-sidebar .border-t {
-    border-color: rgb(252 245 235 / 0.15);
-  }
-  /* Carte "Personnalise ton ESN" en light : crème transparent au lieu
-     de violet-glow */
-  :root:not(.dark) .qc-sidebar .border-violet-glow\/30 {
-    border-color: rgb(252 245 235 / 0.3);
-  }
-  :root:not(.dark) .qc-sidebar .bg-violet-glow\/\[0\.06\] {
-    background-color: rgb(252 245 235 / 0.08);
-  }
-  :root:not(.dark) .qc-sidebar .bg-violet-glow\/15 {
-    background-color: rgb(252 245 235 / 0.12);
-  }
-  /* Shadow magenta dans la sidebar en light : remplacée par crème */
-  :root:not(.dark) .qc-sidebar .shadow-\[0_0_30px_-8px_rgba\(236\2c 72\2c 153\2c 0\.6\)\2c inset_0_0_20px_-10px_rgba\(236\2c 72\2c 153\2c 0\.3\)\] {
-    box-shadow: 0 0 20px -8px rgb(252 245 235 / 0.25), inset 0 0 14px -8px rgb(252 245 235 / 0.15);
-  }
-
-  /* ============ WORDMARK CENTRIUM — gradient terracotta en LIGHT ============
-     Classe .qc-wordmark-gradient appliquée sur le span CENTRIUM dans
-     CentriumWordmark.tsx. En dark : gradient rose-magenta-fuchsia.
-     En light : gradient crème → terracotta clair → blanc (lisible sur
-     fond terracotta de la sidebar). */
-  .dark .qc-wordmark-gradient {
-    background-image: linear-gradient(
-      to right,
-      rgb(244 114 182) 0%,    /* pink-400 */
-      rgb(225 29 116) 50%,    /* magenta */
-      rgb(217 70 239) 100%    /* fuchsia-500 */
-    );
-  }
-  /* Light par DÉFAUT : gradient terracotta lisible sur fond crème
-     (boot intro popup, modals, header etc.) */
-  :root:not(.dark) .qc-wordmark-gradient {
-    background-image: linear-gradient(
-      to right,
-      rgb(196 90 50) 0%,      /* terracotta orangé */
-      rgb(178 58 38) 50%,     /* terracotta principal */
-      rgb(154 46 30) 100%     /* terracotta sang */
-    );
-  }
-  /* Override : DANS la sidebar terracotta (fond rouge), le wordmark
-     bascule en crème pour rester lisible sur fond rouge.
-     !important pour battre Tailwind bg-gradient-to-r utility appliquée
-     sur le même élément. */
-  :root:not(.dark) .qc-sidebar .qc-wordmark-gradient {
-    background-image: linear-gradient(
-      to right,
-      rgb(255 250 240) 0%,
-      rgb(252 240 220) 50%,
-      rgb(255 245 230) 100%
-    ) !important;
-  }
-
-  /* Le logo C SVG est statique (couleurs encodées dans le fichier
-     /brand/centrium-logo.svg = violet→rose). Dans la sidebar light,
-     on applique un filtre qui :
-       1. brightness(0) → tout devient noir
-       2. invert(1)     → tout devient blanc/crème
-       3. brightness(...) → ajuste vers la teinte crème désirée
-     Ce filter chain transforme le SVG violet-rose en silhouette crème
-     uniforme, parfaitement lisible sur fond terracotta sang. */
-  :root:not(.dark) .qc-sidebar img[src*="centrium-logo"] {
-    filter: brightness(0) invert(1) brightness(0.98) sepia(0.05);
-    opacity: 0.97;
-  }
-  /* "by QUADCORE" en light dans la sidebar : crème transparent */
-  :root:not(.dark) .qc-sidebar .text-muted-foreground\/70 {
-    color: rgb(252 245 235 / 0.7);
-  }
-  :root:not(.dark) .qc-sidebar .text-magenta {
-    color: rgb(252 220 180);
-  }
-
-  /* ============ LIGHT — AMBER → TERRACOTTA (zéro jaune) ============
-     Demande utilisateur : "je veux plus le jaune de 'client à définir',
-     mets en rouge terracotta aussi". On remappe TOUS les text-amber-* /
-     bg-amber-* / yellow-* vers terracotta. Plus aucun jaune en light. */
-  :root:not(.dark) .text-amber-400 { color: rgb(178 58 38); }       /* terracotta principal */
-  :root:not(.dark) .text-amber-300 { color: rgb(178 58 38); }
-  :root:not(.dark) .text-amber-200 { color: rgb(154 46 30); }       /* terracotta sang plus foncé */
-  :root:not(.dark) .text-yellow-400 { color: rgb(178 58 38); }
-  :root:not(.dark) .text-yellow-300 { color: rgb(178 58 38); }
-  :root:not(.dark) .bg-amber-500\/10 { background-color: rgb(178 58 38 / 0.10); }
-  :root:not(.dark) .bg-amber-500\/15 { background-color: rgb(178 58 38 / 0.14); }
-  :root:not(.dark) .border-amber-500\/25 { border-color: rgb(178 58 38 / 0.30); }
-  :root:not(.dark) .border-amber-500\/30 { border-color: rgb(178 58 38 / 0.35); }
-
-  /* Opacity variants : Client à définir (text-amber-200/80) + l'icône
-     HelpCircle (text-amber-300/80) + "À valider" (text-amber-300/70). */
-  :root:not(.dark) .text-amber-400\/80 { color: rgb(178 58 38 / 0.85); }
-  :root:not(.dark) .text-amber-300\/80 { color: rgb(178 58 38 / 0.85); }
-  :root:not(.dark) .text-amber-300\/70 { color: rgb(178 58 38 / 0.75); }
-  :root:not(.dark) .text-amber-200\/80 { color: rgb(154 46 30 / 0.88); }
-  :root:not(.dark) .text-amber-200\/70 { color: rgb(154 46 30 / 0.78); }
-
-  /* ============ LIGHT — text-white/N hard-coded (design dark-first) ============
-     De nombreux composants ont des classes text-white/70, text-white/60 etc.
-     codées en dur pour le dark. En light, blanc sur crème = invisible.
-     On remappe vers brun foncé (foreground proche du --muted-foreground).
-     Si le composant veut vraiment du blanc (sur fond terracotta de la sidebar
-     ou autre), il devra utiliser text-foreground ou crème explicite. */
-  :root:not(.dark) .text-white\/95 { color: rgb(36 28 22 / 0.95); }
-  :root:not(.dark) .text-white\/90 { color: rgb(36 28 22 / 0.92); }
-  :root:not(.dark) .text-white\/85 { color: rgb(36 28 22 / 0.88); }
-  :root:not(.dark) .text-white\/80 { color: rgb(36 28 22 / 0.85); }
-  :root:not(.dark) .text-white\/75 { color: rgb(36 28 22 / 0.82); }
-  :root:not(.dark) .text-white\/70 { color: rgb(36 28 22 / 0.78); }
-  :root:not(.dark) .text-white\/60 { color: rgb(36 28 22 / 0.72); }
-  :root:not(.dark) .text-white\/55 { color: rgb(36 28 22 / 0.68); }
-  :root:not(.dark) .text-white\/50 { color: rgb(36 28 22 / 0.62); }
-  :root:not(.dark) .text-white\/40 { color: rgb(36 28 22 / 0.55); }
-  /* Texte BLANC pur conservé : utile pour les chips sur fond sombre dans
-     l'app interne (ex: badges dans la sidebar terracotta), pour le bouton
-     gradient terracotta etc. */
-  /* Exception : dans la sidebar terracotta light, les text-white/N
-     restent crème (le selector .qc-sidebar les surcharge ailleurs). */
-  :root:not(.dark) .qc-sidebar .text-white\/95,
-  :root:not(.dark) .qc-sidebar .text-white\/90,
-  :root:not(.dark) .qc-sidebar .text-white\/85,
-  :root:not(.dark) .qc-sidebar .text-white\/80,
-  :root:not(.dark) .qc-sidebar .text-white\/75,
-  :root:not(.dark) .qc-sidebar .text-white\/70 {
-    color: rgb(252 245 235 / 0.9);
-  }
-
-  /* ============ LIGHT — DOTS COLONNES CRM + colorées custom ============
-     Demande utilisateur : "plus de touche de rose/violet en light, juste
-     crème + terracotta". Les dots des colonnes kanban CRM utilisent
-     bg-violet-400, bg-fuchsia-400, bg-amber-400 codés en dur. On les
-     remappe vers la palette terre/ocre en light. */
-  :root:not(.dark) .bg-violet-400 { background-color: rgb(196 90 50); }    /* terracotta orangé */
-  :root:not(.dark) .bg-violet-500 { background-color: rgb(178 58 38); }    /* terracotta */
-  :root:not(.dark) .bg-violet-600 { background-color: rgb(154 46 30); }    /* terracotta sang */
-  :root:not(.dark) .bg-fuchsia-400 { background-color: rgb(178 58 38); }   /* terracotta */
-  :root:not(.dark) .bg-fuchsia-500 { background-color: rgb(154 46 30); }
-  :root:not(.dark) .bg-pink-400 { background-color: rgb(178 58 38); }
-  :root:not(.dark) .bg-pink-500 { background-color: rgb(154 46 30); }
-  /* Amber/Yellow → TERRACOTTA orangé (zéro jaune en light, cohérent
-     avec le mapping text-amber-* maintenant en terracotta). */
-  :root:not(.dark) .bg-amber-400 { background-color: rgb(196 90 50); }     /* terracotta orangé */
-  :root:not(.dark) .bg-amber-500 { background-color: rgb(178 58 38); }     /* terracotta principal */
-  :root:not(.dark) .bg-yellow-400 { background-color: rgb(196 90 50); }
-  :root:not(.dark) .bg-yellow-500 { background-color: rgb(178 58 38); }
-  /* Sky/Blue → marine sourd (info) */
-  :root:not(.dark) .bg-sky-400 { background-color: rgb(72 100 140); }
-  :root:not(.dark) .bg-blue-400 { background-color: rgb(60 90 130); }
-  /* Emerald → sage green (success) */
-  :root:not(.dark) .bg-emerald-400 { background-color: rgb(94 130 102); }
-  /* Red → terracotta sang (danger, ≠ primary) */
-  :root:not(.dark) .bg-red-400 { background-color: rgb(154 46 30); }
-  /* Slate → gris chaud (neutral) */
-  :root:not(.dark) .bg-slate-400 { background-color: rgb(140 122 100); }
-  :root:not(.dark) .bg-slate-500 { background-color: rgb(120 104 86); }
-
-  /* ============ LIGHT — DRAG TARGET HALO CRM ============
-     Le drop-zone actif (kanban colonne en hover) utilise un shadow violet
-     hardcoded rgba(168,85,247,0.65) + scale + bg-violet-glow/[0.06]. On
-     override le shadow Tailwind arbitrary par sélecteur explicite. */
-  :root:not(.dark) .bg-violet-glow\/\[0\.06\] {
-    background-color: rgb(196 90 50 / 0.06);
-  }
-  :root:not(.dark) .bg-violet-glow\/\[0\.04\] {
-    background-color: rgb(196 90 50 / 0.04);
-  }
-  :root:not(.dark) .shadow-\[0_0_30px_-12px_rgba\(168\2c 85\2c 247\2c 0\.65\)\] {
-    box-shadow: 0 0 30px -12px rgb(178 58 38 / 0.45);
-  }
-  :root:not(.dark) .shadow-\[0_0_30px_-12px_rgba\(139\2c 92\2c 246\2c 0\.5\)\] {
-    box-shadow: 0 0 30px -12px rgb(178 58 38 / 0.40);
-  }
-  :root:not(.dark) .shadow-\[0_0_30px_-12px_rgba\(236\2c 72\2c 153\2c 0\.5\)\] {
-    box-shadow: 0 0 30px -12px rgb(178 58 38 / 0.40);
-  }
-
-  /* ============ LIGHT — boutons gradient plus foncés ============
-     Demande utilisateur : "fonce les plus". On assombrit le gradient
-     terracotta des boutons "default" Button (bg-qc-gradient-pink) pour
-     qu'ils soient plus présents sur le fond crème. */
-  :root:not(.dark) .bg-qc-gradient-pink {
-    background-image: linear-gradient(
-      135deg,
-      rgb(154 46 30) 0%,      /* terracotta sang */
-      rgb(126 36 22) 50%,     /* plus foncé */
-      rgb(102 28 16) 100%     /* terracotta très foncé */
-    );
-  }
-  :root:not(.dark) .bg-qc-gradient {
-    background-image: linear-gradient(
-      135deg,
-      rgb(154 46 30) 0%,
-      rgb(122 36 22) 100%
-    );
-  }
-  /* Gradient buttons assombris aussi */
-  :root:not(.dark) .from-violet-glow { --tw-gradient-from: rgb(154 46 30) var(--tw-gradient-from-position); }
-  :root:not(.dark) .to-magenta-neon { --tw-gradient-to: rgb(102 28 16) var(--tw-gradient-to-position); }
-
-  /* ============ DENSITY COMPACT MODE ============
-     Quand l'utilisateur choisit Compact dans /settings/appearance, on
-     ajoute data-density="compact" sur <html>. On réduit alors les
-     paddings et margins des grandes sections de l'app pour gagner de
-     l'espace vertical sans casser le rythme visuel.
-
-     N'agit QUE sur l'app interne (.app-bg ancêtre) pour ne pas tasser
-     la vitrine publique. */
-  [data-density='compact'] .app-bg main { padding-top: 3rem; }
-  [data-density='compact'] .app-bg main > div { padding-top: 1rem; padding-bottom: 1rem; }
-  [data-density='compact'] .app-bg header { margin-bottom: 1.25rem; }
-  [data-density='compact'] .app-bg .grid { gap: 0.75rem; }
-  [data-density='compact'] .app-bg .space-y-6 > * + * { margin-top: 1rem; }
-
-  /* ============ COLOR CYCLE ANIMATION ============
-     Animations qui font cycler les accents rose → violet → cyan → rose
-     pour donner du dynamisme. À utiliser sur cards / boutons via
-     .qc-color-cycle (hover) ou .qc-color-cycle-always (en continu). */
-  @keyframes qc-hue-cycle {
-    0%   { filter: hue-rotate(0deg); }
-    33%  { filter: hue-rotate(-35deg); }
-    66%  { filter: hue-rotate(40deg); }
-    100% { filter: hue-rotate(0deg); }
-  }
-
-  .qc-color-cycle:hover {
-    animation: qc-hue-cycle 5s ease-in-out infinite;
-  }
-  .qc-color-cycle-always {
-    animation: qc-hue-cycle 8s ease-in-out infinite;
-  }
-
-  /* Bordure couleur cycle au hover — gradient animé qui rotate */
-  @keyframes qc-border-cycle {
-    0%   { border-color: rgba(236, 72, 153, 0.6); box-shadow: 0 0 30px -10px rgba(236, 72, 153, 0.55); }
-    33%  { border-color: rgba(168, 85, 247, 0.6); box-shadow: 0 0 30px -10px rgba(168, 85, 247, 0.55); }
-    66%  { border-color: rgba(34, 211, 238, 0.5); box-shadow: 0 0 30px -10px rgba(34, 211, 238, 0.45); }
-    100% { border-color: rgba(236, 72, 153, 0.6); box-shadow: 0 0 30px -10px rgba(236, 72, 153, 0.55); }
-  }
-  .qc-border-cycle:hover {
-    animation: qc-border-cycle 4.5s ease-in-out infinite;
-  }
-
-  /* ============ PREMIUM CARD UTILITIES ============
-     Utilitaires réutilisables pour donner un look haut de gamme aux cards
-     internes (settings, dashboard, listes). Hover lift + bordure dégradée
-     très subtile + ombre profonde. À utiliser sur Card / div parent.
-
-     Usage :
-       <Card className="qc-premium">…</Card>
-       <Link className="qc-premium-link">…</Link>                            */
-  .qc-premium {
-    position: relative;
-    isolation: isolate;
-    transition: transform 350ms cubic-bezier(0.16, 1, 0.3, 1),
-                box-shadow 350ms cubic-bezier(0.16, 1, 0.3, 1),
-                border-color 200ms ease-out;
-    will-change: transform;
-  }
-  .qc-premium:hover {
-    transform: translateY(-2px);
-    border-color: hsl(var(--hairline) / 1.5);
-    box-shadow:
-      0 24px 60px -20px rgba(236, 72, 153, 0.25),
-      0 6px 20px -8px rgba(168, 85, 247, 0.18);
-  }
-  .qc-premium::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(135deg, rgba(236,72,153,0), rgba(236,72,153,0.35), rgba(168,85,247,0.25), rgba(236,72,153,0));
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    opacity: 0;
-    transition: opacity 320ms ease-out;
-    pointer-events: none;
-    z-index: 1;
-  }
-  .qc-premium:hover::before {
-    opacity: 1;
-  }
-
-  /* Variante "link" pour les <Link>/<a> sur cards cliquables — légère
-     translation à droite pour suggérer la navigation. */
-  .qc-premium-link {
-    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .qc-premium-link:hover {
-    transform: translateY(-1px);
-  }
-
-  /* Bouton premium "outline + glow" — alternative au bouton plein
-     gradient pour les actions secondaires haut de gamme. */
-  .qc-btn-premium {
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    transition: all 250ms ease-out;
-  }
-  .qc-btn-premium::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: radial-gradient(120px circle at var(--x, 50%) var(--y, 50%), rgba(236,72,153,0.35), transparent 70%);
-    opacity: 0;
-    transition: opacity 260ms ease-out;
-    pointer-events: none;
-  }
-  .qc-btn-premium:hover::after {
-    opacity: 1;
-  }
-
-  /* Bordure gradient animée — pour zones premium (header, kpi cards). */
-  .border-gradient-pink {
-    position: relative;
-  }
-  .border-gradient-pink::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(135deg, #ec4899, #e11d74, #c026d3, #ec4899);
-    background-size: 200% 200%;
-    animation: gradient-pan 6s ease-in-out infinite;
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-    opacity: 0.7;
+/* Mouvement réduit : on coupe toutes les animations et transitions longues. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
-/* Corps des documents légaux (modales). Doit rester lisible dans les 2 modes. */
+/* Corps des documents légaux. */
 .legal-body h2 {
   @apply font-display text-foreground text-lg font-semibold mt-7 mb-3;
 }
@@ -1570,11 +227,11 @@ section[id] {
 .legal-body ul { @apply list-disc pl-6 my-3 space-y-1.5; }
 .legal-body ol { @apply list-decimal pl-6 my-3 space-y-1.5; }
 .legal-body strong { @apply text-foreground font-semibold; }
-.legal-body a { @apply text-magenta hover:underline; }
+.legal-body a { @apply text-primary hover:underline; }
 .legal-body hr { @apply border-border my-6; }
 .legal-body :first-child { margin-top: 0; }
 
-/* === Print CSS pour CV / Factures / CRA QuadCore === */
+/* === Impression : CV, préfactures, CRA, documents === */
 @media print {
   @page {
     size: A4;
@@ -1584,11 +241,8 @@ section[id] {
     background: white !important;
     color: black !important;
   }
-  /* Masque tout par défaut */
   body * { visibility: hidden !important; }
-  /* Ne laisse visibles que les conteneurs explicitement imprimables */
   .print-only, .print-only * { visibility: visible !important; }
-  /* Sort le conteneur imprimable du flux de l'AppShell */
   .print-only {
     position: absolute !important;
     inset: 0 !important;
@@ -1604,15 +258,11 @@ section[id] {
     box-shadow: none !important;
     margin: 0 auto !important;
   }
-  /* Évite qu'un bloc (expérience, diplôme) soit coupé en deux
-     entre deux pages — chaque article reste solidaire. */
   .cv-print-page article,
   .cv-print-page .cv-article {
     break-inside: avoid;
     page-break-inside: avoid;
   }
-  /* Titres de section : ne jamais laisser un titre orphelin en bas
-     de page sans son contenu qui suit. */
   .cv-print-page h2,
   .cv-print-page h3 {
     break-after: avoid;

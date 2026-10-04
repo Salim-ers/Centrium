@@ -22,8 +22,8 @@ const QUANTIZE_STEP = 32; // arrondit chaque canal à un multiple de 32 → 8³ 
 const MIN_DISTANCE_HUE = 25; // accent doit être à au moins 25° de hue de primaire
 
 const FALLBACK: ExtractedColors = {
-  primary: '#8b5cf6', // violet Centrium
-  accent: '#e11d74', // magenta Centrium
+  primary: '#C65F46', // terracotta Centrium
+  accent: '#9D4432', // terracotta profond Centrium
 };
 
 export async function extractColorsFromImage(url: string): Promise<ExtractedColors> {

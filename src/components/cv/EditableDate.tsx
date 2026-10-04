@@ -76,7 +76,7 @@ export function EditableDate({
           setOpen(true);
         }}
         title="Modifier la date"
-        className={`${className ?? ''} cursor-pointer rounded-sm hover:bg-violet-500/10 hover:ring-1 hover:ring-violet-400/30 px-1 -mx-1 outline-none transition-colors uppercase`}
+        className={`${className ?? ''} cursor-pointer rounded-sm hover:bg-primary/10 hover:ring-1 hover:ring-primary/30 px-1 -mx-1 outline-none transition-colors uppercase`}
       >
         {displayText}
       </button>
@@ -127,7 +127,7 @@ export function EditableDate({
             setOpen(false);
           }
         }}
-        className="text-[10px] bg-white border border-violet-400/50 rounded px-1 py-0.5 outline-none focus:border-violet-500 text-neutral-900 font-sans"
+        className="text-[10px] bg-white border border-primary/50 rounded px-1 py-0.5 outline-none focus:border-primary text-foreground font-sans"
       />
       {allowNull && (
         <button
@@ -138,7 +138,7 @@ export function EditableDate({
             commit('');
           }}
           title="Marquer comme en cours (effacer la date)"
-          className="text-[9px] text-violet-500 hover:text-violet-700 underline whitespace-nowrap"
+          className="text-[9px] text-primary hover:text-primary underline whitespace-nowrap"
         >
           en cours
         </button>

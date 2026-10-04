@@ -30,7 +30,7 @@ export function LocaleToggle({
   if (variant === 'mobile') {
     return (
       <div
-        className={`flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] p-1 ${className}`}
+        className={`flex items-center gap-2 rounded-full border border-border bg-card p-1 ${className}`}
         role="group"
         aria-label="Langue / Language"
       >
@@ -45,8 +45,8 @@ export function LocaleToggle({
               className={[
                 'flex-1 px-4 py-2 text-[12px] font-semibold tracking-[0.15em] rounded-full transition',
                 active
-                  ? 'bg-white text-black shadow-[0_4px_20px_rgba(255,255,255,0.15)]'
-                  : 'text-white/55 hover:text-white',
+                  ? 'bg-white text-foreground shadow-[0_4px_20px_rgba(255,255,255,0.15)]'
+                  : 'text-muted-foreground hover:text-foreground',
               ].join(' ')}
             >
               {l.label}
@@ -100,15 +100,15 @@ export function LocaleToggle({
         type="button"
         onClick={() => setLocale(next)}
         className={[
-          'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-white/15 bg-white/[0.04] backdrop-blur',
-          'text-[11px] font-semibold tracking-[0.18em] text-white/70 hover:text-white hover:border-white/30 transition',
+          'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-card ',
+          'text-[11px] font-semibold tracking-[0.18em] text-muted-foreground hover:text-foreground hover:border-border transition',
           className,
         ].join(' ')}
         aria-label={`Switch to ${next.toUpperCase()}`}
       >
-        <span className={locale === 'fr' ? 'text-white' : 'text-white/40'}>FR</span>
-        <span className="text-white/30">/</span>
-        <span className={locale === 'en' ? 'text-white' : 'text-white/40'}>EN</span>
+        <span className={locale === 'fr' ? 'text-white' : 'text-muted-foreground'}>FR</span>
+        <span className="text-muted-foreground">/</span>
+        <span className={locale === 'en' ? 'text-white' : 'text-muted-foreground'}>EN</span>
       </button>
     );
   }
@@ -117,7 +117,7 @@ export function LocaleToggle({
   return (
     <div
       className={[
-        'inline-flex items-center rounded-full border border-white/15 bg-white/[0.04] backdrop-blur p-0.5',
+        'inline-flex items-center rounded-full border border-border bg-card p-0.5',
         className,
       ].join(' ')}
       role="group"
@@ -134,8 +134,8 @@ export function LocaleToggle({
             className={[
               'px-3 py-1 text-[11px] font-semibold tracking-[0.18em] rounded-full transition',
               active
-                ? 'bg-white text-black'
-                : 'text-white/55 hover:text-white',
+                ? 'bg-white text-foreground'
+                : 'text-muted-foreground hover:text-foreground',
             ].join(' ')}
           >
             {l.label}

@@ -11,7 +11,7 @@ export const metadata = { title: 'Accès refusé · Centrium' };
 export default function UnauthorizedPage() {
   return (
     <main className="min-h-screen grid place-content-center px-6 text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-hairline bg-red-500/10 text-red-400">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-hairline bg-destructive/10 text-destructive">
         <ShieldX className="h-7 w-7" />
       </div>
       <h1 className="mt-6 font-display text-2xl font-light tracking-tight">
@@ -25,7 +25,7 @@ export default function UnauthorizedPage() {
       <div className="mt-6 flex items-center justify-center gap-3">
         <Link
           href="/dashboard"
-          className="inline-flex h-9 items-center rounded-lg bg-violet-glow px-4 text-sm font-medium text-white transition hover:opacity-90"
+          className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-sm font-medium text-white transition hover:opacity-90"
         >
           Retour au tableau de bord
         </Link>

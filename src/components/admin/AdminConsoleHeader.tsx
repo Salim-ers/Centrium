@@ -33,11 +33,11 @@ export function AdminConsoleHeader({
   const { locale } = useLocale();
   const isEn = locale === 'en';
   return (
-    <header className="border-b border-hairline bg-card/40 backdrop-blur-xl sticky top-0 z-10">
+    <header className="border-b border-hairline bg-card/40 sticky top-0 z-10">
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
-            <Sparkles className="h-6 w-6 text-magenta shrink-0" />
+            <Sparkles className="h-6 w-6 text-primary shrink-0" />
             <div className="min-w-0">
               <h1 className="font-display text-lg font-bold tracking-tight truncate">{title}</h1>
               <p className="text-[11px] text-muted-foreground truncate">{subtitle}</p>
@@ -56,7 +56,7 @@ export function AdminConsoleHeader({
                 type="submit"
                 variant="outline"
                 size="sm"
-                className="text-red-500 border-red-500/30 hover:bg-red-500/10 hover:text-red-500"
+                className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
               >
                 <LogOut className="h-3.5 w-3.5 mr-1.5" />
                 {isEn ? 'Sign out' : 'Déconnexion'}
@@ -77,7 +77,7 @@ export function AdminConsoleHeader({
                 className={cn(
                   'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
                   active
-                    ? 'bg-magenta/10 text-magenta ring-1 ring-magenta/20'
+                    ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
                     : 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]',
                 )}
               >

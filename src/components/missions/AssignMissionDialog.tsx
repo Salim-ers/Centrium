@@ -222,7 +222,7 @@ export function AssignMissionDialog({ open, onOpenChange, offer, consultant, onA
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="inline-flex items-center gap-2">
-            <Target className="h-5 w-5 text-violet-glow" />
+            <Target className="h-5 w-5 text-primary" />
             {isEn ? 'Assign to a mission' : 'Affecter à une mission'}
           </DialogTitle>
           <DialogDescription>

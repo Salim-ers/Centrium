@@ -154,7 +154,7 @@ export function ContactFormDialog({
               <Label>{isEn ? 'First name' : 'Prénom'} *</Label>
               <Input {...register('first_name')} />
               {errors.first_name && (
-                <p className="text-xs text-red-400 mt-1">{errors.first_name.message}</p>
+                <p className="text-xs text-destructive mt-1">{errors.first_name.message}</p>
               )}
             </div>
             <div>
@@ -191,7 +191,7 @@ export function ContactFormDialog({
               <Label>{isEn ? 'Email' : 'Email'}</Label>
               <Input type="email" {...register('email')} />
               {errors.email && (
-                <p className="text-xs text-red-400 mt-1">{errors.email.message}</p>
+                <p className="text-xs text-destructive mt-1">{errors.email.message}</p>
               )}
             </div>
             <div>

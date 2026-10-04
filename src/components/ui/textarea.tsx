@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { LIMITS } from '@/lib/constants/limits';
+import { fieldBase } from './field-styles';
 
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   /**
@@ -40,10 +41,8 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           defaultValue={defaultValue}
           onChange={onChange}
           className={cn(
-            'flex min-h-[80px] w-full rounded-md border border-hairline surface-1 px-3 py-2 text-sm',
-            'placeholder:text-muted-foreground',
-            'focus-visible:outline-none focus-visible:border-violet-glow/60 focus-visible:ring-1 focus-visible:ring-violet-glow/30',
-            'disabled:cursor-not-allowed disabled:opacity-50',
+            'flex min-h-[80px] px-3 py-2 leading-relaxed',
+            fieldBase,
             className,
           )}
           {...props}
@@ -63,10 +62,8 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           defaultValue={defaultValue}
           onChange={handleChange}
           className={cn(
-            'flex min-h-[80px] w-full rounded-md border border-hairline surface-1 px-3 py-2 pb-6 text-sm',
-            'placeholder:text-muted-foreground',
-            'focus-visible:outline-none focus-visible:border-violet-glow/60 focus-visible:ring-1 focus-visible:ring-violet-glow/30',
-            'disabled:cursor-not-allowed disabled:opacity-50',
+            'flex min-h-[80px] px-3 py-2 pb-6 leading-relaxed',
+            fieldBase,
             className,
           )}
           {...props}
@@ -75,9 +72,9 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           className={cn(
             'pointer-events-none absolute right-2.5 bottom-1.5 text-[10px] tabular-nums select-none',
             isAtLimit
-              ? 'text-red-500 font-semibold'
+              ? 'text-destructive font-semibold'
               : isNearLimit
-                ? 'text-amber-500'
+                ? 'text-warning'
                 : 'text-muted-foreground/60',
           )}
         >

@@ -63,7 +63,7 @@ function renderHtml(input: SendEmailInput): string {
     )
     .join('\n');
   const ctaHtml = input.cta
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px auto;"><tr><td style="border-radius:10px;background:linear-gradient(135deg,#6d28d9 0%,#e11d74 100%);">
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px auto;"><tr><td style="border-radius:10px;background:#C65F46;">
         <a href="${escapeHtml(input.cta.url)}" style="display:inline-block;padding:13px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px;">${escapeHtml(input.cta.label)}</a>
       </td></tr></table>`
     : '';

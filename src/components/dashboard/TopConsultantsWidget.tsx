@@ -88,8 +88,8 @@ export function TopConsultantsWidget() {
       <div className="p-5 h-full flex flex-col">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-emerald-500/15 border border-emerald-400/20 flex items-center justify-center">
-              <Trophy className="h-4 w-4 text-emerald-400" />
+            <div className="h-8 w-8 rounded-lg bg-success/15 border border-success/20 flex items-center justify-center">
+              <Trophy className="h-4 w-4 text-success" />
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -138,7 +138,7 @@ export function TopConsultantsWidget() {
                       <span
                         className={cn(
                           'w-3.5 shrink-0 text-center font-mono text-[10px] font-semibold',
-                          i === 0 ? 'text-amber-400' : 'text-muted-foreground/50',
+                          i === 0 ? 'text-warning' : 'text-muted-foreground/50',
                         )}
                       >
                         {i + 1}
@@ -160,7 +160,7 @@ export function TopConsultantsWidget() {
                         </div>
                       </div>
                     </div>
-                    <span className="shrink-0 text-xs font-semibold text-emerald-300">
+                    <span className="shrink-0 text-xs font-semibold text-success">
                       {formatCurrency(c.daily_rate)}
                       <span className="text-muted-foreground font-normal">
                         {t.dashboard.per_day_short}

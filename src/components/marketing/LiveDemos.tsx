@@ -43,14 +43,14 @@ export function LiveDemos() {
     >
       <div className="relative max-w-7xl mx-auto px-6">
         <div className="text-center max-w-2xl mx-auto mb-16" data-reveal>
-          <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-3">
+          <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-primary mb-3">
             {t.liveDemos.kicker}
           </div>
-          <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(2rem,4vw,3.2rem)] text-white">
+          <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(2rem,4vw,3.2rem)] text-foreground">
             {t.liveDemos.titleA}{' '}
-            <span className="qc-italic-accent font-editorial italic">{t.liveDemos.titleB}</span>
+            <span className="text-primary font-display ">{t.liveDemos.titleB}</span>
           </h2>
-          <p className="mt-5 mx-auto max-w-xl text-white/55 text-[15px] leading-relaxed">
+          <p className="mt-5 mx-auto max-w-xl text-muted-foreground text-[15px] leading-relaxed">
             {t.liveDemos.sub}
           </p>
         </div>
@@ -145,19 +145,19 @@ function DemoFrame({
     <div
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
-      className="qc-luminous-static relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.01] backdrop-blur-md p-6 overflow-hidden h-full flex flex-col"
+      className="qc-luminous-static relative rounded-3xl border border-border bg-gradient-to-br from-transparent to-transparent p-6 overflow-hidden h-full flex flex-col"
     >
       <div
         aria-hidden
-        className="absolute -top-16 -right-16 h-44 w-44 rounded-full bg-magenta/20 blur-3xl"
+        className="absolute -top-16 -right-16 h-44 w-44 rounded-full bg-primary/20 blur-3xl hidden"
       />
       <div className="relative flex-1 flex flex-col">
         <div className="flex items-start justify-between mb-5 gap-3">
           <div className="min-w-0">
-            <div className="text-[10px] font-semibold tracking-[0.25em] uppercase text-white/40 mb-2">
+            <div className="text-[10px] font-semibold tracking-[0.25em] uppercase text-muted-foreground mb-2">
               {subtitle}
             </div>
-            <div className="qc-italic-accent font-editorial italic text-[22px] leading-tight">
+            <div className="text-primary font-display text-[22px] leading-tight">
               {title}
             </div>
           </div>
@@ -174,8 +174,8 @@ function DemoFrame({
                     onClick={() => onStep(i)}
                     className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
                       active
-                        ? 'w-6 bg-magenta'
-                        : 'w-2.5 bg-white/15 hover:bg-white/30'
+                        ? 'w-6 bg-primary'
+                        : 'w-2.5 bg-muted hover:bg-muted'
                     }`}
                   />
                 );
@@ -193,7 +193,7 @@ function DemoFrame({
             type="button"
             onClick={onTogglePause}
             aria-label={paused ? t.liveDemos.aria.resume : t.liveDemos.aria.pause}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-[10px] uppercase tracking-[0.18em] text-white/60 hover:text-white transition"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-card hover:bg-muted text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground transition"
           >
             {paused ? (
               <>
@@ -259,10 +259,10 @@ function DemoCvOptimizer() {
     >
       {/* Step 0 : Upload */}
       <Step active={step === 0}>
-        <div className="border-2 border-dashed border-white/15 rounded-xl py-12 text-center text-white/45 text-[13px] h-full flex flex-col items-center justify-center">
-          <Upload className="h-7 w-7 mb-3 text-magenta/70" />
+        <div className="border-2 border-dashed border-border rounded-xl py-12 text-center text-muted-foreground text-[13px] h-full flex flex-col items-center justify-center">
+          <Upload className="h-7 w-7 mb-3 text-primary" />
           cv-jean-dupont.pdf
-          <div className="text-[10px] mt-2 text-white/30">{t.liveDemos.cvDraft.dropAccepted}</div>
+          <div className="text-[10px] mt-2 text-muted-foreground">{t.liveDemos.cvDraft.dropAccepted}</div>
         </div>
       </Step>
 
@@ -273,27 +273,27 @@ function DemoCvOptimizer() {
             {skills.slice(0, s + 1).map((skill) => (
               <div
                 key={skill.name}
-                className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5"
+                className="rounded-lg border border-border bg-card p-2.5"
               >
                 <div className="flex items-center justify-between mb-1.5">
-                  <div className="flex items-center gap-2 text-xs text-white/80">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-success" />
                     {skill.name}
                   </div>
-                  <div className="text-[10px] font-mono text-white/50">
+                  <div className="text-[10px] font-mono text-muted-foreground">
                     {skill.score}%
                   </div>
                 </div>
-                <div className="h-1 rounded-full bg-white/5 overflow-hidden">
+                <div className="h-1 rounded-full bg-muted overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-pink-500 to-violet-glow rounded-full transition-all duration-700"
+                    className="h-full bg-gradient-to-r from-primary to-primary rounded-full transition-all duration-700"
                     style={{ width: `${skill.score}%` }}
                   />
                 </div>
               </div>
             ))}
             {s === 3 && (
-              <div className="mt-3 rounded-lg border border-emerald-400/30 bg-emerald-400/[0.08] p-3 text-[11px] text-emerald-200 flex items-center gap-2">
+              <div className="mt-3 rounded-lg border border-success/30 bg-success/[0.08] p-3 text-[11px] text-success flex items-center gap-2">
                 <Sparkles className="h-3.5 w-3.5" />
                 <span>
                   <strong>{t.liveDemos.cvDraft.cvReady}</strong> · {t.liveDemos.cvDraft.noInvention} · confiance{' '}
@@ -315,9 +315,9 @@ function DemoMatching() {
   const { i: step, setIndex } = useCycle(4, 3500, hovering || forcedPause);
 
   const matches = [
-    { initials: 'M.B.', role: 'Tech Lead React', score: 92, color: 'text-emerald-300' },
-    { initials: 'A.D.', role: 'Senior Frontend', score: 87, color: 'text-magenta' },
-    { initials: 'J.R.', role: 'Full-stack', score: 81, color: 'text-violet-300' },
+    { initials: 'M.B.', role: 'Tech Lead React', score: 92, color: 'text-success' },
+    { initials: 'A.D.', role: 'Senior Frontend', score: 87, color: 'text-primary' },
+    { initials: 'J.R.', role: 'Full-stack', score: 81, color: 'text-primary' },
   ];
 
   return (
@@ -334,19 +334,19 @@ function DemoMatching() {
     >
       {/* Step 0 : brief de la mission */}
       <Step active={step === 0}>
-        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4 h-full flex flex-col justify-center">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-white/40 mb-1.5">
-            <Search className="h-3 w-3 text-magenta" />
+        <div className="rounded-lg border border-border bg-card p-4 h-full flex flex-col justify-center">
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+            <Search className="h-3 w-3 text-primary" />
             {t.liveDemos.matching.mission}
           </div>
-          <div className="text-[14px] text-white font-medium">
+          <div className="text-[14px] text-foreground font-medium">
             {t.liveDemos.matching.profile}
           </div>
           <div className="mt-3 flex flex-wrap gap-1.5 text-[10px]">
             {['React', 'TypeScript', 'Lead', 'Micro-FE'].map((tag) => (
               <span
                 key={tag}
-                className="px-2 py-0.5 rounded-full bg-magenta/15 text-magenta border border-magenta/30"
+                className="px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30"
               >
                 {tag}
               </span>
@@ -362,16 +362,16 @@ function DemoMatching() {
             {matches.slice(0, s).map((m) => (
               <div
                 key={m.initials}
-                className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5 flex items-center gap-3"
+                className="rounded-lg border border-border bg-card p-2.5 flex items-center gap-3"
               >
-                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-pink-500/30 to-violet-500/20 border border-white/15 flex items-center justify-center text-[11px] font-mono text-white/90 shrink-0">
+                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary/30 to-primary/20 border border-border flex items-center justify-center text-[11px] font-mono text-foreground shrink-0">
                   {m.initials}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[12px] text-white font-medium truncate">
+                  <div className="text-[12px] text-foreground font-medium truncate">
                     {m.role}
                   </div>
-                  <div className="text-[10px] text-white/45">
+                  <div className="text-[10px] text-muted-foreground">
                     {t.liveDemos.matching.available}
                   </div>
                 </div>
@@ -412,12 +412,12 @@ function DemoCraInvoice() {
       {/* Contenu STABLE — toujours affiché, juste l'état change selon step */}
       <div className="space-y-3 h-full flex flex-col">
         {/* Calendrier CRA — visible en permanence */}
-        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+        <div className="rounded-lg border border-border bg-card p-3">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-[10px] uppercase tracking-wider text-white/40">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
               {t.liveDemos.cra.craMonth}
             </div>
-            <div className="text-[10px] text-white/50 font-mono">
+            <div className="text-[10px] text-muted-foreground font-mono">
               {Math.min(totalDays, validatedDays)}/{totalDays} j
             </div>
           </div>
@@ -429,8 +429,8 @@ function DemoCraInvoice() {
                   key={i}
                   className={`h-5 rounded-sm transition-all duration-500 ${
                     validated
-                      ? 'bg-gradient-to-br from-magenta to-violet-glow'
-                      : 'bg-white/[0.04]'
+                      ? 'bg-gradient-to-br from-primary to-primary'
+                      : 'bg-card'
                   }`}
                 />
               );
@@ -440,20 +440,20 @@ function DemoCraInvoice() {
 
         {/* Facture — apparaît step 2+ */}
         <div
-          className="rounded-lg border border-white/10 bg-white/[0.03] p-3 transition-opacity duration-500"
+          className="rounded-lg border border-border bg-card p-3 transition-opacity duration-500"
           style={{ opacity: step >= 2 ? 1 : 0.25 }}
         >
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-white/40 mb-1.5">
-            <FileSignature className="h-3 w-3 text-magenta" />
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+            <FileSignature className="h-3 w-3 text-primary" />
             {t.liveDemos.cra.invoiceGenerated}
           </div>
-          <div className="font-mono text-[11px] text-white/75">{t.liveDemos.cra.ref}</div>
-          <div className="mt-1 font-display text-xl text-white">{t.liveDemos.cra.amount}</div>
+          <div className="font-mono text-[11px] text-muted-foreground">{t.liveDemos.cra.ref}</div>
+          <div className="mt-1 font-display text-xl text-foreground">{t.liveDemos.cra.amount}</div>
         </div>
 
         {/* Envoyé — apparaît step 3 */}
         <div
-          className="rounded-lg border border-emerald-400/30 bg-emerald-400/[0.08] p-2.5 text-[11px] text-emerald-200 flex items-center gap-2 transition-opacity duration-500"
+          className="rounded-lg border border-success/30 bg-success/[0.08] p-2.5 text-[11px] text-success flex items-center gap-2 transition-opacity duration-500"
           style={{ opacity: step >= 3 ? 1 : 0 }}
         >
           <ArrowRight className="h-3.5 w-3.5" />

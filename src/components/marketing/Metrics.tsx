@@ -78,12 +78,12 @@ export function Metrics() {
     <section ref={ref} className="qc-section-divider relative py-16">
       <div className="relative max-w-7xl mx-auto px-6">
         <div className="text-center mb-14" data-reveal>
-          <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-3">
+          <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-primary mb-3">
             {t.metrics.kicker}
           </div>
-          <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(1.8rem,3.5vw,2.8rem)] text-white">
+          <h2 className="font-display font-light tracking-[-0.03em] leading-[1] text-[clamp(1.8rem,3.5vw,2.8rem)] text-foreground">
             {t.metrics.titleA}{' '}
-            <span className="qc-italic-accent font-editorial italic">{t.metrics.titleB}</span>
+            <span className="text-primary font-display ">{t.metrics.titleB}</span>
           </h2>
         </div>
 
@@ -94,12 +94,12 @@ export function Metrics() {
               <div
                 key={label || i}
                 data-reveal
-                className="qc-luminous-static rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-md p-7 text-center"
+                className="qc-luminous-static rounded-3xl border border-border bg-card p-7 text-center"
               >
-                <div className="qc-italic-accent font-editorial italic text-[clamp(2.4rem,4.5vw,3.6rem)] leading-none">
+                <div className="text-primary font-display text-[clamp(2.4rem,4.5vw,3.6rem)] leading-none">
                   <AnimatedNum target={it.value} suffix={it.suffix} />
                 </div>
-                <div className="mt-4 text-[11px] uppercase tracking-[0.2em] text-white/55">
+                <div className="mt-4 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
                   {label}
                 </div>
               </div>

@@ -143,22 +143,22 @@ export function CsvImportDialog({
             {isEn ? (
               <>
                 Expected format: 1 row per profile with headers. Minimum columns:
-                <code className="mx-1 text-violet-300">first_name</code>,
-                <code className="mx-1 text-violet-300">last_name</code>,
-                <code className="mx-1 text-violet-300">job_title</code>,
-                <code className="mx-1 text-violet-300">seniority</code> (junior/confirmed/senior/expert),
-                <code className="mx-1 text-violet-300">years_experience</code>. Optional:
+                <code className="mx-1 text-primary">first_name</code>,
+                <code className="mx-1 text-primary">last_name</code>,
+                <code className="mx-1 text-primary">job_title</code>,
+                <code className="mx-1 text-primary">seniority</code> (junior/confirmed/senior/expert),
+                <code className="mx-1 text-primary">years_experience</code>. Optional:
                 email, phone, linkedin_url, sub_title, city, country, daily_rate_eur, status, summary.
                 Comma, semicolon or tab separator.
               </>
             ) : (
               <>
                 Format attendu : 1 ligne par profil avec en-têtes. Colonnes minimum :
-                <code className="mx-1 text-violet-300">first_name</code>,
-                <code className="mx-1 text-violet-300">last_name</code>,
-                <code className="mx-1 text-violet-300">job_title</code>,
-                <code className="mx-1 text-violet-300">seniority</code> (junior/confirmed/senior/expert),
-                <code className="mx-1 text-violet-300">years_experience</code>. Optionnel :
+                <code className="mx-1 text-primary">first_name</code>,
+                <code className="mx-1 text-primary">last_name</code>,
+                <code className="mx-1 text-primary">job_title</code>,
+                <code className="mx-1 text-primary">seniority</code> (junior/confirmed/senior/expert),
+                <code className="mx-1 text-primary">years_experience</code>. Optionnel :
                 email, phone, linkedin_url, sub_title, city, country, daily_rate_eur, status, summary.
                 Séparateur virgule, point-virgule ou tab.
               </>
@@ -194,14 +194,14 @@ export function CsvImportDialog({
           ) : (
             <>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-white/70 truncate">{fileName}</span>
+                <span className="text-muted-foreground truncate">{fileName}</span>
                 <div className="flex items-center gap-3">
-                  <span className="inline-flex items-center gap-1 text-emerald-300">
+                  <span className="inline-flex items-center gap-1 text-success">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     {validCount} {isEn ? 'valid' : 'valides'}
                   </span>
                   {errorCount > 0 && (
-                    <span className="inline-flex items-center gap-1 text-red-300">
+                    <span className="inline-flex items-center gap-1 text-destructive">
                       <AlertCircle className="h-3.5 w-3.5" />
                       {errorCount} {isEn ? 'in error' : 'en erreur'}
                     </span>
@@ -220,8 +220,8 @@ export function CsvImportDialog({
               <div className="rounded-lg border border-hairline overflow-hidden">
                 <div className="max-h-[420px] overflow-auto">
                   <table className="w-full text-xs">
-                    <thead className="bg-white/[0.02] sticky top-0">
-                      <tr className="text-left text-white/60">
+                    <thead className="bg-card sticky top-0">
+                      <tr className="text-left text-muted-foreground">
                         <th className="px-3 py-2 font-semibold">#</th>
                         <th className="px-3 py-2 font-semibold">{isEn ? 'Name' : 'Nom'}</th>
                         <th className="px-3 py-2 font-semibold">{isEn ? 'Title' : 'Intitulé'}</th>
@@ -237,30 +237,30 @@ export function CsvImportDialog({
                           className={
                             d.parsed
                               ? 'border-t border-hairline'
-                              : 'border-t border-red-500/20 bg-red-500/[0.04]'
+                              : 'border-t border-destructive/20 bg-destructive/[0.04]'
                           }
                         >
-                          <td className="px-3 py-2 text-white/40">{d.index + 1}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{d.index + 1}</td>
                           {d.parsed ? (
                             <>
                               <td className="px-3 py-2">
                                 {d.parsed.first_name} {d.parsed.last_name}
                               </td>
-                              <td className="px-3 py-2 text-white/70">
+                              <td className="px-3 py-2 text-muted-foreground">
                                 {d.parsed.job_title}
                               </td>
-                              <td className="px-3 py-2 text-white/70">
+                              <td className="px-3 py-2 text-muted-foreground">
                                 {d.parsed.seniority}
                               </td>
-                              <td className="px-3 py-2 text-white/70">
+                              <td className="px-3 py-2 text-muted-foreground">
                                 {d.parsed.daily_rate_eur ?? '—'}
                               </td>
-                              <td className="px-3 py-2 text-white/70">
+                              <td className="px-3 py-2 text-muted-foreground">
                                 {d.parsed.status}
                               </td>
                             </>
                           ) : (
-                            <td colSpan={5} className="px-3 py-2 text-red-300">
+                            <td colSpan={5} className="px-3 py-2 text-destructive">
                               <div className="flex items-start gap-2">
                                 <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                                 <div>

@@ -165,7 +165,7 @@ export function PromoteToConsultantDialog({
       <FormDialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ArrowRightCircle className="h-5 w-5 text-emerald-300" />
+            <ArrowRightCircle className="h-5 w-5 text-success" />
             {isEn ? 'Promote to consultant' : 'Promouvoir en consultant'}
           </DialogTitle>
           <DialogDescription>
@@ -180,8 +180,8 @@ export function PromoteToConsultantDialog({
 
         <div className="space-y-4 pt-2">
           {hasExistingPortal ? (
-            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/[0.06] p-3 flex items-start gap-2">
-              <ShieldCheck className="h-4 w-4 text-emerald-300 shrink-0 mt-0.5" />
+            <div className="rounded-lg border border-success/30 bg-success/[0.06] p-3 flex items-start gap-2">
+              <ShieldCheck className="h-4 w-4 text-success shrink-0 mt-0.5" />
               <div className="text-xs text-muted-foreground leading-relaxed">
                 {isEn ? (
                   <>
@@ -198,16 +198,16 @@ export function PromoteToConsultantDialog({
             </div>
           ) : (
             <>
-              <label className="flex items-start gap-3 cursor-pointer rounded-lg border border-violet-brand/20 bg-violet-brand/5 p-3">
+              <label className="flex items-start gap-3 cursor-pointer rounded-lg border border-primary/20 bg-primary/5 p-3">
                 <input
                   type="checkbox"
                   checked={createPortal}
                   onChange={(e) => setCreatePortal(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-white/20 bg-white/10 accent-violet-brand cursor-pointer"
+                  className="mt-0.5 h-4 w-4 rounded border-border bg-muted accent-primary cursor-pointer"
                 />
                 <div className="flex-1">
                   <div className="text-sm font-medium inline-flex items-center gap-1.5">
-                    <UserPlus className="h-4 w-4 text-violet-300" />
+                    <UserPlus className="h-4 w-4 text-primary" />
                     {isEn ? 'Also create consultant portal access' : 'Créer aussi un accès portail consultant'}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
@@ -222,7 +222,7 @@ export function PromoteToConsultantDialog({
                 <div>
                   <Label>{isEn ? 'Portal email *' : 'Email du portail *'}</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                     <Input
                       type="email"
                       value={email}
@@ -232,7 +232,7 @@ export function PromoteToConsultantDialog({
                       autoComplete="off"
                     />
                   </div>
-                  <p className="mt-1 text-[11px] text-violet-300/80">
+                  <p className="mt-1 text-[11px] text-primary">
                     {isEn
                       ? 'The invitation link expires after 7 days.'
                       : "Le lien d'invitation expire après 7 jours."}

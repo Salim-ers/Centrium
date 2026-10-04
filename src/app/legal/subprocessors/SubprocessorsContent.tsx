@@ -126,7 +126,7 @@ export function SubprocessorsContent() {
           <p>
             This page publicly lists the third-party providers used by QuadCore SAS (publisher of Centrium), and
             constitutes the &quot;Subsequent subprocessors&quot; annex of the{' '}
-            <a href="/legal/dpa" className="text-magenta hover:underline">Data Processing Agreement (DPA)</a> within the
+            <a href="/legal/dpa" className="text-primary hover:underline">Data Processing Agreement (DPA)</a> within the
             meaning of Article 28.3 of the GDPR.
           </p>
           <p>
@@ -148,7 +148,7 @@ export function SubprocessorsContent() {
             period; failing agreement within 30 days after the objection, they may{' '}
             <strong>terminate without penalty</strong> the affected services, with a pro-rata refund of amounts paid in
             advance and not consumed. To subscribe to updates:{' '}
-            <a href="mailto:dpo@centrium-platform.com" className="text-magenta hover:underline">dpo@centrium-platform.com</a>.
+            <a href="mailto:dpo@centrium-platform.com" className="text-primary hover:underline">dpo@centrium-platform.com</a>.
           </p>
         </>
       ) : (
@@ -156,7 +156,7 @@ export function SubprocessorsContent() {
           <p>
             Cette page liste publiquement les prestataires tiers auxquels QuadCore SAS
             (éditeur de Centrium) recourt, et constitue l&apos;annexe « Sous-traitants
-            ultérieurs » de l&apos;<a href="/legal/dpa" className="text-magenta hover:underline">Accord de
+            ultérieurs » de l&apos;<a href="/legal/dpa" className="text-primary hover:underline">Accord de
             sous-traitance (DPA)</a> au sens de l&apos;article 28.3 du RGPD.
           </p>
           <p>
@@ -184,32 +184,32 @@ export function SubprocessorsContent() {
             <strong>résilier sans pénalité</strong> les prestations affectées, avec
             remboursement au prorata des sommes payées d&apos;avance et non consommées. Pour
             s&apos;abonner aux mises à jour :{' '}
-            <a href="mailto:dpo@centrium-platform.com" className="text-magenta hover:underline">dpo@centrium-platform.com</a>.
+            <a href="mailto:dpo@centrium-platform.com" className="text-primary hover:underline">dpo@centrium-platform.com</a>.
           </p>
         </>
       )}
 
       {SUBPROCESSORS.map((sp) => (
         <section key={sp.name} className="mt-8">
-          <h2 className="font-display text-xl font-semibold text-white">{sp.name}</h2>
+          <h2 className="font-display text-xl font-semibold text-foreground">{sp.name}</h2>
           <dl className="mt-3 grid grid-cols-1 md:grid-cols-[140px_1fr] gap-x-6 gap-y-2 text-sm">
-            <dt className="text-white/50">{isEn ? 'Purpose' : 'Finalité'}</dt>
-            <dd className="text-white/85">{isEn ? sp.purposeEn : sp.purpose}</dd>
-            <dt className="text-white/50">{isEn ? 'Data processed' : 'Données traitées'}</dt>
-            <dd className="text-white/85">{isEn ? sp.dataEn : sp.data}</dd>
-            <dt className="text-white/50">{isEn ? 'Location' : 'Localisation'}</dt>
-            <dd className="text-white/85">{isEn ? sp.locationEn : sp.location}</dd>
-            <dt className="text-white/50">{isEn ? 'Transfer outside the EU' : 'Transfert hors UE'}</dt>
-            <dd className="text-white/85">{isEn ? sp.transferEn : sp.transfer}</dd>
-            <dt className="text-white/50">{isEn ? 'Certifications' : 'Certifications'}</dt>
-            <dd className="text-white/85">{sp.cert}</dd>
-            <dt className="text-white/50">DPA</dt>
+            <dt className="text-muted-foreground">{isEn ? 'Purpose' : 'Finalité'}</dt>
+            <dd className="text-foreground">{isEn ? sp.purposeEn : sp.purpose}</dd>
+            <dt className="text-muted-foreground">{isEn ? 'Data processed' : 'Données traitées'}</dt>
+            <dd className="text-foreground">{isEn ? sp.dataEn : sp.data}</dd>
+            <dt className="text-muted-foreground">{isEn ? 'Location' : 'Localisation'}</dt>
+            <dd className="text-foreground">{isEn ? sp.locationEn : sp.location}</dd>
+            <dt className="text-muted-foreground">{isEn ? 'Transfer outside the EU' : 'Transfert hors UE'}</dt>
+            <dd className="text-foreground">{isEn ? sp.transferEn : sp.transfer}</dd>
+            <dt className="text-muted-foreground">{isEn ? 'Certifications' : 'Certifications'}</dt>
+            <dd className="text-foreground">{sp.cert}</dd>
+            <dt className="text-muted-foreground">DPA</dt>
             <dd>
               <a
                 href={sp.dpa}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-magenta hover:underline"
+                className="text-primary hover:underline"
               >
                 {sp.dpa.replace(/^https?:\/\//, '')}
               </a>
@@ -218,7 +218,7 @@ export function SubprocessorsContent() {
         </section>
       ))}
 
-      <hr className="my-10 border-white/10" />
+      <hr className="my-10 border-border" />
 
       <h2>{isEn ? 'Our commitment' : 'Notre engagement'}</h2>
       <p>
@@ -229,7 +229,7 @@ export function SubprocessorsContent() {
 
       <p>
         {isEn ? 'For any question: ' : 'Pour toute question : '}
-        <a href="mailto:dpo@centrium-platform.com" className="text-magenta hover:underline">dpo@centrium-platform.com</a>
+        <a href="mailto:dpo@centrium-platform.com" className="text-primary hover:underline">dpo@centrium-platform.com</a>
       </p>
     </LegalShell>
   );

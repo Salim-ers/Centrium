@@ -9,7 +9,7 @@ import { useOrganizationSafe } from '@/lib/auth/context';
  * client différent. Pas de re-render forcé du tree : on pose juste un
  * <style> scoped au :root.
  *
- * Fallback = palette QuadCore (violet / magenta).
+ * Fallback = palette Centrium (terracotta).
  */
 /** Couleur hex stricte (#rgb ou #rrggbb) sinon fallback. Garde-fou anti-XSS
  *  au RENDU : même si une couleur non valide était stockée en base (autre
@@ -22,8 +22,8 @@ function safeColor(value: string | null | undefined, fallback: string): string {
 
 export function BrandingStyles() {
   const org = useOrganizationSafe();
-  const primary = safeColor(org?.branding?.primaryColor, '#6d28d9');
-  const accent = safeColor(org?.branding?.accentColor, '#e11d74');
+  const primary = safeColor(org?.branding?.primaryColor, '#C65F46');
+  const accent = safeColor(org?.branding?.accentColor, '#9D4432');
 
   return (
     <style

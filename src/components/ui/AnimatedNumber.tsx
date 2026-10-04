@@ -100,7 +100,7 @@ export function AnimatedNumber({
 
   return (
     <span
-      className={`inline-block transition-colors duration-300 ${flash ? 'text-violet-glow' : ''} ${className ?? ''}`}
+      className={`inline-block transition-colors duration-300 ${flash ? 'text-primary' : ''} ${className ?? ''}`}
     >
       {text}
     </span>

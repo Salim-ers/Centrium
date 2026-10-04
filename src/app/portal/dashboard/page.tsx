@@ -103,12 +103,12 @@ export default function PortalDashboardPage() {
   const greeting = consultant?.first_name
     ? (
         <>
-          {isEn ? 'Hello, ' : 'Bonjour, '}<span className="qc-italic-accent font-editorial italic">{consultant.first_name}.</span>
+          {isEn ? 'Hello, ' : 'Bonjour, '}<span className="text-primary font-display ">{consultant.first_name}.</span>
         </>
       )
     : (
         <>
-          {isEn ? 'Your ' : 'Votre '}<span className="qc-italic-accent font-editorial italic">{isEn ? 'dashboard.' : 'tableau de bord.'}</span>
+          {isEn ? 'Your ' : 'Votre '}<span className="text-primary font-display ">{isEn ? 'dashboard.' : 'tableau de bord.'}</span>
         </>
       );
 
@@ -165,7 +165,7 @@ export default function PortalDashboardPage() {
         <Reveal delay={0.08} className="lg:col-span-2">
           <SectionHeader
             eyebrow={isEn ? 'Activity' : 'Activité'}
-            title={<>{isEn ? 'My latest ' : 'Mes derniers '}<span className="qc-italic-accent font-editorial italic">CRA.</span></>}
+            title={<>{isEn ? 'My latest ' : 'Mes derniers '}<span className="text-primary font-display ">CRA.</span></>}
             actions={
               <Button size="sm" variant="outline" asChild>
                 <Link href="/portal/cra">{isEn ? 'View all' : 'Voir tout'}</Link>
@@ -214,7 +214,7 @@ export default function PortalDashboardPage() {
         <Reveal delay={0.14}>
           <SectionHeader
             eyebrow="Finances"
-            title={<>{isEn ? 'Invoices ' : 'Factures '}<span className="qc-italic-accent font-editorial italic">{isEn ? 'paid.' : 'payées.'}</span></>}
+            title={<>{isEn ? 'Invoices ' : 'Factures '}<span className="text-primary font-display ">{isEn ? 'paid.' : 'payées.'}</span></>}
           />
           <AppCard>
             {loading ? (
@@ -233,7 +233,7 @@ export default function PortalDashboardPage() {
                   {invoices.map((i) => (
                     <DataRow
                       key={i.id}
-                      leading={<CheckCircle2 className="h-4 w-4 text-emerald-400" />}
+                      leading={<CheckCircle2 className="h-4 w-4 text-success" />}
                       primary={<span className="font-mono">{i.invoice_number}</span>}
                       secondary={i.period_label ?? ''}
                       trailing={
@@ -262,7 +262,7 @@ function SkeletonRows() {
   return (
     <div className="space-y-2">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="h-10 rounded-lg bg-white/[0.02] animate-pulse" />
+        <div key={i} className="h-10 rounded-lg bg-card animate-pulse" />
       ))}
     </div>
   );

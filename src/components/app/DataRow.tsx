@@ -49,15 +49,15 @@ export function DataRow({ leading, primary, secondary, trailing, href, highlight
         <div className="flex items-center gap-3 shrink-0 text-[13px]">{trailing}</div>
       )}
       {href && (
-        <ChevronRight className="h-4 w-4 text-muted-foreground/60 shrink-0 transition group-hover:text-magenta group-hover:translate-x-0.5" />
+        <ChevronRight className="h-4 w-4 text-muted-foreground/60 shrink-0 transition group-hover:text-primary group-hover:translate-x-0.5" />
       )}
     </>
   );
 
   const base = cn(
     'group flex items-center gap-3 px-4 py-3 border-b border-hairline/60 last:border-b-0 transition-colors',
-    href && 'hover:bg-magenta/[0.04] cursor-pointer',
-    highlight && 'hover:border-magenta/40',
+    href && 'hover:bg-primary/[0.04] cursor-pointer',
+    highlight && 'hover:border-primary/40',
     className,
   );
 

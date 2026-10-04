@@ -189,7 +189,7 @@ export default function PortalProfilePage() {
     <div>
       <PageHeader
         eyebrow={isEn ? 'My space' : 'Mon espace'}
-        title={<>{isEn ? 'My ' : 'Mon '}<span className="qc-italic-accent font-editorial italic">{isEn ? 'profile.' : 'profil.'}</span></>}
+        title={<>{isEn ? 'My ' : 'Mon '}<span className="text-primary font-display ">{isEn ? 'profile.' : 'profil.'}</span></>}
         description={
           isEn
             ? `Update your personal information — the business fields (day rate, seniority, status) remain managed by ${brandName}.`
@@ -223,7 +223,7 @@ export default function PortalProfilePage() {
           <AppCardBody size="lg">
             <div className="flex items-start gap-6 flex-wrap">
               <div className="relative shrink-0">
-                <div className="h-20 w-20 rounded-full bg-qc-gradient flex items-center justify-center text-white text-2xl font-bold shadow-glow ring-4 ring-magenta/10">
+                <div className="h-20 w-20 rounded-full bg-qc-gradient flex items-center justify-center text-white text-2xl font-bold ring-4 ring-primary/10">
                   {c.first_name[0]}
                   {c.last_name[0]}
                 </div>
@@ -233,7 +233,7 @@ export default function PortalProfilePage() {
                 <div className="flex items-center gap-3 flex-wrap">
                   <h2 className="font-display font-light tracking-[-0.02em] text-2xl sm:text-3xl">
                     {c.first_name}{' '}
-                    <span className="qc-italic-accent font-editorial italic">{c.last_name}</span>
+                    <span className="text-primary font-display ">{c.last_name}</span>
                   </h2>
                   <Badge variant="outline" className={CONSULTANT_STATUS_STYLE[c.status]}>
                     {statusLabels[c.status]}
@@ -266,7 +266,7 @@ export default function PortalProfilePage() {
       <Reveal delay={0.06}>
         <SectionHeader
           eyebrow={isEn ? 'Contact' : 'Contact'}
-          title={<>{isEn ? 'My ' : 'Mes '}<span className="qc-italic-accent font-editorial italic">{isEn ? 'contact details.' : 'coordonnées.'}</span></>}
+          title={<>{isEn ? 'My ' : 'Mes '}<span className="text-primary font-display ">{isEn ? 'contact details.' : 'coordonnées.'}</span></>}
         />
         <AppCard className="mb-8">
           <AppCardBody>
@@ -344,7 +344,7 @@ export default function PortalProfilePage() {
                 )}
                 {c.summary && (
                   <div className="md:col-span-2 mt-2 pt-3 border-t border-hairline">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-magenta mb-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-primary mb-2">
                       {isEn ? 'Summary' : 'Résumé'}
                     </div>
                     <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
@@ -362,7 +362,7 @@ export default function PortalProfilePage() {
       <Reveal delay={0.12}>
         <SectionHeader
           eyebrow={isEn ? 'Billing' : 'Facturation'}
-          title={<>{isEn ? 'Company & ' : 'Société & '}<span className="qc-italic-accent font-editorial italic">{isEn ? 'billing.' : 'facturation.'}</span></>}
+          title={<>{isEn ? 'Company & ' : 'Société & '}<span className="text-primary font-display ">{isEn ? 'billing.' : 'facturation.'}</span></>}
           description={isEn ? 'This information feeds your contracts and the payment of your timesheets.' : 'Ces informations alimentent tes contrats et le règlement de tes CRA.'}
         />
         <AppCard tone={billingMissing && !editing ? 'amber' : 'none'} className="mb-8">
@@ -442,9 +442,9 @@ export default function PortalProfilePage() {
                   <ReadRow label="BIC" value={c.bic} />
                 </div>
                 {billingMissing && (
-                  <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/[0.07] px-4 py-3">
-                    <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                    <p className="text-xs leading-relaxed text-amber-600 dark:text-amber-300/90">
+                  <div className="mt-4 flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/[0.07] px-4 py-3">
+                    <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                    <p className="text-xs leading-relaxed text-warning ">
                       {isEn
                         ? 'Complete your company and billing information — it is required for your contracts and the payment of your timesheets.'
                         : 'Complète tes informations de société et de facturation — elles sont nécessaires pour tes contrats et le règlement de tes CRA.'}
@@ -461,7 +461,7 @@ export default function PortalProfilePage() {
       <Reveal delay={0.18}>
         <SectionHeader
           eyebrow={isEn ? 'Profile' : 'Profil'}
-          title={<>{isEn ? 'My ' : 'Mes '}<span className="qc-italic-accent font-editorial italic">{isEn ? 'languages.' : 'langues.'}</span></>}
+          title={<>{isEn ? 'My ' : 'Mes '}<span className="text-primary font-display ">{isEn ? 'languages.' : 'langues.'}</span></>}
           description={editing ? (isEn ? 'Add, edit or remove your languages — remember to save.' : 'Ajoute, modifie ou retire tes langues — pense à enregistrer.') : undefined}
         />
         <AppCard className="mb-8">
@@ -518,7 +518,7 @@ export default function PortalProfilePage() {
                       }
                       aria-label={isEn ? 'Remove this language' : 'Retirer cette langue'}
                     >
-                      <Trash2 className="h-3.5 w-3.5 text-rose-400" />
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
                     </Button>
                   </div>
                 ))}
@@ -565,7 +565,7 @@ export default function PortalProfilePage() {
       <Reveal delay={0.22}>
         <SectionHeader
           eyebrow="Documents"
-          title={<>{isEn ? 'CV & ' : 'CV & '}<span className="qc-italic-accent font-editorial italic">certifications.</span></>}
+          title={<>{isEn ? 'CV & ' : 'CV & '}<span className="text-primary font-display ">certifications.</span></>}
           description={isEn ? 'Your CV and supporting documents, shared with the team that positions you.' : 'Ton CV et tes justificatifs, partagés avec l\'équipe qui te positionne.'}
         />
         <div className="mb-8">
@@ -662,7 +662,7 @@ function ReadRow({
     </span>
   );
   return href ? (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="hover:text-magenta transition-colors">
+    <a href={href} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
       {content}
     </a>
   ) : (

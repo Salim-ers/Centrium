@@ -1,46 +1,104 @@
 import type { Config } from 'tailwindcss';
 
+// =========================================================================
+// Centrium V2 — design tokens
+// -------------------------------------------------------------------------
+// Mode clair uniquement. Les couleurs sémantiques (background, primary,
+// muted…) sont des variables CSS définies dans globals.css ; les échelles
+// ci-dessous servent aux nuances (tints de fond, textes d'accent).
+//
+// Filet de sécurité : les anciennes familles « néon » (violet, fuchsia,
+// pink, indigo, purple) sont réalignées sur l'échelle terracotta et les
+// bleus vifs (blue, sky, cyan) sur un bleu acier désaturé. Une classe
+// historique oubliée ne peut donc plus afficher de violet ou de bleu
+// électrique.
+// =========================================================================
+
+const brand = {
+  50: '#FBF3EF',
+  100: '#F6E3DA',
+  200: '#EDC6B6',
+  300: '#E0A28B',
+  400: '#D47E64',
+  500: '#C65F46',
+  600: '#B0503A',
+  700: '#9D4432',
+  800: '#7C3628',
+  900: '#5E2A20',
+  950: '#3A1913',
+};
+
+const sand = {
+  50: '#FDFBF9',
+  100: '#F4ECE6',
+  200: '#EBDFD6',
+  300: '#DDCDC0',
+  400: '#C4B0A1',
+  500: '#A08C7D',
+  600: '#7F6E62',
+  700: '#625650',
+  800: '#46403C',
+  900: '#2C2927',
+  950: '#191817',
+};
+
+const steel = {
+  50: '#F1F5F8',
+  100: '#E3EBF1',
+  200: '#C8D7E2',
+  300: '#A3BCCD',
+  400: '#7397B0',
+  500: '#527A96',
+  600: '#3F6A8A',
+  700: '#355872',
+  800: '#2C485D',
+  900: '#233A4B',
+  950: '#16242F',
+};
+
+const red = {
+  50: '#FDF1EF',
+  100: '#FBE1DD',
+  200: '#F5C2BA',
+  300: '#EC998D',
+  400: '#E06C5C',
+  500: '#CF4733',
+  600: '#B42318',
+  700: '#971D14',
+  800: '#7A1A13',
+  900: '#621812',
+  950: '#360A07',
+};
+
 const config: Config = {
-  darkMode: ['class'],
+  // Aucune variante sombre : `dark:` ne s'applique jamais (sélecteur inerte).
+  darkMode: ['class', '[data-theme-never]'],
   content: ['./src/**/*.{ts,tsx}'],
   theme: {
     container: {
       center: true,
-      padding: '2rem',
-      screens: { '2xl': '1400px' },
+      padding: '1.5rem',
+      screens: { '2xl': '1360px' },
     },
     extend: {
       colors: {
-        // QuadCore palette
-        midnight: {
-          DEFAULT: '#0a0b14',
-          50: '#1a1c2a',
-          100: '#14161f',
-          200: '#0f1119',
-          300: '#0a0b14',
-          400: '#07080f',
-        },
-        ink: {
-          DEFAULT: '#0f1119',
-          light: '#14161f',
-          lighter: '#1a1c2a',
-        },
-        violet: {
-          deep: '#2a1a4a',
-          brand: '#6d28d9',
-          glow: '#8b5cf6',
-        },
-        magenta: {
-          DEFAULT: '#e11d74',
-          neon: '#ec4899',
-          muted: '#9d174d',
-        },
-        anthracite: {
-          DEFAULT: '#2a2d3a',
-          light: '#3a3d4a',
-          lighter: '#4a4d5a',
-        },
-        // shadcn tokens
+        brand: { DEFAULT: brand[500], ...brand },
+        sand: { DEFAULT: sand[100], ...sand },
+        steel,
+        // Familles historiques réalignées (filet de sécurité).
+        violet: brand,
+        purple: brand,
+        fuchsia: brand,
+        pink: brand,
+        indigo: brand,
+        magenta: { DEFAULT: brand[500], neon: brand[500], muted: brand[700] },
+        blue: steel,
+        sky: steel,
+        cyan: steel,
+        rose: red,
+        red,
+
+        sidebar: 'hsl(var(--sidebar))',
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -49,6 +107,7 @@ const config: Config = {
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
+          deep: 'hsl(var(--primary-deep))',
         },
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
@@ -57,6 +116,26 @@ const config: Config = {
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
+        },
+        success: {
+          DEFAULT: 'hsl(var(--success))',
+          foreground: 'hsl(var(--success-foreground))',
+          soft: 'hsl(var(--success-soft))',
+        },
+        warning: {
+          DEFAULT: 'hsl(var(--warning))',
+          foreground: 'hsl(var(--warning-foreground))',
+          soft: 'hsl(var(--warning-soft))',
+        },
+        info: {
+          DEFAULT: 'hsl(var(--info))',
+          foreground: 'hsl(var(--info-foreground))',
+          soft: 'hsl(var(--info-soft))',
+        },
+        danger: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+          soft: 'hsl(var(--danger-soft))',
         },
         muted: {
           DEFAULT: 'hsl(var(--muted))',
@@ -76,37 +155,44 @@ const config: Config = {
         },
       },
       borderRadius: {
+        xl: 'calc(var(--radius) + 4px)',
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-space-grotesk)', 'Inter', 'sans-serif'],
-        // Serif éditoriale noble — pour les titres premium, accents,
-        // chiffres clés. À utiliser via font-editorial (chic, italique
-        // magnifique). Georgia en fallback.
-        editorial: ['var(--font-instrument-serif)', 'Georgia', 'serif'],
-        serif: ['Georgia', 'serif'],
+        display: ['var(--font-inter-tight)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
+        // Alias historiques : pointent sur la famille de titres.
+        editorial: ['var(--font-inter-tight)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
+        serif: ['var(--font-inter-tight)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
       },
-      backgroundImage: {
-        'qc-gradient': 'linear-gradient(135deg, #6d28d9 0%, #e11d74 100%)',
-        // Variante rose-dominante pour l'UI app (boutons, wordmark, accents).
-        // Le qc-gradient original reste pour les PDFs (branding-locked).
-        'qc-gradient-pink':
-          'linear-gradient(135deg, #ec4899 0%, #e11d74 45%, #c026d3 100%)',
-        'qc-gradient-aurora':
-          'linear-gradient(135deg, #f472b6 0%, #ec4899 25%, #e11d74 50%, #c026d3 75%, #a855f7 100%)',
-        'qc-dark-gradient': 'linear-gradient(180deg, #0a0b14 0%, #14161f 100%)',
-        'qc-card-gradient':
-          'linear-gradient(135deg, rgba(236,72,153,0.10) 0%, rgba(225,29,116,0.06) 50%, rgba(168,85,247,0.04) 100%)',
+      fontSize: {
+        '2xs': ['0.6875rem', { lineHeight: '1rem' }],
       },
       boxShadow: {
-        glow: '0 0 40px -10px rgba(139, 92, 246, 0.35)',
-        'glow-magenta': '0 0 40px -10px rgba(225, 29, 116, 0.45)',
-        'glow-pink': '0 0 50px -10px rgba(236, 72, 153, 0.55)',
-        'glow-pink-strong':
-          '0 0 30px -4px rgba(236, 72, 153, 0.6), 0 0 60px -20px rgba(168, 85, 247, 0.4)',
+        xs: '0 1px 2px 0 rgba(25, 24, 23, 0.04)',
+        sm: '0 1px 2px 0 rgba(25, 24, 23, 0.05), 0 1px 3px 0 rgba(25, 24, 23, 0.03)',
+        md: '0 2px 6px -1px rgba(25, 24, 23, 0.06), 0 1px 3px -1px rgba(25, 24, 23, 0.04)',
+        lg: '0 10px 24px -8px rgba(25, 24, 23, 0.10), 0 2px 6px -2px rgba(25, 24, 23, 0.05)',
+        xl: '0 20px 40px -16px rgba(25, 24, 23, 0.14), 0 4px 10px -4px rgba(25, 24, 23, 0.05)',
+        // Anciens « glow » neutralisés.
+        glow: '0 1px 2px 0 rgba(25, 24, 23, 0.05)',
+        'glow-magenta': '0 1px 2px 0 rgba(25, 24, 23, 0.05)',
+        'glow-pink': '0 1px 2px 0 rgba(25, 24, 23, 0.05)',
+        'glow-pink-strong': '0 1px 2px 0 rgba(25, 24, 23, 0.05)',
+        focus: '0 0 0 3px hsl(var(--ring) / 0.18)',
+      },
+      backgroundImage: {
+        // Anciens dégradés de marque : aplat terracotta.
+        'qc-gradient': 'linear-gradient(0deg, hsl(var(--primary)), hsl(var(--primary)))',
+        'qc-gradient-pink': 'linear-gradient(0deg, hsl(var(--primary)), hsl(var(--primary)))',
+        'qc-gradient-aurora': 'linear-gradient(0deg, hsl(var(--primary)), hsl(var(--primary)))',
+        'qc-dark-gradient': 'none',
+        'qc-card-gradient': 'none',
+      },
+      transitionTimingFunction: {
+        'out-soft': 'cubic-bezier(0.22, 1, 0.36, 1)',
       },
       keyframes: {
         'accordion-down': {
@@ -117,30 +203,34 @@ const config: Config = {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' },
         },
-        // Gradient qui glisse de gauche à droite — utilisé pour le wordmark
-        // Centrium et tout texte/border devant respirer dans la charte.
-        'gradient-pan': {
-          '0%': { backgroundPosition: '0% 50%' },
-          '50%': { backgroundPosition: '100% 50%' },
-          '100%': { backgroundPosition: '0% 50%' },
+        'fade-in': {
+          from: { opacity: '0' },
+          to: { opacity: '1' },
         },
-        // Pulse lent pour les halos décoratifs (logo C, accent KPI).
-        'pulse-slow': {
-          '0%, 100%': { opacity: '0.5', transform: 'scale(1)' },
-          '50%': { opacity: '0.8', transform: 'scale(1.05)' },
+        'fade-up': {
+          from: { opacity: '0', transform: 'translateY(6px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
         },
-        // Glow shimmer pour les boutons primary et les cartes hover.
-        'glow-shimmer': {
-          '0%, 100%': { boxShadow: '0 0 24px -8px rgba(225, 29, 116, 0.45), 0 0 0 0 rgba(139, 92, 246, 0)' },
-          '50%': { boxShadow: '0 0 40px -8px rgba(225, 29, 116, 0.55), 0 0 60px -20px rgba(139, 92, 246, 0.45)' },
+        'slide-in-right': {
+          from: { transform: 'translateX(100%)' },
+          to: { transform: 'translateX(0)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-400px 0' },
+          '100%': { backgroundPosition: '400px 0' },
         },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'gradient-pan': 'gradient-pan 6s ease-in-out infinite',
-        'pulse-slow': 'pulse-slow 3.5s ease-in-out infinite',
-        'glow-shimmer': 'glow-shimmer 4s ease-in-out infinite',
+        'fade-in': 'fade-in 0.2s ease-out',
+        'fade-up': 'fade-up 0.32s cubic-bezier(0.22, 1, 0.36, 1)',
+        'slide-in-right': 'slide-in-right 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
+        shimmer: 'shimmer 1.4s linear infinite',
+        // Anciennes animations décoratives désactivées.
+        'gradient-pan': 'none',
+        'pulse-slow': 'none',
+        'glow-shimmer': 'none',
       },
     },
   },

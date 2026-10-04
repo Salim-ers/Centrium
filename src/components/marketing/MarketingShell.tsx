@@ -40,7 +40,7 @@ export function MarketingShell({ children, noReveal, noFooter }: Props) {
   const inner = noReveal ? children : <PageReveal>{children}</PageReveal>;
 
   return (
-    <div className="min-h-screen text-white relative overflow-x-hidden">
+    <div className="min-h-screen text-foreground relative overflow-x-hidden">
       <div
         aria-hidden
         className="fixed inset-0 z-0 pointer-events-none"

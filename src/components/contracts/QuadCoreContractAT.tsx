@@ -77,7 +77,7 @@ export function QuadCoreContractAT({ contract, issuer }: Props) {
 
   return (
     <div
-      className="cv-print-page bg-white text-black mx-auto font-serif"
+      className="cv-print-page bg-white text-foreground mx-auto font-serif"
       style={{
         width: '210mm',
         minHeight: '297mm',
@@ -434,10 +434,10 @@ export function QuadCoreContractAT({ contract, issuer }: Props) {
         <p className="mt-1">en double exemplaire.</p>
 
         <div className="grid grid-cols-2 gap-12 mt-10">
-          <div className="border-t border-black pt-2">
+          <div className="border-t border-border pt-2">
             <p className="font-bold">Pour {iss.brandName}</p>
             {iss.representativeName && (
-              <p className="text-[9pt] text-neutral-600 mt-0.5">{iss.representativeName}</p>
+              <p className="text-[9pt] text-muted-foreground mt-0.5">{iss.representativeName}</p>
             )}
             {iss.signatureUrl ? (
               <div className="mt-2 h-[60px] flex items-center">
@@ -453,9 +453,9 @@ export function QuadCoreContractAT({ contract, issuer }: Props) {
               <div style={{ height: '60px' }} />
             )}
           </div>
-          <div className="border-t border-black pt-2">
+          <div className="border-t border-border pt-2">
             <p className="font-bold">Pour {supplier_company_name || '[Fournisseur]'}</p>
-            <p className="text-[9pt] text-neutral-600 mt-0.5">
+            <p className="text-[9pt] text-muted-foreground mt-0.5">
               {supplier_representative || '[Représentant]'}
             </p>
             <div style={{ height: '60px' }} />
@@ -464,7 +464,7 @@ export function QuadCoreContractAT({ contract, issuer }: Props) {
       </div>
 
       {/* Footer */}
-      <div className="mt-10 pt-3 border-t border-neutral-300 text-center text-[9px] text-neutral-400 font-sans">
+      <div className="mt-10 pt-3 border-t border-border text-center text-[9px] text-muted-foreground font-sans">
         {[
           iss.footerTagline
             ? `${iss.brandName} — ${iss.footerTagline}`

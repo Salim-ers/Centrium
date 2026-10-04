@@ -126,7 +126,7 @@ export function ResetDashboardDialog({ open, onOpenChange, onReset }: Props) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="inline-flex items-center gap-2">
-            <RotateCcw className="h-5 w-5 text-amber-300" />
+            <RotateCcw className="h-5 w-5 text-warning" />
             {isEn ? 'Reset the dashboard' : 'Réinitialiser le dashboard'}
           </DialogTitle>
           <DialogDescription>
@@ -147,15 +147,15 @@ export function ResetDashboardDialog({ open, onOpenChange, onReset }: Props) {
         </DialogHeader>
 
         <div className="space-y-3 pt-2">
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/[0.05] p-3 flex items-start gap-2 text-xs">
-            <AlertTriangle className="h-4 w-4 text-amber-300 mt-0.5 shrink-0" />
+          <div className="rounded-lg border border-warning/30 bg-warning/[0.05] p-3 flex items-start gap-2 text-xs">
+            <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
             {isEn ? (
               <div>
                 <strong>Irreversible</strong> action. The KPIs &laquo;&nbsp;On mission&nbsp;&raquo;,
                 &laquo;&nbsp;Revenue this month&nbsp;&raquo;, &laquo;&nbsp;Available&nbsp;&raquo; and
                 &laquo;&nbsp;Timesheets to validate&nbsp;&raquo; are recalculated automatically after
                 deletion.
-                <span className="block mt-1.5 text-amber-200/80">
+                <span className="block mt-1.5 text-warning">
                   By legal obligation, <strong>issued invoices</strong> (sent/paid) and the
                   <strong> timesheets they reference</strong> are never deleted, even if they are
                   checked below.
@@ -166,7 +166,7 @@ export function ResetDashboardDialog({ open, onOpenChange, onReset }: Props) {
                 Action <strong>irréversible</strong>. Les KPI « En mission », « CA du mois »,
                 « Disponibles » et « CRA à valider » se recalculent automatiquement après
                 suppression.
-                <span className="block mt-1.5 text-amber-200/80">
+                <span className="block mt-1.5 text-warning">
                   Par obligation légale, les <strong>factures émises</strong> (envoyées/payées)
                   et les <strong>CRA qu&apos;elles référencent</strong> ne sont jamais supprimés,
                   même s&apos;ils sont cochés ci-dessous.
@@ -184,15 +184,15 @@ export function ResetDashboardDialog({ open, onOpenChange, onReset }: Props) {
                   key={s}
                   className={`flex items-start gap-3 rounded-md border px-3 py-2 cursor-pointer transition ${
                     checked
-                      ? 'border-magenta/50 bg-magenta/[0.06]'
-                      : 'border-hairline hover:border-white/20'
+                      ? 'border-primary/50 bg-primary/[0.06]'
+                      : 'border-hairline hover:border-border'
                   }`}
                 >
                   <input
                     type="checkbox"
                     checked={checked}
                     onChange={() => toggle(s)}
-                    className="mt-1 h-4 w-4 accent-magenta-neon shrink-0"
+                    className="mt-1 h-4 w-4 accent-primary shrink-0"
                   />
                   <div className="min-w-0">
                     <div className="text-sm font-medium">{meta.label}</div>
@@ -223,7 +223,7 @@ export function ResetDashboardDialog({ open, onOpenChange, onReset }: Props) {
           <Button
             onClick={submit}
             disabled={busy || scopes.size === 0 || confirm.trim() !== 'RESET'}
-            className="bg-red-500/90 hover:bg-red-500 text-white"
+            className="bg-destructive/90 hover:bg-destructive text-foreground"
           >
             {busy && <Loader2 className="h-4 w-4 animate-spin" />}
             {isEn ? 'Reset' : 'Réinitialiser'}

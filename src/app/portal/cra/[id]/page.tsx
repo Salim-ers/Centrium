@@ -242,7 +242,7 @@ export default function PortalCraDetailPage() {
   }
 
   if (loading) {
-    return <div className="h-60 rounded-xl bg-white/[0.02] animate-pulse" />;
+    return <div className="h-60 rounded-xl bg-card animate-pulse" />;
   }
   if (!ts) return null;
 
@@ -261,12 +261,12 @@ export default function PortalCraDetailPage() {
 
       <div className="mb-6 flex items-start justify-between flex-wrap gap-3">
         <div>
-          <div className="text-[10px] sm:text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-2">
+          <div className="text-[10px] sm:text-[11px] font-semibold tracking-[0.3em] uppercase text-primary mb-2">
             {isEn ? 'My space' : 'Mon espace'}
           </div>
           <h1 className="font-display font-light tracking-[-0.03em] leading-[1.05] text-[clamp(1.75rem,3.5vw,2.5rem)]">
             {isEn ? 'Timesheet' : 'CRA'}{' '}
-            <span className="qc-italic-accent font-editorial italic">
+            <span className="text-primary font-display ">
               {monthsLong(isEn)[ts.period_month - 1]} {ts.period_year}.
             </span>
           </h1>
@@ -297,9 +297,9 @@ export default function PortalCraDetailPage() {
       </div>
 
       {ts.status === 'rejected' && ts.rejection_reason && (
-        <Card className="mb-4 border-red-500/30">
+        <Card className="mb-4 border-destructive/30">
           <CardContent className="p-4 flex items-start gap-3">
-            <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+            <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
             <div>
               <div className="text-sm font-semibold">{isEn ? 'Rejection reason' : 'Motif du rejet'}</div>
               <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
@@ -316,9 +316,9 @@ export default function PortalCraDetailPage() {
       )}
 
       {ts.status === 'client_validated' && (
-        <Card className="mb-4 border-emerald-500/30">
+        <Card className="mb-4 border-success/30">
           <CardContent className="p-4 flex items-start gap-3">
-            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+            <CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-0.5" />
             <div className="text-sm">
               <div className="font-semibold">{isEn ? 'Timesheet validated' : 'CRA validé'}</div>
               <p className="text-muted-foreground">
@@ -332,9 +332,9 @@ export default function PortalCraDetailPage() {
       )}
 
       {ts.status === 'submitted' && (
-        <Card className="mb-4 border-blue-500/30">
+        <Card className="mb-4 border-info/30">
           <CardContent className="p-4 flex items-start gap-3">
-            <Clock className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
+            <Clock className="h-4 w-4 text-info shrink-0 mt-0.5" />
             <div className="text-sm">
               <div className="font-semibold">{isEn ? 'Awaiting validation' : 'En attente de validation'}</div>
               <p className="text-muted-foreground">
@@ -446,12 +446,12 @@ export default function PortalCraDetailPage() {
         <div className="mt-8">
           <div className="no-print mb-4 flex items-center justify-between flex-wrap gap-3">
             <div>
-              <div className="text-[10px] font-semibold tracking-[0.28em] uppercase text-magenta mb-1.5">
+              <div className="text-[10px] font-semibold tracking-[0.28em] uppercase text-primary mb-1.5">
                 {isEn ? 'Official document' : 'Document officiel'}
               </div>
               <h2 className="font-display font-light tracking-[-0.02em] text-xl">
                 {isEn ? 'Validated and' : 'CRA validé et'}{' '}
-                <span className="qc-italic-accent font-editorial italic">
+                <span className="text-primary font-display ">
                   {isEn ? 'stamped.' : 'tamponné.'}
                 </span>
               </h2>
@@ -468,7 +468,7 @@ export default function PortalCraDetailPage() {
               {isEn ? 'Download PDF' : 'Télécharger PDF'}
             </Button>
           </div>
-          <div ref={docRef} className="bg-neutral-200 rounded-xl p-6 overflow-auto">
+          <div ref={docRef} className="bg-muted rounded-xl p-6 overflow-auto">
             <TimesheetDocument
               timesheet={ts}
               mission={mission}
@@ -502,19 +502,19 @@ function StatusPill({ status }: { status: Timesheet['status'] }) {
   const map: Record<Timesheet['status'], { label: string; className: string }> = {
     draft: {
       label: isEn ? 'Draft' : 'Brouillon',
-      className: 'bg-slate-500/10 text-slate-300 border-slate-500/20',
+      className: 'bg-muted text-muted-foreground border-border',
     },
     submitted: {
       label: isEn ? 'Awaiting validation' : 'En attente de validation',
-      className: 'bg-blue-500/10 text-blue-300 border-blue-500/20',
+      className: 'bg-info/10 text-info border-info/20',
     },
     client_validated: {
       label: isEn ? 'Client validated' : 'Validé client',
-      className: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
+      className: 'bg-success/10 text-success border-success/20',
     },
     rejected: {
       label: isEn ? 'Rejected' : 'Rejeté',
-      className: 'bg-red-500/10 text-red-300 border-red-500/20',
+      className: 'bg-destructive/10 text-destructive border-destructive/20',
     },
   };
   const s = map[status];

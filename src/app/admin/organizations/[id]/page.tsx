@@ -212,12 +212,12 @@ function UsageBar({ label, quota }: { label: string; quota: Quota }) {
   const ratio = unlimited || max === 0 ? 0 : Math.min(1, used / max);
   const pct = Math.round(ratio * 100);
   const tone = unlimited
-    ? 'bg-violet-400'
+    ? 'bg-primary'
     : ratio >= 1
-      ? 'bg-rose-400'
+      ? 'bg-destructive'
       : ratio >= 0.8
-        ? 'bg-amber-400'
-        : 'bg-emerald-400';
+        ? 'bg-warning'
+        : 'bg-success';
   return (
     <div>
       <div className="flex items-center justify-between text-xs mb-1">
@@ -463,7 +463,7 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
             size="sm"
             onClick={handleSuspend}
             disabled={suspending}
-            className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10 hover:text-amber-400"
+            className="border-warning/40 text-warning hover:bg-warning/10 hover:text-warning"
           >
             {suspending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
             {isEn ? 'Suspend access' : <>Suspendre l&apos;accès</>}
@@ -476,7 +476,7 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
         <section className="lg:col-span-1">
           <SectionHeader
             eyebrow={isEn ? 'Billing' : 'Facturation'}
-            title={<>{isEn ? 'Subscription' : 'Abonnement'}<span className="qc-italic-accent font-editorial italic">.</span></>}
+            title={<>{isEn ? 'Subscription' : 'Abonnement'}<span className="text-primary font-display ">.</span></>}
             description={isEn ? 'Plan, status and Stripe deadlines.' : 'Plan, statut et échéances Stripe.'}
           />
           <AppCard variant="default">
@@ -500,13 +500,13 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
                 <Row label={isEn ? 'Period end' : 'Fin de période'} value={fmtDate(subscription.current_period_end, isEn)} />
               )}
               {subscription?.cancel_at_period_end && (
-                <Row label={isEn ? 'Cancellation' : 'Résiliation'} value={<span className="text-amber-400">{isEn ? 'scheduled at period end' : 'programmée en fin de période'}</span>} />
+                <Row label={isEn ? 'Cancellation' : 'Résiliation'} value={<span className="text-warning">{isEn ? 'scheduled at period end' : 'programmée en fin de période'}</span>} />
               )}
               <Row
                 label={isEn ? 'Billing' : 'Facturation'}
                 value={
                   subscription?.is_exempt_from_billing ? (
-                    <span className="inline-flex items-center gap-1 text-violet-400">
+                    <span className="inline-flex items-center gap-1 text-primary">
                       <ShieldCheck className="h-3.5 w-3.5" /> {isEn ? 'Exempt' : 'Exempt'}
                     </span>
                   ) : (
@@ -528,7 +528,7 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
         <section className="lg:col-span-2">
           <SectionHeader
             eyebrow={isEn ? 'Consumption' : 'Consommation'}
-            title={<>{isEn ? 'Plan ' : 'Usage '}<span className="qc-italic-accent font-editorial italic">{isEn ? 'usage.' : 'du plan.'}</span></>}
+            title={<>{isEn ? 'Plan ' : 'Usage '}<span className="text-primary font-display ">{isEn ? 'usage.' : 'du plan.'}</span></>}
             description={isEn ? "What the organization consumes against its plan limits." : "Ce que l'organisation consomme face aux limites de son plan."}
           />
           <AppCard variant="default">
@@ -547,7 +547,7 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
       <section>
         <SectionHeader
           eyebrow={isEn ? 'Business activity' : 'Activité métier'}
-          title={isEn ? <>What they <span className="qc-italic-accent font-editorial italic">produce.</span></> : <>Ce qu'ils <span className="qc-italic-accent font-editorial italic">produisent.</span></>}
+          title={isEn ? <>What they <span className="text-primary font-display ">produce.</span></> : <>Ce qu'ils <span className="text-primary font-display ">produisent.</span></>}
           description={isEn ? 'Volume created in the tool, across all periods.' : "Volumétrie créée dans l'outil, toutes périodes confondues."}
         />
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
@@ -566,7 +566,7 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
         <section>
           <SectionHeader
             eyebrow={isEn ? 'Access' : 'Accès'}
-            title={isEn ? <>Internal <span className="qc-italic-accent font-editorial italic">team.</span></> : <>Équipe <span className="qc-italic-accent font-editorial italic">interne.</span></>}
+            title={isEn ? <>Internal <span className="text-primary font-display ">team.</span></> : <>Équipe <span className="text-primary font-display ">interne.</span></>}
             description={isEn ? `${members.length} member(s) with access to the workspace.` : `${members.length} membre(s) avec accès à l'espace.`}
           />
           <AppCard variant="default">
@@ -609,7 +609,7 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
         <section>
           <SectionHeader
             eyebrow={isEn ? 'Monitoring' : 'Surveillance'}
-            title={isEn ? <>Recent <span className="qc-italic-accent font-editorial italic">activity.</span></> : <>Activité <span className="qc-italic-accent font-editorial italic">récente.</span></>}
+            title={isEn ? <>Recent <span className="text-primary font-display ">activity.</span></> : <>Activité <span className="text-primary font-display ">récente.</span></>}
             description={isEn ? 'The latest actions performed in the tool.' : "Les dernières actions effectuées dans l'outil."}
           />
           <AppCard variant="default">
@@ -623,7 +623,7 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
                 <div className="divide-y divide-hairline max-h-[420px] overflow-y-auto">
                   {activities.map((a) => (
                     <div key={a.id} className="flex items-start gap-3 px-4 py-2.5">
-                      <div className="h-1.5 w-1.5 rounded-full bg-magenta mt-2 shrink-0" />
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2 shrink-0" />
                       <div className="min-w-0 flex-1">
                         <div className="text-sm">
                           <span className="font-medium">
@@ -649,13 +649,13 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
       <section>
         <SectionHeader
           eyebrow={isEn ? 'Danger zone' : 'Zone de danger'}
-          title={isEn ? <>Delete <span className="qc-italic-accent font-editorial italic">the organization.</span></> : <>Supprimer <span className="qc-italic-accent font-editorial italic">l'organisation.</span></>}
+          title={isEn ? <>Delete <span className="text-primary font-display ">the organization.</span></> : <>Supprimer <span className="text-primary font-display ">l'organisation.</span></>}
           description={isEn ? 'Permanent and irreversible action.' : 'Action définitive et irréversible.'}
         />
-        <div className="rounded-2xl border border-red-500/30 bg-red-500/[0.04] p-4 sm:p-5">
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/[0.04] p-4 sm:p-5">
           {isExempt ? (
             <div className="flex items-start gap-3 text-sm text-muted-foreground">
-              <ShieldCheck className="h-5 w-5 text-violet-400 shrink-0 mt-0.5" />
+              <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <div>
                 <div className="font-medium text-foreground">{isEn ? 'Protected organization' : 'Organisation protégée'}</div>
                 {isEn
@@ -666,7 +666,7 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
           ) : (
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="flex items-start gap-3 text-sm">
-                <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+                <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
                 <div className="max-w-xl">
                   <div className="font-medium text-foreground">
                     {isEn ? `Permanently delete “${org.name}”` : `Supprimer définitivement « ${org.name} »`}
@@ -692,7 +692,7 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
               </div>
               <Button
                 variant="outline"
-                className="border-red-500/40 text-red-400 hover:bg-red-500/10 hover:text-red-400"
+                className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => {
                   setConfirmText('');
                   setConfirmOpen(true);
@@ -711,7 +711,7 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-400" />
+              <AlertTriangle className="h-5 w-5 text-destructive" />
               {isEn ? `Delete “${org.name}”?` : `Supprimer « ${org.name} » ?`}
             </DialogTitle>
             <DialogDescription>
@@ -753,7 +753,7 @@ function OrgDetail({ detail, onChanged }: { detail: Detail; onChanged: () => voi
               {isEn ? 'Cancel' : 'Annuler'}
             </Button>
             <Button
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-destructive hover:bg-destructive text-white"
               disabled={deleting || confirmText.trim() !== org.name.trim()}
               onClick={handleDelete}
             >

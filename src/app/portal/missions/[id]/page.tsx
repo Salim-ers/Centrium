@@ -140,7 +140,7 @@ export default function PortalMissionDetailPage() {
         <CardContent className="p-5">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="flex items-start gap-3 min-w-0">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-violet-glow/30 bg-violet-glow/15 text-violet-glow">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/15 text-primary">
                 <Briefcase className="h-5 w-5" />
               </span>
               <div className="min-w-0">
@@ -194,7 +194,7 @@ export default function PortalMissionDetailPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base inline-flex items-center gap-2">
-            <ClipboardCheck className="h-4 w-4 text-violet-glow" />
+            <ClipboardCheck className="h-4 w-4 text-primary" />
             {isEn ? 'CRA for this mission' : 'CRA de cette mission'}
             <span className="ml-1 text-xs font-normal text-muted-foreground">
               {cras.length}

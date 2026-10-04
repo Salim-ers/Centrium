@@ -66,9 +66,9 @@ export default function PortalContractsPage() {
         eyebrow={isEn ? 'My space' : 'Mon espace'}
         title={
           isEn ? (
-            <>My <span className="qc-italic-accent font-editorial italic">contracts.</span></>
+            <>My <span className="text-primary font-display ">contracts.</span></>
           ) : (
-            <>Mes <span className="qc-italic-accent font-editorial italic">contrats.</span></>
+            <>Mes <span className="text-primary font-display ">contrats.</span></>
           )
         }
         description={

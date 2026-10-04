@@ -45,13 +45,13 @@ export class CVPreviewBoundary extends Component<Props, State> {
   render() {
     if (this.state.error) {
       return (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/[0.04] p-6 text-sm">
+        <div className="rounded-xl border border-destructive/30 bg-destructive/[0.04] p-6 text-sm">
           <div className="flex items-start gap-3 mb-3">
-            <div className="rounded-md bg-red-500/15 p-2 text-red-300 shrink-0">
+            <div className="rounded-md bg-destructive/15 p-2 text-destructive shrink-0">
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-red-300">
+              <h3 className="font-semibold text-destructive">
                 Erreur d'affichage du CV
               </h3>
               <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
@@ -63,7 +63,7 @@ export class CVPreviewBoundary extends Component<Props, State> {
                   <summary className="cursor-pointer hover:text-foreground">
                     Détails techniques
                   </summary>
-                  <pre className="mt-2 p-2 rounded bg-black/30 overflow-auto font-mono">
+                  <pre className="mt-2 p-2 rounded bg-foreground/30 overflow-auto font-mono">
                     {this.state.errorInfo}
                   </pre>
                 </details>
@@ -74,7 +74,7 @@ export class CVPreviewBoundary extends Component<Props, State> {
             <button
               type="button"
               onClick={this.reset}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-violet-glow/15 text-violet-glow border border-violet-glow/30 hover:bg-violet-glow/25 transition text-xs font-medium"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition text-xs font-medium"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               Réinitialiser & ré-afficher

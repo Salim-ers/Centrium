@@ -92,14 +92,14 @@ export function CityFilter({ cities, selected, onChange }: Props) {
         onClick={() => setOpen((v) => !v)}
         className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs border transition ${
           isFiltering
-            ? 'border-violet-glow/60 bg-violet-glow/15 text-violet-glow'
+            ? 'border-primary/60 bg-primary/15 text-primary'
             : 'border-hairline surface-1 text-muted-foreground hover:border-foreground/25 hover:text-foreground'
         }`}
       >
         <MapPin className="h-3.5 w-3.5" />
         {isEn ? 'City' : 'Ville'}
         {isFiltering && (
-          <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-4 px-1 rounded-full bg-violet-glow/30 text-[10px] font-semibold">
+          <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-4 px-1 rounded-full bg-primary/30 text-[10px] font-semibold">
             {selected.size}
           </span>
         )}
@@ -123,7 +123,7 @@ export function CityFilter({ cities, selected, onChange }: Props) {
                 <button
                   type="button"
                   onClick={clearAll}
-                  className="text-[10px] text-violet-300 hover:text-violet-100 inline-flex items-center gap-1"
+                  className="text-[10px] text-primary hover:text-primary inline-flex items-center gap-1"
                 >
                   <X className="h-3 w-3" />
                   {isEn ? 'Clear all' : 'Tout désélectionner'}
@@ -146,14 +146,14 @@ export function CityFilter({ cities, selected, onChange }: Props) {
                         type="button"
                         onClick={() => toggle(c.name)}
                         className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs hover-surface ${
-                          isSel ? 'text-violet-glow' : 'text-foreground'
+                          isSel ? 'text-primary' : 'text-foreground'
                         }`}
                       >
                         <input
                           type="checkbox"
                           checked={isSel}
                           readOnly
-                          className="h-3.5 w-3.5 rounded border-white/20 bg-white/10 accent-violet-brand pointer-events-none"
+                          className="h-3.5 w-3.5 rounded border-border bg-muted accent-primary pointer-events-none"
                         />
                         <span className="flex-1 text-left truncate">{c.name}</span>
                         <span className="text-[10px] text-muted-foreground">{c.count}</span>

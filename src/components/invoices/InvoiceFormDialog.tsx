@@ -331,17 +331,17 @@ export function InvoiceFormDialog({
                   aria-pressed={active}
                   className={`relative rounded-xl border p-3.5 text-left transition-all ${
                     active
-                      ? 'border-violet-glow/60 bg-violet-glow/[0.07] ring-1 ring-violet-glow/40'
+                      ? 'border-primary/60 bg-primary/[0.07] ring-1 ring-primary/40'
                       : 'border-hairline hover:border-foreground/20 hover:bg-foreground/[0.03]'
                   }`}
                 >
                   {active && (
-                    <span className="absolute top-2.5 right-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-violet-glow text-white">
+                    <span className="absolute top-2.5 right-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-white">
                       <Check className="h-2.5 w-2.5" />
                     </span>
                   )}
                   <Icon
-                    className={`h-4 w-4 mb-2 ${active ? 'text-violet-glow' : 'text-muted-foreground'}`}
+                    className={`h-4 w-4 mb-2 ${active ? 'text-primary' : 'text-muted-foreground'}`}
                   />
                   <div className="text-sm font-semibold leading-tight">{card.title}</div>
                   <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
@@ -365,7 +365,7 @@ export function InvoiceFormDialog({
                   : 'Laisser vide = numéro séquentiel automatique et conforme.'}
               </p>
               {errors.invoice_number && (
-                <p className="text-xs text-red-400 mt-1">{errors.invoice_number.message}</p>
+                <p className="text-xs text-destructive mt-1">{errors.invoice_number.message}</p>
               )}
             </div>
 
@@ -394,7 +394,7 @@ export function InvoiceFormDialog({
                   ]}
                 />
                 {errors.consultant_id && (
-                  <p className="text-xs text-red-400 mt-1">
+                  <p className="text-xs text-destructive mt-1">
                     {isEn ? 'Consultant required' : 'Consultant obligatoire'}
                   </p>
                 )}
@@ -413,7 +413,7 @@ export function InvoiceFormDialog({
                   <button
                     type="button"
                     onClick={() => setCreatingCompany((v) => !v)}
-                    className="text-[11px] text-violet-300 hover:text-violet-200 inline-flex items-center gap-1"
+                    className="text-[11px] text-primary hover:text-primary inline-flex items-center gap-1"
                   >
                     {creatingCompany ? (
                       <>
@@ -445,12 +445,12 @@ export function InvoiceFormDialog({
                       ]}
                     />
                     {errors.company_id && (
-                      <p className="text-xs text-red-400 mt-1">
+                      <p className="text-xs text-destructive mt-1">
                         {isEn ? 'Client required' : 'Client obligatoire'}
                       </p>
                     )}
                     {companies.length === 0 && (
-                      <p className="text-[11px] text-amber-300/80 mt-1">
+                      <p className="text-[11px] text-warning mt-1">
                         {isEn
                           ? 'No clients yet — click "New client" to add one.'
                           : 'Aucun client en base — clique « Nouveau client » pour en créer un.'}
@@ -458,7 +458,7 @@ export function InvoiceFormDialog({
                     )}
                   </>
                 ) : (
-                  <div className="space-y-2 rounded-md border border-violet-glow/30 bg-violet-glow/[0.04] p-2.5">
+                  <div className="space-y-2 rounded-md border border-primary/30 bg-primary/[0.04] p-2.5">
                     <Input
                       autoFocus
                       placeholder={
@@ -579,8 +579,8 @@ export function InvoiceFormDialog({
               dessous). Le Montant HT reste éditable pour les forfaits.
               Sur une facture consultant, le TJM proposé est le TJM ACHAT
               (fiche du freelance). */}
-          <div className="rounded-md border border-violet-glow/20 bg-violet-glow/[0.04] p-3 space-y-2">
-            <div className="text-[10px] uppercase tracking-wider text-violet-300/80 font-semibold">
+          <div className="rounded-md border border-primary/20 bg-primary/[0.04] p-3 space-y-2">
+            <div className="text-[10px] uppercase tracking-wider text-primary font-semibold">
               {isConsultantInvoice
                 ? isEn
                   ? 'Quick compute buy rate × days'
@@ -631,7 +631,7 @@ export function InvoiceFormDialog({
                       ? (Number(tjm) * Number(days)).toFixed(2) + ' €'
                       : '—'
                   }
-                  className="bg-white/[0.02] cursor-not-allowed font-mono"
+                  className="bg-card cursor-not-allowed font-mono"
                 />
               </div>
             </div>
@@ -647,7 +647,7 @@ export function InvoiceFormDialog({
               <Label>{t.forms.invoice.amount_ht} *</Label>
               <Input type="number" min="0" step="0.01" {...register('amount_ht')} />
               {errors.amount_ht && (
-                <p className="text-xs text-red-400 mt-1">
+                <p className="text-xs text-destructive mt-1">
                   {isEn ? 'Amount required' : 'Montant obligatoire'}
                 </p>
               )}
@@ -668,7 +668,7 @@ export function InvoiceFormDialog({
               <Input
                 readOnly
                 value={ttc ? ttc.toFixed(2) + ' €' : '—'}
-                className="bg-white/[0.02] cursor-not-allowed"
+                className="bg-card cursor-not-allowed"
               />
             </div>
           </div>

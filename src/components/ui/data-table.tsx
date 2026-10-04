@@ -1,0 +1,309 @@
+'use client';
+
+import * as React from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ArrowDown, ArrowUp, ChevronsUpDown, ChevronRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { Checkbox } from './checkbox';
+import { SkeletonRows } from './skeleton';
+
+export type Column<T> = {
+  id: string;
+  header: React.ReactNode;
+  cell: (row: T) => React.ReactNode;
+  /** Valeur de tri. Colonne triable si défini. */
+  sortValue?: (row: T) => string | number | null | undefined;
+  align?: 'left' | 'right' | 'center';
+  className?: string;
+  headerClassName?: string;
+  /** Masquée sous md (et absente de la carte mobile). */
+  hideOnMobile?: boolean;
+  /** Rôle dans la carte mobile : titre, sous-titre ou ligne de détail. */
+  mobile?: 'title' | 'subtitle' | 'meta' | 'trailing' | 'hidden';
+  width?: string;
+};
+
+type SortState = { id: string; dir: 'asc' | 'desc' } | null;
+
+type Props<T> = {
+  rows: T[];
+  columns: Column<T>[];
+  getRowId: (row: T) => string;
+  rowHref?: (row: T) => string | undefined;
+  onRowClick?: (row: T) => void;
+  loading?: boolean;
+  empty?: React.ReactNode;
+  initialSort?: SortState;
+  /** Sélection multiple (actions groupées). */
+  selectable?: boolean;
+  selected?: Set<string>;
+  onSelectedChange?: (next: Set<string>) => void;
+  /** Lignes affichées par page (défaut 50). */
+  pageSize?: number;
+  className?: string;
+  'aria-label'?: string;
+};
+
+/**
+ * Table de données : tri par colonne, sélection, pagination légère et
+ * rendu en cartes sous 768 px (les tableaux larges restent lisibles sur
+ * mobile). Les lignes sont des liens quand `rowHref` est fourni.
+ */
+export function DataTable<T>({
+  rows,
+  columns,
+  getRowId,
+  rowHref,
+  onRowClick,
+  loading,
+  empty,
+  initialSort = null,
+  selectable,
+  selected,
+  onSelectedChange,
+  pageSize = 50,
+  className,
+  ...rest
+}: Props<T>) {
+  const { locale } = useLocale();
+  const router = useRouter();
+  const [sort, setSort] = React.useState<SortState>(initialSort);
+  const [limit, setLimit] = React.useState(pageSize);
+
+  const sorted = React.useMemo(() => {
+    if (!sort) return rows;
+    const col = columns.find((c) => c.id === sort.id);
+    if (!col?.sortValue) return rows;
+    const get = col.sortValue;
+    const copy = [...rows];
+    copy.sort((a, b) => {
+      const va = get(a);
+      const vb = get(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      const cmp =
+        typeof va === 'number' && typeof vb === 'number'
+          ? va - vb
+          : String(va).localeCompare(String(vb), locale === 'fr' ? 'fr' : 'en', { sensitivity: 'base' });
+      return sort.dir === 'asc' ? cmp : -cmp;
+    });
+    return copy;
+  }, [rows, sort, columns, locale]);
+
+  const visible = sorted.slice(0, limit);
+  const allIds = React.useMemo(() => rows.map(getRowId), [rows, getRowId]);
+  const allSelected = !!selected && allIds.length > 0 && allIds.every((id) => selected.has(id));
+  const someSelected = !!selected && !allSelected && allIds.some((id) => selected.has(id));
+
+  function toggleSort(id: string) {
+    setSort((prev) =>
+      prev?.id !== id ? { id, dir: 'asc' } : prev.dir === 'asc' ? { id, dir: 'desc' } : null,
+    );
+  }
+  function toggleRow(id: string) {
+    if (!selected || !onSelectedChange) return;
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    onSelectedChange(next);
+  }
+  function toggleAll() {
+    if (!onSelectedChange) return;
+    onSelectedChange(allSelected ? new Set() : new Set(allIds));
+  }
+
+  if (loading) {
+    return (
+      <div className={cn('overflow-hidden rounded-xl border border-border bg-card', className)}>
+        <SkeletonRows rows={6} />
+      </div>
+    );
+  }
+  if (rows.length === 0) return <>{empty ?? null}</>;
+
+  const titleCol = columns.find((c) => c.mobile === 'title') ?? columns[0];
+  const subtitleCol = columns.find((c) => c.mobile === 'subtitle');
+  const trailingCol = columns.find((c) => c.mobile === 'trailing');
+  const metaCols = columns.filter((c) => c.mobile === 'meta');
+
+  return (
+    <div className={cn('overflow-hidden rounded-xl border border-border bg-card shadow-xs', className)}>
+      {/* Desktop / tablette */}
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full text-sm" aria-label={rest['aria-label']}>
+          <thead className="bg-muted/60">
+            <tr className="border-b border-border">
+              {selectable && (
+                <th className="w-10 px-3">
+                  <Checkbox
+                    checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+                    onCheckedChange={toggleAll}
+                    aria-label={locale === 'fr' ? 'Tout sélectionner' : 'Select all'}
+                  />
+                </th>
+              )}
+              {columns.map((c) => {
+                const active = sort?.id === c.id;
+                const sortable = !!c.sortValue;
+                return (
+                  <th
+                    key={c.id}
+                    scope="col"
+                    style={c.width ? { width: c.width } : undefined}
+                    aria-sort={active ? (sort!.dir === 'asc' ? 'ascending' : 'descending') : undefined}
+                    className={cn(
+                      'h-9 whitespace-nowrap px-3 text-xs font-medium text-muted-foreground',
+                      c.align === 'right' ? 'text-right' : c.align === 'center' ? 'text-center' : 'text-left',
+                      c.hideOnMobile && 'hidden lg:table-cell',
+                      c.headerClassName,
+                    )}
+                  >
+                    {sortable ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleSort(c.id)}
+                        className={cn(
+                          'inline-flex items-center gap-1 rounded hover:text-foreground',
+                          active && 'text-foreground',
+                        )}
+                      >
+                        {c.header}
+                        {active ? (
+                          sort!.dir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                        ) : (
+                          <ChevronsUpDown className="h-3 w-3 opacity-40" />
+                        )}
+                      </button>
+                    ) : (
+                      c.header
+                    )}
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((row) => {
+              const id = getRowId(row);
+              const href = rowHref?.(row);
+              const clickable = !!href || !!onRowClick;
+              const isSel = selected?.has(id) ?? false;
+              return (
+                <tr
+                  key={id}
+                  data-state={isSel ? 'selected' : undefined}
+                  onClick={(e) => {
+                    // Les éléments interactifs de la ligne gardent leur propre comportement.
+                    if ((e.target as HTMLElement).closest('a,button,input,[role=checkbox],[role=menuitem]')) return;
+                    if (onRowClick) onRowClick(row);
+                    else if (href) router.push(href);
+                  }}
+                  className={cn(
+                    'group border-b border-border last:border-0 transition-colors hover:bg-muted/40 data-[state=selected]:bg-brand-50/50',
+                    clickable && 'cursor-pointer',
+                  )}
+                >
+                  {selectable && (
+                    <td className="w-10 px-3" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={isSel}
+                        onCheckedChange={() => toggleRow(id)}
+                        aria-label={locale === 'fr' ? 'Sélectionner la ligne' : 'Select row'}
+                      />
+                    </td>
+                  )}
+                  {columns.map((c, ci) => {
+                    const content = c.cell(row);
+                    return (
+                      <td
+                        key={c.id}
+                        className={cn(
+                          'px-3 py-2.5 align-middle',
+                          c.align === 'right' ? 'text-right' : c.align === 'center' ? 'text-center' : 'text-left',
+                          c.hideOnMobile && 'hidden lg:table-cell',
+                          c.className,
+                        )}
+                      >
+                        {href && ci === 0 ? (
+                          <Link href={href} className="rounded-sm outline-none hover:text-primary-deep focus-visible:underline" prefetch={false}>
+                            {content}
+                          </Link>
+                        ) : (
+                          content
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile : cartes empilées */}
+      <ul className="divide-y divide-border md:hidden">
+        {visible.map((row) => {
+          const id = getRowId(row);
+          const href = rowHref?.(row);
+          const body = (
+            <div className="flex items-start gap-3 px-4 py-3">
+              {selectable && (
+                <div onClick={(e) => e.stopPropagation()} className="pt-0.5">
+                  <Checkbox checked={selected?.has(id) ?? false} onCheckedChange={() => toggleRow(id)} />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium text-foreground">{titleCol?.cell(row)}</div>
+                {subtitleCol && <div className="mt-0.5 truncate text-xs text-muted-foreground">{subtitleCol.cell(row)}</div>}
+                {metaCols.length > 0 && (
+                  <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
+                    {metaCols.map((c) => (
+                      <div key={c.id} className="min-w-0">
+                        <dt className="text-[11px] text-muted-foreground">{c.header}</dt>
+                        <dd className="truncate text-xs text-foreground">{c.cell(row)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                {trailingCol?.cell(row)}
+                {href && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              </div>
+            </div>
+          );
+          return (
+            <li key={id} onClick={onRowClick ? () => onRowClick(row) : undefined}>
+              {href ? (
+                <Link href={href} prefetch={false} className="block active:bg-muted/60">
+                  {body}
+                </Link>
+              ) : (
+                body
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      {sorted.length > limit && (
+        <div className="flex items-center justify-between border-t border-border px-4 py-2.5 text-xs text-muted-foreground">
+          <span className="num">
+            {visible.length} / {sorted.length}
+          </span>
+          <button
+            type="button"
+            onClick={() => setLimit((l) => l + pageSize)}
+            className="rounded-md px-2 py-1 font-medium text-primary hover:bg-brand-50"
+          >
+            {locale === 'fr' ? 'Afficher plus' : 'Show more'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}

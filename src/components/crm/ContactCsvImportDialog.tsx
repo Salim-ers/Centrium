@@ -128,12 +128,12 @@ export function ContactCsvImportDialog({ open, onOpenChange, onImported }: Props
                 <strong>Very tolerant</strong> headers — comma, semicolon or tab,
                 FR or EN, case / accents ignored.
                 <br />
-                <span className="text-violet-300">Identity (at least one)</span> :
+                <span className="text-primary">Identity (at least one)</span> :
                 <code className="mx-1">first_name</code>+<code className="mx-1">last_name</code>{' '}
                 as separate fields <em>OR</em> <code className="mx-1">Contact Name</code>{' '}
                 (will be split on the 1st space).
                 <br />
-                <span className="text-violet-300">Optional</span> : Email / Email address,
+                <span className="text-primary">Optional</span> : Email / Email address,
                 Phone / Phone number, LinkedIn URL, Job title / Contact role,
                 City, Company / ESN / ESN name (added as source), Description / Notes /
                 Comments, Progress status, Last date (added to notes),
@@ -145,12 +145,12 @@ export function ContactCsvImportDialog({ open, onOpenChange, onImported }: Props
                 Headers <strong>très tolérants</strong> — virgule, point-virgule ou tab,
                 FR ou EN, casse / accents ignorés.
                 <br />
-                <span className="text-violet-300">Identité (au moins l&apos;un)</span> :
+                <span className="text-primary">Identité (au moins l&apos;un)</span> :
                 <code className="mx-1">first_name</code>+<code className="mx-1">last_name</code>{' '}
                 séparés <em>OU</em> <code className="mx-1">Contact Nom/Prénom</code>{' '}
                 (sera scindé sur le 1er espace).
                 <br />
-                <span className="text-violet-300">Optionnel</span> : Email / Adresse mail,
+                <span className="text-primary">Optionnel</span> : Email / Adresse mail,
                 Téléphone / Numéro de téléphone, URL LinkedIn, Poste / Poste du contact,
                 Ville, Société / ESN / Nom ESN (ajouté en source), Description / Notes /
                 Commentaires, Statut d&apos;avancement, Date dernière (mises en notes),
@@ -189,14 +189,14 @@ export function ContactCsvImportDialog({ open, onOpenChange, onImported }: Props
           ) : (
             <>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-white/70 truncate">{fileName}</span>
+                <span className="text-muted-foreground truncate">{fileName}</span>
                 <div className="flex items-center gap-3">
-                  <span className="inline-flex items-center gap-1 text-emerald-300">
+                  <span className="inline-flex items-center gap-1 text-success">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     {validCount} {isEn ? 'valid' : 'valides'}
                   </span>
                   {errorCount > 0 && (
-                    <span className="inline-flex items-center gap-1 text-red-300">
+                    <span className="inline-flex items-center gap-1 text-destructive">
                       <AlertCircle className="h-3.5 w-3.5" />
                       {errorCount} {isEn ? 'in error' : 'en erreur'}
                     </span>
@@ -210,8 +210,8 @@ export function ContactCsvImportDialog({ open, onOpenChange, onImported }: Props
               <div className="rounded-lg border border-hairline overflow-hidden">
                 <div className="max-h-[420px] overflow-auto">
                   <table className="w-full text-xs">
-                    <thead className="bg-white/[0.02] sticky top-0">
-                      <tr className="text-left text-white/60">
+                    <thead className="bg-card sticky top-0">
+                      <tr className="text-left text-muted-foreground">
                         <th className="px-3 py-2 font-semibold">#</th>
                         <th className="px-3 py-2 font-semibold">{isEn ? 'Name' : 'Nom'}</th>
                         <th className="px-3 py-2 font-semibold">{isEn ? 'Type' : 'Type'}</th>
@@ -227,30 +227,30 @@ export function ContactCsvImportDialog({ open, onOpenChange, onImported }: Props
                           className={
                             d.parsed
                               ? 'border-t border-hairline'
-                              : 'border-t border-red-500/20 bg-red-500/[0.04]'
+                              : 'border-t border-destructive/20 bg-destructive/[0.04]'
                           }
                         >
-                          <td className="px-3 py-2 text-white/40">{d.index + 1}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{d.index + 1}</td>
                           {d.parsed ? (
                             <>
                               <td className="px-3 py-2">
                                 {d.parsed.first_name} {d.parsed.last_name}
                               </td>
-                              <td className="px-3 py-2 text-white/70">
+                              <td className="px-3 py-2 text-muted-foreground">
                                 {d.parsed.contact_type}
                               </td>
-                              <td className="px-3 py-2 text-white/70">
+                              <td className="px-3 py-2 text-muted-foreground">
                                 {d.parsed.job_title ?? '—'}
                               </td>
-                              <td className="px-3 py-2 text-white/70">
+                              <td className="px-3 py-2 text-muted-foreground">
                                 {d.parsed.email ?? '—'}
                               </td>
-                              <td className="px-3 py-2 text-white/70">
+                              <td className="px-3 py-2 text-muted-foreground">
                                 {d.parsed.phone ?? '—'}
                               </td>
                             </>
                           ) : (
-                            <td colSpan={5} className="px-3 py-2 text-red-300">
+                            <td colSpan={5} className="px-3 py-2 text-destructive">
                               <div className="flex items-start gap-2">
                                 <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                                 <div>

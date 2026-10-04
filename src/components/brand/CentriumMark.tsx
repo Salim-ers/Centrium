@@ -1,27 +1,20 @@
 import { cn } from '@/lib/utils';
+import { CentriumLogo } from './CentriumLogo';
 
 type Props = {
-  /** small : badge sidebar / footer ; md : header onboarding ; lg : page d'accueil. */
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  /** Affiche "by QuadCore" en sous-titre. */
+  /** Affiche « par QuadCore » sous le nom. */
   showEditor?: boolean;
-  /** Affiche le wordmark "Centrium" à côté du logo. */
+  /** Affiche le nom à côté du symbole. */
   showWordmark?: boolean;
   className?: string;
 };
 
 /**
- * Identité visuelle de la plateforme Centrium (l'éditeur du SaaS), à
- * placer en co-branding avec le logo de l'ESN cliente. Volontairement
- * petit et discret : il ne doit jamais voler la vedette au branding
- * du tenant — juste signaler que la plateforme est éditée par QuadCore.
+ * Signature discrète « Centrium » en co-branding avec le logo de l'ESN
+ * cliente (documents, portails). Ne doit jamais dominer la marque du tenant.
  */
-export function CentriumMark({
-  size = 'sm',
-  showEditor = true,
-  showWordmark = true,
-  className,
-}: Props) {
+export function CentriumMark({ size = 'sm', showEditor = true, showWordmark = true, className }: Props) {
   const sizes = {
     sm: { logo: 'h-5 w-5', name: 'text-[12px]', editor: 'text-[9px]' },
     md: { logo: 'h-8 w-8', name: 'text-[18px]', editor: 'text-[10px]' },
@@ -30,34 +23,15 @@ export function CentriumMark({
   }[size];
 
   return (
-    <div className={cn('inline-flex items-center gap-2 select-none', className)}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/brand/centrium-logo.svg"
-        alt="Centrium"
-        className={cn('shrink-0', sizes.logo)}
-        draggable={false}
-      />
+    <div className={cn('inline-flex select-none items-center gap-2', className)}>
+      <CentriumLogo className={sizes.logo} />
       {showWordmark && (
-        <div className="leading-none">
-          <span
-            className={cn(
-              'font-bold tracking-tight bg-clip-text text-transparent',
-              'bg-gradient-to-r from-violet-glow via-violet-300 to-magenta',
-              sizes.name,
-            )}
-          >
+        <div className="flex flex-col leading-none">
+          <span className={cn('font-display font-semibold tracking-tight text-foreground', sizes.name)}>
             Centrium
           </span>
           {showEditor && (
-            <div
-              className={cn(
-                'mt-0.5 uppercase tracking-[0.2em] text-white/40 font-semibold',
-                sizes.editor,
-              )}
-            >
-              by <span className="text-magenta/80">QuadCore</span>
-            </div>
+            <span className={cn('mt-0.5 text-muted-foreground', sizes.editor)}>par QuadCore</span>
           )}
         </div>
       )}

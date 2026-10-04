@@ -49,27 +49,27 @@ export function Contact({ t }: { t: LandingDict }) {
             transition={{ duration: 0.6 }}
             className="lg:col-span-2"
           >
-            <div className="text-xs font-semibold tracking-widest text-violet-300 mb-3">
+            <div className="text-xs font-semibold tracking-widest text-primary mb-3">
               {t.contact.kicker}
             </div>
             <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight leading-tight">
               {t.contact.title}
             </h2>
-            <p className="mt-4 text-white/60 leading-relaxed">{t.contact.subtitle}</p>
+            <p className="mt-4 text-muted-foreground leading-relaxed">{t.contact.subtitle}</p>
 
             <div className="mt-8 space-y-3">
               <a
                 href="mailto:contact@centrium-platform.com"
-                className="flex items-center gap-3 text-sm text-white/80 hover:text-white transition"
+                className="flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground transition"
               >
-                <div className="h-9 w-9 rounded-lg bg-violet-brand/15 border border-violet-brand/30 flex items-center justify-center">
-                  <Mail className="h-4 w-4 text-violet-300" />
+                <div className="h-9 w-9 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center">
+                  <Mail className="h-4 w-4 text-primary" />
                 </div>
                 contact@centrium-platform.com
               </a>
-              <div className="flex items-center gap-3 text-sm text-white/60">
-                <div className="h-9 w-9 rounded-lg bg-magenta/15 border border-magenta/30 flex items-center justify-center">
-                  <MapPin className="h-4 w-4 text-magenta" />
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <div className="h-9 w-9 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center">
+                  <MapPin className="h-4 w-4 text-primary" />
                 </div>
                 Paris
               </div>
@@ -82,7 +82,7 @@ export function Contact({ t }: { t: LandingDict }) {
             viewport={{ once: true, margin: '-100px' }}
             transition={{ duration: 0.6, delay: 0.15 }}
             onSubmit={onSubmit}
-            className="lg:col-span-3 rounded-xl border border-hairline bg-card/60 backdrop-blur p-6 md:p-8 space-y-4"
+            className="lg:col-span-3 rounded-xl border border-hairline bg-card/60 p-6 md:p-8 space-y-4"
           >
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
@@ -106,7 +106,7 @@ export function Contact({ t }: { t: LandingDict }) {
                 required
                 rows={5}
                 maxLength={2000}
-                className="flex w-full rounded-md border border-hairline bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-violet-brand/40 focus:border-violet-brand/50 transition resize-none"
+                className="flex w-full rounded-md border border-hairline bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition resize-none"
               />
             </div>
 
@@ -114,19 +114,19 @@ export function Contact({ t }: { t: LandingDict }) {
 
             <div className="flex items-center justify-between gap-3 pt-2">
               {status === 'sent' ? (
-                <div className="text-sm text-emerald-300 inline-flex items-center gap-1.5">
+                <div className="text-sm text-success inline-flex items-center gap-1.5">
                   <Check className="h-4 w-4" />
                   {t.contact.form.success}
                 </div>
               ) : status === 'error' ? (
-                <div className="text-sm text-red-400">{t.contact.form.error}</div>
+                <div className="text-sm text-destructive">{t.contact.form.error}</div>
               ) : (
                 <span />
               )}
               <Button
                 type="submit"
                 disabled={status === 'sending'}
-                className="bg-qc-gradient hover:opacity-90 shadow-glow-magenta"
+                className="bg-qc-gradient hover:opacity-90 "
               >
                 {status === 'sending' ? (
                   <>

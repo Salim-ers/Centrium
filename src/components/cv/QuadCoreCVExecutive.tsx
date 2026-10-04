@@ -412,7 +412,7 @@ function EditableKeyValue({
         onEdit={onEdit}
         placeholder={placeholder ?? '—'}
         className="text-[12px] font-semibold"
-        style={highlight ? { color: highlightColor ?? '#6d28d9' } : undefined}
+        style={highlight ? { color: highlightColor ?? '#C65F46' } : undefined}
       />
     </div>
   );

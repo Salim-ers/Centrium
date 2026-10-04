@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { LIMITS } from '@/lib/constants/limits';
+import { fieldBase } from './field-styles';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
 
@@ -71,11 +72,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         maxLength={effectiveMax}
         onKeyDown={handleKeyDown}
         className={cn(
-          'flex h-10 w-full rounded-md border border-hairline surface-1 px-3 py-2 text-sm transition-colors',
-          'placeholder:text-muted-foreground',
-          'focus-visible:outline-none focus-visible:border-violet-glow/60 focus-visible:ring-1 focus-visible:ring-violet-glow/30',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          'file:border-0 file:bg-transparent file:text-sm file:font-medium',
+          'flex h-9 px-3 py-1.5',
+          fieldBase,
+          'file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground',
           className,
         )}
         ref={ref}

@@ -39,8 +39,8 @@ export function QuadCoreSignature({
 
   return (
     <div className="inline-block">
-      <div className="border border-neutral-200 rounded-lg bg-white px-6 py-4 min-w-[260px]">
-        <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-400 mb-2">
+      <div className="border border-border rounded-lg bg-white px-6 py-4 min-w-[260px]">
+        <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-2">
           Signature
         </div>
 
@@ -60,7 +60,7 @@ export function QuadCoreSignature({
           }
         </div>
 
-        <div className="mt-3 pt-3 border-t border-neutral-100 flex items-center justify-between gap-4">
+        <div className="mt-3 pt-3 border-t border-border flex items-center justify-between gap-4">
           <QuadCoreLogo
             size="sm"
             showTagline={false}
@@ -71,15 +71,15 @@ export function QuadCoreSignature({
             cacheKey={cacheKey}
           />
           <div className="text-right">
-            <div className="text-[10px] font-semibold text-neutral-800">{displayName}</div>
-            <div className="text-[9px] text-neutral-500">{displayRole}</div>
+            <div className="text-[10px] font-semibold text-foreground">{displayName}</div>
+            <div className="text-[9px] text-muted-foreground">{displayRole}</div>
           </div>
         </div>
       </div>
 
       {/* Date affichée sous le bloc, plus du tout collée au tampon. */}
-      <div className="mt-2 text-center text-[11px] text-neutral-700">
-        Fait le <span className="font-semibold text-neutral-900">{displayDate}</span>
+      <div className="mt-2 text-center text-[11px] text-foreground">
+        Fait le <span className="font-semibold text-foreground">{displayDate}</span>
       </div>
     </div>
   );

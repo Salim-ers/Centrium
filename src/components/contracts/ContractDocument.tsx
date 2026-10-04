@@ -63,8 +63,8 @@ export function ContractDocument({ contract, issuer }: Props) {
   const c = contract;
   const iss = issuer ?? FALLBACK_ISSUER;
   const isSigned = !!c.signed_at;
-  const primary = iss.primaryColor || '#6d28d9';
-  const accent = iss.accentColor || '#e11d74';
+  const primary = iss.primaryColor || '#C65F46';
+  const accent = iss.accentColor || '#9D4432';
   // Contrat CLIENT : l'ESN est le PRESTATAIRE et l'entreprise cliente la
   // contrepartie. Contrat CONSULTANT (historique) : l'ESN est le DONNEUR
   // D'ORDRE et la société du freelance le prestataire.
@@ -72,7 +72,7 @@ export function ContractDocument({ contract, issuer }: Props) {
 
   return (
     <div
-      className="qc-print-doc bg-white text-neutral-900 shadow-2xl mx-auto"
+      className="qc-print-doc bg-white text-foreground shadow-2xl mx-auto"
       style={{ width: '210mm', minHeight: '297mm', fontFamily: 'Georgia, serif' }}
     >
       <header className="px-12 pt-10 pb-6">
@@ -86,7 +86,7 @@ export function ContractDocument({ contract, issuer }: Props) {
             cacheKey={iss.version}
           />
           <div className="text-right">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-neutral-400">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
               {KIND_LABEL[c.kind]}
             </div>
             <div className="font-mono text-lg font-bold mt-1">{c.contract_number}</div>
@@ -101,8 +101,8 @@ export function ContractDocument({ contract, issuer }: Props) {
       </header>
 
       <section className="px-12 py-4">
-        <h1 className="text-2xl font-bold text-neutral-900 mb-2">{c.title}</h1>
-        <p className="text-sm text-neutral-600">
+        <h1 className="text-2xl font-bold text-foreground mb-2">{c.title}</h1>
+        <p className="text-sm text-muted-foreground">
           {formatDate(c.start_date)} — {c.end_date ? formatDate(c.end_date) : 'durée indéterminée'}
           {' · '}
           {c.duration_months} mois
@@ -111,11 +111,11 @@ export function ContractDocument({ contract, issuer }: Props) {
 
       <section className="px-12 py-4 grid grid-cols-2 gap-8">
         <div>
-          <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
+          <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-2">
             {isClient ? 'Le prestataire' : "Donneur d'ordre"}
           </div>
           <div className="text-sm font-semibold">{iss.brandName}</div>
-          <div className="text-xs text-neutral-600 leading-relaxed mt-1">
+          <div className="text-xs text-muted-foreground leading-relaxed mt-1">
             {iss.address && (
               <>
                 {iss.address}
@@ -134,11 +134,11 @@ export function ContractDocument({ contract, issuer }: Props) {
 
         {isClient ? (
           <div>
-            <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
+            <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-2">
               Le client
             </div>
             <div className="text-sm font-semibold">{c.client_name ?? '—'}</div>
-            <div className="text-xs text-neutral-600 leading-relaxed mt-1">
+            <div className="text-xs text-muted-foreground leading-relaxed mt-1">
               {c.client_address && (
                 <>
                   {c.client_address}
@@ -150,11 +150,11 @@ export function ContractDocument({ contract, issuer }: Props) {
           </div>
         ) : (
           <div>
-            <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
+            <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-2">
               Prestataire
             </div>
             <div className="text-sm font-semibold">{c.supplier_company_name ?? '—'}</div>
-            <div className="text-xs text-neutral-600 leading-relaxed mt-1">
+            <div className="text-xs text-muted-foreground leading-relaxed mt-1">
               {c.supplier_address && (
                 <>
                   {c.supplier_address}
@@ -180,7 +180,7 @@ export function ContractDocument({ contract, issuer }: Props) {
       </section>
 
       <section className="px-12 py-4">
-        <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
+        <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-2">
           Mission
         </div>
         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -192,7 +192,7 @@ export function ContractDocument({ contract, issuer }: Props) {
       </section>
 
       <section className="px-12 py-4">
-        <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
+        <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-2">
           Conditions financières
         </div>
         <div className="grid grid-cols-3 gap-4 text-sm">
@@ -203,7 +203,7 @@ export function ContractDocument({ contract, issuer }: Props) {
       </section>
 
       <section className="px-12 py-4">
-        <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
+        <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-2">
           Dispositions juridiques
         </div>
         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -218,7 +218,7 @@ export function ContractDocument({ contract, issuer }: Props) {
           />
         </div>
         {c.non_compete_penalty && (
-          <p className="text-xs text-neutral-600 mt-2 leading-relaxed">
+          <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
             <span className="font-semibold">Clause pénale :</span> {c.non_compete_penalty}
           </p>
         )}
@@ -226,10 +226,10 @@ export function ContractDocument({ contract, issuer }: Props) {
 
       {c.notes && (
         <section className="px-12 py-4">
-          <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-1">
+          <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-1">
             Notes complémentaires
           </div>
-          <p className="text-xs text-neutral-700 whitespace-pre-line">{c.notes}</p>
+          <p className="text-xs text-foreground whitespace-pre-line">{c.notes}</p>
         </section>
       )}
 
@@ -245,15 +245,15 @@ export function ContractDocument({ contract, issuer }: Props) {
           <ContractClauses contract={c} issuerName={iss.brandName} />
         ))}
 
-      <section className="px-12 py-6 border-t border-neutral-100 bg-neutral-50/40">
-        <div className="text-[10px] text-neutral-500 leading-relaxed mb-5">
-          <div className="font-semibold text-neutral-700 mb-1">Signature des parties</div>
+      <section className="px-12 py-6 border-t border-border bg-muted">
+        <div className="text-[10px] text-muted-foreground leading-relaxed mb-5">
+          <div className="font-semibold text-foreground mb-1">Signature des parties</div>
           Le présent contrat prend effet à compter de sa signature par les deux parties.
           Chaque partie conserve un exemplaire original.
         </div>
         <div className="grid grid-cols-2 gap-8 items-start">
           <div>
-            <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
+            <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-2">
               {isClient ? 'Pour le prestataire' : 'Pour le donneur d’ordre'}
             </div>
             <QuadCoreSignature
@@ -269,25 +269,25 @@ export function ContractDocument({ contract, issuer }: Props) {
           </div>
 
           <div>
-            <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-2">
+            <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-2">
               {isClient ? 'Pour le client' : 'Pour le prestataire'}
             </div>
             {isClient ? (
               // Le client signe hors plateforme (papier / parapheur externe) :
               // cadre en attente au nom de l'entreprise cliente.
               <div className="inline-block">
-                <div className="border border-dashed border-neutral-300 rounded-lg bg-white px-6 py-4 min-w-[260px]">
-                  <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-400 mb-2">
+                <div className="border border-dashed border-border rounded-lg bg-white px-6 py-4 min-w-[260px]">
+                  <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-2">
                     Signature et cachet
                   </div>
-                  <div className="h-16 flex items-center justify-center text-[10px] text-neutral-400 italic">
+                  <div className="h-16 flex items-center justify-center text-[10px] text-muted-foreground italic">
                     {isSigned ? 'Signé' : 'En attente de signature'}
                   </div>
-                  <div className="mt-3 pt-3 border-t border-neutral-100 text-right">
-                    <div className="text-[10px] font-semibold text-neutral-800">
+                  <div className="mt-3 pt-3 border-t border-border text-right">
+                    <div className="text-[10px] font-semibold text-foreground">
                       {c.client_name ?? '—'}
                     </div>
-                    <div className="text-[9px] text-neutral-500">
+                    <div className="text-[9px] text-muted-foreground">
                       Nom, qualité du signataire et cachet
                     </div>
                   </div>
@@ -295,8 +295,8 @@ export function ContractDocument({ contract, issuer }: Props) {
               </div>
             ) : c.consultant_signature_data ? (
               <div className="inline-block">
-                <div className="border border-neutral-200 rounded-lg bg-white px-6 py-4 min-w-[260px]">
-                  <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-400 mb-2">
+                <div className="border border-border rounded-lg bg-white px-6 py-4 min-w-[260px]">
+                  <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-2">
                     Signature
                   </div>
                   <div className="h-16 flex items-center">
@@ -307,19 +307,19 @@ export function ContractDocument({ contract, issuer }: Props) {
                       className="max-h-full max-w-[200px] object-contain select-none"
                     />
                   </div>
-                  <div className="mt-3 pt-3 border-t border-neutral-100 text-right">
-                    <div className="text-[10px] font-semibold text-neutral-800">
+                  <div className="mt-3 pt-3 border-t border-border text-right">
+                    <div className="text-[10px] font-semibold text-foreground">
                       {c.consultant_signed_name ?? c.supplier_representative ?? '—'}
                     </div>
-                    <div className="text-[9px] text-neutral-500">
+                    <div className="text-[9px] text-muted-foreground">
                       {c.supplier_company_name ?? 'Prestataire'}
                     </div>
                   </div>
                 </div>
                 {c.consultant_signed_at && (
-                  <div className="mt-2 text-center text-[11px] text-neutral-700">
+                  <div className="mt-2 text-center text-[11px] text-foreground">
                     Fait le{' '}
-                    <span className="font-semibold text-neutral-900">
+                    <span className="font-semibold text-foreground">
                       {formatDate(c.consultant_signed_at)}
                     </span>
                   </div>
@@ -327,18 +327,18 @@ export function ContractDocument({ contract, issuer }: Props) {
               </div>
             ) : (
               <div className="inline-block">
-                <div className="border border-dashed border-neutral-300 rounded-lg bg-white px-6 py-4 min-w-[260px]">
-                  <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-400 mb-2">
+                <div className="border border-dashed border-border rounded-lg bg-white px-6 py-4 min-w-[260px]">
+                  <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-2">
                     Signature
                   </div>
-                  <div className="h-16 flex items-center justify-center text-[10px] text-neutral-400 italic">
+                  <div className="h-16 flex items-center justify-center text-[10px] text-muted-foreground italic">
                     En attente de signature
                   </div>
-                  <div className="mt-3 pt-3 border-t border-neutral-100 text-right">
-                    <div className="text-[10px] font-semibold text-neutral-800">
+                  <div className="mt-3 pt-3 border-t border-border text-right">
+                    <div className="text-[10px] font-semibold text-foreground">
                       {c.supplier_representative ?? '—'}
                     </div>
-                    <div className="text-[9px] text-neutral-500">
+                    <div className="text-[9px] text-muted-foreground">
                       {c.supplier_company_name ?? 'Prestataire'}
                     </div>
                   </div>
@@ -356,7 +356,7 @@ export function ContractDocument({ contract, issuer }: Props) {
             background: `linear-gradient(90deg, transparent 0%, ${accent} 45%, ${primary} 100%)`,
           }}
         />
-        <div className="text-[9px] text-neutral-400 tracking-wider">
+        <div className="text-[9px] text-muted-foreground tracking-wider">
           {iss.brandName}
           {iss.footerTagline ? ` · ${iss.footerTagline}` : ''} · {c.contract_number}
           {isSigned ? ` · Signé le ${formatDate(c.signed_at)}` : ' · Document à signer'}
@@ -369,8 +369,8 @@ export function ContractDocument({ contract, issuer }: Props) {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[9px] uppercase tracking-[0.15em] text-neutral-500">{label}</div>
-      <div className="font-medium text-neutral-900 mt-0.5">{value}</div>
+      <div className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">{label}</div>
+      <div className="font-medium text-foreground mt-0.5">{value}</div>
     </div>
   );
 }
@@ -539,17 +539,17 @@ function ClientContractClauses({
 /** Rendu commun des conditions générales (grille d'articles justifiés). */
 function ClausesLayout({ articles }: { articles: { title: string; body: string }[] }) {
   return (
-    <section className="px-12 py-5 border-t border-neutral-100">
-      <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 mb-3">
+    <section className="px-12 py-5 border-t border-border">
+      <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-3">
         Conditions générales
       </div>
       <div className="space-y-3">
         {articles.map((a) => (
           <div key={a.title}>
-            <div className="text-[10px] font-bold text-neutral-800 uppercase tracking-wide">
+            <div className="text-[10px] font-bold text-foreground uppercase tracking-wide">
               {a.title}
             </div>
-            <p className="text-[10px] leading-relaxed text-neutral-600 mt-0.5 text-justify">
+            <p className="text-[10px] leading-relaxed text-muted-foreground mt-0.5 text-justify">
               {a.body}
             </p>
           </div>

@@ -30,14 +30,14 @@ function WelcomeToastInner({
       className="relative w-[360px] max-w-[90vw] rounded-2xl p-[1.5px] shadow-[0_24px_60px_-15px_rgba(225,29,116,0.45)]"
       style={{
         background:
-          'linear-gradient(135deg, #8b5cf6 0%, #c026d3 50%, #e11d74 100%)',
+          'linear-gradient(135deg, #C65F46 0%, #B0503A 50%, #9D4432 100%)',
       }}
     >
-      <div className="rounded-2xl bg-[#0d0e16]/95 backdrop-blur-xl px-5 py-4 flex items-center gap-4 overflow-hidden relative">
+      <div className="rounded-2xl bg-[#0d0e16]/95 px-5 py-4 flex items-center gap-4 overflow-hidden relative">
         {/* Halo doux violet en fond */}
         <div
           aria-hidden
-          className="absolute -left-10 -top-10 h-32 w-32 rounded-full opacity-40 blur-2xl pointer-events-none"
+          className="absolute -left-10 -top-10 h-32 w-32 rounded-full opacity-40 blur-2xl pointer-events-none hidden"
           style={{
             background:
               'radial-gradient(circle, rgba(139,92,246,0.55), transparent 70%)',
@@ -45,7 +45,7 @@ function WelcomeToastInner({
         />
         <div
           aria-hidden
-          className="absolute -right-12 -bottom-12 h-32 w-32 rounded-full opacity-30 blur-2xl pointer-events-none"
+          className="absolute -right-12 -bottom-12 h-32 w-32 rounded-full opacity-30 blur-2xl pointer-events-none hidden"
           style={{
             background:
               'radial-gradient(circle, rgba(225,29,116,0.55), transparent 70%)',
@@ -62,13 +62,13 @@ function WelcomeToastInner({
               border: '1px solid rgba(139,92,246,0.4)',
             }}
           >
-            <Sparkles className="h-5 w-5 text-violet-200" />
+            <Sparkles className="h-5 w-5 text-primary" />
           </div>
           <span
             className="absolute -top-1 -right-1 h-3 w-3 rounded-full"
             style={{
               background:
-                'radial-gradient(circle, #f5d0fe 0%, #e11d74 70%)',
+                'radial-gradient(circle, #F6E3DA 0%, #9D4432 70%)',
               boxShadow: '0 0 12px rgba(225,29,116,0.7)',
             }}
           />
@@ -76,14 +76,14 @@ function WelcomeToastInner({
 
         <div className="flex-1 min-w-0 relative">
           <div className="text-[13px] font-semibold leading-tight tracking-tight">
-            <span className="qc-gradient-text">{greeting}</span>
+            <span className="text-primary">{greeting}</span>
           </div>
-          <p className="text-[11px] text-white/65 mt-0.5 leading-snug">
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
             {subtitle}
           </p>
           <div className="mt-2 flex items-center gap-2">
             <CentriumWordmark size="sm" showEditor={false} />
-            <span className="text-[9px] uppercase tracking-[0.18em] text-white/40">
+            <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
               Session ouverte
             </span>
           </div>
@@ -92,7 +92,7 @@ function WelcomeToastInner({
         <button
           type="button"
           onClick={() => toast.dismiss(toastId)}
-          className="absolute top-2 right-3 text-white/40 hover:text-white/80 transition text-xs"
+          className="absolute top-2 right-3 text-muted-foreground hover:text-muted-foreground transition text-xs"
           aria-label="Fermer"
         >
           ×

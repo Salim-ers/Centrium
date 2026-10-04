@@ -446,17 +446,17 @@ export function ContractFormDialog({
                     aria-pressed={active}
                     className={`relative rounded-xl border p-3.5 text-left transition-all ${
                       active
-                        ? 'border-violet-glow/60 bg-violet-glow/[0.07] ring-1 ring-violet-glow/40'
+                        ? 'border-primary/60 bg-primary/[0.07] ring-1 ring-primary/40'
                         : 'border-hairline hover:border-foreground/20 hover:bg-foreground/[0.03]'
                     }`}
                   >
                     {active && (
-                      <span className="absolute top-2.5 right-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-violet-glow text-white">
+                      <span className="absolute top-2.5 right-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-white">
                         <Check className="h-2.5 w-2.5" />
                       </span>
                     )}
                     <Icon
-                      className={`h-4 w-4 mb-2 ${active ? 'text-violet-glow' : 'text-muted-foreground'}`}
+                      className={`h-4 w-4 mb-2 ${active ? 'text-primary' : 'text-muted-foreground'}`}
                     />
                     <div className="text-sm font-semibold leading-tight">{card.title}</div>
                     <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
@@ -470,7 +470,7 @@ export function ContractFormDialog({
 
           {/* Section 1 : Identification */}
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">
               {isEn ? 'Contract identification' : 'Identification du contrat'}
             </h3>
             <div className="grid grid-cols-2 gap-3">
@@ -513,15 +513,15 @@ export function ContractFormDialog({
                 }
               />
               {errors.title && (
-                <p className="text-xs text-red-400 mt-1">{errors.title.message}</p>
+                <p className="text-xs text-destructive mt-1">{errors.title.message}</p>
               )}
             </div>
           </section>
 
           {/* Section 1bis : Mission rattachée (pre-fill auto) */}
           {!isEdit && missions.length > 0 && (
-            <section className="rounded-lg border border-violet-brand/20 bg-violet-brand/5 p-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3 flex items-center gap-2">
+            <section className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-primary mb-3 flex items-center gap-2">
                 <Briefcase className="h-3.5 w-3.5" />
                 {isEn
                   ? 'Link to existing mission (optional)'
@@ -559,7 +559,7 @@ export function ContractFormDialog({
           {/* Section 2 : Contrepartie — entreprise cliente OU consultant + fournisseur */}
           {isClientContract ? (
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">
                 {isEn ? 'Client company' : 'Entreprise cliente'}
               </h3>
               <div className="grid grid-cols-2 gap-3">
@@ -596,7 +596,7 @@ export function ContractFormDialog({
                   <Label>{isEn ? 'Legal name *' : 'Raison sociale *'}</Label>
                   <Input {...register('client_name')} placeholder={isEn ? 'e.g. BNP Paribas' : 'ex: BNP Paribas'} />
                   {errors.client_name && (
-                    <p className="text-xs text-red-400 mt-1">{errors.client_name.message}</p>
+                    <p className="text-xs text-destructive mt-1">{errors.client_name.message}</p>
                   )}
                 </div>
                 <div>
@@ -635,7 +635,7 @@ export function ContractFormDialog({
             <>
               {/* Section 2 : Consultant */}
               <section>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">
                   {isEn ? 'Consultant' : 'Consultant concerné'}
                 </h3>
                 <Label>{t.forms.contract.consultant}</Label>
@@ -661,7 +661,7 @@ export function ContractFormDialog({
 
               {/* Section 3 : Fournisseur */}
               <section>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">
                   {isEn
                     ? "Supplier (consultant's company)"
                     : 'Fournisseur (société du consultant)'}
@@ -669,8 +669,8 @@ export function ContractFormDialog({
 
                 {/* Dropdown : reprendre un fournisseur déjà saisi sur un précédent contrat */}
                 {suppliers.length > 0 && (
-                  <div className="mb-4 rounded-md border border-magenta/25 bg-magenta/[0.04] p-3">
-                    <Label className="text-magenta text-[10px] uppercase tracking-wider font-semibold">
+                  <div className="mb-4 rounded-md border border-primary/25 bg-primary/[0.04] p-3">
+                    <Label className="text-primary text-[10px] uppercase tracking-wider font-semibold">
                       {isEn ? 'Reuse an existing supplier' : 'Reprendre un fournisseur existant'}
                     </Label>
                     <Combobox
@@ -725,7 +725,7 @@ export function ContractFormDialog({
                     <Label>{isEn ? 'Company name *' : 'Raison sociale *'}</Label>
                     <Input {...register('supplier_company_name')} />
                     {errors.supplier_company_name && (
-                      <p className="text-xs text-red-400 mt-1">
+                      <p className="text-xs text-destructive mt-1">
                         {errors.supplier_company_name.message}
                       </p>
                     )}
@@ -764,7 +764,7 @@ export function ContractFormDialog({
 
           {/* Section 4 : Mission & Client final */}
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">
               {isClientContract
                 ? isEn
                   ? 'Mission'
@@ -800,7 +800,7 @@ export function ContractFormDialog({
 
           {/* Section 5 : Période */}
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">
               {isEn ? 'Period' : 'Période'}
             </h3>
             <div className="grid grid-cols-2 gap-3">
@@ -808,7 +808,7 @@ export function ContractFormDialog({
                 <Label>{isEn ? 'Start date *' : 'Date de début *'}</Label>
                 <Input type="date" {...register('start_date')} />
                 {errors.start_date && (
-                  <p className="text-xs text-red-400 mt-1">{errors.start_date.message}</p>
+                  <p className="text-xs text-destructive mt-1">{errors.start_date.message}</p>
                 )}
               </div>
               <div>
@@ -820,7 +820,7 @@ export function ContractFormDialog({
 
           {/* Section 6 : Conditions financières */}
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">
               {isEn ? 'Financial terms' : 'Conditions financières'}
             </h3>
             <div className="grid grid-cols-2 gap-3">
@@ -849,7 +849,7 @@ export function ContractFormDialog({
 
           {/* Section 7 : Clauses */}
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-violet-glow mb-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">
               {isEn ? 'Specific clauses' : 'Clauses particulières'}
             </h3>
             <div className="grid grid-cols-2 gap-3">

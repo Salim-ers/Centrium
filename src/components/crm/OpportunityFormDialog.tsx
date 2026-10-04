@@ -117,7 +117,7 @@ export function OpportunityFormDialog({
               }
             />
             {errors.title && (
-              <p className="text-xs text-red-400 mt-1">{errors.title.message}</p>
+              <p className="text-xs text-destructive mt-1">{errors.title.message}</p>
             )}
           </div>
 

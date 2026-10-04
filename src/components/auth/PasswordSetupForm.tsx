@@ -220,8 +220,8 @@ export function PasswordSetupForm({ mode }: { mode: Mode }) {
         <Card className="w-full max-w-md relative">
           <CardHeader className="text-center space-y-2">
             <div className="flex justify-center">
-              <div className="p-3 bg-amber-500/10 rounded-full">
-                <AlertTriangle className="h-6 w-6 text-amber-400" />
+              <div className="p-3 bg-warning/10 rounded-full">
+                <AlertTriangle className="h-6 w-6 text-warning" />
               </div>
             </div>
             <CardTitle className="text-xl">{copy.title}</CardTitle>
@@ -281,8 +281,8 @@ export function PasswordSetupForm({ mode }: { mode: Mode }) {
       <Card className="w-full max-w-md relative">
         <CardHeader className="text-center space-y-2">
           <div className="flex justify-center">
-            <div className="p-3 bg-violet-500/10 rounded-full">
-              <ShieldCheck className="h-6 w-6 text-violet-300" />
+            <div className="p-3 bg-primary/10 rounded-full">
+              <ShieldCheck className="h-6 w-6 text-primary" />
             </div>
           </div>
           <CardTitle className="text-xl">{heading}</CardTitle>
@@ -318,10 +318,10 @@ export function PasswordSetupForm({ mode }: { mode: Mode }) {
                         className={`h-1 flex-1 rounded-full transition-colors ${
                           i < check.strength
                             ? check.strength >= 3
-                              ? 'bg-emerald-400'
+                              ? 'bg-success'
                               : check.strength === 2
-                                ? 'bg-amber-400'
-                                : 'bg-rose-400'
+                                ? 'bg-warning'
+                                : 'bg-destructive'
                             : 'bg-foreground/10'
                         }`}
                       />
@@ -329,10 +329,10 @@ export function PasswordSetupForm({ mode }: { mode: Mode }) {
                     <span
                       className={`ml-1 text-[10px] font-medium ${
                         check.strength >= 3
-                          ? 'text-emerald-400'
+                          ? 'text-success'
                           : check.strength === 2
-                            ? 'text-amber-400'
-                            : 'text-rose-400'
+                            ? 'text-warning'
+                            : 'text-destructive'
                       }`}
                     >
                       {STRENGTH_LABEL[check.strength]}
@@ -341,7 +341,7 @@ export function PasswordSetupForm({ mode }: { mode: Mode }) {
                   {check.errors.length > 0 && (
                     <ul className="space-y-0.5">
                       {check.errors.map((err, i) => (
-                        <li key={i} className="text-[11px] leading-snug text-rose-400">
+                        <li key={i} className="text-[11px] leading-snug text-destructive">
                           {err}
                         </li>
                       ))}

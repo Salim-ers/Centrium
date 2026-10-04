@@ -28,14 +28,14 @@ import { useLocale } from '@/lib/i18n/LocaleProvider';
 import type { Contract } from '@/types';
 
 const STATUS_STYLE: Partial<Record<Contract['status'], string>> = {
-  draft: 'bg-slate-500/10 text-slate-300 border-slate-500/20',
-  pending_review: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
-  sent: 'bg-blue-500/10 text-blue-300 border-blue-500/20',
-  signed: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
-  active: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
-  ended: 'bg-slate-600/10 text-slate-400 border-slate-600/20',
-  terminated: 'bg-red-500/10 text-red-300 border-red-500/20',
-  cancelled: 'bg-slate-600/10 text-slate-400 border-slate-600/20',
+  draft: 'bg-muted text-muted-foreground border-border',
+  pending_review: 'bg-warning/10 text-warning border-warning/20',
+  sent: 'bg-info/10 text-info border-info/20',
+  signed: 'bg-success/10 text-success border-success/20',
+  active: 'bg-success/10 text-success border-success/20',
+  ended: 'bg-muted text-muted-foreground border-border',
+  terminated: 'bg-destructive/10 text-destructive border-destructive/20',
+  cancelled: 'bg-muted text-muted-foreground border-border',
 };
 
 const STATUS_LABEL_FR: Record<Contract['status'], string> = {
@@ -213,9 +213,9 @@ export default function PortalContractDetailPage() {
       </div>
 
       {canSign && (
-        <div className="no-print mb-4 flex items-start gap-3 rounded-xl border border-blue-500/30 bg-blue-500/[0.07] px-4 py-3">
-          <PenLine className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
-          <p className="text-xs leading-relaxed text-blue-600 dark:text-blue-300/90">
+        <div className="no-print mb-4 flex items-start gap-3 rounded-xl border border-info/30 bg-info/[0.07] px-4 py-3">
+          <PenLine className="h-4 w-4 text-info shrink-0 mt-0.5" />
+          <p className="text-xs leading-relaxed text-info ">
             {isEn ? (
               <>
                 This contract is awaiting your signature. Review it, then click “Sign this
@@ -233,7 +233,7 @@ export default function PortalContractDetailPage() {
         </div>
       )}
 
-      <div ref={docRef} className="bg-neutral-200 rounded-xl p-6 overflow-auto">
+      <div ref={docRef} className="bg-muted rounded-xl p-6 overflow-auto">
         <ContractDocument contract={contract} issuer={issuer} />
       </div>
 

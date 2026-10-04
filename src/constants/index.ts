@@ -18,11 +18,11 @@ export const CONSULTANT_STATUS_LABEL: Record<ConsultantStatus, string> = {
 };
 
 export const CONSULTANT_STATUS_STYLE: Record<ConsultantStatus, string> = {
-  available: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  on_mission: 'bg-violet-500/10 text-violet-300 border-violet-500/20',
-  soon_available: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  unavailable: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-  archived: 'bg-slate-700/20 text-slate-500 border-slate-700/30',
+  available: 'bg-success/10 text-success border-success/20',
+  on_mission: 'bg-primary/10 text-primary border-primary/20',
+  soon_available: 'bg-warning/10 text-warning border-warning/20',
+  unavailable: 'bg-muted text-muted-foreground border-border',
+  archived: 'bg-muted text-muted-foreground border-border',
 };
 
 export const SENIORITY_LABEL: Record<SeniorityLevel, string> = {
@@ -59,22 +59,22 @@ export const OPPORTUNITY_STATUS_ORDER: OpportunityStatus[] = [
 ];
 
 export const OPPORTUNITY_STATUS_COLOR: Record<OpportunityStatus, string> = {
-  new: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
-  contacted: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
-  discussion: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
-  cv_sent: 'bg-violet-500/15 text-violet-300 border-violet-500/30',
-  client_interview: 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30',
-  negotiation: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-  won: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-  lost: 'bg-red-500/15 text-red-300 border-red-500/30',
-  on_hold: 'bg-slate-600/15 text-slate-400 border-slate-600/30',
+  new: 'bg-muted text-muted-foreground border-border',
+  contacted: 'bg-info/15 text-info border-info/30',
+  discussion: 'bg-info/15 text-info border-info/30',
+  cv_sent: 'bg-primary/15 text-primary border-primary/30',
+  client_interview: 'bg-primary/15 text-primary border-primary/30',
+  negotiation: 'bg-warning/15 text-warning border-warning/30',
+  won: 'bg-success/15 text-success border-success/30',
+  lost: 'bg-destructive/15 text-destructive border-destructive/30',
+  on_hold: 'bg-muted text-muted-foreground border-border',
 };
 
 export const ALERT_PRIORITY_STYLE: Record<AlertPriority, string> = {
-  low: 'bg-slate-500/10 text-slate-300 border-slate-500/20',
-  medium: 'bg-blue-500/10 text-blue-300 border-blue-500/20',
-  high: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
-  critical: 'bg-red-500/10 text-red-300 border-red-500/20',
+  low: 'bg-muted text-muted-foreground border-border',
+  medium: 'bg-info/10 text-info border-info/20',
+  high: 'bg-warning/10 text-warning border-warning/20',
+  critical: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
 export const ALERT_STATUS_LABEL: Record<AlertStatus, string> = {
@@ -95,11 +95,11 @@ export const INVOICE_STATUS_LABEL: Record<InvoiceStatus, string> = {
 };
 
 export const INVOICE_STATUS_STYLE: Record<InvoiceStatus, string> = {
-  draft: 'bg-slate-500/10 text-slate-300',
-  sent: 'bg-blue-500/10 text-blue-300',
-  paid: 'bg-emerald-500/10 text-emerald-300',
-  overdue: 'bg-red-500/10 text-red-300',
-  cancelled: 'bg-slate-600/10 text-slate-500',
+  draft: 'bg-muted text-muted-foreground',
+  sent: 'bg-info/10 text-info',
+  paid: 'bg-success/10 text-success',
+  overdue: 'bg-destructive/10 text-destructive',
+  cancelled: 'bg-muted text-muted-foreground',
 };
 
 export const CONTACT_TYPE_LABEL: Record<ContactType, string> = {

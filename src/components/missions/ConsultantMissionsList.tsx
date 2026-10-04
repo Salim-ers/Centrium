@@ -46,11 +46,11 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_STYLE: Record<string, string> = {
-  proposed: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-  active: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-  ended: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
-  suspended: 'bg-violet-500/15 text-violet-300 border-violet-500/30',
-  rejected: 'bg-red-500/15 text-red-300 border-red-500/30',
+  proposed: 'bg-warning/15 text-warning border-warning/30',
+  active: 'bg-success/15 text-success border-success/30',
+  ended: 'bg-muted text-muted-foreground border-border',
+  suspended: 'bg-primary/15 text-primary border-primary/30',
+  rejected: 'bg-destructive/15 text-destructive border-destructive/30',
 };
 
 type Props = {
@@ -136,19 +136,19 @@ export function ConsultantMissionsList({ consultantId, canManage = false, linkBa
     <Card>
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
-          <Briefcase className="h-4 w-4 text-violet-glow" />
+          <Briefcase className="h-4 w-4 text-primary" />
           Missions ({missions.length})
         </CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="h-16 bg-white/[0.02] animate-pulse rounded" />
+          <div className="h-16 bg-card animate-pulse rounded" />
         ) : missions.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">
             {isEn ? (
-              <>No mission. Assign a profile from the <Link href="/matching" className="text-violet-glow hover:underline">Matching</Link> page.</>
+              <>No mission. Assign a profile from the <Link href="/matching" className="text-primary hover:underline">Matching</Link> page.</>
             ) : (
-              <>Aucune mission. Affecte un profil depuis la page <Link href="/matching" className="text-violet-glow hover:underline">Matching</Link>.</>
+              <>Aucune mission. Affecte un profil depuis la page <Link href="/matching" className="text-primary hover:underline">Matching</Link>.</>
             )}
           </p>
         ) : (
@@ -158,14 +158,14 @@ export function ConsultantMissionsList({ consultantId, canManage = false, linkBa
               return (
                 <li
                   key={m.id}
-                  className="rounded-lg border border-hairline bg-white/[0.02] p-3 flex items-start gap-3"
+                  className="rounded-lg border border-hairline bg-card p-3 flex items-start gap-3"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       {linkBase ? (
                         <Link
                           href={`${linkBase}/${m.id}`}
-                          className="font-medium truncate hover:text-violet-glow hover:underline underline-offset-2 transition"
+                          className="font-medium truncate hover:text-primary hover:underline underline-offset-2 transition"
                         >
                           {m.title}
                         </Link>
@@ -215,7 +215,7 @@ export function ConsultantMissionsList({ consultantId, canManage = false, linkBa
                             disabled={acting}
                             title={isEn ? 'Reject' : 'Refuser'}
                           >
-                            <XCircle className="h-3.5 w-3.5 text-red-400" />
+                            <XCircle className="h-3.5 w-3.5 text-destructive" />
                           </Button>
                         </>
                       )}
@@ -259,7 +259,7 @@ export function ConsultantMissionsList({ consultantId, canManage = false, linkBa
                         disabled={acting}
                         title={isEn ? 'Delete' : 'Supprimer'}
                       >
-                        <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
                       </Button>
                     </div>
                   )}

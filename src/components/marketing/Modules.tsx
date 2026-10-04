@@ -24,13 +24,13 @@ export function Modules({ t }: { t: LandingDict }) {
           transition={{ duration: 0.6 }}
           className="text-center max-w-2xl mx-auto"
         >
-          <div className="text-xs font-semibold tracking-widest text-violet-300 mb-3">
+          <div className="text-xs font-semibold tracking-widest text-primary mb-3">
             {t.modules.kicker}
           </div>
           <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight">
             {t.modules.title}
           </h2>
-          <p className="mt-4 text-white/60 leading-relaxed">{t.modules.subtitle}</p>
+          <p className="mt-4 text-muted-foreground leading-relaxed">{t.modules.subtitle}</p>
         </motion.div>
 
         <div id="features" className="mt-20 space-y-24">
@@ -47,18 +47,18 @@ export function Modules({ t }: { t: LandingDict }) {
                 className={`grid lg:grid-cols-2 gap-10 items-center ${reversed ? 'lg:[&>*:first-child]:order-2' : ''}`}
               >
                 <div>
-                  <div className="text-[11px] font-bold tracking-widest text-magenta mb-3">
+                  <div className="text-[11px] font-bold tracking-widest text-primary mb-3">
                     {m.tag}
                   </div>
                   <h3 className="font-display text-2xl md:text-3xl font-bold leading-tight">
                     {m.title}
                   </h3>
-                  <p className="mt-4 text-white/65 leading-relaxed">{m.desc}</p>
+                  <p className="mt-4 text-muted-foreground leading-relaxed">{m.desc}</p>
                   <ul className="mt-5 space-y-2">
                     {m.bullets.map((b) => (
-                      <li key={b} className="flex items-start gap-2.5 text-sm text-white/80">
-                        <div className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-violet-brand/20 border border-violet-brand/40 shrink-0">
-                          <Check className="h-2.5 w-2.5 text-violet-300" />
+                      <li key={b} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                        <div className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 border border-primary/40 shrink-0">
+                          <Check className="h-2.5 w-2.5 text-primary" />
                         </div>
                         {b}
                       </li>

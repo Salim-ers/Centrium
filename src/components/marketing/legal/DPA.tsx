@@ -88,12 +88,12 @@ function DpaFr() {
       <table className="w-full text-sm my-4 border-collapse">
         <thead>
           <tr className="text-left border-b border-hairline">
-            <th className="py-2 pr-4 text-white">Sous-traitant</th>
-            <th className="py-2 pr-4 text-white">Finalité</th>
-            <th className="py-2 text-white">Localisation</th>
+            <th className="py-2 pr-4 text-foreground">Sous-traitant</th>
+            <th className="py-2 pr-4 text-foreground">Finalité</th>
+            <th className="py-2 text-foreground">Localisation</th>
           </tr>
         </thead>
-        <tbody className="text-white/75">
+        <tbody className="text-muted-foreground">
           <tr className="border-b border-hairline"><td className="py-2 pr-4">Supabase, Inc.</td><td className="py-2 pr-4">Base de données, Auth, Storage</td><td className="py-2">UE (Stockholm, Suède — eu-north-1)</td></tr>
           <tr className="border-b border-hairline"><td className="py-2 pr-4">Vercel, Inc.</td><td className="py-2 pr-4">Hébergement applicatif</td><td className="py-2">US / edge UE (CCT)</td></tr>
           <tr className="border-b border-hairline"><td className="py-2 pr-4">Stripe Payments Europe Ltd.</td><td className="py-2 pr-4">Paiement abonnements</td><td className="py-2">UE (Irlande)</td></tr>
@@ -179,7 +179,7 @@ function DpaFr() {
       </ul>
 
       <hr />
-      <p className="text-sm text-white/50"><em>Dernière mise à jour : avril 2026</em></p>
+      <p className="text-sm text-muted-foreground"><em>Dernière mise à jour : avril 2026</em></p>
     </div>
   );
 }
@@ -188,7 +188,7 @@ function DpaEn() {
   return (
     <div>
       <p>
-        <em className="text-white/50">
+        <em className="text-muted-foreground">
           This English version is provided for convenience. The French version prevails in the event of any
           discrepancy or dispute.
         </em>
@@ -269,12 +269,12 @@ function DpaEn() {
       <table className="w-full text-sm my-4 border-collapse">
         <thead>
           <tr className="text-left border-b border-hairline">
-            <th className="py-2 pr-4 text-white">Subprocessor</th>
-            <th className="py-2 pr-4 text-white">Purpose</th>
-            <th className="py-2 text-white">Location</th>
+            <th className="py-2 pr-4 text-foreground">Subprocessor</th>
+            <th className="py-2 pr-4 text-foreground">Purpose</th>
+            <th className="py-2 text-foreground">Location</th>
           </tr>
         </thead>
-        <tbody className="text-white/75">
+        <tbody className="text-muted-foreground">
           <tr className="border-b border-hairline"><td className="py-2 pr-4">Supabase, Inc.</td><td className="py-2 pr-4">Database, Auth, Storage</td><td className="py-2">EU (Stockholm, Sweden — eu-north-1)</td></tr>
           <tr className="border-b border-hairline"><td className="py-2 pr-4">Vercel, Inc.</td><td className="py-2 pr-4">Application hosting</td><td className="py-2">US / EU edge (SCCs)</td></tr>
           <tr className="border-b border-hairline"><td className="py-2 pr-4">Stripe Payments Europe Ltd.</td><td className="py-2 pr-4">Subscription payment</td><td className="py-2">EU (Ireland)</td></tr>
@@ -355,7 +355,7 @@ function DpaEn() {
       </ul>
 
       <hr />
-      <p className="text-sm text-white/50"><em>Last updated: April 2026</em></p>
+      <p className="text-sm text-muted-foreground"><em>Last updated: April 2026</em></p>
     </div>
   );
 }

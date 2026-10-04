@@ -17,8 +17,8 @@ export type CVBrand = {
   qrCodeUrl: string | null;
 };
 
-const DEFAULT_PRIMARY = '#6d28d9';
-const DEFAULT_ACCENT = '#e11d74';
+const DEFAULT_PRIMARY = '#C65F46';
+const DEFAULT_ACCENT = '#9D4432';
 const DEFAULT_BRAND = 'QuadCore';
 const DEFAULT_TAGLINE = 'IT Services & Consulting';
 

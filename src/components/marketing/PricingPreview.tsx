@@ -32,13 +32,13 @@ export function PricingPreview({ t }: { t: LandingDict }) {
     <section id="pricing" ref={ref} className="qc-section-divider relative py-14">
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16" data-reveal>
-          <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-3">
+          <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-primary mb-3">
             {t.pricing.kicker}
           </div>
           <h2 className="font-display text-3xl md:text-5xl font-medium tracking-[-0.03em] leading-[1.05]">
             {t.pricing.title}
           </h2>
-          <p className="mt-6 text-white/60 leading-relaxed text-[15px] md:text-base">
+          <p className="mt-6 text-muted-foreground leading-relaxed text-[15px] md:text-base">
             {t.pricing.subtitle}
           </p>
         </div>
@@ -47,28 +47,28 @@ export function PricingPreview({ t }: { t: LandingDict }) {
             mettait à gauche) — max-w contraint + mx-auto */}
         <div
           data-reveal
-          className="qc-luminous-static relative mx-auto max-w-2xl rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-xl p-8 sm:p-10 overflow-hidden"
+          className="qc-luminous-static relative mx-auto max-w-2xl rounded-3xl border border-border bg-gradient-to-br from-transparent to-transparent p-8 sm:p-10 overflow-hidden"
         >
           <div className="relative">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 bg-white/5 text-[11px] uppercase tracking-[0.18em] text-white/75 mb-8">
-              <Sparkles className="h-3 w-3 text-magenta" />
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-muted text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-8">
+              <Sparkles className="h-3 w-3 text-primary" />
               {plan.desc}
             </div>
 
             <div className="flex items-baseline gap-3 mb-2">
-              <span className="font-display text-5xl md:text-6xl font-medium tracking-[-0.03em] text-white">
+              <span className="font-display text-5xl md:text-6xl font-medium tracking-[-0.03em] text-foreground">
                 {plan.price}
               </span>
             </div>
-            <p className="text-white/55 text-sm mb-8 max-w-md">
+            <p className="text-muted-foreground text-sm mb-8 max-w-md">
               Tarification calibrée selon votre volume de consultants, vos modules
               IA et votre niveau d’accompagnement.
             </p>
 
             <ul className="space-y-3 mb-10">
               {plan.features.map((f) => (
-                <li key={f} className="flex items-start gap-3 text-white/85 text-[15px]">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-300 shrink-0 mt-1" />
+                <li key={f} className="flex items-start gap-3 text-foreground text-[15px]">
+                  <CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-1" />
                   {f}
                 </li>
               ))}
@@ -93,13 +93,13 @@ export function PricingPreview({ t }: { t: LandingDict }) {
               <div
                 key={h.title}
                 data-reveal
-                className="group rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20 backdrop-blur-md p-6 transition"
+                className="group rounded-2xl border border-border bg-card hover:bg-muted hover:border-border p-6 transition"
               >
-                <div className="h-10 w-10 rounded-xl border border-white/10 bg-white/[0.04] flex items-center justify-center mb-4 group-hover:border-magenta/40 transition">
-                  <Icon className="h-4 w-4 text-white/85 group-hover:text-magenta transition" />
+                <div className="h-10 w-10 rounded-xl border border-border bg-card flex items-center justify-center mb-4 group-hover:border-primary/40 transition">
+                  <Icon className="h-4 w-4 text-foreground group-hover:text-primary transition" />
                 </div>
-                <div className="font-medium text-white text-[15px]">{h.title}</div>
-                <p className="text-white/55 text-sm leading-relaxed mt-1">{h.body}</p>
+                <div className="font-medium text-foreground text-[15px]">{h.title}</div>
+                <p className="text-muted-foreground text-sm leading-relaxed mt-1">{h.body}</p>
               </div>
             );
           })}

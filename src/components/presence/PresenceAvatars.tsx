@@ -58,8 +58,8 @@ export function PresenceAvatars() {
         className="relative flex h-2 w-2"
         title="Synchronisation temps réel active"
       >
-        <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400/80 opacity-75 animate-ping" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+        <span className="absolute inline-flex h-full w-full rounded-full bg-success/80 opacity-75 animate-ping" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
       </span>
 
       <div className="flex -space-x-1.5">
@@ -92,7 +92,7 @@ function Avatar({ user, isMe }: { user: PresentUser; isMe: boolean }) {
         user.color.bg,
         user.color.text,
         'ring-2',
-        isMe ? 'ring-emerald-400' : 'ring-card',
+        isMe ? 'ring-success' : 'ring-card',
         'shadow-[0_2px_8px_-2px_rgba(0,0,0,0.4)]',
         'transition-opacity duration-500',
       )}

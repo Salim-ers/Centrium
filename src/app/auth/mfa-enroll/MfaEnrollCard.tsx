@@ -16,10 +16,10 @@ export function MfaEnrollCard({ next }: { next: string }) {
   return (
     <main className="min-h-screen flex items-center justify-center px-6 py-16 bg-background">
       <div className="w-full max-w-lg">
-        <div className="rounded-2xl border border-amber-400/20 bg-card/40 backdrop-blur p-8">
+        <div className="rounded-2xl border border-warning/20 bg-card/40 p-8">
           <div className="flex items-center gap-3 mb-6">
-            <div className="h-10 w-10 rounded-full bg-amber-500/10 border border-amber-400/30 flex items-center justify-center">
-              <ShieldAlert className="h-5 w-5 text-amber-300" />
+            <div className="h-10 w-10 rounded-full bg-warning/10 border border-warning/30 flex items-center justify-center">
+              <ShieldAlert className="h-5 w-5 text-warning" />
             </div>
             <div>
               <h1 className="text-xl font-semibold">
@@ -33,7 +33,7 @@ export function MfaEnrollCard({ next }: { next: string }) {
             </div>
           </div>
 
-          <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4 mb-6">
+          <div className="rounded-lg border border-border bg-card p-4 mb-6">
             <p className="text-sm leading-relaxed text-foreground/85">
               {isEn ? (
                 <>

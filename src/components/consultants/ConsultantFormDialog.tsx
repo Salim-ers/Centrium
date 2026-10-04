@@ -475,10 +475,10 @@ export function ConsultantFormDialog({
         >
           {/* Import CV — uniquement en création */}
           {!isEdit && (
-            <div className="rounded-lg border border-violet-brand/25 bg-violet-brand/5 p-4 space-y-3">
+            <div className="rounded-lg border border-primary/25 bg-primary/5 p-4 space-y-3">
               <div className="flex items-start gap-3">
-                <div className="mt-0.5 rounded-md bg-violet-brand/15 p-1.5">
-                  <Sparkles className="h-4 w-4 text-violet-300" />
+                <div className="mt-0.5 rounded-md bg-primary/15 p-1.5">
+                  <Sparkles className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1">
                   <div className="text-sm font-medium">{isEn ? 'Import a CV to pre-fill' : 'Importer un CV pour pré-remplir'}</div>
@@ -494,8 +494,8 @@ export function ConsultantFormDialog({
                 <label
                   className={`inline-flex items-center gap-2 h-9 px-3 rounded-md border cursor-pointer text-sm transition ${
                     parsingCV
-                      ? 'border-hairline bg-white/5 text-white/40 cursor-wait'
-                      : 'border-violet-brand/40 bg-violet-brand/10 text-violet-100 hover:bg-violet-brand/20'
+                      ? 'border-hairline bg-muted text-muted-foreground cursor-wait'
+                      : 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/20'
                   }`}
                 >
                   {parsingCV ? (
@@ -517,27 +517,27 @@ export function ConsultantFormDialog({
                   />
                 </label>
                 {cvFileName && !parsingCV && (
-                  <div className="text-xs text-white/70 truncate flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                  <div className="text-xs text-muted-foreground truncate flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
                     <span className="truncate">{cvFileName}</span>
                   </div>
                 )}
               </div>
 
               {parsedPreview && (
-                <div className="text-[11px] text-white/60 flex flex-wrap gap-x-4 gap-y-1 pt-1">
+                <div className="text-[11px] text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 pt-1">
                   <span>
-                    {isEn ? 'Skills' : 'Compétences'} : <strong className="text-white/90">{parsedPreview.skills}</strong>
+                    {isEn ? 'Skills' : 'Compétences'} : <strong className="text-foreground">{parsedPreview.skills}</strong>
                   </span>
                   <span>
                     {isEn ? 'Experiences' : 'Expériences'} :{' '}
-                    <strong className="text-white/90">{parsedPreview.experiences}</strong>
+                    <strong className="text-foreground">{parsedPreview.experiences}</strong>
                   </span>
                   <span>
                     {isEn ? 'Education' : 'Formations'} :{' '}
-                    <strong className="text-white/90">{parsedPreview.educations}</strong>
+                    <strong className="text-foreground">{parsedPreview.educations}</strong>
                   </span>
-                  <span className="text-white/40">
+                  <span className="text-muted-foreground">
                     {isEn ? '· applied to the profile after creation' : '· appliquées à la fiche après création'}
                   </span>
                 </div>
@@ -550,14 +550,14 @@ export function ConsultantFormDialog({
               <Label>{t.forms.consultant.first_name} *</Label>
               <Input {...register('first_name')} />
               {errors.first_name && (
-                <p className="text-xs text-red-400 mt-1">{errors.first_name.message}</p>
+                <p className="text-xs text-destructive mt-1">{errors.first_name.message}</p>
               )}
             </div>
             <div>
               <Label>{t.forms.consultant.last_name} *</Label>
               <Input {...register('last_name')} />
               {errors.last_name && (
-                <p className="text-xs text-red-400 mt-1">{errors.last_name.message}</p>
+                <p className="text-xs text-destructive mt-1">{errors.last_name.message}</p>
               )}
             </div>
           </div>
@@ -642,24 +642,24 @@ export function ConsultantFormDialog({
 
           {/* Accès portail consultant — seulement en création d'un consultant actif */}
           {!isEdit && !isProspect && (
-            <div className="rounded-lg border border-violet-brand/20 bg-violet-brand/5 p-4 space-y-3">
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={createPortal}
                   onChange={(e) => setCreatePortal(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-white/20 bg-white/10 accent-violet-brand cursor-pointer"
+                  className="mt-0.5 h-4 w-4 rounded border-border bg-muted accent-primary cursor-pointer"
                 />
                 <div>
                   <div className="text-sm font-medium inline-flex items-center gap-1.5">
-                    <UserPlus className="h-4 w-4 text-violet-300" />
+                    <UserPlus className="h-4 w-4 text-primary" />
                     {isEn ? 'Create a consultant portal access' : 'Créer un accès portail consultant'}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     {isEn ? (
-                      <>The consultant will be able to log in at <code className="text-violet-300">/login</code> with these credentials to access their portal (timesheets, profile, documents).</>
+                      <>The consultant will be able to log in at <code className="text-primary">/login</code> with these credentials to access their portal (timesheets, profile, documents).</>
                     ) : (
-                      <>Le consultant pourra se connecter à <code className="text-violet-300">/login</code> avec ces identifiants pour accéder à son portail (CRA, profil, documents).</>
+                      <>Le consultant pourra se connecter à <code className="text-primary">/login</code> avec ces identifiants pour accéder à son portail (CRA, profil, documents).</>
                     )}
                   </div>
                 </div>
@@ -669,7 +669,7 @@ export function ConsultantFormDialog({
                 <div className="pt-2 border-t border-hairline space-y-1.5">
                   <Label>{isEn ? 'Portal email' : 'Email du portail'} *</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                     <Input
                       type="email"
                       value={portalEmail}
@@ -679,7 +679,7 @@ export function ConsultantFormDialog({
                       autoComplete="off"
                     />
                   </div>
-                  <p className="text-[11px] text-violet-300/80">
+                  <p className="text-[11px] text-primary">
                     {isEn
                       ? "A Centrium email will be sent to this address with a link for the consultant to set their own password. No secret is stored on the admin side."
                       : "Un email Centrium sera envoyé à cette adresse avec un lien pour que le consultant définisse son propre mot de passe. Aucun secret n'est stocké côté admin."}

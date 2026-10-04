@@ -81,8 +81,8 @@ export function OverdueFollowUpsWidget() {
       <div className="p-5 h-full flex flex-col">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-cyan-500/15 border border-cyan-400/20 flex items-center justify-center">
-              <PhoneOff className="h-4 w-4 text-cyan-400" />
+            <div className="h-8 w-8 rounded-lg bg-info/15 border border-info/20 flex items-center justify-center">
+              <PhoneOff className="h-4 w-4 text-info" />
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -114,15 +114,15 @@ export function OverdueFollowUpsWidget() {
             {items.map((opp) => {
               const tone =
                 opp.days_overdue > 14
-                  ? 'text-rose-300 border-rose-400/30 bg-rose-500/5'
+                  ? 'text-destructive border-destructive/30 bg-destructive/5'
                   : opp.days_overdue > 7
-                    ? 'text-amber-300 border-amber-400/30 bg-amber-500/5'
-                    : 'text-cyan-300 border-cyan-400/30 bg-cyan-500/5';
+                    ? 'text-warning border-warning/30 bg-warning/5'
+                    : 'text-info border-info/30 bg-info/5';
               return (
                 <li key={opp.id}>
                   <Link
                     href={`/crm`}
-                    className="flex items-center justify-between gap-2 rounded-md border border-white/[0.06] hover:bg-white/[0.04] px-2.5 py-1.5 text-xs transition"
+                    className="flex items-center justify-between gap-2 rounded-md border border-border hover:bg-muted px-2.5 py-1.5 text-xs transition"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="font-medium text-foreground/90 truncate">

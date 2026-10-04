@@ -131,11 +131,11 @@ export default function PortalCraNewPage() {
       </Button>
 
       <div className="max-w-2xl mx-auto mb-6">
-        <div className="text-[10px] sm:text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-2">
+        <div className="text-[10px] sm:text-[11px] font-semibold tracking-[0.3em] uppercase text-primary mb-2">
           {isEn ? 'My space' : 'Mon espace'}
         </div>
         <h1 className="font-display font-light tracking-[-0.03em] leading-[1.05] text-[clamp(1.75rem,3.5vw,2.5rem)]">
-          {isEn ? 'New' : 'Nouveau'} <span className="qc-italic-accent font-editorial italic">CRA.</span>
+          {isEn ? 'New' : 'Nouveau'} <span className="text-primary font-display ">CRA.</span>
         </h1>
       </div>
 
@@ -148,7 +148,7 @@ export default function PortalCraNewPage() {
             <div>
               <Label>{isEn ? 'Mission *' : 'Mission *'}</Label>
               {loading ? (
-                <div className="h-10 rounded-md bg-white/[0.02] animate-pulse" />
+                <div className="h-10 rounded-md bg-card animate-pulse" />
               ) : (
                 <>
                   <Combobox
@@ -165,7 +165,7 @@ export default function PortalCraNewPage() {
                     ]}
                   />
                   {missions.length === 0 && (
-                    <p className="text-xs text-amber-400 mt-1">
+                    <p className="text-xs text-warning mt-1">
                       {isEn ? (
                         <>No active mission is linked to your profile. Contact your {brandName} manager.</>
                       ) : (

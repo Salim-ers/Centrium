@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { LocaleToggle } from '@/components/i18n/LocaleToggle';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
@@ -87,7 +86,7 @@ export function PortalSidebar() {
     pathname === item.href || pathname.startsWith(item.href + '/');
 
   return (
-    <aside className="qc-sidebar hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-hairline backdrop-blur-xl">
+    <aside className="qc-sidebar hidden md:flex fixed left-0 top-0 z-30 h-screen w-64 flex-col border-r border-hairline ">
       {/* Wordmark Centrium grand format */}
       <Link
         href="/portal/dashboard"
@@ -106,15 +105,15 @@ export function PortalSidebar() {
               <div
                 className={cn(
                   'flex items-center gap-2.5 px-3 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] rounded-lg',
-                  groupActive ? 'text-magenta-neon' : 'text-muted-foreground/70',
+                  groupActive ? 'text-primary' : 'text-muted-foreground/70',
                 )}
               >
                 <span
                   className={cn(
                     'flex h-6 w-6 items-center justify-center rounded-md transition-colors duration-200',
                     groupActive
-                      ? 'bg-magenta/15 text-magenta-neon'
-                      : 'bg-white/[0.04] text-muted-foreground/80',
+                      ? 'bg-primary/15 text-primary'
+                      : 'bg-card text-muted-foreground/80',
                   )}
                 >
                   <GroupIcon className="h-3.5 w-3.5" />
@@ -122,7 +121,7 @@ export function PortalSidebar() {
                 {isEn ? group.labelEn : group.label}
               </div>
 
-              <ul className="mt-1 mb-2 ml-4 pl-3 space-y-0.5 border-l border-white/[0.06]">
+              <ul className="mt-1 mb-2 ml-4 pl-3 space-y-0.5 border-l border-border">
                 {group.items.map((item) => {
                   const active = isActive(item);
                   const Icon = item.icon;
@@ -131,7 +130,7 @@ export function PortalSidebar() {
                       {active && (
                         <span
                           aria-hidden
-                          className="absolute -left-[13px] top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-full bg-magenta-neon shadow-[0_0_8px_rgba(236,72,153,0.8)]"
+                          className="absolute -left-[13px] top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-full bg-primary shadow-[0_0_8px_rgba(236,72,153,0.8)]"
                         />
                       )}
                       <Link
@@ -140,8 +139,8 @@ export function PortalSidebar() {
                         className={cn(
                           'group/link flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14px] transition-all duration-150',
                           active
-                            ? 'bg-magenta/[0.10] text-magenta-neon font-medium'
-                            : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground',
+                            ? 'bg-primary/[0.10] text-primary font-medium'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                         )}
                       >
                         <Icon
@@ -165,7 +164,7 @@ export function PortalSidebar() {
         <form action="/api/auth/logout" method="POST">
           <button
             type="submit"
-            className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-white/[0.05] hover:text-foreground transition-all"
+            className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
           >
             <LogOut className="h-4 w-4 shrink-0" />
             {isEn ? 'Sign out' : 'Se déconnecter'}
@@ -173,7 +172,6 @@ export function PortalSidebar() {
         </form>
         <div className="flex items-center gap-2">
           <LocaleToggle variant="compact" />
-          <ThemeToggle />
         </div>
       </div>
     </aside>

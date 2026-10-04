@@ -222,7 +222,7 @@ export default function LoginPage() {
       footer={
         <>
           {t.login.noAccount}{' '}
-          <Link href="/signup" className="text-magenta hover:text-magenta-neon transition font-medium">
+          <Link href="/signup" className="text-primary hover:text-primary transition font-medium">
             {t.login.createAccount}
           </Link>
         </>
@@ -230,11 +230,11 @@ export default function LoginPage() {
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-xs font-semibold tracking-wider uppercase text-white/60">
+          <Label htmlFor="email" className="text-xs font-semibold tracking-wider uppercase text-muted-foreground">
             {t.login.email}
           </Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               id="email"
               type="email"
@@ -245,24 +245,24 @@ export default function LoginPage() {
             />
           </div>
           {errors.email && (
-            <p className="text-xs text-red-400">{errors.email.message}</p>
+            <p className="text-xs text-destructive">{errors.email.message}</p>
           )}
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="text-xs font-semibold tracking-wider uppercase text-white/60">
+            <Label htmlFor="password" className="text-xs font-semibold tracking-wider uppercase text-muted-foreground">
               {t.login.password}
             </Label>
             <Link
               href="/forgot-password"
-              className="text-xs text-white/55 hover:text-magenta-neon transition"
+              className="text-xs text-muted-foreground hover:text-primary transition"
             >
               {t.login.forgotPassword}
             </Link>
           </div>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               id="password"
               type="password"
@@ -272,7 +272,7 @@ export default function LoginPage() {
             />
           </div>
           {errors.password && (
-            <p className="text-xs text-red-400">{errors.password.message}</p>
+            <p className="text-xs text-destructive">{errors.password.message}</p>
           )}
         </div>
 
@@ -281,13 +281,13 @@ export default function LoginPage() {
             type="checkbox"
             checked={remember}
             onChange={(e) => setRemember(e.target.checked)}
-            className="h-4 w-4 rounded border-white/20 bg-white/[0.04] accent-magenta-neon cursor-pointer"
+            className="h-4 w-4 rounded border-border bg-card accent-primary cursor-pointer"
           />
-          <span className="text-sm text-white/70 group-hover:text-white/90 transition">
+          <span className="text-sm text-muted-foreground group-hover:text-foreground transition">
             {t.login.remember}
           </span>
           <span
-            className="ml-auto text-[10px] text-white/30"
+            className="ml-auto text-[10px] text-muted-foreground"
             title={
               isEn
                 ? 'The email is stored locally. The password stays managed by your browser\'s password manager — much more secure.'
@@ -301,7 +301,7 @@ export default function LoginPage() {
         <Button
           type="submit"
           size="lg"
-          className="w-full bg-qc-gradient hover:opacity-90 shadow-glow-magenta"
+          className="w-full bg-qc-gradient hover:opacity-90 "
           disabled={loading}
         >
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}

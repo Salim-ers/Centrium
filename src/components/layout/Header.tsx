@@ -1,243 +1,211 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Search, Bell, User, LogOut, ShieldCheck } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import {
+  Search,
+  Plus,
+  LogOut,
+  ShieldCheck,
+  UserRound,
+  Settings,
+  CheckSquare,
+  Languages,
+  Building2,
+  Target,
+  Users,
+  Briefcase,
+  Receipt,
+} from 'lucide-react';
+
+import { cn } from '@/lib/utils';
 import { useOrganizationSafe } from '@/lib/auth/context';
-import { createClient } from '@/lib/supabase/client';
-import { TutorialButton } from '@/components/onboarding/NewUserTutorial';
-import { PresenceAvatars } from '@/components/presence/PresenceAvatars';
-import { MobileNav } from '@/components/layout/MobileNav';
-import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
-import { LocaleToggle } from '@/components/i18n/LocaleToggle';
-import { CurrencyToggle } from '@/components/i18n/CurrencyToggle';
-import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { ROLE_LABEL } from '@/lib/auth/permissions';
+import type { Permission } from '@/lib/auth/permissions';
+import { Button } from '@/components/ui/button';
+import { Avatar } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { CentriumLogo } from '@/components/brand/CentriumLogo';
+import { PresenceAvatars } from '@/components/presence/PresenceAvatars';
+import { MobileNav } from './MobileNav';
+import { NotificationCenter } from './NotificationCenter';
+import { openCommandPalette } from './CommandPalette';
+
+const CREATE_ITEMS: Array<{
+  label: { fr: string; en: string };
+  href: string;
+  icon: typeof Plus;
+  permission: Permission;
+}> = [
+  { label: { fr: 'Client', en: 'Client' }, href: '/clients?new=1', icon: Building2, permission: 'clients.edit' },
+  { label: { fr: 'Opportunité', en: 'Opportunity' }, href: '/opportunities?new=1', icon: Target, permission: 'opportunities.edit' },
+  { label: { fr: 'Consultant', en: 'Consultant' }, href: '/consultants?new=1', icon: Users, permission: 'consultants.edit' },
+  { label: { fr: 'Mission', en: 'Mission' }, href: '/missions?new=1', icon: Briefcase, permission: 'missions.edit' },
+  { label: { fr: 'Devis', en: 'Quote' }, href: '/documents/quotes/new', icon: Receipt, permission: 'documents.edit' },
+];
 
 export function Header() {
+  const router = useRouter();
   const org = useOrganizationSafe();
   const [collapsed] = useSidebarCollapsed();
-  const t = useAppT();
-  const { locale } = useLocale();
-  const isEn = locale === 'en';
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [unreadAlerts, setUnreadAlerts] = useState(0);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  // null = pas encore vérifié. Vérifié une seule fois, à la première
-  // ouverture du menu (lazy — la plupart des users ne sont pas fondateurs).
-  const [isFounder, setIsFounder] = useState<boolean | null>(null);
+  const { locale, setLocale } = useLocale();
+  const lang = locale === 'en' ? 'en' : 'fr';
+  const { can, role } = usePermissions();
+  const [isFounder, setIsFounder] = useState(false);
+  const [isMac, setIsMac] = useState(false);
 
   useEffect(() => {
-    if (!menuOpen || isFounder !== null) return;
+    setIsMac(/Mac|iPhone|iPad/.test(navigator.platform));
+  }, []);
+
+  // Super console : lien affiché aux fondateurs (allowlist serveur).
+  useEffect(() => {
     let cancelled = false;
     fetch('/api/auth/founder-status')
       .then((r) => (r.ok ? r.json() : null))
       .then((body) => {
         if (!cancelled) setIsFounder(!!body?.data?.isFounder);
       })
-      .catch(() => {
-        if (!cancelled) setIsFounder(false);
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [menuOpen, isFounder]);
+  }, []);
 
-  useEffect(() => {
-    if (!org?.activeOrgId) {
-      setUnreadAlerts(0);
-      return;
-    }
-    let cancelled = false;
-    const supabase = createClient();
-    // Le badge compte les alertes RÉELLES du centre (RPC count_org_alerts :
-    // calculées + matérialisées actives) — critiques + importantes seulement,
-    // sinon la pastille serait allumée en permanence. L'ancien comptage sur la
-    // table alerts (status='new') restait à 0 car rien ne l'alimentait.
-    const load = async () => {
-      const { data } = await supabase.rpc('count_org_alerts', { org_id: org.activeOrgId });
-      if (cancelled) return;
-      const rows = (data ?? []) as Array<{ priority: string; total: number }>;
-      const important = rows
-        .filter((r) => r.priority === 'critical' || r.priority === 'high')
-        .reduce((s, r) => s + Number(r.total), 0);
-      setUnreadAlerts(important);
-    };
-    load();
-    const channel = supabase
-      .channel('alerts-header-badge')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'alerts' },
-        () => load(),
-      )
-      .subscribe();
-    return () => {
-      cancelled = true;
-      supabase.removeChannel(channel);
-    };
-  }, [org?.activeOrgId]);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    function onClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
-  }, [menuOpen]);
-
-  const activeMembership = org?.memberships.find((m) => m.id === org.activeOrgId);
+  const fullName = `${org?.user?.firstName ?? ''} ${org?.user?.lastName ?? ''}`.trim();
+  const createItems = CREATE_ITEMS.filter((i) => can(i.permission));
 
   return (
     <header
-      className={`qc-app-header fixed top-0 right-0 left-0 z-20 h-16 bg-background/95 backdrop-blur-xl border-b border-hairline transition-[left] duration-300 ease-out ${
-        collapsed ? 'md:left-0' : 'md:left-64'
-      }`}
+      className={cn(
+        'fixed inset-x-0 top-0 z-20 h-14 border-b border-border bg-background/90 backdrop-blur-[6px] transition-[left] duration-200 ease-out',
+        collapsed ? 'md:left-16' : 'md:left-60',
+      )}
     >
-      {/* Hairline rose/violet en bas du header — DARK uniquement.
-          En light : invisible (demande utilisateur : zéro halo rose).
-          On bascule via opacity sans changer le background pour garder
-          la teinte rose/violet identitaire en dark. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-px opacity-0 dark:opacity-60 transition-opacity"
-        style={{
-          background:
-            'linear-gradient(90deg, transparent, rgba(236,72,153,0.45) 40%, rgba(168,85,247,0.35) 60%, transparent)',
-        }}
-      />
-      <div
-        className={`relative flex h-full items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6 transition-[padding] duration-300 ease-out ${
-          collapsed ? 'md:pl-16' : ''
-        }`}
-      >
-        {/* À gauche : burger + wordmark sur mobile (la sidebar est cachée).
-            Sur desktop : barre de recherche large. */}
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+      <div className="flex h-full items-center gap-2 px-3 sm:px-5">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <MobileNav />
-          {/* Wordmark seulement sur mobile (la sidebar le montre sur desktop) */}
-          <Link
-            href="/dashboard"
-            className="md:hidden inline-flex items-center"
-            aria-label={isEn ? 'Centrium — home' : 'Centrium — accueil'}
-          >
-            <CentriumWordmark size="sm" orientation="horizontal" />
+          <Link href="/dashboard" className="md:hidden" aria-label={lang === 'fr' ? 'Accueil' : 'Home'}>
+            <CentriumLogo className="h-7 w-7" />
           </Link>
-          <div className="relative w-full max-w-sm hidden md:block">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder={t.header.search_placeholder}
-              className="pl-9 h-9"
-            />
-          </div>
-        </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <PresenceAvatars />
-          <CurrencyToggle variant="app" />
-          <LocaleToggle variant="app" />
-          <div className="hidden sm:block">
-            <TutorialButton variant="cta" />
-          </div>
+          <button
+            type="button"
+            onClick={() => openCommandPalette()}
+            className="hidden h-9 w-full max-w-md items-center gap-2.5 rounded-md border border-border bg-card px-3 text-left text-[13px] text-muted-foreground shadow-xs transition-colors hover:border-sand-300 sm:flex"
+          >
+            <Search className="h-4 w-4 shrink-0" />
+            <span className="flex-1 truncate">
+              {lang === 'fr' ? 'Rechercher, créer ou poser une question…' : 'Search, create or ask a question…'}
+            </span>
+            <kbd className="hidden shrink-0 rounded border border-border bg-muted px-1.5 py-0.5 font-sans text-[10px] font-medium md:inline">
+              {isMac ? '⌘' : 'Ctrl'} K
+            </kbd>
+          </button>
           <Button
             variant="ghost"
             size="icon"
-            className="relative"
-            aria-label="Notifications"
-            asChild
+            className="sm:hidden"
+            onClick={() => openCommandPalette()}
+            aria-label={lang === 'fr' ? 'Rechercher' : 'Search'}
           >
-            <Link href="/alerts">
-              <Bell className="h-4 w-4" />
-              {unreadAlerts > 0 && (
-                <span
-                  aria-label={
-                    isEn
-                      ? `${unreadAlerts} alert${unreadAlerts > 1 ? 's' : ''} to handle`
-                      : `${unreadAlerts} alerte${unreadAlerts > 1 ? 's' : ''} à traiter`
-                  }
-                  className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-magenta px-1 text-[9px] font-bold leading-none text-white shadow-glow-magenta"
-                >
-                  {unreadAlerts > 99 ? '99+' : unreadAlerts}
-                </span>
-              )}
-            </Link>
+            <Search />
           </Button>
+        </div>
 
-          <div className="relative" ref={menuRef}>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={isEn ? 'Profile' : 'Profil'}
-              onClick={() => setMenuOpen((v) => !v)}
-            >
-              <User className="h-4 w-4" />
-            </Button>
-
-            {menuOpen && (
-              <div className="absolute right-0 mt-2 w-64 rounded-lg border border-hairline bg-card/95 backdrop-blur-xl shadow-xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-hairline">
-                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    {t.header.logged_in_as}
-                  </div>
-                  {(() => {
-                    const fullName = `${org?.user?.firstName ?? ''} ${org?.user?.lastName ?? ''}`.trim();
-                    return (
-                      <>
-                        <div className="text-sm font-medium truncate mt-0.5">
-                          {fullName || org?.user?.email || '—'}
-                        </div>
-                        {fullName && (
-                          <div className="text-[11px] text-muted-foreground truncate mt-0.5">
-                            {org?.user?.email}
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
-                  {activeMembership && (
-                    <div className="text-xs text-muted-foreground mt-1 truncate">
-                      {activeMembership.name} · {activeMembership.role}
-                    </div>
-                  )}
-                </div>
-                <Link
-                  href="/settings"
-                  onClick={() => setMenuOpen(false)}
-                  className="block px-4 py-2.5 text-sm hover-surface transition"
-                >
-                  {t.nav.settings}
-                </Link>
-                {/* Super console — fondateurs uniquement (FOUNDER_EMAILS).
-                    Le lien n'est qu'un raccourci : l'accès réel est vérifié
-                    côté serveur (layout /admin + routes API). */}
-                {isFounder && (
-                  <Link
-                    href="/admin/organizations"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2.5 text-sm text-violet-glow hover:bg-violet-glow/10 transition border-t border-hairline"
-                  >
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    Super console
-                  </Link>
-                )}
-                <form action="/api/auth/logout" method="POST">
-                  <button
-                    type="submit"
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition border-t border-hairline"
-                  >
-                    <LogOut className="h-3.5 w-3.5" />
-                    {t.header.logout}
-                  </button>
-                </form>
-              </div>
-            )}
+        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+          <div className="hidden lg:block">
+            <PresenceAvatars />
           </div>
+
+          {createItems.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" className="hidden sm:inline-flex">
+                  <Plus />
+                  {lang === 'fr' ? 'Créer' : 'Create'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                {createItems.map((item) => (
+                  <DropdownMenuItem key={item.href} onSelect={() => router.push(item.href)}>
+                    <item.icon />
+                    {item.label[lang]}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          <NotificationCenter />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="ml-0.5 rounded-full focus-visible:outline-none focus-visible:shadow-focus"
+                aria-label={lang === 'fr' ? 'Mon compte' : 'My account'}
+              >
+                <Avatar name={fullName || org?.user?.email} size="sm" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <div className="px-2 py-2">
+                <div className="truncate text-[13px] font-medium text-foreground">{fullName || org?.user?.email}</div>
+                {fullName && <div className="truncate text-xs text-muted-foreground">{org?.user?.email}</div>}
+                {role && (
+                  <div className="mt-1 text-xs text-muted-foreground">{ROLE_LABEL[role]?.[lang] ?? role}</div>
+                )}
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => router.push('/settings/profile')}>
+                <UserRound />
+                {lang === 'fr' ? 'Mon profil' : 'My profile'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => router.push('/todos')}>
+                <CheckSquare />
+                {lang === 'fr' ? 'Mes tâches' : 'My tasks'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => router.push('/settings')}>
+                <Settings />
+                {lang === 'fr' ? 'Paramètres' : 'Settings'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setLocale(lang === 'fr' ? 'en' : 'fr')}>
+                <Languages />
+                {lang === 'fr' ? 'English' : 'Français'}
+              </DropdownMenuItem>
+              {isFounder && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => router.push('/admin/organizations')}>
+                    <ShieldCheck />
+                    Super console
+                  </DropdownMenuItem>
+                </>
+              )}
+              <DropdownMenuSeparator />
+              <form action="/api/auth/logout" method="POST">
+                <button
+                  type="submit"
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-destructive outline-none transition-colors hover:bg-danger-soft focus-visible:bg-danger-soft"
+                >
+                  <LogOut className="h-4 w-4" />
+                  {lang === 'fr' ? 'Se déconnecter' : 'Log out'}
+                </button>
+              </form>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

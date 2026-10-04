@@ -156,8 +156,8 @@ export function SkillsEditDialog({
                       key={s.id}
                       className={`group relative inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-md border text-xs transition ${
                         s.is_highlighted
-                          ? 'bg-violet-500/15 text-violet-200 border-violet-500/40'
-                          : 'bg-white/5 border-hairline text-white/80'
+                          ? 'bg-primary/15 text-primary border-primary/40'
+                          : 'bg-muted border-hairline text-muted-foreground'
                       } ${busy === s.id ? 'opacity-50' : ''}`}
                     >
                       <span>{s.name}</span>
@@ -170,10 +170,10 @@ export function SkillsEditDialog({
                             ? isEn ? 'Remove highlight' : 'Retirer mise en avant'
                             : isEn ? 'Highlight' : 'Mettre en avant'
                         }
-                        className="p-0.5 rounded hover:bg-white/10"
+                        className="p-0.5 rounded hover:bg-muted"
                       >
                         <Star
-                          className={`h-3 w-3 ${s.is_highlighted ? 'text-amber-300 fill-amber-300' : 'text-white/40'}`}
+                          className={`h-3 w-3 ${s.is_highlighted ? 'text-warning fill-warning' : 'text-muted-foreground'}`}
                         />
                       </button>
                       <button
@@ -181,7 +181,7 @@ export function SkillsEditDialog({
                         onClick={() => remove(s)}
                         disabled={busy === s.id}
                         title={isEn ? 'Delete' : 'Supprimer'}
-                        className="p-0.5 rounded hover:bg-red-500/20 text-red-400"
+                        className="p-0.5 rounded hover:bg-destructive/20 text-destructive"
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>

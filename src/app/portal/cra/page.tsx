@@ -73,7 +73,7 @@ export default function PortalCraListPage() {
     <div>
       <PageHeader
         eyebrow={isEn ? 'My space' : 'Mon espace'}
-        title={<>{isEn ? 'My ' : 'Mes '}<span className="qc-italic-accent font-editorial italic">{isEn ? 'activity reports.' : 'comptes-rendus.'}</span></>}
+        title={<>{isEn ? 'My ' : 'Mes '}<span className="text-primary font-display ">{isEn ? 'activity reports.' : 'comptes-rendus.'}</span></>}
         description={isEn ? 'Declare your monthly activity and track the progress of your CRAs.' : "Déclarez votre activité mensuelle et suivez l'avancement de vos CRA."}
         actions={
           <Button asChild>

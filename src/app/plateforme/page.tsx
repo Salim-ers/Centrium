@@ -22,16 +22,16 @@ function Inner() {
     <main className="relative pt-24">
       {/* Hero court de page intérieure */}
       <section className="relative max-w-5xl mx-auto px-6 pt-12 pb-8 text-center">
-        <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-magenta mb-4">
+        <div className="text-[11px] font-semibold tracking-[0.3em] uppercase text-primary mb-4">
           {t.plateforme.eyebrow}
         </div>
-        <h1 className="font-display font-light tracking-[-0.035em] leading-[1] text-[clamp(2.4rem,5.5vw,4.5rem)] text-white">
+        <h1 className="font-display font-light tracking-[-0.035em] leading-[1] text-[clamp(2.4rem,5.5vw,4.5rem)] text-foreground">
           {t.plateforme.titleA}
-          <span className="qc-italic-accent block mt-2 font-editorial italic font-normal">
+          <span className="text-primary block mt-2 font-display font-normal">
             {t.plateforme.titleB}
           </span>
         </h1>
-        <p className="mt-8 mx-auto max-w-2xl text-[15px] md:text-base leading-relaxed text-white/60">
+        <p className="mt-8 mx-auto max-w-2xl text-[15px] md:text-base leading-relaxed text-muted-foreground">
           {t.plateforme.sub}
         </p>
       </section>

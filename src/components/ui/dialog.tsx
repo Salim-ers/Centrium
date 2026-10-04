@@ -17,8 +17,9 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      'fixed inset-0 z-50 bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-      className
+      'fixed inset-0 z-50 bg-[#191817]/30',
+      'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+      className,
     )}
     {...props}
   />
@@ -27,44 +28,47 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { hideClose?: boolean }
+>(({ className, children, hideClose, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-hairline bg-card p-6 shadow-xl duration-200 rounded-xl',
-        // Évite le focus ring / I-beam disgracieux que certains
-        // navigateurs (et Radix) posent sur le content au mount.
+        'fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4',
+        'max-h-[calc(100dvh-2rem)] overflow-y-auto',
+        'rounded-xl border border-border bg-card p-6 shadow-xl',
+        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+        'data-[state=closed]:zoom-out-[0.98] data-[state=open]:zoom-in-[0.98] duration-150',
         'outline-none focus:outline-none focus-visible:outline-none',
-        // Anti-débordement : les enfants d'une grille gardent min-width:auto
-        // → un titre d'offre long faisait sortir le texte de la carte
-        // (bug d'affichage « Affecter à une mission »). min-w-0 sur chaque
-        // enfant + clip horizontal en ceinture de sécurité.
+        // Anti-débordement des titres longs dans une grille.
         'overflow-x-clip [&>*]:min-w-0',
-        className
+        className,
       )}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100">
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
-      </DialogPrimitive.Close>
+      {!hideClose && (
+        <DialogPrimitive.Close
+          className="absolute right-3.5 top-3.5 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:shadow-focus"
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Fermer</span>
+        </DialogPrimitive.Close>
+      )}
     </DialogPrimitive.Content>
   </DialogPortal>
 ));
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn('flex flex-col space-y-1.5', className)} {...props} />
+  <div className={cn('flex flex-col gap-1.5 pr-8', className)} {...props} />
 );
 DialogHeader.displayName = 'DialogHeader';
 
 const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn('flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2', className)}
+    className={cn('flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end', className)}
     {...props}
   />
 );
@@ -76,7 +80,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn('text-lg font-semibold leading-none font-display break-words', className)}
+    className={cn('font-display text-[17px] font-semibold leading-6 tracking-tight break-words', className)}
     {...props}
   />
 ));

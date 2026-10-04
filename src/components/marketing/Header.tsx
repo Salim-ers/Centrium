@@ -70,7 +70,7 @@ export function Header({ t, locale, onLocaleChange }: Props) {
       <header
         className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${
           scrolled
-            ? 'backdrop-blur-xl bg-background/70 border-b border-white/10'
+            ? 'bg-background/70 border-b border-border'
             : 'bg-transparent'
         }`}
       >
@@ -84,7 +84,7 @@ export function Header({ t, locale, onLocaleChange }: Props) {
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden lg:flex items-center gap-1 text-[14px] text-white/75">
+          <nav className="hidden lg:flex items-center gap-1 text-[14px] text-muted-foreground">
             {NAV.map((item) => {
               const active = pathname === item.href;
               return (
@@ -92,14 +92,14 @@ export function Header({ t, locale, onLocaleChange }: Props) {
                   key={item.href}
                   href={item.href}
                   className={`relative px-4 py-2 rounded-full transition ${
-                    active ? 'text-white' : 'hover:text-white hover:bg-white/[0.04]'
+                    active ? 'text-white' : 'hover:text-foreground hover:bg-muted'
                   }`}
                 >
                   {item.label}
                   {active && (
                     <span
                       aria-hidden
-                      className="absolute inset-x-3 -bottom-px h-px bg-gradient-to-r from-transparent via-magenta to-transparent"
+                      className="absolute inset-x-3 -bottom-px h-px bg-gradient-to-r from-transparent via-primary to-transparent"
                     />
                   )}
                 </Link>
@@ -112,24 +112,24 @@ export function Header({ t, locale, onLocaleChange }: Props) {
             <LocaleToggle variant="default" />
             <Link
               href="/login"
-              className="group inline-flex items-center gap-1.5 h-10 px-4 rounded-full border border-white/15 bg-white/[0.04] backdrop-blur text-[13.5px] text-white/85 hover:text-white hover:border-white/30 hover:bg-white/[0.08] hover:shadow-[0_0_18px_-4px_rgba(236,72,153,0.4)] transition-all"
+              className="group inline-flex items-center gap-1.5 h-10 px-4 rounded-full border border-border bg-card text-[13.5px] text-foreground hover:text-foreground hover:border-border hover:bg-muted hover:shadow-[0_0_18px_-4px_rgba(236,72,153,0.4)] transition-all"
             >
-              <LogIn className="h-3.5 w-3.5 text-magenta group-hover:text-white transition-colors" />
+              <LogIn className="h-3.5 w-3.5 text-primary group-hover:text-foreground transition-colors" />
               {t.nav.login}
             </Link>
             <Link
               href="/essai"
-              className="group relative inline-flex items-center gap-2 h-10 px-5 rounded-full text-white text-[14px] font-semibold tracking-tight overflow-hidden transition-transform hover:-translate-y-0.5 shadow-[0_0_25px_-4px_rgba(225,29,116,0.6),0_0_50px_-12px_rgba(168,85,247,0.5)] hover:shadow-[0_0_32px_-4px_rgba(225,29,116,0.8),0_0_70px_-12px_rgba(168,85,247,0.7)]"
+              className="group relative inline-flex items-center gap-2 h-10 px-5 rounded-full text-foreground text-[14px] font-semibold tracking-tight overflow-hidden transition-transform hover:-translate-y-0.5 shadow-[0_0_25px_-4px_rgba(225,29,116,0.6),0_0_50px_-12px_rgba(168,85,247,0.5)] hover:shadow-[0_0_32px_-4px_rgba(225,29,116,0.8),0_0_70px_-12px_rgba(168,85,247,0.7)]"
             >
               <span
                 aria-hidden
-                className="absolute inset-0 rounded-full bg-gradient-to-r from-pink-500 via-magenta to-violet-500"
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-primary via-primary to-primary"
               />
               <span
                 aria-hidden
                 className="absolute inset-0 rounded-full overflow-hidden"
               >
-                <span className="absolute top-0 -left-1/2 h-full w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-[300%]" />
+                <span className="absolute top-0 -left-1/2 h-full w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-transparent to-transparent transition-transform duration-700 ease-out group-hover:translate-x-[300%]" />
               </span>
               <span className="relative">{t.hero.ctaPrimary}</span>
             </Link>
@@ -142,7 +142,7 @@ export function Header({ t, locale, onLocaleChange }: Props) {
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={menuOpen}
             aria-controls="mobile-nav-panel"
-            className="lg:hidden inline-flex items-center justify-center h-11 w-11 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur text-white hover:bg-white/[0.10] active:bg-white/[0.14] transition"
+            className="lg:hidden inline-flex items-center justify-center h-11 w-11 rounded-full border border-border bg-muted text-foreground hover:bg-muted active:bg-muted transition"
           >
             {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -153,7 +153,7 @@ export function Header({ t, locale, onLocaleChange }: Props) {
       <div
         id="mobile-nav-panel"
         aria-hidden={!menuOpen}
-        className={`lg:hidden fixed inset-0 z-[60] bg-black transition-transform duration-300 ease-out ${
+        className={`lg:hidden fixed inset-0 z-[60] bg-foreground transition-transform duration-300 ease-out ${
           menuOpen ? 'translate-x-0' : 'translate-x-full pointer-events-none'
         }`}
       >
@@ -170,7 +170,7 @@ export function Header({ t, locale, onLocaleChange }: Props) {
             type="button"
             onClick={closeMenu}
             aria-label="Close menu"
-            className="inline-flex items-center justify-center h-11 w-11 rounded-full border border-white/15 bg-white/[0.06] text-white"
+            className="inline-flex items-center justify-center h-11 w-11 rounded-full border border-border bg-muted text-foreground"
           >
             <X className="h-5 w-5" />
           </button>
@@ -187,12 +187,12 @@ export function Header({ t, locale, onLocaleChange }: Props) {
                   onClick={closeMenu}
                   className={`flex items-center justify-between py-4 px-5 rounded-2xl border transition active:scale-[0.98] ${
                     active
-                      ? 'border-magenta/40 bg-magenta/10 text-white'
-                      : 'border-white/10 bg-white/[0.03] text-white/85 hover:text-white hover:bg-white/[0.06]'
+                      ? 'border-primary/40 bg-primary/10 text-foreground'
+                      : 'border-border bg-card text-foreground hover:text-foreground hover:bg-muted'
                   }`}
                 >
-                  <span className="font-editorial italic text-xl">{item.label}</span>
-                  <span className="text-magenta text-sm">→</span>
+                  <span className="font-display text-xl">{item.label}</span>
+                  <span className="text-primary text-sm">→</span>
                 </Link>
               );
             })}
@@ -204,14 +204,14 @@ export function Header({ t, locale, onLocaleChange }: Props) {
             <Link
               href="/essai"
               onClick={closeMenu}
-              className="block w-full text-center h-12 px-5 rounded-full bg-gradient-to-r from-pink-500 via-magenta to-violet-500 text-white text-[15px] font-semibold leading-[3rem] shadow-[0_0_25px_-4px_rgba(225,29,116,0.6)]"
+              className="block w-full text-center h-12 px-5 rounded-full bg-gradient-to-r from-primary via-primary to-primary text-white text-[15px] font-semibold leading-[3rem] shadow-[0_0_25px_-4px_rgba(225,29,116,0.6)]"
             >
               {t.hero.ctaPrimary}
             </Link>
             <Link
               href="/login"
               onClick={closeMenu}
-              className="block w-full text-center h-12 px-5 rounded-full border border-white/15 text-white/85 text-[14px] leading-[3rem]"
+              className="block w-full text-center h-12 px-5 rounded-full border border-border text-foreground text-[14px] leading-[3rem]"
             >
               {t.nav.login}
             </Link>

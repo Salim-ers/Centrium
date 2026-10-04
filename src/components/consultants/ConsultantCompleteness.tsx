@@ -92,13 +92,13 @@ export function ConsultantCompleteness({
   const tone =
     res.percent >= 100 ? 'emerald' : res.percent >= 70 ? 'amber' : 'red';
   const barColor =
-    tone === 'emerald' ? 'bg-emerald-500' : tone === 'amber' ? 'bg-amber-500' : 'bg-red-500';
+    tone === 'emerald' ? 'bg-success' : tone === 'amber' ? 'bg-warning' : 'bg-destructive';
   const textColor =
     tone === 'emerald'
-      ? 'text-emerald-600 dark:text-emerald-300'
+      ? 'text-success '
       : tone === 'amber'
-        ? 'text-amber-600 dark:text-amber-300'
-        : 'text-red-600 dark:text-red-300';
+        ? 'text-warning '
+        : 'text-destructive ';
 
   const missing = [
     ...res.missingFields.map((f) => f.label),
@@ -110,15 +110,15 @@ export function ConsultantCompleteness({
       className={cn(
         'rounded-xl border p-4',
         res.complete
-          ? 'border-emerald-500/25 bg-emerald-500/[0.04]'
-          : 'border-amber-500/25 bg-amber-500/[0.04]',
+          ? 'border-success/25 bg-success/[0.04]'
+          : 'border-warning/25 bg-warning/[0.04]',
         className,
       )}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm font-semibold">
           {res.complete ? (
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            <CheckCircle2 className="h-4 w-4 text-success" />
           ) : (
             <CircleAlert className={cn('h-4 w-4', textColor)} />
           )}
@@ -145,7 +145,7 @@ export function ConsultantCompleteness({
             {missing.slice(0, 8).map((m) => (
               <span
                 key={m}
-                className="rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[11px] text-amber-700 dark:text-amber-300"
+                className="rounded-md border border-warning/30 bg-warning/10 px-1.5 py-0.5 text-[11px] text-warning "
               >
                 {m}
               </span>
@@ -160,13 +160,13 @@ export function ConsultantCompleteness({
       {(res.expiredDocuments.length > 0 || res.expiringSoonDocuments.length > 0) && (
         <div className="mt-3 space-y-1">
           {res.expiredDocuments.map((d) => (
-            <div key={d.kind} className="flex items-center gap-1.5 text-[11px] text-red-500 dark:text-red-300">
+            <div key={d.kind} className="flex items-center gap-1.5 text-[11px] text-destructive ">
               <FileWarning className="h-3 w-3" />
               {isEn ? `${d.label} expired — renew immediately` : `${d.label} expiré — à renouveler immédiatement`}
             </div>
           ))}
           {res.expiringSoonDocuments.map((d) => (
-            <div key={d.kind} className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-300">
+            <div key={d.kind} className="flex items-center gap-1.5 text-[11px] text-warning ">
               <FileWarning className="h-3 w-3" />
               {isEn ? `${d.label} expires in ${d.days_left}d` : `${d.label} expire dans ${d.days_left} j`}
             </div>

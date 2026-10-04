@@ -48,7 +48,7 @@ export function OrgActivityListener() {
         duration: 4500,
         icon: (
           <span
-            className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold ${actor?.color.bg ?? 'bg-violet-500'} ${actor?.color.text ?? 'text-white'}`}
+            className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold ${actor?.color.bg ?? 'bg-primary'} ${actor?.color.text ?? 'text-white'}`}
           >
             {initials}
           </span>

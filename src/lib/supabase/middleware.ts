@@ -1,13 +1,8 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { evaluateSubscriptionAccess, type SubscriptionAccessRow } from '@/lib/billing/access';
+import { isPublicPath } from '@/lib/routes/public-paths';
 import { sharedAuthCookieDomain } from './cookie-domain';
-
-// Paths accessibles sans session (devis public, login, invitations, pricing, landing).
-// /signup reste public mais redirige côté serveur vers /devis pour les bookmarks
-// externes (cf. src/app/(auth)/signup/page.tsx).
-const PUBLIC_PATHS = ['/login', '/signup', '/register', '/forgot-password', '/pricing', '/tarifs', '/', '/devis', '/essai', '/security', '/plateforme', '/manifesto', '/engagements'];
-const PUBLIC_PREFIXES = ['/invite/', '/auth/', '/legal/']; // /invite/accept?token=…, /auth/callback?code=…, pages légales
 
 // Cookie cache pour role + organization_id : évite une query profile à chaque navigation.
 // Le RLS applique toujours la vraie sécurité côté DB, le cookie ne guide que le routing.
@@ -163,9 +158,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
-  const isPublic =
-    PUBLIC_PATHS.some((p) => pathname === p) ||
-    PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+  const isPublic = isPublicPath(pathname);
   const isPortal = pathname.startsWith('/portal');
   const isOnboarding = pathname === '/onboarding';
 

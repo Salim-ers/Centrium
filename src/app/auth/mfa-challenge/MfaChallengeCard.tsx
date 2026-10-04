@@ -17,10 +17,10 @@ export function MfaChallengeCard({ factorId, next }: { factorId: string; next: s
   return (
     <main className="min-h-screen flex items-center justify-center px-6 py-16 bg-background">
       <div className="w-full max-w-md">
-        <div className="rounded-2xl border border-white/10 bg-card/40 backdrop-blur p-8">
+        <div className="rounded-2xl border border-border bg-card/40 p-8">
           <div className="flex items-center gap-3 mb-6">
-            <div className="h-10 w-10 rounded-full bg-violet-500/10 border border-violet-400/30 flex items-center justify-center">
-              <ShieldCheck className="h-5 w-5 text-violet-300" />
+            <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
+              <ShieldCheck className="h-5 w-5 text-primary" />
             </div>
             <div>
               <h1 className="text-xl font-semibold">

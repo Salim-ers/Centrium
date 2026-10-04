@@ -111,7 +111,7 @@ export default function PortalInvoiceDetailPage() {
   }, [params?.id, router]);
 
   if (loading) {
-    return <div className="h-[70vh] rounded-xl bg-white/[0.02] animate-pulse" />;
+    return <div className="h-[70vh] rounded-xl bg-card animate-pulse" />;
   }
   if (!detail) return null;
 
@@ -129,10 +129,10 @@ export default function PortalInvoiceDetailPage() {
             variant="outline"
             className={
               detail.invoice.status === 'paid'
-                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
+                ? 'bg-success/10 text-success border-success/20'
                 : detail.invoice.status === 'overdue'
-                  ? 'bg-red-500/10 text-red-300 border-red-500/20'
-                  : 'bg-sky-500/10 text-sky-300 border-sky-500/20'
+                  ? 'bg-destructive/10 text-destructive border-destructive/20'
+                  : 'bg-info/10 text-info border-info/20'
             }
           >
             {detail.invoice.status === 'paid'
@@ -155,7 +155,7 @@ export default function PortalInvoiceDetailPage() {
         </div>
       </div>
 
-      <div ref={docRef} className="bg-neutral-200 rounded-xl p-6 overflow-auto">
+      <div ref={docRef} className="bg-muted rounded-xl p-6 overflow-auto">
         <InvoiceDocument {...detail} issuer={issuer} />
       </div>
     </div>

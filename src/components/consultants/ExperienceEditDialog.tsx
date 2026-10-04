@@ -183,7 +183,7 @@ export function ExperienceEditDialog({
 
           <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between gap-2 pt-4">
             {isEdit ? (
-              <Button type="button" variant="ghost" onClick={onDelete} disabled={deleting} className="text-red-400 hover:text-red-300">
+              <Button type="button" variant="ghost" onClick={onDelete} disabled={deleting} className="text-destructive hover:text-destructive">
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 {isEn ? 'Delete' : 'Supprimer'}
               </Button>

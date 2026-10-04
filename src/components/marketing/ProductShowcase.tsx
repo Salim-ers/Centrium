@@ -79,10 +79,10 @@ function DashboardMockup() {
   const sparklineRef = useRef<SVGPathElement>(null);
 
   const KPIS: { label: string; target: number; suffix?: string; prefix?: string; tone: string }[] = [
-    { label: t.productShowcase.dashboard.activeConsultants, target: 87, tone: 'text-emerald-300' },
-    { label: t.productShowcase.dashboard.openMissions, target: 12, tone: 'text-violet-300' },
-    { label: t.productShowcase.dashboard.benchRate, target: 8, suffix: '%', tone: 'text-amber-300' },
-    { label: t.productShowcase.dashboard.revenueNext, target: 412, prefix: '', suffix: 'k €', tone: 'text-pink-300' },
+    { label: t.productShowcase.dashboard.activeConsultants, target: 87, tone: 'text-success' },
+    { label: t.productShowcase.dashboard.openMissions, target: 12, tone: 'text-primary' },
+    { label: t.productShowcase.dashboard.benchRate, target: 8, suffix: '%', tone: 'text-warning' },
+    { label: t.productShowcase.dashboard.revenueNext, target: 412, prefix: '', suffix: 'k €', tone: 'text-primary' },
   ];
 
   useEffect(() => {
@@ -110,14 +110,14 @@ function DashboardMockup() {
   }, []);
 
   return (
-    <div className="relative rounded-2xl border border-hairline bg-gradient-to-br from-card via-card to-card/60 backdrop-blur-xl shadow-[0_30px_80px_-40px_rgba(225,29,116,0.4)] overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-hairline bg-black/20">
+    <div className="relative rounded-2xl border border-hairline bg-gradient-to-br from-card via-card to-card/60 shadow-[0_30px_80px_-40px_rgba(225,29,116,0.4)] overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-hairline bg-foreground/20">
         <div className="flex gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-red-500/70" />
-          <span className="h-2.5 w-2.5 rounded-full bg-amber-400/70" />
-          <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/70" />
+          <span className="h-2.5 w-2.5 rounded-full bg-destructive/70" />
+          <span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
+          <span className="h-2.5 w-2.5 rounded-full bg-success/70" />
         </div>
-        <div className="ml-auto text-[10px] text-white/40 font-mono">
+        <div className="ml-auto text-[10px] text-muted-foreground font-mono">
           centrium.app/dashboard
         </div>
       </div>
@@ -125,10 +125,10 @@ function DashboardMockup() {
       <div className="p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <div className="text-[10px] uppercase tracking-widest text-white/40">{t.productShowcase.dashboard.hello}</div>
-            <div className="font-display text-base font-semibold text-white">{t.productShowcase.dashboard.role}</div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{t.productShowcase.dashboard.hello}</div>
+            <div className="font-display text-base font-semibold text-foreground">{t.productShowcase.dashboard.role}</div>
           </div>
-          <div className="text-[10px] px-2 py-1 rounded-full bg-emerald-400/15 text-emerald-300 border border-emerald-400/30">
+          <div className="text-[10px] px-2 py-1 rounded-full bg-success/15 text-success border border-success/30">
             {t.productShowcase.dashboard.ok}
           </div>
         </div>
@@ -137,9 +137,9 @@ function DashboardMockup() {
           {KPIS.map((k) => (
             <div
               key={k.label}
-              className="rounded-lg border border-hairline bg-white/[0.02] p-3"
+              className="rounded-lg border border-hairline bg-card p-3"
             >
-              <div className="text-[9px] text-white/50 uppercase tracking-wider mb-1">
+              <div className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">
                 {k.label}
               </div>
               <div className={`text-xl font-bold ${k.tone}`}>
@@ -149,12 +149,12 @@ function DashboardMockup() {
           ))}
         </div>
 
-        <div className="rounded-lg border border-hairline bg-white/[0.02] p-3 mb-4">
+        <div className="rounded-lg border border-hairline bg-card p-3 mb-4">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-[10px] uppercase tracking-widest text-white/50">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
               {t.productShowcase.dashboard.revenue}
             </div>
-            <div className="text-[10px] text-emerald-300 inline-flex items-center gap-0.5">
+            <div className="text-[10px] text-success inline-flex items-center gap-0.5">
               <ArrowUpRight className="h-3 w-3" />
               {t.productShowcase.dashboard.growth}
             </div>
@@ -177,15 +177,15 @@ function DashboardMockup() {
           </svg>
         </div>
 
-        <div className="rounded-lg border border-violet-glow/30 bg-violet-glow/[0.06] p-3 flex items-start gap-3">
-          <div className="h-7 w-7 rounded-md bg-violet-glow/20 border border-violet-glow/40 flex items-center justify-center shrink-0">
-            <Bot className="h-3.5 w-3.5 text-violet-200" />
+        <div className="rounded-lg border border-primary/30 bg-primary/[0.06] p-3 flex items-start gap-3">
+          <div className="h-7 w-7 rounded-md bg-primary/20 border border-primary/40 flex items-center justify-center shrink-0">
+            <Bot className="h-3.5 w-3.5 text-primary" />
           </div>
-          <div className="text-[11px] leading-relaxed text-white/85">
-            <span className="font-semibold text-violet-200">{t.productShowcase.dashboard.aiSuggestion} </span>
+          <div className="text-[11px] leading-relaxed text-foreground">
+            <span className="font-semibold text-primary">{t.productShowcase.dashboard.aiSuggestion} </span>
             {t.productShowcase.dashboard.aiSuggestionBody}{' '}
-            Score moyen <span className="text-emerald-300 font-mono">87 %</span>.
-            <button className="ml-1 text-magenta hover:underline">{t.productShowcase.dashboard.seeSelection}</button>
+            Score moyen <span className="text-success font-mono">87 %</span>.
+            <button className="ml-1 text-primary hover:underline">{t.productShowcase.dashboard.seeSelection}</button>
           </div>
         </div>
       </div>
@@ -200,14 +200,14 @@ function DashboardMockup() {
 function CvOptimizerMockup() {
   const { t } = useLocale();
   return (
-    <div className="relative rounded-2xl border border-hairline bg-gradient-to-br from-card to-card/40 backdrop-blur-xl shadow-[0_30px_80px_-40px_rgba(168,85,247,0.4)] overflow-hidden p-5">
+    <div className="relative rounded-2xl border border-hairline bg-gradient-to-br from-card to-card/40 shadow-[0_30px_80px_-40px_rgba(168,85,247,0.4)] overflow-hidden p-5">
       <div className="flex items-center gap-2 mb-4">
-        <div className="h-8 w-8 rounded-lg bg-magenta/15 border border-magenta/30 flex items-center justify-center">
-          <Sparkles className="h-4 w-4 text-magenta animate-pulse" />
+        <div className="h-8 w-8 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center">
+          <Sparkles className="h-4 w-4 text-primary animate-pulse" />
         </div>
         <div>
-          <div className="font-display text-sm font-semibold text-white">{t.productShowcase.cvOptimizer.label}</div>
-          <div className="text-[10px] text-white/50">{t.productShowcase.cvOptimizer.aligning}</div>
+          <div className="font-display text-sm font-semibold text-foreground">{t.productShowcase.cvOptimizer.label}</div>
+          <div className="text-[10px] text-muted-foreground">{t.productShowcase.cvOptimizer.aligning}</div>
         </div>
       </div>
 
@@ -236,21 +236,21 @@ function CvOptimizerMockup() {
         ].map((row, i) => (
           <div
             key={row.label}
-            className="rounded-md border border-hairline bg-white/[0.02] p-2.5 animate-in slide-in-from-right-2 fade-in"
+            className="rounded-md border border-hairline bg-card p-2.5 animate-in slide-in-from-right-2 fade-in"
             style={{ animationDelay: `${i * 100}ms`, animationFillMode: 'both' }}
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300 shrink-0" />
-                <span className="text-xs text-white/85">{row.label}</span>
+                <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
+                <span className="text-xs text-foreground">{row.label}</span>
               </div>
-              <div className="text-[10px] font-mono text-white/50">
+              <div className="text-[10px] font-mono text-muted-foreground">
                 {row.confidence}%
               </div>
             </div>
-            <div className="mt-1.5 h-1 rounded-full bg-white/5 overflow-hidden">
+            <div className="mt-1.5 h-1 rounded-full bg-muted overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-pink-500 via-magenta to-violet-glow rounded-full"
+                className="h-full bg-gradient-to-r from-primary via-primary to-primary rounded-full"
                 style={{ width: `${row.confidence}%` }}
               />
             </div>
@@ -258,7 +258,7 @@ function CvOptimizerMockup() {
         ))}
       </div>
 
-      <div className="mt-4 rounded-md border border-emerald-400/30 bg-emerald-400/[0.07] p-2.5 text-[11px] text-emerald-200">
+      <div className="mt-4 rounded-md border border-success/30 bg-success/[0.07] p-2.5 text-[11px] text-success">
         <span className="font-semibold">{t.productShowcase.cvOptimizer.ready}</span> · {t.productShowcase.cvOptimizer.readyDesc}
       </div>
     </div>
@@ -288,14 +288,14 @@ export function ProductShowcase() {
     >
       <div className="relative max-w-7xl mx-auto px-6">
         <div className="text-center max-w-2xl mx-auto mb-14" data-reveal>
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-magenta/30 bg-magenta/10 text-xs font-medium text-magenta mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-xs font-medium text-primary mb-4">
             <Sparkles className="h-3 w-3" />
             {t.productShowcase.eyebrow}
           </div>
           <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight">
             {t.productShowcase.titleA} {t.productShowcase.titleB}
           </h2>
-          <p className="mt-4 text-white/65 text-lg leading-relaxed">
+          <p className="mt-4 text-muted-foreground text-lg leading-relaxed">
             {t.productShowcase.sub}
           </p>
         </div>
@@ -310,18 +310,18 @@ export function ProductShowcase() {
             </div>
             <div
               data-reveal
-              className="rounded-2xl border border-hairline bg-white/[0.02] p-5"
+              className="rounded-2xl border border-hairline bg-card p-5"
             >
               <div className="flex items-center gap-3 mb-3">
-                <div className="h-8 w-8 rounded-lg bg-violet-glow/15 border border-violet-glow/30 flex items-center justify-center">
-                  <Search className="h-4 w-4 text-violet-300" />
+                <div className="h-8 w-8 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center">
+                  <Search className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <div className="font-semibold text-white text-sm">{t.productShowcase.matching.title}</div>
-                  <div className="text-[10px] text-white/50">{t.productShowcase.matching.sub}</div>
+                  <div className="font-semibold text-foreground text-sm">{t.productShowcase.matching.title}</div>
+                  <div className="text-[10px] text-muted-foreground">{t.productShowcase.matching.sub}</div>
                 </div>
               </div>
-              <p className="text-xs text-white/65 leading-relaxed">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 {t.productShowcase.matching.desc}
               </p>
             </div>
@@ -335,13 +335,13 @@ export function ProductShowcase() {
               <div
                 key={item.label}
                 data-reveal
-                className="group rounded-xl border border-hairline bg-white/[0.02] p-5 hover:border-magenta/40 hover:bg-white/[0.04] transition"
+                className="group rounded-xl border border-hairline bg-card p-5 hover:border-primary/40 hover:bg-muted transition"
               >
-                <div className="h-9 w-9 rounded-lg bg-magenta/15 border border-magenta/30 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                  <Icon className="h-4 w-4 text-magenta" />
+                <div className="h-9 w-9 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                  <Icon className="h-4 w-4 text-primary" />
                 </div>
-                <div className="font-semibold text-sm text-white">{item.label}</div>
-                <p className="text-xs text-white/60 mt-1.5 leading-relaxed">{item.desc}</p>
+                <div className="font-semibold text-sm text-foreground">{item.label}</div>
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{item.desc}</p>
               </div>
             );
           })}

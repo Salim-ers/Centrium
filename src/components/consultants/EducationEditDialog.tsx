@@ -153,7 +153,7 @@ export function EducationEditDialog({
                 variant="ghost"
                 onClick={onDelete}
                 disabled={deleting}
-                className="text-red-400 hover:text-red-300"
+                className="text-destructive hover:text-destructive"
               >
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 {isEn ? 'Delete' : 'Supprimer'}

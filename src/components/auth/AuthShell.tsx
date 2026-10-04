@@ -46,7 +46,7 @@ export function AuthShell({ children, title, subtitle, footer }: Props) {
       {/* Retour accueil */}
       <Link
         href="/"
-        className="absolute top-6 left-6 z-20 inline-flex items-center gap-1.5 text-xs text-white/55 hover:text-white transition"
+        className="absolute top-6 left-6 z-20 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         Retour
@@ -66,7 +66,7 @@ export function AuthShell({ children, title, subtitle, footer }: Props) {
                 centre de gravité visuel descende vers la card et que
                 l'ensemble paraisse vraiment centré */}
             <div className="relative flex justify-center mb-6">
-              <span className="absolute inset-[-25%] rounded-full bg-[radial-gradient(circle,rgba(225,29,116,0.4),rgba(139,92,246,0.18),transparent_70%)] blur-2xl pointer-events-none" />
+              <span className="absolute inset-[-25%] rounded-full bg-[radial-gradient(circle,rgba(225,29,116,0.4),rgba(139,92,246,0.18),transparent_70%)] blur-2xl pointer-events-none hidden" />
               <div className="relative">
                 <CentriumWordmark size="md" href="/" />
               </div>
@@ -74,20 +74,20 @@ export function AuthShell({ children, title, subtitle, footer }: Props) {
 
             {/* Titre + sous-titre — espacements resserrés */}
             <div className="text-center mb-5 space-y-1.5">
-              <h1 className="font-display font-light tracking-[-0.03em] text-[clamp(1.6rem,3vw,2.1rem)] text-white">
+              <h1 className="font-display font-light tracking-[-0.03em] text-[clamp(1.6rem,3vw,2.1rem)] text-foreground">
                 {title}
               </h1>
-              {subtitle && <p className="text-[13px] text-white/55">{subtitle}</p>}
+              {subtitle && <p className="text-[13px] text-muted-foreground">{subtitle}</p>}
             </div>
 
             {/* Carte form en qc-luminous-static */}
-            <div className="qc-luminous-static relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-xl p-6 sm:p-7">
+            <div className="qc-luminous-static relative rounded-3xl border border-border bg-gradient-to-br from-transparent to-transparent p-6 sm:p-7">
               {children}
             </div>
 
             {/* Footer sous la carte */}
             {footer && (
-              <div className="mt-5 text-center text-sm text-white/55">
+              <div className="mt-5 text-center text-sm text-muted-foreground">
                 {footer}
               </div>
             )}

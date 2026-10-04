@@ -103,7 +103,7 @@ export function AssetUploader({ kind, value, onChange, label }: Props) {
             type="button"
             onClick={() => onChange('')}
             disabled={busy}
-            className="rounded-md border border-red-500/30 p-1.5 text-red-500 hover:bg-red-500/10 transition"
+            className="rounded-md border border-destructive/30 p-1.5 text-destructive hover:bg-destructive/10 transition"
             title={isEn ? 'Remove' : 'Retirer'}
           >
             <X className="h-3.5 w-3.5" />
@@ -131,11 +131,11 @@ export function AssetUploader({ kind, value, onChange, label }: Props) {
       onDrop={onDrop}
       className={`group cursor-pointer rounded-lg border-2 border-dashed transition px-4 py-5 text-center ${
         dragOver
-          ? 'border-magenta bg-magenta/[0.06]'
-          : 'border-hairline bg-card/30 hover:border-magenta/40 hover:bg-card/60'
+          ? 'border-primary bg-primary/[0.06]'
+          : 'border-hairline bg-card/30 hover:border-primary/40 hover:bg-card/60'
       } ${busy ? 'opacity-50 cursor-wait' : ''}`}
     >
-      <div className="mx-auto mb-2 inline-flex h-9 w-9 items-center justify-center rounded-md bg-muted text-muted-foreground group-hover:text-magenta transition">
+      <div className="mx-auto mb-2 inline-flex h-9 w-9 items-center justify-center rounded-md bg-muted text-muted-foreground group-hover:text-primary transition">
         {busy ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (

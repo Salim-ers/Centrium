@@ -55,7 +55,7 @@ export function AvailableFromField({ value, onChange }: Props) {
   return (
     <div className="space-y-1.5">
       <Label>
-        {isEn ? 'Available from' : 'Disponible à partir'} <span className="text-red-400">*</span>
+        {isEn ? 'Available from' : 'Disponible à partir'} <span className="text-destructive">*</span>
       </Label>
       <div className="flex flex-wrap gap-1.5">
         <ModeButton
@@ -84,7 +84,7 @@ export function AvailableFromField({ value, onChange }: Props) {
               setDate(e.target.value);
               onChange(e.target.value);
             }}
-            className="h-8 w-44 rounded-md border border-hairline bg-white/[0.02] px-2 text-sm text-white"
+            className="h-8 w-44 rounded-md border border-hairline bg-card px-2 text-sm text-foreground"
           />
         )}
       </div>
@@ -109,8 +109,8 @@ function ModeButton({
       onClick={onClick}
       className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs border transition ${
         active
-          ? 'border-violet-glow/60 bg-violet-glow/15 text-violet-100'
-          : 'border-hairline bg-white/[0.02] text-muted-foreground hover:border-white/20 hover:text-white'
+          ? 'border-primary/60 bg-primary/15 text-primary'
+          : 'border-hairline bg-card text-muted-foreground hover:border-border hover:text-foreground'
       }`}
     >
       {icon}

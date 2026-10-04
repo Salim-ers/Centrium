@@ -31,14 +31,14 @@ export function Hero({ t }: { t: LandingDict }) {
           toute la fenêtre en fond fixed, on laisse la continuité totale */}
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 text-center pt-24 pb-16">
-        <h1 className="font-display font-light tracking-[-0.04em] leading-[0.95] text-[clamp(3rem,7vw,6.5rem)] text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.8)]">
+        <h1 className="font-display font-light tracking-[-0.04em] leading-[0.95] text-[clamp(3rem,7vw,6.5rem)] text-foreground drop-shadow-[0_4px_30px_rgba(0,0,0,0.8)]">
           {t.hero.title1}
-          <span className="qc-italic-accent block mt-2 font-editorial italic font-normal tracking-[-0.025em]">
+          <span className="text-primary block mt-2 font-display font-normal tracking-[-0.025em]">
             {t.hero.titleGradient}
           </span>
         </h1>
 
-        <p className="mt-10 mx-auto max-w-xl text-[clamp(1.05rem,1.35vw,1.2rem)] leading-[1.55] text-white/80 font-light drop-shadow-[0_2px_20px_rgba(0,0,0,0.7)]">
+        <p className="mt-10 mx-auto max-w-xl text-[clamp(1.05rem,1.35vw,1.2rem)] leading-[1.55] text-muted-foreground font-light drop-shadow-[0_2px_20px_rgba(0,0,0,0.7)]">
           {t.hero.subtitle}
         </p>
 
@@ -52,15 +52,15 @@ export function Hero({ t }: { t: LandingDict }) {
           </MagneticButton>
         </div>
 
-        <p className="mt-12 text-[11px] uppercase tracking-[0.3em] text-white/55 drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]">
+        <p className="mt-12 text-[11px] uppercase tracking-[0.3em] text-muted-foreground drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]">
           {t.hero.trial}
         </p>
       </div>
 
       {/* Indicateur scroll */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-white/40">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-muted-foreground">
         <div className="text-[10px] uppercase tracking-[0.3em]">{t.hero.discover}</div>
-        <div className="h-10 w-px bg-gradient-to-b from-white/40 to-transparent animate-pulse" />
+        <div className="h-10 w-px bg-gradient-to-b from-transparent to-transparent animate-pulse" />
       </div>
     </section>
   );

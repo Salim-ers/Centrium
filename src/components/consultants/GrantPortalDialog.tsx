@@ -117,7 +117,7 @@ export function GrantPortalDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <KeyRound className="h-5 w-5 text-violet-glow" />
+            <KeyRound className="h-5 w-5 text-primary" />
             {isEn ? 'Create portal access' : 'Créer un accès portail'}
           </DialogTitle>
           <DialogDescription>
@@ -146,7 +146,7 @@ export function GrantPortalDialog({
         <div className="space-y-1.5 pt-2">
           <Label>{isEn ? 'Portal email *' : 'Email du portail *'}</Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 pointer-events-none" />
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               type="email"
               value={email}
@@ -156,7 +156,7 @@ export function GrantPortalDialog({
               autoComplete="off"
             />
           </div>
-          <p className="text-[11px] text-violet-300/80">
+          <p className="text-[11px] text-primary">
             {isEn
               ? 'The invitation link expires after 7 days.'
               : "Le lien d'invitation expire après 7 jours."}

@@ -386,7 +386,7 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
     <Card>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
-          <FileText className="h-5 w-5 text-violet-glow" />
+          <FileText className="h-5 w-5 text-primary" />
           {isEn ? 'Documents & source CV' : 'Documents & CV source'}
         </CardTitle>
       </CardHeader>
@@ -450,8 +450,8 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
         </p>
 
         {kind === 'cv_source' && (
-          <div className="flex items-start gap-2 p-2.5 rounded-lg border border-violet-glow/20 bg-violet-glow/5">
-            <Sparkles className="h-3.5 w-3.5 text-violet-glow shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2 p-2.5 rounded-lg border border-primary/20 bg-primary/5">
+            <Sparkles className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
             <p className="text-[11px] text-muted-foreground leading-relaxed">
               {isEn ? (
                 <>
@@ -460,7 +460,7 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
                   languages — and enriches the consultant profile.
                   <br />
                   Works on text PDF/DOCX (not scanned image CVs). Heuristic fallback if
-                  <code className="mx-1 px-1 rounded bg-white/5">ANTHROPIC_API_KEY</code> is missing.
+                  <code className="mx-1 px-1 rounded bg-muted">ANTHROPIC_API_KEY</code> is missing.
                 </>
               ) : (
                 <>
@@ -469,7 +469,7 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
                   formation et langues — et enrichit la fiche consultant.
                   <br />
                   Fonctionne sur PDF/DOCX texte (pas les CV scannés en image). Fallback heuristique si
-                  <code className="mx-1 px-1 rounded bg-white/5">ANTHROPIC_API_KEY</code> absente.
+                  <code className="mx-1 px-1 rounded bg-muted">ANTHROPIC_API_KEY</code> absente.
                 </>
               )}
             </p>
@@ -477,7 +477,7 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
         )}
 
         {loading ? (
-          <div className="h-10 rounded bg-white/[0.02] animate-pulse" />
+          <div className="h-10 rounded bg-card animate-pulse" />
         ) : docs.length === 0 ? (
           <p className="text-xs text-muted-foreground">
             {isEn ? 'No document yet' : 'Aucun document pour l\'instant'}
@@ -487,7 +487,7 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
             {docs.map((d) => (
               <div
                 key={d.id}
-                className="flex items-center gap-3 p-2.5 rounded-lg border border-hairline bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+                className="flex items-center gap-3 p-2.5 rounded-lg border border-hairline bg-card hover:bg-muted transition-colors"
               >
                 <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div className="flex-1 min-w-0">
@@ -508,7 +508,7 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
                     {parsing ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : (
-                      <Sparkles className="h-3.5 w-3.5 text-violet-glow" />
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
                     )}
                   </Button>
                 )}
@@ -516,7 +516,7 @@ export function ConsultantDocuments({ consultantId, organizationId, onProfileUpd
                   <Download className="h-3.5 w-3.5" />
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => deleteDoc(d)}>
-                  <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
                 </Button>
               </div>
             ))}

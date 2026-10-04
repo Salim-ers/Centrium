@@ -121,8 +121,8 @@ const INITIAL: FormState = {
   brand_name: '',
   logo_url: '',
   signature_url: '',
-  brand_primary_color: '#8b5cf6',
-  brand_accent_color: '#e11d74',
+  brand_primary_color: '#C65F46',
+  brand_accent_color: '#9D4432',
   footer_tagline: '',
   address: '',
   city: '',
@@ -253,7 +253,7 @@ export function ProvisionClientDialog({
       <FormDialogContent className="w-[min(1400px,96vw)] max-w-[96vw] max-h-[96vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="inline-flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-violet-glow" />
+            <Sparkles className="h-5 w-5 text-primary" />
             {isEn ? 'Provision a new client workspace' : 'Provisionner un nouvel espace client'}
           </DialogTitle>
           <DialogDescription>
@@ -275,7 +275,7 @@ export function ProvisionClientDialog({
         </DialogHeader>
 
         {error && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/[0.07] px-3 py-2 text-sm text-red-200">
+          <div className="rounded-lg border border-destructive/30 bg-destructive/[0.07] px-3 py-2 text-sm text-destructive">
             {error}
           </div>
         )}
@@ -335,7 +335,7 @@ export function ProvisionClientDialog({
                     brand_accent_color: colors.accent,
                   }));
                 }}
-                className="inline-flex items-center gap-2 rounded-md border border-magenta/30 bg-magenta/[0.08] px-3 py-1.5 text-xs font-medium text-magenta hover:bg-magenta/[0.14] transition"
+                className="inline-flex items-center gap-2 rounded-md border border-primary/30 bg-primary/[0.08] px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/[0.14] transition"
               >
                 <Wand2 className="h-3.5 w-3.5" />
                 {isEn ? 'Extract colors from the logo' : 'Extraire les couleurs depuis le logo'}
@@ -534,7 +534,7 @@ export function ProvisionClientDialog({
                     key={m.id}
                     className={`flex items-start gap-2.5 rounded-lg border px-3 py-2 cursor-pointer transition ${
                       form.billing_mode === m.id
-                        ? 'border-violet-glow/50 bg-violet-glow/[0.08]'
+                        ? 'border-primary/50 bg-primary/[0.08]'
                         : 'border-hairline hover:border-foreground/25'
                     }`}
                   >
@@ -543,7 +543,7 @@ export function ProvisionClientDialog({
                       name="billing_mode"
                       checked={form.billing_mode === m.id}
                       onChange={() => update('billing_mode', m.id)}
-                      className="mt-0.5 accent-magenta"
+                      className="mt-0.5 accent-primary"
                     />
                     <span>
                       <span className="block text-sm font-medium">{m.label}</span>
@@ -563,7 +563,7 @@ export function ProvisionClientDialog({
           <Button
             onClick={submit}
             disabled={busy}
-            className="bg-gradient-to-r from-violet-glow to-magenta-neon hover:opacity-95"
+            className="bg-gradient-to-r from-primary to-primary hover:opacity-95"
           >
             {busy && <Loader2 className="h-4 w-4 animate-spin" />}
             {isEn ? 'Create workspace and invite admin' : "Créer l'espace et inviter l'admin"}
@@ -585,7 +585,7 @@ function Section({
 }) {
   return (
     <section className="rounded-lg border border-hairline bg-card/40 p-4 space-y-3">
-      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-magenta">
+      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-primary">
         {icon}
         {title}
       </div>
@@ -632,7 +632,7 @@ function ColorInput({ value, onChange }: { value: string; onChange: (v: string) 
       <Input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="#8b5cf6"
+        placeholder="#C65F46"
         className="flex-1"
       />
     </div>

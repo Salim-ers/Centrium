@@ -78,11 +78,11 @@ export function InviteActivationCard({ token }: { token: string }) {
       <Card className="w-full max-w-md relative">
         <CardHeader className="text-center space-y-2">
           <div className="flex justify-center">
-            <div className="p-3 bg-violet-500/10 rounded-full">
+            <div className="p-3 bg-primary/10 rounded-full">
               {phase === 'sent' ? (
-                <MailCheck className="h-6 w-6 text-emerald-400" />
+                <MailCheck className="h-6 w-6 text-success" />
               ) : (
-                <ShieldCheck className="h-6 w-6 text-violet-300" />
+                <ShieldCheck className="h-6 w-6 text-primary" />
               )}
             </div>
           </div>
@@ -166,11 +166,11 @@ export function InviteActivationCard({ token }: { token: string }) {
             </Button>
           )}
           {errorMsg && (
-            <p className="text-xs text-rose-400 text-center leading-relaxed">{errorMsg}</p>
+            <p className="text-xs text-destructive text-center leading-relaxed">{errorMsg}</p>
           )}
           <p className="text-center text-xs text-muted-foreground">
             {isEn ? 'Already have an account? ' : 'Déjà un compte ? '}
-            <Link href="/login" className="text-magenta hover:underline">
+            <Link href="/login" className="text-primary hover:underline">
               {isEn ? 'Sign in' : 'Se connecter'}
             </Link>
           </p>

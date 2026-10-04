@@ -130,7 +130,7 @@ export function LanguagesEditDialog({
                   variant="ghost"
                   size="sm"
                   onClick={() => remove(l.code)}
-                  className="text-red-400 hover:text-red-300"
+                  className="text-destructive hover:text-destructive"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>

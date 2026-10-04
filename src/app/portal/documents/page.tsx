@@ -19,8 +19,8 @@ export default function PortalDocumentsPage() {
       <PageHeader
         eyebrow={isEn ? 'My space' : 'Mon espace'}
         title={isEn
-          ? <>My <span className="qc-italic-accent font-editorial italic">documents.</span></>
-          : <>Mes <span className="qc-italic-accent font-editorial italic">documents.</span></>}
+          ? <>My <span className="text-primary font-display ">documents.</span></>
+          : <>Mes <span className="text-primary font-display ">documents.</span></>}
         description={isEn
           ? `Share your documents with ${brandName} and find those that have been sent to you.`
           : `Partagez vos documents avec ${brandName} et retrouvez ceux qui vous ont été transmis.`}

@@ -1,6 +1,5 @@
 import { PortalSidebar } from './PortalSidebar';
 import { PortalMobileNav } from './PortalMobileNav';
-import { AppBackground } from './AppBackground';
 import { BrandingStyles } from '@/components/brand/BrandingStyles';
 import { SessionPresenceGate } from '@/components/auth/SessionPresenceGate';
 
@@ -11,7 +10,6 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
       {/* Auto-logout si l'onglet/navigateur a été fermé entre 2 visites. */}
       <SessionPresenceGate />
       {/* Starfield warp dark-only (cohérent avec AppShell BM). */}
-      <AppBackground />
       {/* Nav mobile (< md) : barre + tiroir avec déconnexion. */}
       <PortalMobileNav />
       <PortalSidebar />

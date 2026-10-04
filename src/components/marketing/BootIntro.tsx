@@ -99,7 +99,7 @@ export function BootIntro() {
       role="dialog"
       aria-label="Centrium boot screen"
       onClick={skip}
-      className="fixed inset-0 z-[200] bg-black cursor-pointer overflow-hidden"
+      className="fixed inset-0 z-[200] bg-foreground cursor-pointer overflow-hidden"
       style={{
         transition: 'opacity 800ms ease-out, filter 800ms ease-out',
         opacity: zooming ? 0 : 1,
@@ -116,7 +116,7 @@ export function BootIntro() {
         }}
       >
         {/* Cadre style écran CRT */}
-        <div className="relative w-full max-w-3xl aspect-[16/10] mx-6 rounded-[24px] border border-white/10 bg-black overflow-hidden boot-screen">
+        <div className="relative w-full max-w-3xl aspect-[16/10] mx-6 rounded-[24px] border border-border bg-foreground overflow-hidden boot-screen">
           {/* Flash blanc bref */}
           {showFlash && (
             <div
@@ -167,25 +167,25 @@ export function BootIntro() {
 
           {/* Contenu BIOS */}
           {showBios && (
-            <div className="absolute inset-0 p-8 md:p-12 flex flex-col justify-center font-mono text-[12px] md:text-[14px] text-magenta">
+            <div className="absolute inset-0 p-8 md:p-12 flex flex-col justify-center font-mono text-[12px] md:text-[14px] text-primary">
               {/* En-tête CENTRIUM */}
               <div className="mb-6 flex items-center gap-3">
                 <div
-                  className="h-3 w-3 rounded-full bg-magenta"
+                  className="h-3 w-3 rounded-full bg-primary"
                   style={{ animation: 'boot-blink 0.9s steps(2) infinite' }}
                 />
-                <span className="text-white/85 tracking-[0.2em] text-[11px]">
+                <span className="text-foreground tracking-[0.2em] text-[11px]">
                   CENTRIUM // QUADCORE
                 </span>
               </div>
 
-              <div className="space-y-1.5 text-white/80">
+              <div className="space-y-1.5 text-muted-foreground">
                 {BIOS_LINES.slice(0, linesShown).map((l, i) => (
                   <div
                     key={i}
                     className={
                       l.text.endsWith('READY')
-                        ? 'text-emerald-300 font-semibold'
+                        ? 'text-success font-semibold'
                         : ''
                     }
                   >
@@ -195,14 +195,14 @@ export function BootIntro() {
                 {/* Curseur blink */}
                 {linesShown < BIOS_LINES.length && (
                   <span
-                    className="inline-block w-2 h-3 bg-magenta align-middle"
+                    className="inline-block w-2 h-3 bg-primary align-middle"
                     style={{ animation: 'boot-blink 0.6s steps(2) infinite' }}
                   />
                 )}
               </div>
 
               {/* Coin coordonnées style mission control */}
-              <div className="absolute bottom-4 right-6 text-[10px] text-white/40 tracking-[0.18em]">
+              <div className="absolute bottom-4 right-6 text-[10px] text-muted-foreground tracking-[0.18em]">
                 SKIP — CLICK ANYWHERE
               </div>
             </div>

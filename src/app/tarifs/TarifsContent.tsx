@@ -344,23 +344,23 @@ function PriceDisplay({ plan, c }: { plan: Plan; c: Copy }) {
   if (plan.monthly === null) {
     return (
       <div>
-        <div className="font-display text-3xl font-semibold text-white">{c.onQuote}</div>
-        <div className="mt-1 text-xs text-white/55">{c.onQuoteSub}</div>
+        <div className="font-display text-3xl font-semibold text-foreground">{c.onQuote}</div>
+        <div className="mt-1 text-xs text-muted-foreground">{c.onQuoteSub}</div>
       </div>
     );
   }
   return (
     <div>
       <div className="flex items-baseline gap-2">
-        <span className="font-display text-4xl font-semibold text-white tabular-nums">
+        <span className="font-display text-4xl font-semibold text-foreground tabular-nums">
           {plan.monthly.toLocaleString('fr-FR')}
         </span>
-        <span className="text-white/55 text-sm">{c.perMonth}</span>
+        <span className="text-muted-foreground text-sm">{c.perMonth}</span>
       </div>
-      <div className="mt-1 text-xs text-white/55">{c.perYear(plan.annual!.toLocaleString('fr-FR'))}</div>
+      <div className="mt-1 text-xs text-muted-foreground">{c.perYear(plan.annual!.toLocaleString('fr-FR'))}</div>
       {plan.maxUsers !== null && plan.maxConsultants !== null && (
-        <div className="mt-3 inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] text-white/70">
-          <Sparkles className="h-3 w-3 text-magenta" />
+        <div className="mt-3 inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-[11px] text-muted-foreground">
+          <Sparkles className="h-3 w-3 text-primary" />
           {c.usersConsultants(plan.maxUsers, plan.maxConsultants)}
         </div>
       )}
@@ -381,15 +381,15 @@ export function TarifsContent() {
         <div className="max-w-6xl mx-auto px-6">
           {/* Hero */}
           <div className="text-center max-w-3xl mx-auto">
-            <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-magenta mb-3">
+            <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-primary mb-3">
               {c.eyebrow}
             </div>
-            <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-white">
+            <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-foreground">
               {c.titleA}{' '}
-              <span className="qc-italic-accent font-editorial italic">{c.titleB}</span>
+              <span className="text-primary font-display ">{c.titleB}</span>
             </h1>
-            <p className="mt-5 text-lg text-white/65 leading-relaxed">{c.intro}</p>
-            <p className="mt-3 text-sm text-white/45">{c.trialLine}</p>
+            <p className="mt-5 text-lg text-muted-foreground leading-relaxed">{c.intro}</p>
+            <p className="mt-3 text-sm text-muted-foreground">{c.trialLine}</p>
           </div>
 
           {/* 3 plans */}
@@ -399,20 +399,20 @@ export function TarifsContent() {
                 key={plan.id}
                 className={`relative rounded-3xl border p-7 flex flex-col ${
                   plan.highlight
-                    ? 'border-magenta/40 bg-gradient-to-b from-magenta/[0.06] to-transparent shadow-[0_0_50px_-10px_rgba(225,29,116,0.3)]'
-                    : 'border-white/10 bg-white/[0.02]'
+                    ? 'border-primary/40 bg-gradient-to-b from-primary/[0.06] to-transparent shadow-[0_0_50px_-10px_rgba(225,29,116,0.3)]'
+                    : 'border-border bg-card'
                 }`}
               >
                 {plan.highlight && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="inline-block rounded-full bg-magenta px-3 py-1 text-[10px] font-semibold text-white uppercase tracking-wider">
+                    <span className="inline-block rounded-full bg-primary px-3 py-1 text-[10px] font-semibold text-white uppercase tracking-wider">
                       {c.popular}
                     </span>
                   </div>
                 )}
                 <div>
-                  <h2 className="font-display text-2xl font-semibold text-white">{plan.name}</h2>
-                  <p className="mt-1 text-sm text-white/55">{plan.tagline}</p>
+                  <h2 className="font-display text-2xl font-semibold text-foreground">{plan.name}</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
                   <div className="mt-6">
                     <PriceDisplay plan={plan} c={c} />
                   </div>
@@ -422,7 +422,7 @@ export function TarifsContent() {
                   className={`mt-7 inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition ${
                     plan.highlight
                       ? 'qc-cta'
-                      : 'border border-white/15 text-white/85 hover:border-white/30'
+                      : 'border border-border text-foreground hover:border-border'
                   }`}
                 >
                   {plan.cta.label}
@@ -430,8 +430,8 @@ export function TarifsContent() {
                 </Link>
                 <ul className="mt-7 space-y-2.5 text-sm flex-1">
                   {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2.5 text-white/75">
-                      <Check className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+                    <li key={feature} className="flex items-start gap-2.5 text-muted-foreground">
+                      <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
                       <span>{feature}</span>
                     </li>
                   ))}
@@ -441,37 +441,37 @@ export function TarifsContent() {
           </section>
 
           {/* Comparaison avec Boondmanager */}
-          <section className="mt-20 max-w-4xl mx-auto rounded-2xl border border-white/10 bg-white/[0.02] p-8">
+          <section className="mt-20 max-w-4xl mx-auto rounded-2xl border border-border bg-card p-8">
             <div className="flex items-start gap-4">
-              <div className="rounded-md bg-magenta/15 p-2.5 text-magenta shrink-0">
+              <div className="rounded-md bg-primary/15 p-2.5 text-primary shrink-0">
                 <Building2 className="h-5 w-5" />
               </div>
               <div className="flex-1">
-                <h2 className="font-display text-xl font-semibold text-white">{c.compareTitle}</h2>
-                <p className="mt-2 text-sm text-white/65 leading-relaxed">{c.compareIntro}</p>
+                <h2 className="font-display text-xl font-semibold text-foreground">{c.compareTitle}</h2>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{c.compareIntro}</p>
                 <div className="mt-5 grid grid-cols-2 gap-4 text-sm">
-                  <div className="rounded-lg border border-magenta/30 bg-magenta/[0.06] p-4">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-magenta">
+                  <div className="rounded-lg border border-primary/30 bg-primary/[0.06] p-4">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-primary">
                       {c.compareCentrium}
                     </div>
-                    <div className="mt-2 text-white text-lg font-display font-semibold">
+                    <div className="mt-2 text-foreground text-lg font-display font-semibold">
                       {c.compareCentriumPrice}
                     </div>
-                    <div className="mt-1 text-xs text-white/55">{c.compareCentriumSub}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{c.compareCentriumSub}</div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
+                  <div className="rounded-lg border border-border bg-card p-4">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                       {c.compareBoond}
                     </div>
-                    <div className="mt-2 text-white/85 text-lg font-display font-semibold">
+                    <div className="mt-2 text-foreground text-lg font-display font-semibold">
                       {c.compareBoondPrice}
                     </div>
-                    <div className="mt-1 text-xs text-white/55">{c.compareBoondSub}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{c.compareBoondSub}</div>
                   </div>
                 </div>
                 <Link
                   href="/centrium-vs-boondmanager"
-                  className="mt-5 inline-flex items-center gap-2 text-sm text-magenta hover:underline"
+                  className="mt-5 inline-flex items-center gap-2 text-sm text-primary hover:underline"
                 >
                   {c.compareLink}
                   <ArrowRight className="h-4 w-4" />
@@ -481,24 +481,24 @@ export function TarifsContent() {
           </section>
 
           {/* Trust / sécu */}
-          <section className="mt-12 max-w-4xl mx-auto rounded-2xl border border-white/10 bg-white/[0.02] p-8">
+          <section className="mt-12 max-w-4xl mx-auto rounded-2xl border border-border bg-card p-8">
             <div className="flex items-start gap-4">
-              <div className="rounded-md bg-emerald-500/15 p-2.5 text-emerald-400 shrink-0">
+              <div className="rounded-md bg-success/15 p-2.5 text-success shrink-0">
                 <Shield className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="font-display text-xl font-semibold text-white">{c.trustTitle}</h2>
+                <h2 className="font-display text-xl font-semibold text-foreground">{c.trustTitle}</h2>
                 <ul className="mt-4 grid md:grid-cols-2 gap-2 text-sm">
                   {c.trustItems.map((item) => (
-                    <li key={item} className="flex items-start gap-2 text-white/75">
-                      <Check className="h-3.5 w-3.5 text-emerald-400 mt-1 shrink-0" />
+                    <li key={item} className="flex items-start gap-2 text-muted-foreground">
+                      <Check className="h-3.5 w-3.5 text-success mt-1 shrink-0" />
                       <span>{item}</span>
                     </li>
                   ))}
                 </ul>
                 <Link
                   href="/trust"
-                  className="mt-4 inline-flex items-center gap-2 text-sm text-magenta hover:underline"
+                  className="mt-4 inline-flex items-center gap-2 text-sm text-primary hover:underline"
                 >
                   {c.trustLink}
                   <ArrowRight className="h-4 w-4" />
@@ -509,34 +509,34 @@ export function TarifsContent() {
 
           {/* FAQ */}
           <section className="mt-20 max-w-3xl mx-auto">
-            <h2 className="font-display text-2xl md:text-3xl font-semibold text-white tracking-tight text-center">
+            <h2 className="font-display text-2xl md:text-3xl font-semibold text-foreground tracking-tight text-center">
               {c.faqTitleA}{' '}
-              <span className="qc-italic-accent font-editorial italic">{c.faqTitleB}</span>
+              <span className="text-primary font-display ">{c.faqTitleB}</span>
             </h2>
             <div className="mt-10 space-y-3">
               {c.faq.map((item) => (
                 <details
                   key={item.q}
-                  className="group rounded-xl border border-white/10 bg-white/[0.02] p-5 hover:border-white/20 transition"
+                  className="group rounded-xl border border-border bg-card p-5 hover:border-border transition"
                 >
-                  <summary className="cursor-pointer font-medium text-white text-sm flex items-center justify-between gap-3">
+                  <summary className="cursor-pointer font-medium text-foreground text-sm flex items-center justify-between gap-3">
                     {item.q}
-                    <ArrowRight className="h-4 w-4 text-white/40 group-open:rotate-90 transition" />
+                    <ArrowRight className="h-4 w-4 text-muted-foreground group-open:rotate-90 transition" />
                   </summary>
-                  <p className="mt-3 text-sm text-white/65 leading-relaxed">{item.a}</p>
+                  <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{item.a}</p>
                 </details>
               ))}
             </div>
           </section>
 
           {/* CTA final */}
-          <section className="mt-20 rounded-3xl border border-magenta/20 bg-gradient-to-br from-magenta/[0.08] via-violet-glow/[0.04] to-transparent p-10 text-center">
-            <h2 className="font-display text-3xl md:text-4xl font-semibold text-white tracking-tight">
+          <section className="mt-20 rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/[0.08] via-primary/[0.04] to-transparent p-10 text-center">
+            <h2 className="font-display text-3xl md:text-4xl font-semibold text-foreground tracking-tight">
               {c.finalTitleA}{' '}
-              <span className="qc-italic-accent font-editorial italic">{c.finalTitleB}</span>{' '}
+              <span className="text-primary font-display ">{c.finalTitleB}</span>{' '}
               Centrium ?
             </h2>
-            <p className="mt-4 text-white/65 max-w-2xl mx-auto leading-relaxed">{c.finalSub}</p>
+            <p className="mt-4 text-muted-foreground max-w-2xl mx-auto leading-relaxed">{c.finalSub}</p>
             <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
               <Link
                 href="/essai"
@@ -547,7 +547,7 @@ export function TarifsContent() {
               </Link>
               <a
                 href="mailto:contact@centrium-platform.com"
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 hover:border-white/30 transition px-7 py-3 font-semibold text-sm text-white/85"
+                className="inline-flex items-center gap-2 rounded-full border border-border hover:border-border transition px-7 py-3 font-semibold text-sm text-foreground"
               >
                 {c.finalContact}
               </a>

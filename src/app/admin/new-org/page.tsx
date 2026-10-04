@@ -51,14 +51,14 @@ export default function AdminNewOrgPage() {
               isEn ? (
                 <>
                   Create a new{' '}
-                  <span className="qc-italic-accent font-editorial italic">
+                  <span className="text-primary font-display ">
                     client workspace
                   </span>
                 </>
               ) : (
                 <>
                   Créer un nouvel{' '}
-                  <span className="qc-italic-accent font-editorial italic">
+                  <span className="text-primary font-display ">
                     espace client
                   </span>
                 </>
@@ -76,7 +76,7 @@ export default function AdminNewOrgPage() {
           <AppCard>
             <AppCardBody>
               <div className="flex items-center gap-2 text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
-                <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+                <ShieldCheck className="h-3.5 w-3.5 text-success" />
                 {isEn ? 'Step 1 — Identity' : 'Étape 1 — Identité'}
               </div>
               <p className="text-sm text-foreground/85">
@@ -90,7 +90,7 @@ export default function AdminNewOrgPage() {
           <AppCard>
             <AppCardBody>
               <div className="flex items-center gap-2 text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
-                <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+                <ShieldCheck className="h-3.5 w-3.5 text-success" />
                 {isEn ? 'Step 2 — Legal notices' : 'Étape 2 — Mentions légales'}
               </div>
               <p className="text-sm text-foreground/85">
@@ -104,7 +104,7 @@ export default function AdminNewOrgPage() {
           <AppCard>
             <AppCardBody>
               <div className="flex items-center gap-2 text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
-                <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+                <ShieldCheck className="h-3.5 w-3.5 text-success" />
                 {isEn ? 'Step 3 — First admin' : 'Étape 3 — Premier admin'}
               </div>
               <p className="text-sm text-foreground/85">
