@@ -1,21 +1,11 @@
-import { redirect } from 'next/navigation';
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { SkillsDossierStudio } from '@/components/cv/SkillsDossierStudio';
 
 /**
- * Ancienne route « CV Optimizer » : la génération de dossiers vit désormais
- * dans la fiche consultant (Consultants → fiche → Dossier de compétences).
- * Les liens existants sont redirigés.
+ * CV Optimizer : dossier de compétences d'un consultant (standard, dense,
+ * executive ou adapté à une opportunité), export PDF et Word. Accessible
+ * aussi depuis la fiche consultant (même atelier, consultant verrouillé).
+ * `?consultantId=` et `?offerId=` présélectionnent consultant et offre.
  */
-export default function CvOptimizerRedirect({
-  searchParams,
-}: {
-  searchParams: { consultantId?: string; offerId?: string };
-}) {
-  const id = searchParams.consultantId;
-  if (id && UUID.test(id)) {
-    const offer = searchParams.offerId && UUID.test(searchParams.offerId) ? `?offerId=${searchParams.offerId}` : '';
-    redirect(`/consultants/${id}/dossier${offer}`);
-  }
-  redirect('/consultants');
+export default function CvOptimizerPage() {
+  return <SkillsDossierStudio />;
 }

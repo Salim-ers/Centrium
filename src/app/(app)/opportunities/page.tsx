@@ -1,47 +1,53 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { FileText, Plus, Search, Target } from 'lucide-react';
+import { Plus, Target } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader } from '@/components/app';
 import { EmptyState } from '@/components/app/EmptyState';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Avatar } from '@/components/ui/avatar';
 import { DataTable, type Column, linkActions } from '@/components/ui/data-table';
+import { CrmTabs } from '@/components/crm/CrmTabs';
+import { CrmToolbar } from '@/components/crm/CrmToolbar';
 import { OpportunityDrawer } from '@/components/crm/OpportunityDrawer';
+import { RelatedLinks } from '@/components/app/RelatedLinks';
 import { useOrganization } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useCompaniesLite, useTeamMembers } from '@/hooks/useOrgDirectory';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { createClient } from '@/lib/supabase/client';
-import { PIPELINE_STAGES, stageLabel, stageOf, stageTone } from '@/lib/crm/pipeline';
+import { OPEN_STAGES, PIPELINE_STAGES, stageLabel, stageOf, stageTone } from '@/lib/crm/pipeline';
+import { followUpState, pipelineSentence, summarizePipeline } from '@/lib/crm/summary';
 import { isOpenOpportunity, opportunityAmount } from '@/lib/pilotage/metrics';
-import { formatDate, formatEurCompact, relativeDays } from '@/lib/format';
+import { formatDate, formatEurCompact } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { RelatedLinks } from '@/components/app/RelatedLinks';
 import type { Opportunity } from '@/types';
 
+/**
+ * CRM — liste des opportunités : même onglet que le tableau, triable, avec
+ * un filtre d'étape qui inclut les issues (gagnées, perdues, en veille).
+ */
 export default function OpportunitiesPage() {
   const params = useSearchParams();
-  const { activeOrgId } = useOrganization();
+  const { activeOrgId, user } = useOrganization();
   const { can } = usePermissions();
   const { locale } = useLocale();
   const lang = locale === 'en' ? 'en' : 'fr';
   const fr = lang === 'fr';
-  const canEdit = can('opportunities.edit');
+  const canEdit = can('crm.edit') || can('opportunities.edit');
   const { byId: companies } = useCompaniesLite();
   const { byId: members, options: memberOptions } = useTeamMembers();
   const [query, setQuery] = useState('');
   const [stage, setStage] = useState<string>(params.get('stage') ?? 'open');
   const [owner, setOwner] = useState('all');
   const [drawerOpen, setDrawerOpen] = useState(params.get('new') === '1');
+  const today = new Date().toISOString().slice(0, 10);
 
   const { data, loading, setData } = useCachedQuery<Opportunity[]>(
     `opps-list:${activeOrgId ?? 'none'}`,
@@ -57,20 +63,27 @@ export default function OpportunitiesPage() {
     { enabled: !!activeOrgId },
   );
 
+  const byOwner = useMemo(
+    () =>
+      (data ?? []).filter((o) => {
+        if (owner === 'mine') return o.owner_id === user?.id;
+        return owner === 'all' || o.owner_id === owner;
+      }),
+    [data, owner, user?.id],
+  );
+
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return (data ?? []).filter((o) => {
+    return byOwner.filter((o) => {
       if (stage === 'open' && !isOpenOpportunity(o)) return false;
       if (stage === 'on_hold' && o.status !== 'on_hold') return false;
       if (stage !== 'open' && stage !== 'all' && stage !== 'on_hold' && stageOf(o.status) !== stage) return false;
-      if (owner !== 'all' && o.owner_id !== owner) return false;
       if (!q) return true;
       const client = o.company_id ? (companies.get(o.company_id)?.name ?? '') : '';
       return `${o.title} ${client} ${(o.required_skills ?? []).join(' ')}`.toLowerCase().includes(q);
     });
-  }, [data, query, stage, owner, companies]);
+  }, [byOwner, query, stage, companies]);
 
-  const today = new Date().toISOString().slice(0, 10);
   const columns: Column<Opportunity>[] = [
     {
       id: 'title',
@@ -102,41 +115,24 @@ export default function OpportunitiesPage() {
       cell: (o) => <span className="num">{opportunityAmount(o) ? formatEurCompact(opportunityAmount(o), lang) : '—'}</span>,
     },
     {
-      id: 'probability',
-      header: fr ? 'Proba.' : 'Prob.',
-      align: 'right',
-      hideOnMobile: true,
-      sortValue: (o) => o.probability ?? -1,
-      cell: (o) => <span className="num text-muted-foreground">{o.probability != null ? `${o.probability} %` : '—'}</span>,
-    },
-    {
-      id: 'weighted',
-      header: fr ? 'Pondéré' : 'Weighted',
-      align: 'right',
-      hideOnMobile: true,
-      sortValue: (o) => opportunityAmount(o) * ((o.probability ?? 0) / 100),
+      id: 'next',
+      header: fr ? 'Prochaine relance' : 'Next follow-up',
+      mobile: 'meta',
+      sortValue: (o) => o.next_follow_up ?? '9999',
       cell: (o) => {
-        const w = opportunityAmount(o) * ((o.probability ?? 0) / 100);
-        return <span className="num">{w ? formatEurCompact(w, lang) : '—'}</span>;
+        const state = followUpState(o.next_follow_up, today);
+        if (!state) return <span className="text-muted-foreground">—</span>;
+        return (
+          <span className={cn('text-[13px]', state === 'late' ? 'font-medium text-destructive' : state === 'today' ? 'font-medium text-warning' : 'text-muted-foreground')}>
+            {state === 'late' ? (fr ? 'En retard' : 'Overdue') : state === 'today' ? (fr ? 'Aujourd’hui' : 'Today') : formatDate(o.next_follow_up, lang, 'short')}
+            {o.next_action ? ` · ${o.next_action}` : ''}
+          </span>
+        );
       },
     },
     {
-      id: 'next',
-      header: fr ? 'Prochaine action' : 'Next action',
-      mobile: 'meta',
-      sortValue: (o) => o.next_follow_up ?? '9999',
-      cell: (o) =>
-        o.next_follow_up ? (
-          <span className={cn('text-[13px]', o.next_follow_up < today ? 'font-medium text-destructive' : 'text-muted-foreground')}>
-            {o.next_follow_up < today ? relativeDays(o.next_follow_up, lang) : formatDate(o.next_follow_up, lang, 'short')}
-          </span>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        ),
-    },
-    {
       id: 'owner',
-      header: 'BM',
+      header: fr ? 'Responsable' : 'Owner',
       hideOnMobile: true,
       sortValue: (o) => (o.owner_id ? (members.get(o.owner_id)?.name ?? '') : ''),
       cell: (o) => {
@@ -161,71 +157,37 @@ export default function OpportunitiesPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell wide>
       <PageHeader
         eyebrow={fr ? 'Activité commerciale' : 'Sales'}
-        title={fr ? 'Opportunités' : 'Opportunities'}
-        description={
-          fr
-            ? 'Toutes les affaires en cours, du premier contact à la signature.'
-            : 'Every deal, from first contact to signature.'
-        }
+        title="CRM"
+        description={pipelineSentence(summarizePipeline(byOwner, today), lang)}
         actions={
-          <>
-            <Button asChild variant="secondary">
-              <Link href="/offers">
-                <FileText />
-                {fr ? 'Fiches de poste' : 'Job descriptions'}
-              </Link>
+          canEdit && (
+            <Button onClick={() => setDrawerOpen(true)}>
+              <Plus />
+              {fr ? 'Nouvelle opportunité' : 'New opportunity'}
             </Button>
-            {canEdit && (
-              <Button onClick={() => setDrawerOpen(true)}>
-                <Plus />
-                {fr ? 'Nouvelle opportunité' : 'New opportunity'}
-              </Button>
-            )}
-          </>
+          )
         }
-      />
-      <RelatedLinks
-        links={[
-          { href: '/responses', label: { fr: 'Réponses aux appels d’offres', en: 'Tender responses' }, permission: 'opportunities.view' },
-        ]}
-      />
+      >
+        <CrmTabs />
+      </PageHeader>
 
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={fr ? 'Intitulé, client, compétence' : 'Title, client, skill'}
-            className="pl-9"
-            aria-label={fr ? 'Rechercher' : 'Search'}
-          />
-        </div>
-        <Select value={stage} onChange={(e) => setStage(e.target.value)} className="sm:w-48" aria-label={fr ? 'Étape' : 'Stage'}>
-          <option value="open">{fr ? 'Ouvertes' : 'Open'}</option>
-          <option value="all">{fr ? 'Toutes' : 'All'}</option>
-          {PIPELINE_STAGES.map((s) => (
+      <CrmToolbar lang={lang} view="list" query={query} onQuery={setQuery} owner={owner} onOwner={setOwner} members={memberOptions}>
+        <Select value={stage} onChange={(e) => setStage(e.target.value)} className="sm:w-44" aria-label={fr ? 'Étape' : 'Stage'}>
+          <option value="open">{fr ? 'En cours' : 'Open'}</option>
+          {OPEN_STAGES.map((s) => (
             <option key={s.id} value={s.id}>
               {s.label[lang]}
             </option>
           ))}
+          <option value="won">{fr ? 'Gagnées' : 'Won'}</option>
+          <option value="lost">{fr ? 'Perdues' : 'Lost'}</option>
           <option value="on_hold">{fr ? 'En veille' : 'On hold'}</option>
+          <option value="all">{fr ? 'Toutes' : 'All'}</option>
         </Select>
-        <Select value={owner} onChange={(e) => setOwner(e.target.value)} className="sm:w-56" aria-label="Business Manager">
-          <option value="all">{fr ? 'Tous les BM' : 'All BMs'}</option>
-          {memberOptions.map((m) => (
-            <option key={m.value} value={m.value}>
-              {m.label}
-            </option>
-          ))}
-        </Select>
-        <span className="num text-xs text-muted-foreground sm:ml-auto">
-          {rows.length} {fr ? 'résultat(s)' : 'result(s)'}
-        </span>
-      </div>
+      </CrmToolbar>
 
       <DataTable
         aria-label={fr ? 'Opportunités' : 'Opportunities'}
@@ -254,15 +216,24 @@ export default function OpportunitiesPage() {
         }
       />
 
+      <div className="mt-8">
+        <RelatedLinks
+          links={[
+            { href: '/offers', label: { fr: 'Fiches de poste', en: 'Job descriptions' }, permission: 'opportunities.view' },
+            { href: '/responses', label: { fr: 'Réponses aux appels d’offres', en: 'Tender responses' }, permission: 'opportunities.view' },
+          ]}
+        />
+      </div>
+
       {activeOrgId && (
         <OpportunityDrawer
           open={drawerOpen}
           onOpenChange={setDrawerOpen}
           organizationId={activeOrgId}
+          defaults={{ owner_id: user?.id ?? null }}
           onSaved={(o) => setData((list) => [o, ...(list ?? [])])}
         />
       )}
     </AppShell>
   );
 }
-

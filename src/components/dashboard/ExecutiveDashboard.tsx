@@ -320,6 +320,7 @@ export function ExecutiveDashboard() {
             labels={{ revenue: fr ? 'CA validé' : 'Approved revenue', margin: fr ? 'Marge' : 'Margin', forecast: fr ? 'Prévision' : 'Forecast' }}
             index={index}
             height={260}
+            fill
             className="h-full"
             summary={
               cur ? (

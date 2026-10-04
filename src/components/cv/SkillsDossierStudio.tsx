@@ -592,18 +592,21 @@ function SkillsDossierStudioInner({ lockedConsultantId }: { lockedConsultantId?:
   return (
     <AppShell>
       <div className="no-print">
+        {/* Depuis la fiche consultant : « Dossier de compétences » avec retour
+            vers la fiche. Depuis le menu : « CV Optimizer », page de premier niveau. */}
         <PageHeader
-          backHref={lockedConsultantId ? `/consultants/${lockedConsultantId}` : '/consultants'}
-          backLabel={
-            lockedConsultantId && loaded
-              ? `${loaded.consultant.first_name} ${loaded.consultant.last_name}`
-              : 'Consultants'
-          }
-          title={isEn ? 'Skills dossier' : 'Dossier de compétences'}
+          eyebrow={lockedConsultantId ? undefined : isEn ? 'Resources' : 'Ressources'}
+          backHref={lockedConsultantId ? `/consultants/${lockedConsultantId}` : undefined}
+          backLabel={lockedConsultantId && loaded ? `${loaded.consultant.first_name} ${loaded.consultant.last_name}` : undefined}
+          title={lockedConsultantId ? (isEn ? 'Skills dossier' : 'Dossier de compétences') : 'CV Optimizer'}
           description={
-            isEn
-              ? 'Standard, dense, executive or tailored to an opportunity. Built only from the profile: nothing is invented.'
-              : 'Standard, dense, executive ou adapté à une opportunité. Construit uniquement à partir du profil : rien n’est inventé.'
+            lockedConsultantId
+              ? isEn
+                ? 'Standard, dense, executive or tailored to an opportunity. Built only from the profile: nothing is invented.'
+                : 'Standard, dense, executive ou adapté à une opportunité. Construit uniquement à partir du profil : rien n’est inventé.'
+              : isEn
+                ? 'Pick a consultant, optionally an opportunity, then export the dossier as PDF or Word. Built only from the profile: nothing is invented.'
+                : 'Choisissez un consultant, une opportunité si besoin, puis exportez le dossier en PDF ou Word. Construit uniquement à partir du profil : rien n’est inventé.'
           }
           actions={
             <>

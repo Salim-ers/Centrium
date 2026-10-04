@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Drawer, DrawerBody, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
@@ -20,6 +21,7 @@ import { crmService } from '@/lib/services/crm.service';
 import { opportunityV2Schema, REMOTE_POLICIES, REMOTE_POLICY_LABEL, type OpportunityV2Input } from '@/lib/validators/v2';
 import { PIPELINE_STAGES, STAGE_BY_ID, stageOf, type PipelineStageId } from '@/lib/crm/pipeline';
 import { formatEur } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import type { Opportunity } from '@/types';
 
 type Props = {
@@ -27,10 +29,25 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   organizationId: string;
   opportunity?: Opportunity | null;
-  /** Valeurs initiales pour une création (ex. client présélectionné). */
+  /** Valeurs initiales pour une création (ex. client ou étape présélectionnés). */
   defaults?: Partial<OpportunityV2Input>;
   onSaved?: (o: Opportunity) => void;
 };
+
+/** Champs rangés sous « Plus de détails ». */
+const DETAIL_FIELDS = [
+  'contact_id',
+  'description',
+  'required_skills',
+  'start_date',
+  'duration_months',
+  'location',
+  'remote_policy',
+  'daily_rate_eur',
+  'budget_eur',
+  'probability',
+  'notes',
+] as const satisfies ReadonlyArray<keyof OpportunityV2Input>;
 
 function toValues(o: Opportunity | null | undefined, defaults?: Partial<OpportunityV2Input>): OpportunityV2Input {
   if (!o) {
@@ -69,15 +86,28 @@ function toValues(o: Opportunity | null | undefined, defaults?: Partial<Opportun
   };
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <fieldset className="space-y-3">
-      <legend className="mb-1 text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">{title}</legend>
-      {children}
-    </fieldset>
+/** Une fiche existante ouvre ses détails s'ils sont renseignés. */
+function hasDetails(o: Opportunity | null | undefined): boolean {
+  if (!o) return false;
+  return !!(
+    o.contact_id ||
+    o.description ||
+    (o.required_skills ?? []).length ||
+    o.start_date ||
+    o.duration_months ||
+    o.location ||
+    o.remote_policy ||
+    o.daily_rate_eur ||
+    o.budget_eur ||
+    o.notes
   );
 }
 
+/**
+ * Création / modification d'une opportunité. L'essentiel d'abord (intitulé,
+ * client, étape, montant, prochaine relance) ; le reste sous « Plus de
+ * détails », replié à la création.
+ */
 export function OpportunityDrawer({ open, onOpenChange, organizationId, opportunity, defaults, onSaved }: Props) {
   const { locale } = useLocale();
   const lang = locale === 'en' ? 'en' : 'fr';
@@ -86,6 +116,7 @@ export function OpportunityDrawer({ open, onOpenChange, organizationId, opportun
   const { options: companyOptions } = useCompaniesLite();
   const { optionsFor: contactOptionsFor } = useContactsLite();
   const { options: memberOptions } = useTeamMembers();
+  const [more, setMore] = useState(false);
 
   const form = useForm<OpportunityV2Input>({
     resolver: zodResolver(opportunityV2Schema),
@@ -94,7 +125,9 @@ export function OpportunityDrawer({ open, onOpenChange, organizationId, opportun
   const { register, control, handleSubmit, reset, watch, setValue, formState } = form;
 
   useEffect(() => {
-    if (open) reset(toValues(opportunity, defaults));
+    if (!open) return;
+    reset(toValues(opportunity, defaults));
+    setMore(hasDetails(opportunity));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, opportunity]);
 
@@ -124,88 +157,176 @@ export function OpportunityDrawer({ open, onOpenChange, organizationId, opportun
     onOpenChange(false);
   }
 
+  // Une erreur dans un champ replié : on déplie pour la montrer.
+  function onInvalid(errors: Partial<Record<keyof OpportunityV2Input, unknown>>) {
+    if (DETAIL_FIELDS.some((f) => f in errors)) setMore(true);
+  }
+
   const err = (name: keyof OpportunityV2Input) => formState.errors[name]?.message as string | undefined;
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent side="right" className="sm:max-w-xl" onInteractOutside={(e) => formState.isDirty && e.preventDefault()}>
-        <form onSubmit={handleSubmit(onSubmit)} className="flex h-full flex-col" noValidate>
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="flex h-full flex-col" noValidate>
           <DrawerHeader>
             <DrawerTitle>{isEdit ? (fr ? 'Modifier l’opportunité' : 'Edit opportunity') : fr ? 'Nouvelle opportunité' : 'New opportunity'}</DrawerTitle>
             <DrawerDescription>
-              {fr ? 'Les champs marqués * sont obligatoires.' : 'Fields marked * are required.'}
+              {fr ? 'Seul l’intitulé est obligatoire. Vous compléterez le reste plus tard.' : 'Only the title is required. You can fill in the rest later.'}
             </DrawerDescription>
           </DrawerHeader>
 
-          <DrawerBody className="space-y-6">
-            <Section title={fr ? 'Essentiel' : 'Essentials'}>
-              <Field label={fr ? 'Intitulé' : 'Title'} htmlFor="opp-title" required error={err('title')}>
-                <Input
-                  id="opp-title"
-                  autoFocus
-                  {...register('title')}
-                  aria-invalid={!!err('title')}
-                  placeholder={fr ? 'ex. Data engineer senior — plateforme data' : 'e.g. Senior data engineer — data platform'}
-                />
-              </Field>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field label={fr ? 'Client' : 'Client'} htmlFor="opp-company">
-                  <Controller
-                    control={control}
-                    name="company_id"
-                    render={({ field }) => (
-                      <Combobox
-                        id="opp-company"
-                        options={companyOptions}
-                        value={field.value ?? ''}
-                        onChange={(v) => {
-                          field.onChange(v || null);
-                          setValue('contact_id', null);
-                        }}
-                        placeholder={fr ? 'Choisir un client' : 'Choose a client'}
-                        clearable
-                      />
-                    )}
-                  />
-                </Field>
-                <Field label={fr ? 'Contact principal' : 'Main contact'} htmlFor="opp-contact">
-                  <Controller
-                    control={control}
-                    name="contact_id"
-                    render={({ field }) => (
-                      <Combobox
-                        id="opp-contact"
-                        options={contactOptionsFor(companyId)}
-                        value={field.value ?? ''}
-                        onChange={(v) => field.onChange(v || null)}
-                        placeholder={companyId ? (fr ? 'Choisir un contact' : 'Choose a contact') : fr ? 'Choisissez d’abord un client' : 'Choose a client first'}
-                        disabled={!companyId}
-                        clearable
-                      />
-                    )}
-                  />
-                </Field>
-              </div>
-              <Field label="Business Manager" htmlFor="opp-owner">
+          <DrawerBody className="space-y-4">
+            <Field label={fr ? 'Intitulé' : 'Title'} htmlFor="opp-title" required error={err('title')}>
+              <Input
+                id="opp-title"
+                autoFocus
+                {...register('title')}
+                aria-invalid={!!err('title')}
+                placeholder={fr ? 'ex. Data engineer senior — plateforme data' : 'e.g. Senior data engineer — data platform'}
+              />
+            </Field>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label={fr ? 'Client' : 'Client'} htmlFor="opp-company">
                 <Controller
                   control={control}
-                  name="owner_id"
+                  name="company_id"
                   render={({ field }) => (
                     <Combobox
-                      id="opp-owner"
-                      options={memberOptions}
+                      id="opp-company"
+                      options={companyOptions}
                       value={field.value ?? ''}
-                      onChange={(v) => field.onChange(v || null)}
-                      placeholder={fr ? 'Responsable de l’opportunité' : 'Opportunity owner'}
+                      onChange={(v) => {
+                        field.onChange(v || null);
+                        setValue('contact_id', null);
+                      }}
+                      placeholder={fr ? 'Choisir un client' : 'Choose a client'}
                       clearable
                     />
                   )}
                 />
               </Field>
-            </Section>
+              <Field label={fr ? 'Étape' : 'Stage'} htmlFor="opp-stage">
+                <Select
+                  id="opp-stage"
+                  value={status === 'on_hold' ? 'on_hold' : stage}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === 'on_hold') {
+                      setValue('status', 'on_hold', { shouldDirty: true });
+                      return;
+                    }
+                    const s = STAGE_BY_ID.get(v as PipelineStageId)!;
+                    setValue('status', s.canonical, { shouldDirty: true });
+                    if (v === 'won') setValue('probability', 100, { shouldDirty: true });
+                    else if (v === 'lost') setValue('probability', 0, { shouldDirty: true });
+                    else if (!probability) setValue('probability', s.defaultProbability, { shouldDirty: true });
+                  }}
+                >
+                  {PIPELINE_STAGES.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.label[lang]} — {s.hint[lang].toLowerCase()}
+                    </option>
+                  ))}
+                  <option value="on_hold">{fr ? 'En veille' : 'On hold'}</option>
+                </Select>
+              </Field>
+            </div>
 
-            <Section title={fr ? 'Besoin' : 'Requirement'}>
-              <Field label="Description" htmlFor="opp-desc">
+            <Field
+              label={fr ? 'Montant estimé (€ HT)' : 'Estimated amount (€)'}
+              htmlFor="opp-amount"
+              hint={
+                estimated && !amount
+                  ? fr
+                    ? `Estimation TJM × durée × 20 j : ${formatEur(estimated, lang)}`
+                    : `Estimate day rate × duration × 20 d: ${formatEur(estimated, lang)}`
+                  : undefined
+              }
+            >
+              <div className="flex gap-2">
+                <Input id="opp-amount" type="number" min={0} inputMode="decimal" {...register('expected_revenue')} />
+                {estimated && !amount && (
+                  <Button type="button" variant="secondary" onClick={() => setValue('expected_revenue', estimated, { shouldDirty: true })}>
+                    {fr ? 'Utiliser' : 'Use'}
+                  </Button>
+                )}
+              </div>
+            </Field>
+
+            {status === 'lost' && (
+              <Field label={fr ? 'Raison de la perte' : 'Loss reason'} htmlFor="opp-lost">
+                <Input id="opp-lost" {...register('lost_reason')} />
+              </Field>
+            )}
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label={fr ? 'Prochaine action' : 'Next action'} htmlFor="opp-next">
+                <Input id="opp-next" {...register('next_action')} placeholder={fr ? 'ex. Relancer le client' : 'e.g. Follow up with the client'} />
+              </Field>
+              <Field label={fr ? 'À faire le' : 'Due on'} htmlFor="opp-next-date">
+                <Controller
+                  control={control}
+                  name="next_follow_up"
+                  render={({ field }) => <DatePicker id="opp-next-date" value={field.value ?? null} onChange={field.onChange} />}
+                />
+              </Field>
+            </div>
+
+            <Field label={fr ? 'Responsable' : 'Owner'} htmlFor="opp-owner">
+              <Controller
+                control={control}
+                name="owner_id"
+                render={({ field }) => (
+                  <Combobox
+                    id="opp-owner"
+                    options={memberOptions}
+                    value={field.value ?? ''}
+                    onChange={(v) => field.onChange(v || null)}
+                    placeholder={fr ? 'Qui suit cette opportunité ?' : 'Who follows this opportunity?'}
+                    clearable
+                  />
+                )}
+              />
+            </Field>
+
+            <div className="border-t border-border pt-3">
+              <button
+                type="button"
+                onClick={() => setMore((v) => !v)}
+                aria-expanded={more}
+                aria-controls="opp-details"
+                className="-mx-1 inline-flex items-center gap-1.5 rounded-md px-1 py-1 text-[13px] font-medium text-foreground hover:text-primary-deep focus-visible:outline-none focus-visible:shadow-focus"
+              >
+                <ChevronDown className={cn('h-4 w-4 transition-transform duration-200', more && 'rotate-180')} />
+                {fr ? 'Plus de détails' : 'More details'}
+                {!more && (
+                  <span className="font-normal text-muted-foreground">
+                    {fr ? '· besoin, compétences, TJM, contact, notes' : '· requirement, skills, day rate, contact, notes'}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <div id="opp-details" hidden={!more} className="space-y-4">
+              <Field label={fr ? 'Contact chez le client' : 'Client contact'} htmlFor="opp-contact">
+                <Controller
+                  control={control}
+                  name="contact_id"
+                  render={({ field }) => (
+                    <Combobox
+                      id="opp-contact"
+                      options={contactOptionsFor(companyId)}
+                      value={field.value ?? ''}
+                      onChange={(v) => field.onChange(v || null)}
+                      placeholder={companyId ? (fr ? 'Choisir un contact' : 'Choose a contact') : fr ? 'Choisissez d’abord un client' : 'Choose a client first'}
+                      disabled={!companyId}
+                      clearable
+                    />
+                  )}
+                />
+              </Field>
+              <Field label={fr ? 'Description du besoin' : 'Requirement'} htmlFor="opp-desc">
                 <Textarea id="opp-desc" rows={4} maxLength={8000} {...register('description')} placeholder={fr ? 'Contexte, enjeux, livrables…' : 'Context, goals, deliverables…'} />
               </Field>
               <Field
@@ -216,9 +337,7 @@ export function OpportunityDrawer({ open, onOpenChange, organizationId, opportun
                 <Controller
                   control={control}
                   name="required_skills"
-                  render={({ field }) => (
-                    <TagInput id="opp-skills" value={field.value ?? []} onChange={field.onChange} placeholder="React, AWS, Kafka…" />
-                  )}
+                  render={({ field }) => <TagInput id="opp-skills" value={field.value ?? []} onChange={field.onChange} placeholder="React, AWS, Kafka…" />}
                 />
               </Field>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -245,39 +364,6 @@ export function OpportunityDrawer({ open, onOpenChange, organizationId, opportun
                     ))}
                   </Select>
                 </Field>
-              </div>
-            </Section>
-
-            <Section title={fr ? 'Commercial' : 'Commercial'}>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field label={fr ? 'Étape' : 'Stage'} htmlFor="opp-stage">
-                  <Select
-                    id="opp-stage"
-                    value={status === 'on_hold' ? 'on_hold' : stage}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (v === 'on_hold') {
-                        setValue('status', 'on_hold', { shouldDirty: true });
-                        return;
-                      }
-                      const s = STAGE_BY_ID.get(v as PipelineStageId)!;
-                      setValue('status', s.canonical, { shouldDirty: true });
-                      if (v === 'won') setValue('probability', 100, { shouldDirty: true });
-                      else if (v === 'lost') setValue('probability', 0, { shouldDirty: true });
-                      else if (!probability) setValue('probability', s.defaultProbability, { shouldDirty: true });
-                    }}
-                  >
-                    {PIPELINE_STAGES.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.label[lang]}
-                      </option>
-                    ))}
-                    <option value="on_hold">{fr ? 'En veille' : 'On hold'}</option>
-                  </Select>
-                </Field>
-                <Field label={fr ? 'Probabilité (%)' : 'Probability (%)'} htmlFor="opp-prob" error={err('probability')}>
-                  <Input id="opp-prob" type="number" min={0} max={100} inputMode="numeric" {...register('probability')} />
-                </Field>
                 <Field label={fr ? 'TJM cible (€ HT)' : 'Target day rate (€)'} htmlFor="opp-rate">
                   <Input id="opp-rate" type="number" min={0} inputMode="decimal" {...register('daily_rate_eur')} />
                 </Field>
@@ -286,49 +372,17 @@ export function OpportunityDrawer({ open, onOpenChange, organizationId, opportun
                 </Field>
               </div>
               <Field
-                label={fr ? 'Montant potentiel (€ HT)' : 'Potential amount (€)'}
-                htmlFor="opp-amount"
-                hint={
-                  estimated && !amount
-                    ? fr
-                      ? `Estimation TJM × durée × 20 j : ${formatEur(estimated, lang)}`
-                      : `Estimate day rate × duration × 20 d: ${formatEur(estimated, lang)}`
-                    : undefined
-                }
+                label={fr ? 'Chances de gagner (%)' : 'Chance of winning (%)'}
+                htmlFor="opp-prob"
+                error={err('probability')}
+                hint={fr ? 'Proposée selon l’étape, ajustable.' : 'Suggested from the stage, adjustable.'}
               >
-                <div className="flex gap-2">
-                  <Input id="opp-amount" type="number" min={0} inputMode="decimal" {...register('expected_revenue')} />
-                  {estimated && !amount && (
-                    <Button type="button" variant="secondary" onClick={() => setValue('expected_revenue', estimated, { shouldDirty: true })}>
-                      {fr ? 'Utiliser' : 'Use'}
-                    </Button>
-                  )}
-                </div>
+                <Input id="opp-prob" type="number" min={0} max={100} inputMode="numeric" {...register('probability')} className="sm:w-32" />
               </Field>
-              {status === 'lost' && (
-                <Field label={fr ? 'Raison de la perte' : 'Loss reason'} htmlFor="opp-lost">
-                  <Input id="opp-lost" {...register('lost_reason')} />
-                </Field>
-              )}
-            </Section>
-
-            <Section title={fr ? 'Suivi' : 'Follow-up'}>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field label={fr ? 'Prochaine action' : 'Next action'} htmlFor="opp-next">
-                  <Input id="opp-next" {...register('next_action')} placeholder={fr ? 'ex. Relancer après l’entretien' : 'e.g. Follow up after interview'} />
-                </Field>
-                <Field label={fr ? 'Date de la prochaine action' : 'Next action date'} htmlFor="opp-next-date">
-                  <Controller
-                    control={control}
-                    name="next_follow_up"
-                    render={({ field }) => <DatePicker id="opp-next-date" value={field.value ?? null} onChange={field.onChange} />}
-                  />
-                </Field>
-              </div>
               <Field label={fr ? 'Notes' : 'Notes'} htmlFor="opp-notes">
                 <Textarea id="opp-notes" rows={3} maxLength={5000} {...register('notes')} />
               </Field>
-            </Section>
+            </div>
           </DrawerBody>
 
           <DrawerFooter>

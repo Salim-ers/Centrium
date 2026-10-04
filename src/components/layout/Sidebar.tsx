@@ -10,7 +10,7 @@ import { useOrganizationSafe } from '@/lib/auth/context';
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { NAV_SECTIONS, isNavItemActive } from '@/lib/navigation';
+import { NAV_SECTIONS, canSeeNavItem, isNavItemActive } from '@/lib/navigation';
 import { ROLE_LABEL } from '@/lib/auth/permissions';
 import { Tooltip } from '@/components/ui/tooltip';
 import {
@@ -18,7 +18,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SetupProgress } from '@/components/onboarding/SetupProgress';
@@ -103,7 +102,7 @@ export function SidebarBody({
 
   const sections = NAV_SECTIONS.map((s) => ({
     ...s,
-    items: s.items.filter((i) => i.id !== 'settings' && can(i.permission)),
+    items: s.items.filter((i) => i.id !== 'settings' && canSeeNavItem(i, can)),
   })).filter((s) => s.items.length > 0);
   const settingsActive = ['/settings', '/billing', '/onboarding/setup'].some((p) => pathname === p || pathname.startsWith(p + '/'));
 

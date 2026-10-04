@@ -26,17 +26,22 @@ export type PipelineStage = {
   /** Probabilité proposée par défaut à l'entrée dans l'étape. */
   defaultProbability: number;
   tone: StatusTone;
+  /** Ce que veut dire l'étape, en quelques mots (en tête de colonne). */
+  hint: { fr: string; en: string };
 };
 
 export const PIPELINE_STAGES: PipelineStage[] = [
-  { id: 'prospect', label: { fr: 'Prospect', en: 'Prospect' }, statuses: ['new', 'contacted'], canonical: 'new', defaultProbability: 10, tone: 'neutral' },
-  { id: 'qualified', label: { fr: 'Qualifié', en: 'Qualified' }, statuses: ['discussion'], canonical: 'discussion', defaultProbability: 25, tone: 'info' },
-  { id: 'meeting', label: { fr: 'Rendez-vous', en: 'Meeting' }, statuses: ['client_interview'], canonical: 'client_interview', defaultProbability: 40, tone: 'info' },
-  { id: 'proposal', label: { fr: 'Proposition', en: 'Proposal' }, statuses: ['cv_sent'], canonical: 'cv_sent', defaultProbability: 55, tone: 'brand' },
-  { id: 'negotiation', label: { fr: 'Négociation', en: 'Negotiation' }, statuses: ['negotiation'], canonical: 'negotiation', defaultProbability: 75, tone: 'warning' },
-  { id: 'won', label: { fr: 'Gagné', en: 'Won' }, statuses: ['won'], canonical: 'won', defaultProbability: 100, tone: 'success' },
-  { id: 'lost', label: { fr: 'Perdu', en: 'Lost' }, statuses: ['lost'], canonical: 'lost', defaultProbability: 0, tone: 'danger' },
+  { id: 'prospect', label: { fr: 'Prospect', en: 'Prospect' }, statuses: ['new', 'contacted'], canonical: 'new', defaultProbability: 10, tone: 'neutral', hint: { fr: 'Premier contact', en: 'First contact' } },
+  { id: 'qualified', label: { fr: 'Qualifié', en: 'Qualified' }, statuses: ['discussion'], canonical: 'discussion', defaultProbability: 25, tone: 'info', hint: { fr: 'Besoin confirmé', en: 'Need confirmed' } },
+  { id: 'meeting', label: { fr: 'Rendez-vous', en: 'Meeting' }, statuses: ['client_interview'], canonical: 'client_interview', defaultProbability: 40, tone: 'info', hint: { fr: 'Entretien client', en: 'Client interview' } },
+  { id: 'proposal', label: { fr: 'Proposition', en: 'Proposal' }, statuses: ['cv_sent'], canonical: 'cv_sent', defaultProbability: 55, tone: 'brand', hint: { fr: 'Profils envoyés', en: 'Profiles sent' } },
+  { id: 'negotiation', label: { fr: 'Négociation', en: 'Negotiation' }, statuses: ['negotiation'], canonical: 'negotiation', defaultProbability: 75, tone: 'warning', hint: { fr: 'Conditions en discussion', en: 'Terms under discussion' } },
+  { id: 'won', label: { fr: 'Gagné', en: 'Won' }, statuses: ['won'], canonical: 'won', defaultProbability: 100, tone: 'success', hint: { fr: 'Affaire signée', en: 'Deal signed' } },
+  { id: 'lost', label: { fr: 'Perdu', en: 'Lost' }, statuses: ['lost'], canonical: 'lost', defaultProbability: 0, tone: 'danger', hint: { fr: 'Affaire perdue', en: 'Deal lost' } },
 ];
+
+/** Étapes de travail, affichées en colonnes. Gagné et perdu sont des issues. */
+export const OPEN_STAGES: PipelineStage[] = PIPELINE_STAGES.filter((s) => s.id !== 'won' && s.id !== 'lost');
 
 export const STAGE_BY_ID = new Map(PIPELINE_STAGES.map((s) => [s.id, s]));
 
@@ -56,6 +61,12 @@ export function stageTone(status: OpportunityStatus): StatusTone {
   if (status === 'on_hold') return 'neutral';
   const id = stageOf(status);
   return id ? STAGE_BY_ID.get(id)!.tone : 'neutral';
+}
+
+/** Étape suivante du parcours commercial (null après la négociation). */
+export function nextStage(id: PipelineStageId | null): PipelineStage | null {
+  const i = OPEN_STAGES.findIndex((s) => s.id === id);
+  return i >= 0 && i < OPEN_STAGES.length - 1 ? (OPEN_STAGES[i + 1] ?? null) : null;
 }
 
 /**

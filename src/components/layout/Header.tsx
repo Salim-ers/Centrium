@@ -33,7 +33,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -65,7 +64,7 @@ const CREATE_ITEMS: Array<{
   permission: Permission;
 }> = [
   { label: { fr: 'Client', en: 'Client' }, href: '/clients?new=1', icon: Building2, permission: 'clients.edit' },
-  { label: { fr: 'Opportunité', en: 'Opportunity' }, href: '/opportunities?new=1', icon: Target, permission: 'opportunities.edit' },
+  { label: { fr: 'Opportunité', en: 'Opportunity' }, href: '/crm?new=1', icon: Target, permission: 'opportunities.edit' },
   { label: { fr: 'Consultant', en: 'Consultant' }, href: '/consultants?new=1', icon: Users, permission: 'consultants.edit' },
   { label: { fr: 'Mission', en: 'Mission' }, href: '/missions?new=1', icon: Briefcase, permission: 'missions.edit' },
   { label: { fr: 'Devis', en: 'Quote' }, href: '/documents/quotes/new', icon: Receipt, permission: 'documents.edit' },

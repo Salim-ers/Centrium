@@ -29,11 +29,6 @@ export function AuthShell({ children, title, subtitle, footer }: Props) {
   return (
     <div className="grid min-h-screen bg-ivory text-ink lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
       <aside className="relative hidden flex-col justify-between overflow-hidden bg-terra-deep p-12 text-ivory lg:flex">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{ backgroundImage: 'linear-gradient(rgba(251,248,245,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(251,248,245,.06) 1px, transparent 1px)', backgroundSize: '96px 96px' }}
-        />
         <Link href="/" className="relative flex items-center gap-2.5" aria-label="Centrium — accueil">
           <CentriumLogo className="h-9 w-9" color="currentColor" />
           <CentriumType className="h-[14px]" />

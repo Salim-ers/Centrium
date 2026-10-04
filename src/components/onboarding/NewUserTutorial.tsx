@@ -348,8 +348,8 @@ const STEPS: Step[] = [
       en: 'Drag & drop Kanban + live team presence',
     },
     body: {
-      fr: 'Glisse tes opportunités à travers les colonnes (Nouveau → Contacté → CV envoyé → Entretien → Négo → Gagné). Les déplacements sont visibles par toute ton équipe en temps réel.',
-      en: 'Drag opportunities through stages (New → Contacted → CV sent → Interview → Negotiation → Won). Moves are visible to your whole team in real time.',
+      fr: 'Glisse tes opportunités de colonne en colonne (Prospect → Qualifié → Rendez-vous → Proposition → Négociation), puis sur « Gagnées » ou « Perdues » quand l’affaire se conclut. Les déplacements sont visibles par toute ton équipe en temps réel.',
+      en: 'Drag opportunities from column to column (Prospect → Qualified → Meeting → Proposal → Negotiation), then onto “Won” or “Lost” when the deal closes. Moves are visible to your whole team in real time.',
     },
     bullets: [
       {

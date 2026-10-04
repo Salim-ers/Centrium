@@ -47,18 +47,10 @@ const COLUMNS = [
   },
 ];
 
-/** Pied de page : noir chaud, trame terracotta, CENTRIUM monumental. */
+/** Pied de page : noir chaud, CENTRIUM monumental. */
 export function SiteFooter() {
   return (
     <footer data-nav="light" className="relative overflow-hidden bg-ink text-ivory">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          backgroundImage: 'linear-gradient(rgba(228,160,140,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(228,160,140,.07) 1px, transparent 1px)',
-          backgroundSize: '96px 96px',
-        }}
-      />
       <div className="relative mx-auto w-full max-w-[1680px] px-5 sm:px-8 lg:px-12 2xl:px-16">
         <div className="flex flex-col gap-10 border-b border-ivory/10 py-20 md:flex-row md:items-end md:justify-between md:py-28">
           <p className="text-[clamp(2.4rem,6vw,6.5rem)] font-extrabold uppercase leading-[0.92] tracking-[-0.05em]">

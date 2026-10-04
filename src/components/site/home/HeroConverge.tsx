@@ -76,7 +76,7 @@ export function HeroConverge() {
 
       {/* Courbes de convergence (écrans larges) */}
       <Wide className="relative hidden lg:block">
-        <svg key={reduce ? 'still' : 'motion'} viewBox="0 0 600 120" preserveAspectRatio="none" className="h-[16vh] max-h-[180px] w-full" aria-hidden>
+        <svg key={reduce ? 'curves-still' : 'curves-motion'} viewBox="0 0 600 120" preserveAspectRatio="none" className="h-[16vh] max-h-[180px] w-full" aria-hidden>
           {NODES.map((_, i) => {
             const x = 50 + i * 100;
             return (
@@ -93,7 +93,7 @@ export function HeroConverge() {
           })}
         </svg>
         {/* Point de convergence (HTML : le SVG est étiré, un cercle s'y déformerait). */}
-        <motion.span key={reduce ? 'still' : 'motion'} aria-hidden className="absolute bottom-0 left-1/2 h-2.5 w-2.5 -translate-x-1/2 translate-y-1/2 rounded-full bg-terra ring-4 ring-ivory" style={reduce ? undefined : { opacity: dot }} />
+        <motion.span key={reduce ? 'dot-still' : 'dot-motion'} aria-hidden className="absolute bottom-0 left-1/2 h-2.5 w-2.5 -translate-x-1/2 translate-y-1/2 rounded-full bg-terra ring-4 ring-ivory" style={reduce ? undefined : { opacity: dot }} />
       </Wide>
 
       <Wide className="relative mt-8 lg:mt-0">

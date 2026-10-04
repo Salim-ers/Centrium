@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { usePermissions } from '@/hooks/usePermissions';
-import { NAV_SECTIONS } from '@/lib/navigation';
+import { NAV_SECTIONS, canSeeNavItem } from '@/lib/navigation';
 import { globalSearch, type SearchKind, type SearchResult } from '@/lib/search/global-search';
 import type { Permission } from '@/lib/auth/permissions';
 import { AssistantAnswer } from '@/components/assistant/AssistantAnswer';
@@ -75,7 +75,7 @@ type QuickAction = {
 
 const QUICK_ACTIONS: QuickAction[] = [
   { id: 'new-client', label: { fr: 'Créer un client', en: 'Create a client' }, href: '/clients?new=1', permission: 'clients.edit', keywords: 'nouveau société compte' },
-  { id: 'new-opportunity', label: { fr: 'Créer une opportunité', en: 'Create an opportunity' }, href: '/opportunities?new=1', permission: 'opportunities.edit', keywords: 'nouveau besoin affaire deal' },
+  { id: 'new-opportunity', label: { fr: 'Créer une opportunité', en: 'Create an opportunity' }, href: '/crm?new=1', permission: 'opportunities.edit', keywords: 'nouveau besoin affaire deal' },
   { id: 'new-consultant', label: { fr: 'Ajouter un consultant', en: 'Add a consultant' }, href: '/consultants?new=1', permission: 'consultants.edit', keywords: 'nouveau talent cv' },
   { id: 'new-mission', label: { fr: 'Créer une mission', en: 'Create a mission' }, href: '/missions?new=1', permission: 'missions.edit', keywords: 'nouvelle affectation' },
   { id: 'new-quote', label: { fr: 'Créer un devis', en: 'Create a quote' }, href: '/documents/quotes/new', permission: 'documents.edit', keywords: 'nouveau proposition' },
@@ -211,7 +211,7 @@ export function CommandPalette() {
 
     for (const section of NAV_SECTIONS) {
       for (const item of section.items) {
-        if (!can(item.permission)) continue;
+        if (!canSeeNavItem(item, can)) continue;
         const hay = normalize(`${item.label[lang]} ${section.label[lang]} ${(item.keywords ?? []).join(' ')}`);
         if (q && !hay.includes(q)) continue;
         out.push({

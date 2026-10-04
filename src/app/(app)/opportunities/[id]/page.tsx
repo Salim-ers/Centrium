@@ -105,7 +105,7 @@ export default function OpportunityDetailPage() {
       return;
     }
     toast.success(fr ? 'Opportunité supprimée' : 'Opportunity deleted');
-    router.push('/opportunities');
+    router.push('/crm');
   }
 
   if (loading && !data) {
@@ -125,7 +125,7 @@ export default function OpportunityDetailPage() {
           description={fr ? 'Elle a peut-être été supprimée, ou vous n’y avez pas accès.' : 'It may have been deleted, or you do not have access.'}
           action={
             <Button asChild variant="secondary">
-              <Link href="/opportunities">{fr ? 'Retour aux opportunités' : 'Back to opportunities'}</Link>
+              <Link href="/crm">{fr ? 'Retour au CRM' : 'Back to the CRM'}</Link>
             </Button>
           }
         />
@@ -143,8 +143,8 @@ export default function OpportunityDetailPage() {
   return (
     <AppShell>
       <PageHeader
-        backHref="/opportunities"
-        backLabel={fr ? 'Opportunités' : 'Opportunities'}
+        backHref="/crm"
+        backLabel="CRM"
         title={opp.title}
         description={
           <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">

@@ -127,14 +127,18 @@ const VARIANTS: Record<BrandToastVariant, ToastConfig> = {
   },
 };
 
+/** Bouton d'action dans un toast (ex. « Annuler », « Créer la mission »). */
+export type BrandToastAction = { label: string; onClick: () => void };
+
 type Props = {
   variant: BrandToastVariant;
   title: React.ReactNode;
   description?: React.ReactNode;
   toastId: string | number;
+  actions?: BrandToastAction[];
 };
 
-function BrandToastInner({ variant, title, description, toastId }: Props) {
+function BrandToastInner({ variant, title, description, toastId, actions }: Props) {
   const cfg = VARIANTS[variant];
   const Icon = cfg.Icon;
 
@@ -191,6 +195,28 @@ function BrandToastInner({ variant, title, description, toastId }: Props) {
               {description}
             </p>
           )}
+          {actions && actions.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {actions.map((a, i) => (
+                <button
+                  key={a.label}
+                  type="button"
+                  onClick={() => {
+                    a.onClick();
+                    toast.dismiss(toastId);
+                  }}
+                  className={cn(
+                    'inline-flex h-7 items-center rounded-md px-2.5 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:shadow-focus',
+                    i === 0
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                      : 'border border-border bg-card text-foreground hover:bg-foreground/[0.04]',
+                  )}
+                >
+                  {a.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <button
@@ -214,6 +240,8 @@ function BrandToastInner({ variant, title, description, toastId }: Props) {
 export type BrandToastOptions = {
   description?: React.ReactNode;
   duration?: number;
+  /** Boutons d'action ; le premier est mis en avant. Durée allongée. */
+  actions?: BrandToastAction[];
 };
 
 /** Durée par défaut selon le variant — courts pour les discrets, plus
@@ -235,8 +263,9 @@ export function showBrandToast(
   title: React.ReactNode,
   opts: BrandToastOptions = {},
 ) {
-  const { description, duration } = opts;
-  const effectiveDuration = duration ?? DEFAULT_DURATION[variant];
+  const { description, duration, actions } = opts;
+  // Laisser le temps de cliquer sur une action.
+  const effectiveDuration = duration ?? (actions?.length ? Math.max(8000, DEFAULT_DURATION[variant]) : DEFAULT_DURATION[variant]);
   return toast.custom(
     (id) => (
       <BrandToastInner
@@ -244,6 +273,7 @@ export function showBrandToast(
         title={title}
         description={description}
         toastId={id}
+        actions={actions}
       />
     ),
     { duration: effectiveDuration },

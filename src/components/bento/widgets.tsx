@@ -157,6 +157,7 @@ export function ActivityTile({
   className,
   height = 230,
   summary,
+  fill = false,
 }: {
   title: string;
   series: SeriesPoint[];
@@ -167,6 +168,8 @@ export function ActivityTile({
   className?: string;
   height?: number;
   summary?: React.ReactNode;
+  /** Le graphique occupe toute la hauteur libre de la tuile. */
+  fill?: boolean;
 }) {
   const [range, setRange] = useState<3 | 6 | 12>(12);
   const data = useMemo(() => series.slice(-range - Math.max(0, series.filter((s) => s.revenue == null).length)), [series, range]);
@@ -199,7 +202,7 @@ export function ActivityTile({
         <Legend color={dark ? '#FFFFFF' : '#191817'} label={labels.margin} />
         <Legend color={dark ? 'rgba(255,255,255,.55)' : '#C65F46'} label={labels.forecast} dashed />
       </div>
-      <ActivityChart data={data} format={format} labels={labels} height={height} tone={dark ? 'dark' : 'light'} />
+      <ActivityChart data={data} format={format} labels={labels} height={height} tone={dark ? 'dark' : 'light'} fill={fill} />
     </Tile>
   );
 }

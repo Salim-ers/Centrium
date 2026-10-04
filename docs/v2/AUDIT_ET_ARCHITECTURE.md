@@ -105,10 +105,10 @@ Rôles (`user_role`) : `admin`, `business_manager`, `recruiter`, `finance`, `vie
 | Section | Entrée | Route | Remplace |
 |---|---|---|---|
 | Pilotage | Dashboard | `/dashboard` | — |
-| Activité commerciale | CRM | `/crm` | `/crm`, `/contacts`, `/todos` (tâches) |
+| Activité commerciale | CRM | `/crm` (tableau), `/opportunities` (liste), `/opportunities/[id]`, `/contacts`, `/crm/tasks` | `/todos` (tâches), `/offers`, `/responses` |
 | | Clients | `/clients`, `/clients/[id]` | `/companies` |
-| | Opportunités | `/opportunities`, `/opportunities/[id]` | `/offers`, `/responses` |
-| Ressources | Consultants | `/consultants`, `/consultants/[id]` | `/prospects`, `/cv-pushed`, `/cv-optimizer` |
+| Ressources | Consultants | `/consultants`, `/consultants/[id]` | `/prospects`, `/cv-pushed` |
+| | CV Optimizer | `/cv-optimizer` (aussi depuis la fiche : `/consultants/[id]/dossier`) | — |
 | | Staffing | `/staffing` | `/matching`, `/en-mission` |
 | | Missions | `/missions`, `/missions/[id]` | — |
 | Opérations | CRA | `/timesheets` | — |
@@ -138,6 +138,17 @@ réécriture de données, triggers et RPC inchangés) :
 | Perdu | `lost` | `lost` |
 
 `on_hold` reste disponible comme filtre « En veille ».
+
+**Simplification du CRM (4 octobre 2026).** Une seule entrée « CRM » dans la
+navigation (visible avec `crm.view` ou `opportunities.view`) : onglets
+Opportunités, Contacts, Tâches, et bascule Tableau / Liste. Le tableau n'affiche
+que les cinq étapes de travail, chacune avec une phrase d'aide (« Premier
+contact », « Besoin confirmé »…) et un bouton « Ajouter ». Gagnées, perdues et
+en veille sortent du tableau : ce sont des zones de dépôt au-dessus des
+colonnes, qui ouvrent la liste filtrée, et chaque issue peut être annulée.
+Le formulaire d'opportunité ne montre d'abord que l'essentiel (intitulé, client,
+étape, montant, prochaine relance, responsable) ; le reste est replié sous
+« Plus de détails ».
 
 ### 2.4 Rôles et permissions
 

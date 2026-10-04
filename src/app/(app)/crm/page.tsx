@@ -1,18 +1,18 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Kanban, Plus, Search } from 'lucide-react';
+import { CheckCircle2, Kanban, PauseCircle, Plus, XCircle, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader } from '@/components/app';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { EmptyState } from '@/components/app/EmptyState';
+import { showBrandToast } from '@/components/ui/BrandToast';
 import { CrmTabs } from '@/components/crm/CrmTabs';
+import { CrmToolbar } from '@/components/crm/CrmToolbar';
 import { OpportunityCard } from '@/components/crm/OpportunityCard';
 import { OpportunityDrawer } from '@/components/crm/OpportunityDrawer';
 import { useOrganization } from '@/lib/auth/context';
@@ -24,16 +24,50 @@ import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { createClient } from '@/lib/supabase/client';
 import { crmService } from '@/lib/services/crm.service';
 import { broadcastOrgActivity } from '@/lib/realtime/org-activity';
-import { PIPELINE_STAGES, STAGE_BY_ID, probabilityForMove, stageOf, type PipelineStageId } from '@/lib/crm/pipeline';
-import { isOpenOpportunity, opportunityAmount, weightedPipeline } from '@/lib/pilotage/metrics';
+import { OPEN_STAGES, STAGE_BY_ID, probabilityForMove, stageOf, type PipelineStageId } from '@/lib/crm/pipeline';
+import { pipelineSentence, summarizePipeline } from '@/lib/crm/summary';
+import { opportunityAmount } from '@/lib/pilotage/metrics';
 import { formatEurCompact } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import type { Opportunity } from '@/types';
+import type { Opportunity, OpportunityStatus } from '@/types';
 
 const DRAG_MIME = 'application/x-opportunity-id';
-/** Colonnes terminales : on n'affiche que les cartes récentes. */
-const CLOSED_VISIBLE_DAYS = 60;
 
+/** Colonne du tableau, ou issue (gagnée, perdue, en veille). */
+type Target = PipelineStageId | 'on_hold';
+
+const DOT: Record<string, string> = {
+  success: 'bg-success',
+  danger: 'bg-destructive',
+  warning: 'bg-warning',
+  brand: 'bg-primary',
+  info: 'bg-info',
+  neutral: 'bg-muted-foreground/60',
+};
+
+/** Issues : hors colonnes, résumées au-dessus du tableau et cibles de dépôt. */
+const OUTCOMES: Array<{
+  id: 'won' | 'lost' | 'on_hold';
+  icon: LucideIcon;
+  label: { fr: string; en: string };
+  drop: { fr: string; en: string };
+  iconClass: string;
+  overClass: string;
+}> = [
+  { id: 'won', icon: CheckCircle2, label: { fr: 'Gagnées', en: 'Won' }, drop: { fr: 'Gagnée', en: 'Won' }, iconClass: 'text-success', overClass: 'border-success bg-success-soft' },
+  { id: 'lost', icon: XCircle, label: { fr: 'Perdues', en: 'Lost' }, drop: { fr: 'Perdue', en: 'Lost' }, iconClass: 'text-destructive', overClass: 'border-destructive bg-danger-soft' },
+  { id: 'on_hold', icon: PauseCircle, label: { fr: 'En veille', en: 'On hold' }, drop: { fr: 'En veille', en: 'On hold' }, iconClass: 'text-muted-foreground', overClass: 'border-foreground/40 bg-muted' },
+];
+
+function statusFor(target: Target): OpportunityStatus {
+  return target === 'on_hold' ? 'on_hold' : STAGE_BY_ID.get(target)!.canonical;
+}
+
+/**
+ * CRM — tableau des opportunités : une colonne par étape de travail, de
+ * « Prospect » à « Négociation ». Gagnées, perdues et en veille sortent du
+ * tableau : on y dépose une carte, et le lien ouvre la liste filtrée.
+ */
 export default function CrmPipelinePage() {
   const router = useRouter();
   const params = useSearchParams();
@@ -48,12 +82,15 @@ export default function CrmPipelinePage() {
 
   const [query, setQuery] = useState('');
   const [owner, setOwner] = useState<string>('all');
-  const [showOnHold, setShowOnHold] = useState(false);
-  const [drawer, setDrawer] = useState<{ open: boolean; opp: Opportunity | null }>({ open: params.get('new') === '1', opp: null });
+  const [drawer, setDrawer] = useState<{ open: boolean; opp: Opportunity | null; stage?: PipelineStageId }>({
+    open: params.get('new') === '1',
+    opp: null,
+  });
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [overStage, setOverStage] = useState<PipelineStageId | null>(null);
+  const [over, setOver] = useState<Target | null>(null);
   const dropped = useRef(false);
   const highlightStage = params.get('stage') as PipelineStageId | null;
+  const today = new Date().toISOString().slice(0, 10);
 
   const { data, loading, reload, setData } = useCachedQuery<Opportunity[]>(
     `crm-opps:${activeOrgId ?? 'none'}`,
@@ -69,24 +106,13 @@ export default function CrmPipelinePage() {
     { enabled: !!activeOrgId },
   );
 
-  const { data: proposalCounts } = useCachedQuery<Record<string, number>>(
-    `crm-proposals:${activeOrgId ?? 'none'}`,
-    async () => {
-      const { data: rows } = await createClient().from('opportunity_consultants').select('opportunity_id').limit(10000);
-      const out: Record<string, number> = {};
-      for (const r of rows ?? []) out[r.opportunity_id as string] = (out[r.opportunity_id as string] ?? 0) + 1;
-      return out;
-    },
-    { enabled: !!activeOrgId },
-  );
-
   const { broadcastDrag, broadcastDrop, broadcastCancel, peerByOpp, peerByColumn } = useCrmRealtime({
     onDataChange: () => void reload(),
     onPeerDrop: (oppId, toStatus) =>
       setData((list) => (list ?? []).map((o) => (o.id === oppId ? { ...o, status: toStatus } : o))),
   });
 
-  const opps = data ?? [];
+  const opps = useMemo(() => data ?? [], [data]);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return opps.filter((o) => {
@@ -98,40 +124,46 @@ export default function CrmPipelinePage() {
     });
   }, [opps, query, owner, user?.id, companies]);
 
-  const cutoff = new Date(Date.now() - CLOSED_VISIBLE_DAYS * 86_400_000).toISOString();
-  const columns = PIPELINE_STAGES.map((stage) => {
-    let items = filtered.filter((o) => stageOf(o.status) === stage.id);
-    const total = items.length;
-    if (stage.id === 'won' || stage.id === 'lost') items = items.filter((o) => o.updated_at >= cutoff);
-    return {
-      stage,
-      items,
-      total,
-      amount: items.reduce((s, o) => s + opportunityAmount(o), 0),
-    };
+  const columns = OPEN_STAGES.map((stage) => {
+    const items = filtered.filter((o) => stageOf(o.status) === stage.id);
+    return { stage, items, amount: items.reduce((s, o) => s + opportunityAmount(o), 0) };
   });
-  const onHold = filtered.filter((o) => o.status === 'on_hold');
-  const open = filtered.filter(isOpenOpportunity);
+  const outcomeCount = (id: 'won' | 'lost' | 'on_hold') =>
+    filtered.filter((o) => (id === 'on_hold' ? o.status === 'on_hold' : stageOf(o.status) === id)).length;
 
-  async function move(oppId: string, to: PipelineStageId) {
-    const opp = opps.find((o) => o.id === oppId);
-    if (!opp || stageOf(opp.status) === to) return;
-    const stage = STAGE_BY_ID.get(to)!;
-    const probability = probabilityForMove(opp.probability, to);
-    const prev = data;
-    setData((list) => (list ?? []).map((o) => (o.id === oppId ? { ...o, status: stage.canonical, probability } : o)));
-    const res = await crmService.moveOpportunity(opp, stage.canonical, probability);
+  async function setStatus(opp: Opportunity, status: OpportunityStatus, probability: number) {
+    setData((list) => (list ?? []).map((o) => (o.id === opp.id ? { ...o, status, probability } : o)));
+    const res = await crmService.moveOpportunity(opp, status, probability);
     if (res.error) {
-      setData(prev ?? []);
+      setData((list) => (list ?? []).map((o) => (o.id === opp.id ? opp : o)));
       toast.error(fr ? 'Déplacement impossible' : 'Could not move the opportunity');
-      return;
+      return false;
     }
-    void broadcastOrgActivity(activeOrgId, user?.id, 'opportunity_moved', `${opp.title} → ${stage.label[lang]}`, `/opportunities/${opp.id}`);
+    return true;
+  }
+
+  async function move(oppId: string, to: Target) {
+    const opp = opps.find((o) => o.id === oppId);
+    if (!opp) return;
+    const status = statusFor(to);
+    if (to === 'on_hold' ? opp.status === 'on_hold' : stageOf(opp.status) === to) return;
+    const probability = to === 'on_hold' ? (opp.probability ?? 0) : probabilityForMove(opp.probability, to);
+    if (!(await setStatus(opp, status, probability))) return;
+
+    const label = to === 'on_hold' ? (fr ? 'En veille' : 'On hold') : STAGE_BY_ID.get(to)!.label[lang];
+    void broadcastOrgActivity(activeOrgId, user?.id, 'opportunity_moved', `${opp.title} → ${label}`, `/opportunities/${opp.id}`);
+    // Une carte qui quitte le tableau peut être remise à sa place.
+    const undo = { label: fr ? 'Annuler' : 'Undo', onClick: () => void setStatus({ ...opp, status }, opp.status, opp.probability ?? 0) };
     if (to === 'won') {
-      toast.success(fr ? 'Opportunité gagnée' : 'Opportunity won', {
-        description: fr ? 'Créez la mission associée depuis la fiche.' : 'Create the related mission from the opportunity page.',
-        action: { label: fr ? 'Ouvrir' : 'Open', onClick: () => router.push(`/opportunities/${opp.id}?tab=mission`) },
+      showBrandToast('celebration', fr ? 'Opportunité gagnée' : 'Opportunity won', {
+        description: fr ? `« ${opp.title} » — prochaine étape : la mission.` : `“${opp.title}” — next step: the mission.`,
+        actions: [
+          { label: fr ? 'Créer la mission' : 'Create the mission', onClick: () => router.push(`/opportunities/${opp.id}?tab=mission`) },
+          undo,
+        ],
       });
+    } else if (to === 'lost' || to === 'on_hold') {
+      showBrandToast('milestone', fr ? `« ${opp.title} » : ${label.toLowerCase()}` : `“${opp.title}”: ${label.toLowerCase()}`, { actions: [undo] });
     }
   }
 
@@ -146,30 +178,74 @@ export default function CrmPipelinePage() {
     toast.success(fr ? 'Opportunité supprimée' : 'Opportunity deleted');
   }
 
-  function onDrop(e: React.DragEvent, stage: PipelineStageId) {
+  function dragOver(e: React.DragEvent, target: Target) {
+    if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (over !== target) {
+      setOver(target);
+      if (draggingId) broadcastDrag(draggingId, statusFor(target));
+    }
+  }
+
+  function dragLeave(e: React.DragEvent, target: Target) {
+    const next = e.relatedTarget as Node | null;
+    if (next && (e.currentTarget as Node).contains(next)) return;
+    if (over === target) setOver(null);
+  }
+
+  function onDrop(e: React.DragEvent, target: Target) {
     e.preventDefault();
     const id = e.dataTransfer.getData(DRAG_MIME);
-    setOverStage(null);
+    setOver(null);
     setDraggingId(null);
     if (!id) {
       broadcastCancel();
       return;
     }
     dropped.current = true;
-    broadcastDrop(id, STAGE_BY_ID.get(stage)!.canonical);
-    void move(id, stage);
+    broadcastDrop(id, statusFor(target));
+    void move(id, target);
   }
+
+  const cardProps = (o: Opportunity): React.ComponentProps<typeof OpportunityCard> => {
+    const p = peerByOpp.get(o.id);
+    return {
+      opp: o,
+      lang,
+      today,
+      clientName: o.company_id ? companies.get(o.company_id)?.name : null,
+      ownerName: o.owner_id ? members.get(o.owner_id)?.name : null,
+      canEdit,
+      dragging: draggingId === o.id,
+      peer: p ? { name: p.user.displayName, color: p.user.color.hex } : null,
+      onDragStart: (e: React.DragEvent) => {
+        setDraggingId(o.id);
+        e.dataTransfer.setData(DRAG_MIME, o.id);
+        e.dataTransfer.effectAllowed = 'move';
+        broadcastDrag(o.id, o.status);
+      },
+      onDragEnd: () => {
+        const wasDropped = dropped.current;
+        dropped.current = false;
+        setDraggingId(null);
+        setOver(null);
+        if (!wasDropped) broadcastCancel();
+      },
+      onMove: (to: PipelineStageId) => void move(o.id, to),
+      onEdit: () => setDrawer({ open: true, opp: o }),
+      onDelete: () => void remove(o),
+    };
+  };
+
+  const newStage = drawer.stage ? STAGE_BY_ID.get(drawer.stage) : undefined;
 
   return (
     <AppShell wide>
       <PageHeader
         eyebrow={fr ? 'Activité commerciale' : 'Sales'}
         title="CRM"
-        description={
-          fr
-            ? `${open.length} opportunités ouvertes · ${formatEurCompact(open.reduce((s, o) => s + opportunityAmount(o), 0), lang)} en jeu · ${formatEurCompact(weightedPipeline(open), lang)} pondérés`
-            : `${open.length} open opportunities · ${formatEurCompact(open.reduce((s, o) => s + opportunityAmount(o), 0), lang)} at stake · ${formatEurCompact(weightedPipeline(open), lang)} weighted`
-        }
+        description={pipelineSentence(summarizePipeline(filtered, today), lang)}
         actions={
           canEdit && (
             <Button onClick={() => setDrawer({ open: true, opp: null })}>
@@ -182,36 +258,12 @@ export default function CrmPipelinePage() {
         <CrmTabs />
       </PageHeader>
 
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={fr ? 'Filtrer par intitulé ou client' : 'Filter by title or client'}
-            className="pl-9"
-            aria-label={fr ? 'Filtrer les opportunités' : 'Filter opportunities'}
-          />
-        </div>
-        <Select value={owner} onChange={(e) => setOwner(e.target.value)} className="sm:w-56" aria-label="Business Manager">
-          <option value="all">{fr ? 'Tous les Business Managers' : 'All business managers'}</option>
-          <option value="mine">{fr ? 'Mes opportunités' : 'My opportunities'}</option>
-          {memberOptions.map((m) => (
-            <option key={m.value} value={m.value}>
-              {m.label}
-            </option>
-          ))}
-        </Select>
-        <label className="inline-flex items-center gap-2 text-[13px] text-muted-foreground sm:ml-auto">
-          <Switch checked={showOnHold} onCheckedChange={setShowOnHold} aria-label={fr ? 'Afficher les opportunités en veille' : 'Show on-hold opportunities'} />
-          {fr ? `En veille (${onHold.length})` : `On hold (${onHold.length})`}
-        </label>
-      </div>
+      <CrmToolbar lang={lang} view="board" query={query} onQuery={setQuery} owner={owner} onOwner={setOwner} members={memberOptions} />
 
       {loading && !data ? (
-        <div className="flex gap-3 overflow-hidden">
-          {PIPELINE_STAGES.map((s) => (
-            <div key={s.id} className="skeleton h-80 w-72 shrink-0 rounded-xl" />
+        <div className="grid min-w-0 grid-cols-5 gap-3 overflow-hidden">
+          {OPEN_STAGES.map((s) => (
+            <div key={s.id} className="skeleton h-80 rounded-2xl" />
           ))}
         </div>
       ) : opps.length === 0 ? (
@@ -233,140 +285,101 @@ export default function CrmPipelinePage() {
           }
         />
       ) : (
-        <div className="-mx-4 overflow-x-auto px-4 pb-4 md:-mx-8 md:px-8" role="region" aria-label={fr ? 'Pipeline commercial' : 'Sales pipeline'}>
-          <div className="flex min-w-max gap-3">
-            {columns.map(({ stage, items, total, amount }) => {
-              const isOver = overStage === stage.id && draggingId !== null;
-              const peer = peerByColumn.get(stage.canonical);
-              const terminal = stage.id === 'won' || stage.id === 'lost';
+        <>
+          {/* Issues : liens vers la liste filtrée, et cibles de dépôt pendant un glisser. */}
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            {OUTCOMES.map((o) => {
+              const isOver = over === o.id && draggingId !== null;
               return (
-                <section
-                  key={stage.id}
-                  aria-label={stage.label[lang]}
-                  onDragOver={(e) => {
-                    if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                    if (overStage !== stage.id) {
-                      setOverStage(stage.id);
-                      if (draggingId) broadcastDrag(draggingId, stage.canonical);
-                    }
-                  }}
-                  onDragLeave={(e) => {
-                    const next = e.relatedTarget as Node | null;
-                    if (next && (e.currentTarget as Node).contains(next)) return;
-                    if (overStage === stage.id) setOverStage(null);
-                  }}
-                  onDrop={(e) => onDrop(e, stage.id)}
+                <Link
+                  key={o.id}
+                  href={`/opportunities?stage=${o.id}`}
+                  draggable={false}
+                  onDragOver={(e) => canEdit && dragOver(e, o.id)}
+                  onDragLeave={(e) => dragLeave(e, o.id)}
+                  onDrop={(e) => canEdit && onDrop(e, o.id)}
                   className={cn(
-                    'flex w-[17.5rem] shrink-0 flex-col rounded-xl border bg-sidebar/60 transition-colors',
-                    terminal && 'w-[15rem]',
-                    isOver ? 'border-primary bg-brand-50/60' : 'border-border',
-                    highlightStage === stage.id && !isOver && 'border-primary/50',
-                    peer && !isOver && 'border-dashed',
+                    'inline-flex h-9 items-center gap-2 rounded-xl border px-3 text-[13px] transition-colors',
+                    isOver ? o.overClass : 'border-border bg-card hover:border-sand-300',
+                    draggingId && !isOver && 'border-dashed',
                   )}
-                  style={peer && !isOver ? { borderColor: peer.user.color.hex } : undefined}
                 >
-                  <header className="flex items-center justify-between gap-2 px-3 pb-2 pt-3">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span
-                        aria-hidden
-                        className={cn(
-                          'h-2 w-2 shrink-0 rounded-full',
-                          stage.tone === 'success'
-                            ? 'bg-success'
-                            : stage.tone === 'danger'
-                              ? 'bg-destructive'
-                              : stage.tone === 'warning'
-                                ? 'bg-warning'
-                                : stage.tone === 'brand'
-                                  ? 'bg-primary'
-                                  : stage.tone === 'info'
-                                    ? 'bg-info'
-                                    : 'bg-muted-foreground/60',
-                        )}
-                      />
-                      <h2 className="truncate text-[13px] font-semibold text-foreground">{stage.label[lang]}</h2>
-                      <span className="num text-xs text-muted-foreground">{total}</span>
-                    </div>
-                    <span className="num text-xs text-muted-foreground">{amount > 0 ? formatEurCompact(amount, lang) : ''}</span>
-                  </header>
-                  <div className="flex min-h-[8rem] flex-1 flex-col gap-2 px-2 pb-2">
-                    {items.map((o) => {
-                      const p = peerByOpp.get(o.id);
-                      return (
-                        <OpportunityCard
-                          key={o.id}
-                          opp={o}
-                          lang={lang}
-                          clientName={o.company_id ? companies.get(o.company_id)?.name : null}
-                          ownerName={o.owner_id ? members.get(o.owner_id)?.name : null}
-                          proposals={proposalCounts?.[o.id] ?? 0}
-                          canEdit={canEdit}
-                          dragging={draggingId === o.id}
-                          peer={p ? { name: p.user.displayName, color: p.user.color.hex } : null}
-                          onDragStart={(e) => {
-                            setDraggingId(o.id);
-                            e.dataTransfer.setData(DRAG_MIME, o.id);
-                            e.dataTransfer.effectAllowed = 'move';
-                            broadcastDrag(o.id, o.status);
-                          }}
-                          onDragEnd={() => {
-                            const wasDropped = dropped.current;
-                            dropped.current = false;
-                            setDraggingId(null);
-                            setOverStage(null);
-                            if (!wasDropped) broadcastCancel();
-                          }}
-                          onMove={(to) => void move(o.id, to)}
-                          onEdit={() => setDrawer({ open: true, opp: o })}
-                          onDelete={() => void remove(o)}
-                        />
-                      );
-                    })}
-                    {items.length === 0 && (
-                      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
-                        {canEdit ? (fr ? 'Déposez une opportunité ici' : 'Drop an opportunity here') : fr ? 'Aucune opportunité' : 'No opportunity'}
-                      </div>
-                    )}
-                    {terminal && total > items.length && (
-                      <a
-                        href={`/opportunities?stage=${stage.id}`}
-                        className="rounded-md px-2 py-1.5 text-center text-xs font-medium text-primary hover:bg-brand-50"
-                      >
-                        {fr ? `Voir les ${total} (plus de ${CLOSED_VISIBLE_DAYS} j inclus)` : `View all ${total}`}
-                      </a>
-                    )}
-                  </div>
-                </section>
+                  <o.icon className={cn('h-4 w-4', o.iconClass)} />
+                  <span className="font-medium">{draggingId ? o.drop[lang] : o.label[lang]}</span>
+                  {!draggingId && <span className="num text-muted-foreground">{outcomeCount(o.id)}</span>}
+                </Link>
               );
             })}
-            {showOnHold && (
-              <section className="flex w-[15rem] shrink-0 flex-col rounded-xl border border-dashed border-border bg-card/60">
-                <header className="flex items-center gap-2 px-3 pb-2 pt-3">
-                  <span aria-hidden className="h-2 w-2 rounded-full bg-muted-foreground/40" />
-                  <h2 className="text-[13px] font-semibold">{fr ? 'En veille' : 'On hold'}</h2>
-                  <span className="num text-xs text-muted-foreground">{onHold.length}</span>
-                </header>
-                <div className="flex flex-col gap-2 px-2 pb-2">
-                  {onHold.map((o) => (
-                    <OpportunityCard
-                      key={o.id}
-                      opp={o}
-                      lang={lang}
-                      clientName={o.company_id ? companies.get(o.company_id)?.name : null}
-                      ownerName={o.owner_id ? members.get(o.owner_id)?.name : null}
-                      canEdit={canEdit}
-                      onMove={(to) => void move(o.id, to)}
-                      onEdit={() => setDrawer({ open: true, opp: o })}
-                      onDelete={() => void remove(o)}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
+            {/* Le glisser-déposer suppose une souris : au doigt, le menu « … » des cartes. */}
+            <span className="hidden text-xs text-muted-foreground [@media(pointer:fine)]:inline">
+              {draggingId
+                ? fr
+                  ? 'Déposez la carte sur une étape ou une issue.'
+                  : 'Drop the card on a stage or an outcome.'
+                : fr
+                  ? 'Glissez une carte d’une étape à l’autre pour la faire avancer.'
+                  : 'Drag a card from one stage to the next to move it forward.'}
+            </span>
           </div>
-        </div>
+
+          <div className="-mx-4 overflow-x-auto px-4 pb-4 md:-mx-8 md:px-8" role="region" aria-label={fr ? 'Pipeline commercial' : 'Sales pipeline'}>
+            <div className="grid min-w-[1040px] grid-cols-5 gap-3">
+              {columns.map(({ stage, items, amount }) => {
+                const isOver = over === stage.id && draggingId !== null;
+                const peer = peerByColumn.get(stage.canonical);
+                return (
+                  <section
+                    key={stage.id}
+                    aria-label={stage.label[lang]}
+                    onDragOver={(e) => dragOver(e, stage.id)}
+                    onDragLeave={(e) => dragLeave(e, stage.id)}
+                    onDrop={(e) => onDrop(e, stage.id)}
+                    className={cn(
+                      'flex min-w-0 flex-col rounded-2xl border bg-sidebar/60 transition-colors',
+                      isOver ? 'border-primary bg-brand-50/60' : 'border-border',
+                      highlightStage === stage.id && !isOver && 'border-primary/50',
+                      peer && !isOver && 'border-dashed',
+                    )}
+                    style={peer && !isOver ? { borderColor: peer.user.color.hex } : undefined}
+                  >
+                    <header className="px-3 pb-2 pt-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span aria-hidden className={cn('h-2 w-2 shrink-0 rounded-full', DOT[stage.tone])} />
+                          <h2 className="truncate text-[13px] font-semibold text-foreground">{stage.label[lang]}</h2>
+                          <span className="num text-xs text-muted-foreground">{items.length}</span>
+                        </div>
+                        <span className="num shrink-0 text-xs text-muted-foreground">{amount > 0 ? formatEurCompact(amount, lang) : ''}</span>
+                      </div>
+                      <p className="mt-0.5 truncate pl-4 text-[11.5px] text-muted-foreground">{stage.hint[lang]}</p>
+                    </header>
+                    <div className="flex min-h-[7rem] flex-1 flex-col gap-2 px-2 pb-2">
+                      {items.map((o) => (
+                        <OpportunityCard key={o.id} {...cardProps(o)} />
+                      ))}
+                      {items.length === 0 && (
+                        <p className="px-2 py-5 text-center text-xs text-muted-foreground">
+                          {draggingId ? (fr ? 'Déposer ici' : 'Drop here') : fr ? 'Aucune opportunité' : 'No opportunity'}
+                        </p>
+                      )}
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={() => setDrawer({ open: true, opp: null, stage: stage.id })}
+                          className="mt-auto inline-flex h-8 items-center justify-center gap-1 rounded-lg text-xs font-medium text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:shadow-focus"
+                          aria-label={fr ? `Ajouter une opportunité en « ${stage.label.fr} »` : `Add an opportunity to “${stage.label.en}”`}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          {fr ? 'Ajouter' : 'Add'}
+                        </button>
+                      )}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          </div>
+        </>
       )}
 
       {activeOrgId && (
@@ -375,6 +388,10 @@ export default function CrmPipelinePage() {
           onOpenChange={(v) => setDrawer((d) => ({ ...d, open: v }))}
           organizationId={activeOrgId}
           opportunity={drawer.opp}
+          defaults={{
+            owner_id: user?.id ?? null,
+            ...(newStage ? { status: newStage.canonical, probability: newStage.defaultProbability } : {}),
+          }}
           onSaved={(o) => {
             setData((list) => {
               const rest = (list ?? []).filter((x) => x.id !== o.id);

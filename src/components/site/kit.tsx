@@ -353,20 +353,6 @@ export function FlowLine({
   );
 }
 
-/** Trame de fond fine (grille terracotta très légère). */
-export function Grid({ className, light = false }: { className?: string; light?: boolean }) {
-  return (
-    <div
-      aria-hidden
-      className={cn('pointer-events-none absolute inset-0', className)}
-      style={{
-        backgroundImage: `linear-gradient(${light ? 'rgba(251,248,245,.06)' : 'rgba(198,95,70,.07)'} 1px, transparent 1px), linear-gradient(90deg, ${light ? 'rgba(251,248,245,.06)' : 'rgba(198,95,70,.07)'} 1px, transparent 1px)`,
-        backgroundSize: '96px 96px',
-      }}
-    />
-  );
-}
-
 /**
  * Compteur animé à l'entrée dans la vue. La valeur finale est exposée aux
  * lecteurs d'écran ; le décompte visuel leur est masqué.

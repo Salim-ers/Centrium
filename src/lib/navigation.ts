@@ -7,8 +7,8 @@ import {
   LayoutDashboard,
   Kanban,
   Building2,
-  Target,
   Users,
+  Sparkles,
   CalendarRange,
   Briefcase,
   ClipboardCheck,
@@ -27,8 +27,8 @@ export type NavItem = {
   label: { fr: string; en: string };
   href: string;
   icon: LucideIcon;
-  /** Permission requise pour afficher l'entrée. */
-  permission: Permission;
+  /** Permission requise pour afficher l'entrée (une seule suffit si liste). */
+  permission: Permission | Permission[];
   /** Routes historiques ou sous-routes qui allument cette entrée. */
   matchAlso?: string[];
   /** Mots-clés supplémentaires pour la palette de commandes. */
@@ -66,9 +66,10 @@ export const NAV_SECTIONS: NavSection[] = [
         label: { fr: 'CRM', en: 'CRM' },
         href: '/crm',
         icon: Kanban,
-        permission: 'crm.view',
-        matchAlso: ['/contacts'],
-        keywords: ['pipeline', 'kanban', 'contacts', 'tâches'],
+        // Opportunités, contacts et tâches : un seul point d'entrée.
+        permission: ['crm.view', 'opportunities.view'],
+        matchAlso: ['/contacts', '/opportunities', '/offers', '/responses'],
+        keywords: ['pipeline', 'kanban', 'opportunités', 'affaires', 'deals', 'besoins', 'contacts', 'tâches', 'appels d’offres'],
       },
       {
         id: 'clients',
@@ -78,15 +79,6 @@ export const NAV_SECTIONS: NavSection[] = [
         permission: 'clients.view',
         matchAlso: ['/companies'],
         keywords: ['sociétés', 'comptes', 'entreprises'],
-      },
-      {
-        id: 'opportunities',
-        label: { fr: 'Opportunités', en: 'Opportunities' },
-        href: '/opportunities',
-        icon: Target,
-        permission: 'opportunities.view',
-        matchAlso: ['/offers', '/responses'],
-        keywords: ['besoins', 'affaires', 'deals', 'appels d’offres'],
       },
     ],
   },
@@ -100,8 +92,16 @@ export const NAV_SECTIONS: NavSection[] = [
         href: '/consultants',
         icon: Users,
         permission: 'consultants.view',
-        matchAlso: ['/prospects', '/cv-pushed', '/cv-optimizer'],
+        matchAlso: ['/prospects', '/cv-pushed'],
         keywords: ['talents', 'vivier', 'cv', 'dossier de compétences'],
+      },
+      {
+        id: 'cv-optimizer',
+        label: { fr: 'CV Optimizer', en: 'CV Optimizer' },
+        href: '/cv-optimizer',
+        icon: Sparkles,
+        permission: 'consultants.view',
+        keywords: ['cv', 'dossier de compétences', 'optimiser', 'export pdf', 'word', 'modèle'],
       },
       {
         id: 'staffing',
@@ -206,6 +206,11 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
 ];
+
+/** L'entrée est visible si l'utilisateur détient une des permissions. */
+export function canSeeNavItem(item: NavItem, can: (p: Permission) => boolean): boolean {
+  return Array.isArray(item.permission) ? item.permission.some(can) : can(item.permission);
+}
 
 export function isNavItemActive(item: NavItem, pathname: string): boolean {
   const match = (p: string) => pathname === p || pathname.startsWith(p + '/');

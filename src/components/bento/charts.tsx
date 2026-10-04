@@ -61,6 +61,7 @@ export type SeriesPoint = { label: string; revenue: number | null; margin: numbe
 /**
  * Graphique Activité & rentabilité : lignes fines (CA, marge, prévision),
  * survol avec infobulle discrète. Tracé animé à l'apparition.
+ * `fill` : occupe toute la hauteur libre de la tuile (`height` = minimum).
  */
 export function ActivityChart({
   data,
@@ -68,27 +69,31 @@ export function ActivityChart({
   format,
   labels,
   tone = 'light',
+  fill = false,
 }: {
   data: SeriesPoint[];
   height?: number;
   format: (n: number) => string;
   labels: { revenue: string; margin: string; forecast: string };
   tone?: 'light' | 'dark';
+  fill?: boolean;
 }) {
   const reduce = useReducedMotion();
   const [hover, setHover] = useState<number | null>(null);
   const box = useRef<HTMLDivElement>(null);
-  const [W, setW] = useState(600);
+  const [size, setSize] = useState({ w: 600, h: height });
   useEffect(() => {
     const el = box.current;
     if (!el) return;
-    const update = () => setW(Math.max(260, Math.round(el.clientWidth)));
+    const update = () =>
+      setSize({ w: Math.max(260, Math.round(el.clientWidth)), h: fill ? Math.max(height, Math.round(el.clientHeight)) : height });
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
-  const H = height;
+  }, [fill, height]);
+  const W = size.w;
+  const H = size.h;
   // Une étiquette de mois toutes les `step` valeurs, selon la largeur.
   const step = Math.max(1, Math.ceil(data.length / Math.max(2, Math.floor(W / 46))));
   const pad = { t: 12, b: 24, l: 4, r: 4 };
@@ -115,8 +120,17 @@ export function ActivityChart({
 
   const hp = hover != null ? data[hover] : null;
   return (
-    <div ref={box} className="relative">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height }} role="img" aria-label={`${labels.revenue}, ${labels.margin}`} onMouseLeave={() => setHover(null)}>
+    // En mode `fill`, le SVG est positionné en absolu : sa taille ne pèse
+    // pas sur celle du conteneur mesuré (pas de boucle d'agrandissement).
+    <div ref={box} className={cn('relative', fill && 'flex-1')} style={fill ? { minHeight: height } : undefined}>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className={cn('w-full', fill && 'absolute inset-0 h-full')}
+        style={fill ? undefined : { height }}
+        role="img"
+        aria-label={`${labels.revenue}, ${labels.margin}`}
+        onMouseLeave={() => setHover(null)}
+      >
         {[0.25, 0.5, 0.75].map((g) => (
           <line key={g} x1={0} x2={W} y1={pad.t + g * (H - pad.t - pad.b)} y2={pad.t + g * (H - pad.t - pad.b)} stroke={c.grid} strokeWidth={1} />
         ))}
@@ -137,7 +151,8 @@ export function ActivityChart({
           )),
         )}
         {data.map((d, i) => (
-          <g key={d.label}>
+          // Au-delà de 12 mois, un même libellé revient (« nov », « déc »…).
+          <g key={`${i}-${d.label}`}>
             <rect x={x(i) - W / data.length / 2} y={0} width={W / data.length} height={H} fill="transparent" onMouseEnter={() => setHover(i)} />
             {(i % step === 0 || i === data.length - 1) && (data.length - 1 - i >= step || i === data.length - 1) && (
               <text x={x(i)} y={H - 6} textAnchor={i === 0 ? "start" : i === data.length - 1 ? "end" : "middle"} fontSize={11} fill={c.text}>
