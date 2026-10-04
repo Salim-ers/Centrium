@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { DataTable, type Column } from '@/components/ui/data-table';
+import { DataTable, type Column, linkActions } from '@/components/ui/data-table';
 import { ClientDrawer, CLIENT_KIND_LABEL } from '@/components/clients/ClientDrawer';
 import { ClientCsvImportDialog } from '@/components/clients/ClientCsvImportDialog';
 import { useOrganization } from '@/lib/auth/context';
@@ -207,6 +207,8 @@ export default function ClientsPage() {
         columns={columns}
         getRowId={(c) => c.id}
         rowHref={(c) => `/clients/${c.id}`}
+        rowActions={(c) => linkActions(`/clients/${c.id}`, fr)}
+        tableId="clients"
         loading={loading && !data}
         initialSort={withFinance ? { id: 'revenue', dir: 'desc' } : { id: 'name', dir: 'asc' }}
         empty={

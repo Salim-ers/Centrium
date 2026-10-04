@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Search,
   Plus,
@@ -17,6 +17,7 @@ import {
   Users,
   Briefcase,
   Receipt,
+  ChevronRight,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -41,6 +42,21 @@ import { PresenceAvatars } from '@/components/presence/PresenceAvatars';
 import { MobileNav } from './MobileNav';
 import { NotificationCenter } from './NotificationCenter';
 import { openCommandPalette } from './CommandPalette';
+import { NAV_SECTIONS, isNavItemActive } from '@/lib/navigation';
+
+/** Fil d'Ariane de la page courante (section › module › détail). */
+function useCrumbs(pathname: string, lang: 'fr' | 'en'): string[] {
+  for (const section of NAV_SECTIONS) {
+    for (const item of section.items) {
+      if (!isNavItemActive(item, pathname)) continue;
+      const crumbs = [section.label[lang], item.label[lang]];
+      const deeper = pathname !== item.href && pathname.startsWith(item.href + '/');
+      if (deeper) crumbs.push(lang === 'fr' ? 'Détail' : 'Details');
+      return crumbs;
+    }
+  }
+  return [];
+}
 
 const CREATE_ITEMS: Array<{
   label: { fr: string; en: string };
@@ -57,6 +73,7 @@ const CREATE_ITEMS: Array<{
 
 export function Header() {
   const router = useRouter();
+  const pathname = usePathname() ?? '';
   const org = useOrganizationSafe();
   const [collapsed] = useSidebarCollapsed();
   const { locale, setLocale } = useLocale();
@@ -85,31 +102,57 @@ export function Header() {
 
   const fullName = `${org?.user?.firstName ?? ''} ${org?.user?.lastName ?? ''}`.trim();
   const createItems = CREATE_ITEMS.filter((i) => can(i.permission));
+  const crumbs = useCrumbs(pathname, lang);
+  const onDashboard = pathname === '/dashboard';
+  const hour = new Date().getHours();
+  const hello = lang === 'fr' ? (hour < 18 ? 'Bonjour' : 'Bonsoir') : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const activeOrg = org?.memberships.find((m) => m.id === org.activeOrgId);
+  const orgName = org?.branding?.brandName || activeOrg?.name || '';
 
   return (
     <header
       className={cn(
-        'fixed inset-x-0 top-0 z-20 h-14 border-b border-border bg-background/90 backdrop-blur-[6px] transition-[left] duration-200 ease-out',
-        collapsed ? 'md:left-16' : 'md:left-60',
+        'fixed inset-x-0 top-0 z-20 h-16 bg-background/85 backdrop-blur-md transition-[left] duration-300 ease-out-soft',
+        collapsed ? 'md:left-16' : 'md:left-[220px]',
       )}
     >
-      <div className="flex h-full items-center gap-2 px-3 sm:px-5">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+      <div className="flex h-full items-center gap-3 px-3 sm:px-6">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <MobileNav />
           <Link href="/dashboard" className="md:hidden" aria-label={lang === 'fr' ? 'Accueil' : 'Home'}>
             <CentriumLogo className="h-7 w-7" />
           </Link>
 
+          <div className="hidden min-w-0 md:block">
+            {onDashboard ? (
+              <div className="truncate text-[18px] font-semibold tracking-[-0.02em] text-foreground">
+                {hello}
+                {org?.user?.firstName ? ` ${org.user.firstName}` : ''}
+              </div>
+            ) : (
+              <nav aria-label={lang === 'fr' ? 'Fil d’Ariane' : 'Breadcrumb'}>
+                <ol className="flex min-w-0 items-center gap-1.5 text-[13.5px]">
+                  {crumbs.map((c, i) => (
+                    <li key={i} className={cn('flex min-w-0 items-center gap-1.5', i === crumbs.length - 1 ? 'font-medium text-foreground' : 'text-muted-foreground')}>
+                      {i > 0 && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" aria-hidden />}
+                      <span className="truncate" aria-current={i === crumbs.length - 1 ? 'page' : undefined}>
+                        {c}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </nav>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={() => openCommandPalette()}
-            className="hidden h-9 w-full max-w-md items-center gap-2.5 rounded-md border border-border bg-card px-3 text-left text-[13px] text-muted-foreground shadow-xs transition-colors hover:border-sand-300 sm:flex"
+            className="ml-auto hidden h-10 w-full max-w-[300px] items-center gap-2.5 rounded-xl bg-card px-3.5 text-left text-[13px] text-muted-foreground ring-1 ring-black/[0.06] transition-shadow hover:ring-black/[0.12] sm:flex"
           >
             <Search className="h-4 w-4 shrink-0" />
-            <span className="flex-1 truncate">
-              {lang === 'fr' ? 'Rechercher, créer ou poser une question…' : 'Search, create or ask a question…'}
-            </span>
-            <kbd className="hidden shrink-0 rounded border border-border bg-muted px-1.5 py-0.5 font-sans text-[10px] font-medium md:inline">
+            <span className="flex-1 truncate">{lang === 'fr' ? 'Rechercher…' : 'Search…'}</span>
+            <kbd className="hidden shrink-0 rounded-md bg-black/[0.05] px-1.5 py-0.5 font-sans text-[10.5px] font-medium md:inline">
               {isMac ? '⌘' : 'Ctrl'} K
             </kbd>
           </button>
@@ -132,7 +175,7 @@ export function Header() {
           {createItems.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" className="hidden sm:inline-flex">
+                <Button size="sm" className="hidden h-10 rounded-xl px-4 sm:inline-flex">
                   <Plus />
                   {lang === 'fr' ? 'Créer' : 'Create'}
                 </Button>
@@ -149,6 +192,17 @@ export function Header() {
           )}
 
           <NotificationCenter />
+
+          {orgName && (
+            <Link
+              href="/settings"
+              title={lang === 'fr' ? 'Organisation' : 'Organisation'}
+              className="hidden h-10 max-w-[180px] items-center gap-2 rounded-xl px-3 text-[13px] font-medium text-foreground ring-1 ring-black/[0.06] transition-shadow hover:ring-black/[0.12] xl:inline-flex"
+            >
+              <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <span className="truncate">{orgName}</span>
+            </Link>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

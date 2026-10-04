@@ -15,7 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DataTable, type Column } from '@/components/ui/data-table';
+import { DataTable, type Column, linkActions } from '@/components/ui/data-table';
 import { DocumentUploadDrawer } from '@/components/documents/DocumentUploadDrawer';
 import { DocumentDetailDrawer, VISIBILITY_LABEL, fileSize } from '@/components/documents/DocumentDetailDrawer';
 import { TemplatesPanel } from '@/components/documents/TemplatesPanel';
@@ -339,6 +339,8 @@ export default function DocumentsPage() {
             columns={quoteColumns}
             getRowId={(r) => r.id}
             rowHref={(r) => `/documents/quotes/${r.id}`}
+            rowActions={(r) => linkActions(`/documents/quotes/${r.id}`, fr)}
+            tableId="quotes"
             loading={loading && !data}
             initialSort={{ id: 'date', dir: 'desc' }}
             aria-label={fr ? 'Devis' : 'Quotes'}
@@ -386,6 +388,8 @@ export default function DocumentsPage() {
             columns={docColumns}
             getRowId={(d) => d.id}
             onRowClick={(d) => setOpenDocId(d.id)}
+            rowActions={(d) => [{ label: fr ? 'Ouvrir' : 'Open', onSelect: () => setOpenDocId(d.id) }]}
+            tableId="documents"
             loading={loading && !data}
             initialSort={{ id: 'date', dir: 'desc' }}
             aria-label={fr ? 'Documents' : 'Documents'}

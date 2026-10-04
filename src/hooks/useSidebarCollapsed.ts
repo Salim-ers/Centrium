@@ -18,17 +18,17 @@ const STORAGE_KEY = 'qc-sidebar-collapsed';
 const EVENT_NAME = 'qc-sidebar-collapsed-change';
 
 export function useSidebarCollapsed(): [boolean, (next: boolean) => void] {
-  // SSR : on rend toujours "expanded" pour éviter l'hydration mismatch.
-  // L'effect ci-dessous applique la vraie valeur AVANT la peinture.
-  const [collapsed, setCollapsedState] = useState(false);
+  // Rail d'icônes par défaut (64 px). Le rendu serveur et le premier rendu
+  // client sont identiques ; l'effet applique ensuite la préférence.
+  const [collapsed, setCollapsedState] = useState(true);
 
   useEffect(() => {
     // Lecture initiale
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored === '1') setCollapsedState(true);
+      if (stored === '0') setCollapsedState(false);
     } catch {
-      // localStorage bloqué → on garde le défaut (expanded)
+      // localStorage bloqué → on garde le défaut (rail)
     }
 
     // Sync avec les autres instances du même onglet

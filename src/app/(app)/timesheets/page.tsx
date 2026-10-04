@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip } from '@/components/ui/tooltip';
-import { DataTable, type Column } from '@/components/ui/data-table';
+import { DataTable, type Column, linkActions } from '@/components/ui/data-table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TimesheetFormDialog } from '@/components/timesheets/TimesheetFormDialog';
 import { useOrganization } from '@/lib/auth/context';
@@ -400,6 +400,8 @@ export default function TimesheetsPage() {
           columns={columns}
           getRowId={(r) => r.id}
           rowHref={(r) => `/timesheets/${r.id}`}
+          rowActions={(r) => linkActions(`/timesheets/${r.id}`, fr)}
+          tableId="timesheets"
           loading={loading && !data}
           initialSort={{ id: 'period', dir: 'desc' }}
           empty={

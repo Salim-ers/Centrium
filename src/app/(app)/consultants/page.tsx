@@ -16,7 +16,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip } from '@/components/ui/tooltip';
-import { DataTable, type Column } from '@/components/ui/data-table';
+import { DataTable, type Column, linkActions } from '@/components/ui/data-table';
 import { ConsultantFormDialog } from '@/components/consultants/ConsultantFormDialog';
 import { CsvImportDialog } from '@/components/consultants/CsvImportDialog';
 import { useOrganization } from '@/lib/auth/context';
@@ -325,7 +325,7 @@ export default function ConsultantsPage() {
       </div>
 
       {selected.size > 0 && canEdit && (
-        <div className="sticky top-16 z-10 mb-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-2 shadow-md">
+        <div className="sticky top-[4.5rem] z-10 mb-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-2 shadow-md">
           <span className="num text-[13px]">
             {selected.size} {fr ? 'sélectionné(s)' : 'selected'}
           </span>
@@ -354,6 +354,8 @@ export default function ConsultantsPage() {
         columns={columns}
         getRowId={(c) => c.id}
         rowHref={(c) => `/consultants/${c.id}`}
+        rowActions={(c) => linkActions(`/consultants/${c.id}`, fr)}
+        tableId="consultants"
         loading={loading && !data}
         selectable={canEdit}
         selected={selected}

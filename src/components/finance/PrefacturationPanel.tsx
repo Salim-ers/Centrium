@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DataTable, type Column } from '@/components/ui/data-table';
+import { DataTable, type Column, linkActions } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/app/EmptyState';
 import {
   DropdownMenu,
@@ -327,6 +327,8 @@ export function PrefacturationPanel({ lang, canEdit }: { lang: 'fr' | 'en'; canE
         columns={columns}
         getRowId={(i) => i.id}
         rowHref={(i) => `/invoices/${i.id}`}
+        rowActions={(i) => linkActions(`/invoices/${i.id}`, fr)}
+        tableId="prefactures"
         loading={loading && !data}
         selectable={selectable}
         selected={selected}

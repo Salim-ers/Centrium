@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { StatusPill } from '@/components/ui/status-pill';
-import { DataTable, type Column } from '@/components/ui/data-table';
+import { DataTable, type Column, linkActions } from '@/components/ui/data-table';
 import { MissionDrawer, type MissionDraft } from '@/components/missions/MissionDrawer';
 import { useOrganization } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -320,6 +320,8 @@ export default function MissionsPage() {
         columns={columns}
         getRowId={(m) => m.id}
         rowHref={(m) => `/missions/${m.id}`}
+        rowActions={(m) => linkActions(`/missions/${m.id}`, fr)}
+        tableId="missions"
         loading={loading && !data}
         initialSort={ending ? { id: 'end', dir: 'asc' } : { id: 'end', dir: 'asc' }}
         empty={

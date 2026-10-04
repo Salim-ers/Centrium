@@ -3,11 +3,20 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowDown, ArrowUp, ChevronsUpDown, ChevronRight } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronsUpDown, ChevronRight, Columns3, ExternalLink, Link2, MoreHorizontal, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { Checkbox } from './checkbox';
 import { SkeletonRows } from './skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './dropdown-menu';
 
 export type Column<T> = {
   id: string;
@@ -23,6 +32,20 @@ export type Column<T> = {
   /** Rôle dans la carte mobile : titre, sous-titre ou ligne de détail. */
   mobile?: 'title' | 'subtitle' | 'meta' | 'trailing' | 'hidden';
   width?: string;
+  /** Peut être masquée par l'utilisateur (défaut : oui, sauf la première colonne). */
+  hideable?: boolean;
+};
+
+/** Action sur une ligne : menu « … » et clic droit. */
+export type RowAction = {
+  label: string;
+  icon?: LucideIcon;
+  onSelect?: () => void;
+  href?: string;
+  destructive?: boolean;
+  disabled?: boolean;
+  /** Trait de séparation avant l'action. */
+  separatorBefore?: boolean;
 };
 
 type SortState = { id: string; dir: 'asc' | 'desc' } | null;
@@ -44,7 +67,48 @@ type Props<T> = {
   pageSize?: number;
   className?: string;
   'aria-label'?: string;
+  /**
+   * Identifiant stable du tableau : active le choix des colonnes visibles,
+   * mémorisé sur cet appareil.
+   */
+  tableId?: string;
+  /** Actions par ligne (menu « … » et clic droit). */
+  rowActions?: (row: T) => RowAction[];
 };
+
+const COLUMNS_KEY = 'centrium-table-columns:';
+
+function useHiddenColumns(tableId: string | undefined) {
+  const [hidden, setHidden] = React.useState<Set<string>>(new Set());
+  React.useEffect(() => {
+    if (!tableId) return;
+    try {
+      const raw = window.localStorage.getItem(COLUMNS_KEY + tableId);
+      if (raw) setHidden(new Set(JSON.parse(raw) as string[]));
+    } catch {
+      /* stockage indisponible : toutes les colonnes */
+    }
+  }, [tableId]);
+  const toggle = React.useCallback(
+    (id: string) => {
+      setHidden((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        if (tableId) {
+          try {
+            window.localStorage.setItem(COLUMNS_KEY + tableId, JSON.stringify([...next]));
+          } catch {
+            /* ignore */
+          }
+        }
+        return next;
+      });
+    },
+    [tableId],
+  );
+  return [hidden, toggle] as const;
+}
 
 /**
  * Table de données : tri par colonne, sélection, pagination légère et
@@ -53,7 +117,7 @@ type Props<T> = {
  */
 export function DataTable<T>({
   rows,
-  columns,
+  columns: columnsProp,
   getRowId,
   rowHref,
   onRowClick,
@@ -65,12 +129,20 @@ export function DataTable<T>({
   onSelectedChange,
   pageSize = 50,
   className,
+  tableId,
+  rowActions,
   ...rest
 }: Props<T>) {
   const { locale } = useLocale();
+  const fr = locale !== 'en';
   const router = useRouter();
   const [sort, setSort] = React.useState<SortState>(initialSort);
   const [limit, setLimit] = React.useState(pageSize);
+  const [hiddenCols, toggleCol] = useHiddenColumns(tableId);
+  const [menuRow, setMenuRow] = React.useState<string | null>(null);
+  const allColumns = columnsProp;
+  const isHideable = (c: Column<T>, i: number) => c.hideable ?? i > 0;
+  const columns = allColumns.filter((c, i) => !(isHideable(c, i) && hiddenCols.has(c.id)));
 
   const sorted = React.useMemo(() => {
     if (!sort) return rows;
@@ -117,7 +189,7 @@ export function DataTable<T>({
 
   if (loading) {
     return (
-      <div className={cn('overflow-hidden rounded-xl border border-border bg-card', className)}>
+      <div className={cn('overflow-hidden rounded-card border border-border bg-card', className)}>
         <SkeletonRows rows={6} />
       </div>
     );
@@ -129,12 +201,48 @@ export function DataTable<T>({
   const trailingCol = columns.find((c) => c.mobile === 'trailing');
   const metaCols = columns.filter((c) => c.mobile === 'meta');
 
+  const runAction = (a: RowAction) => {
+    if (a.disabled) return;
+    if (a.onSelect) a.onSelect();
+    else if (a.href) router.push(a.href);
+  };
+
   return (
-    <div className={cn('overflow-hidden rounded-xl border border-border bg-card shadow-xs', className)}>
+    <div className={cn('overflow-hidden rounded-card border border-border bg-card shadow-xs', className)}>
+      {tableId && (
+        <div className="hidden items-center justify-end border-b border-border px-3 py-1.5 md:flex">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:shadow-focus"
+              >
+                <Columns3 className="h-3.5 w-3.5" />
+                {fr ? 'Colonnes' : 'Columns'}
+                {hiddenCols.size > 0 && <span className="rounded-full bg-muted px-1.5 text-[11px] tabular-nums">{allColumns.length - columns.length}</span>}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>{fr ? 'Colonnes affichées' : 'Visible columns'}</DropdownMenuLabel>
+              {allColumns.map((c, i) => (
+                <DropdownMenuCheckboxItem
+                  key={c.id}
+                  checked={!hiddenCols.has(c.id) || !isHideable(c, i)}
+                  disabled={!isHideable(c, i)}
+                  onCheckedChange={() => toggleCol(c.id)}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  {typeof c.header === 'string' ? c.header : c.id}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
       {/* Desktop / tablette */}
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm" aria-label={rest['aria-label']}>
-          <thead className="bg-muted/60">
+          <thead className="bg-transparent">
             <tr className="border-b border-border">
               {selectable && (
                 <th className="w-10 px-3">
@@ -155,7 +263,7 @@ export function DataTable<T>({
                     style={c.width ? { width: c.width } : undefined}
                     aria-sort={active ? (sort!.dir === 'asc' ? 'ascending' : 'descending') : undefined}
                     className={cn(
-                      'h-9 whitespace-nowrap px-3 text-xs font-medium text-muted-foreground',
+                      'h-10 whitespace-nowrap px-3 text-[12px] font-medium text-muted-foreground',
                       c.align === 'right' ? 'text-right' : c.align === 'center' ? 'text-center' : 'text-left',
                       c.hideOnMobile && 'hidden lg:table-cell',
                       c.headerClassName,
@@ -183,6 +291,11 @@ export function DataTable<T>({
                   </th>
                 );
               })}
+              {rowActions && (
+                <th className="w-10 px-2">
+                  <span className="sr-only">{fr ? 'Actions' : 'Actions'}</span>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -195,6 +308,16 @@ export function DataTable<T>({
                 <tr
                   key={id}
                   data-state={isSel ? 'selected' : undefined}
+                  onContextMenu={
+                    rowActions
+                      ? (e) => {
+                          // Clic droit : ouvre le menu d'actions de la ligne.
+                          if ((e.target as HTMLElement).closest('a[href^="http"],input,textarea')) return;
+                          e.preventDefault();
+                          setMenuRow(id);
+                        }
+                      : undefined
+                  }
                   onClick={(e) => {
                     // Les éléments interactifs de la ligne gardent leur propre comportement.
                     if ((e.target as HTMLElement).closest('a,button,input,[role=checkbox],[role=menuitem]')) return;
@@ -202,7 +325,7 @@ export function DataTable<T>({
                     else if (href) router.push(href);
                   }}
                   className={cn(
-                    'group border-b border-border last:border-0 transition-colors hover:bg-muted/40 data-[state=selected]:bg-brand-50/50',
+                    'group border-b border-border last:border-0 transition-colors hover:bg-canvas data-[state=selected]:bg-terra-blush/50',
                     clickable && 'cursor-pointer',
                   )}
                 >
@@ -237,6 +360,36 @@ export function DataTable<T>({
                       </td>
                     );
                   })}
+                  {rowActions && (
+                    <td className="w-10 px-2 text-right" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu open={menuRow === id} onOpenChange={(o) => setMenuRow(o ? id : null)}>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            aria-label={fr ? 'Actions de la ligne' : 'Row actions'}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground opacity-0 transition hover:bg-muted hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:shadow-focus group-hover:opacity-100 data-[state=open]:opacity-100"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-52">
+                          {rowActions(row).map((a, ai) => (
+                            <React.Fragment key={a.label}>
+                              {a.separatorBefore && ai > 0 && <DropdownMenuSeparator />}
+                              <DropdownMenuItem
+                                disabled={a.disabled}
+                                onSelect={() => runAction(a)}
+                                className={cn(a.destructive && 'text-destructive focus:bg-danger-soft focus:text-destructive')}
+                              >
+                                {a.icon && <a.icon />}
+                                {a.label}
+                              </DropdownMenuItem>
+                            </React.Fragment>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -306,4 +459,21 @@ export function DataTable<T>({
       )}
     </div>
   );
+}
+
+/** Actions de navigation standard d'une ligne : ouvrir, nouvel onglet, copier le lien. */
+export function linkActions(href: string, fr: boolean): RowAction[] {
+  return [
+    { label: fr ? 'Ouvrir' : 'Open', icon: ChevronRight, href },
+    {
+      label: fr ? 'Ouvrir dans un nouvel onglet' : 'Open in a new tab',
+      icon: ExternalLink,
+      onSelect: () => window.open(href, '_blank', 'noopener'),
+    },
+    {
+      label: fr ? 'Copier le lien' : 'Copy link',
+      icon: Link2,
+      onSelect: () => void navigator.clipboard?.writeText(new URL(href, window.location.origin).toString()),
+    },
+  ];
 }

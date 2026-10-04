@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Avatar } from '@/components/ui/avatar';
-import { DataTable, type Column } from '@/components/ui/data-table';
+import { DataTable, type Column, linkActions } from '@/components/ui/data-table';
 import { OpportunityDrawer } from '@/components/crm/OpportunityDrawer';
 import { useOrganization } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -233,6 +233,8 @@ export default function OpportunitiesPage() {
         columns={columns}
         getRowId={(o) => o.id}
         rowHref={(o) => `/opportunities/${o.id}`}
+        rowActions={(o) => linkActions(`/opportunities/${o.id}`, fr)}
+        tableId="opportunities"
         loading={loading && !data}
         initialSort={{ id: 'updated', dir: 'desc' }}
         empty={

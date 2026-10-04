@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronsLeft, ChevronsRight, ChevronsUpDown, Check, LifeBuoy } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, ChevronsUpDown, Check, LifeBuoy, Settings } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { CentriumLogo } from '@/components/brand/CentriumLogo';
@@ -35,9 +35,9 @@ function OrgSwitcher({ collapsed }: { collapsed: boolean }) {
 
   const mark = logo ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={logo} alt="" className="h-7 w-7 shrink-0 rounded-md border border-border bg-white object-contain" />
+    <img src={logo} alt="" className="h-8 w-8 shrink-0 rounded-[10px] border border-border bg-white object-contain" />
   ) : (
-    <CentriumLogo className="h-7 w-7" />
+    <CentriumLogo className="h-8 w-8" />
   );
 
   const trigger = (
@@ -45,7 +45,7 @@ function OrgSwitcher({ collapsed }: { collapsed: boolean }) {
       type="button"
       disabled={!canSwitch}
       className={cn(
-        'flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors',
+        'flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors',
         canSwitch && 'hover:bg-black/[0.04]',
         collapsed && 'justify-center px-0',
       )}
@@ -103,29 +103,30 @@ export function SidebarBody({
 
   const sections = NAV_SECTIONS.map((s) => ({
     ...s,
-    items: s.items.filter((i) => can(i.permission)),
+    items: s.items.filter((i) => i.id !== 'settings' && can(i.permission)),
   })).filter((s) => s.items.length > 0);
+  const settingsActive = ['/settings', '/billing', '/onboarding/setup'].some((p) => pathname === p || pathname.startsWith(p + '/'));
 
   return (
     <div className="flex h-full flex-col">
-      <div className={cn('flex h-14 shrink-0 items-center border-b border-border px-3', collapsed && 'px-2')}>
+      <div className={cn('flex h-16 shrink-0 items-center px-3', collapsed && 'px-3')}>
         <OrgSwitcher collapsed={collapsed} />
       </div>
 
       <nav
         aria-label={lang === 'fr' ? 'Navigation principale' : 'Main navigation'}
-        className="no-scrollbar flex-1 overflow-y-auto px-2.5 py-3"
+        className={cn('no-scrollbar flex-1 overflow-y-auto py-2', collapsed ? 'px-3' : 'px-3')}
       >
         {sections.map((section, si) => (
-          <div key={section.id} className={cn(si > 0 && 'mt-4')}>
+          <div key={section.id} className={cn(si > 0 && (collapsed ? 'mt-2' : 'mt-3'))}>
             {collapsed ? (
-              si > 0 && <div aria-hidden className="mx-2 mb-2 h-px bg-border" />
+              si > 0 && <div aria-hidden className="mx-auto mb-2 h-px w-6 bg-border" />
             ) : (
-              <div className="mb-1 px-2 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground/90">
+              <div className="mb-0.5 px-2.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/80">
                 {section.label[lang]}
               </div>
             )}
-            <ul className="space-y-0.5">
+            <ul className={collapsed ? 'space-y-1' : 'space-y-0.5'}>
               {section.items.map((item) => {
                 const active = isNavItemActive(item, pathname);
                 const Icon = item.icon;
@@ -136,17 +137,18 @@ export function SidebarBody({
                     aria-current={active ? 'page' : undefined}
                     aria-label={collapsed ? item.label[lang] : undefined}
                     className={cn(
-                      'group relative flex h-8 items-center gap-2.5 rounded-md px-2 text-[13.5px] transition-colors',
-                      collapsed && 'justify-center px-0',
+                      'group relative flex h-9 items-center gap-3 rounded-xl px-2.5 text-[13.5px] transition-colors duration-200',
+                      collapsed && 'mx-auto h-10 w-10 justify-center px-0',
                       active
-                        ? 'bg-card font-medium text-foreground shadow-xs ring-1 ring-border'
+                        ? 'bg-terra-blush font-medium text-terra-deep'
                         : 'text-muted-foreground hover:bg-black/[0.04] hover:text-foreground',
                     )}
                   >
                     <Icon
+                      strokeWidth={1.8}
                       className={cn(
-                        'h-4 w-4 shrink-0 transition-colors',
-                        active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground',
+                        'h-[18px] w-[18px] shrink-0 transition-colors',
+                        active ? 'text-terra-deep' : 'text-muted-foreground group-hover:text-foreground',
                       )}
                     />
                     {!collapsed && <span className="truncate">{item.label[lang]}</span>}
@@ -169,20 +171,37 @@ export function SidebarBody({
         ))}
       </nav>
 
-      <div className={cn('shrink-0 space-y-1 border-t border-border p-2.5', collapsed && 'px-2')}>
+      <div className={cn('shrink-0 space-y-1 p-3')}>
         {!collapsed && <SetupProgress onNavigate={onItemClick} />}
-        <Link
-          href="/aide"
-          onClick={onItemClick}
-          className={cn(
-            'flex h-8 items-center gap-2.5 rounded-md px-2 text-[13px] text-muted-foreground transition-colors hover:bg-black/[0.04] hover:text-foreground',
-            collapsed && 'justify-center px-0',
-          )}
-          aria-label={collapsed ? (lang === 'fr' ? 'Aide' : 'Help') : undefined}
-        >
-          <LifeBuoy className="h-4 w-4 shrink-0" />
-          {!collapsed && (lang === 'fr' ? 'Aide & support' : 'Help & support')}
-        </Link>
+        {[
+          { href: '/settings', icon: Settings, label: lang === 'fr' ? 'Paramètres' : 'Settings', active: settingsActive },
+          { href: '/aide', icon: LifeBuoy, label: lang === 'fr' ? 'Aide & support' : 'Help & support', active: pathname.startsWith('/aide') },
+        ].map((l) => {
+          const link = (
+            <Link
+              key={l.href}
+              href={l.href}
+              onClick={onItemClick}
+              aria-current={l.active ? 'page' : undefined}
+              aria-label={collapsed ? l.label : undefined}
+              className={cn(
+                'flex h-9 items-center gap-3 rounded-xl px-2.5 text-[13.5px] transition-colors duration-200',
+                collapsed && 'mx-auto h-10 w-10 justify-center px-0',
+                l.active ? 'bg-terra-blush font-medium text-terra-deep' : 'text-muted-foreground hover:bg-black/[0.04] hover:text-foreground',
+              )}
+            >
+              <l.icon strokeWidth={1.8} className="h-[18px] w-[18px] shrink-0" />
+              {!collapsed && l.label}
+            </Link>
+          );
+          return collapsed ? (
+            <Tooltip key={l.href} label={l.label} side="right">
+              {link}
+            </Tooltip>
+          ) : (
+            link
+          );
+        })}
       </div>
     </div>
   );
@@ -203,8 +222,8 @@ export function Sidebar() {
     <aside
       data-app-sidebar
       className={cn(
-        'fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-sidebar transition-[width] duration-200 ease-out md:flex',
-        collapsed ? 'w-16' : 'w-60',
+        'fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-black/[0.06] bg-sidebar transition-[width] duration-300 ease-out-soft md:flex',
+        collapsed ? 'w-16' : 'w-[220px]',
       )}
     >
       <SidebarBody collapsed={collapsed} />
@@ -213,7 +232,7 @@ export function Sidebar() {
         onClick={() => setCollapsed(!collapsed)}
         aria-label={label}
         title={label}
-        className="absolute -right-3 top-[4.25rem] z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs transition hover:text-foreground"
+        className="absolute -right-3 top-[4.5rem] z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs transition hover:text-foreground"
       >
         {collapsed ? <ChevronsRight className="h-3.5 w-3.5" /> : <ChevronsLeft className="h-3.5 w-3.5" />}
       </button>
