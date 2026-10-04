@@ -83,6 +83,23 @@ const config: Config = {
     extend: {
       colors: {
         brand: { DEFAULT: brand[500], ...brand },
+        // Palette de marque V2 (site et widgets de l'application).
+        terra: {
+          DEFAULT: '#C65F46', // terracotta signature
+          deep: '#9D4432', // terracotta profond
+          dark: '#713428', // terracotta sombre
+          light: '#E4A08C', // terre cuite claire
+          peach: '#F1C7BA',
+          soft: '#F1D3C9', // terracotta doux (widgets)
+          blush: '#F5E3DD', // peach clair (widgets)
+        },
+        ivory: '#FBF8F5',
+        warm: '#FFFDFC', // blanc chaud
+        dune: '#F2E9E3', // sable du site
+        canvas: '#F7F5F2', // fond de l'application
+        ink: { DEFAULT: '#191614', soft: '#282321', app: '#191817' },
+        taupe: '#746B67',
+        line: '#E8DDD6',
         sand: { DEFAULT: sand[100], ...sand },
         steel,
         // Familles historiques réalignées (filet de sécurité).
@@ -155,17 +172,21 @@ const config: Config = {
         },
       },
       borderRadius: {
+        // Cartes de l'application : 16 à 22 px ; contrôles : 8 à 12 px.
+        card: '1.25rem',
+        tile: '1rem',
         xl: 'calc(var(--radius) + 4px)',
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-inter-tight)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
-        // Alias historiques : pointent sur la famille de titres.
-        editorial: ['var(--font-inter-tight)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
-        serif: ['var(--font-inter-tight)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        // Accent éditorial (titres du site, italique).
+        editorial: ['var(--font-editorial)', 'Georgia', 'serif'],
+        // Serif de lecture des documents imprimables (contrats, CRA, factures).
+        serif: ['Georgia', 'Times New Roman', 'serif'],
       },
       fontSize: {
         '2xs': ['0.6875rem', { lineHeight: '1rem' }],

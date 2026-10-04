@@ -25,14 +25,14 @@ section[id] {
 
 @layer base {
   :root {
-    --background: 40 27% 98%;          /* #FBFAF8 blanc chaud */
-    --foreground: 30 4% 9%;            /* #191817 */
+    --background: 36 23% 96%;          /* #F7F5F2 fond de l'application */
+    --foreground: 20 9% 13%;           /* #25211F */
 
     --card: 0 0% 100%;
-    --card-foreground: 30 4% 9%;
+    --card-foreground: 20 9% 13%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 30 4% 9%;
+    --popover-foreground: 20 9% 13%;
 
     --primary: 12 53% 53%;             /* #C65F46 terracotta */
     --primary-deep: 10 52% 41%;        /* #9D4432 terracotta profond */
@@ -42,10 +42,12 @@ section[id] {
     --secondary-foreground: 30 4% 9%;
 
     --sand: 26 39% 93%;                /* #F4ECE6 sable */
-    --sidebar: 30 30% 96%;             /* fond de la barre latérale */
+    --sidebar: 0 0% 100%;              /* barre latérale fine, blanche */
+    --peach: 14 52% 91%;               /* #F5E3DD */
+    --terracotta-soft: 14 59% 87%;     /* #F1D3C9 */
 
     --muted: 30 20% 95%;
-    --muted-foreground: 24 5% 42%;     /* #706A66 */
+    --muted-foreground: 23 5% 48%;     /* #827A75 */
 
     --accent: 26 39% 95%;
     --accent-foreground: 30 4% 9%;
@@ -66,17 +68,17 @@ section[id] {
     --info-foreground: 0 0% 100%;
     --info-soft: 206 35% 95%;
 
-    --border: 28 22% 88%;              /* #E8E1DB */
-    --input: 28 22% 85%;
+    --border: 30 12% 90%;              /* ≈ rgba(30,25,22,.08) sur fond clair */
+    --input: 30 12% 86%;
     --ring: 12 53% 53%;
 
-    --radius: 0.625rem;
+    --radius: 0.75rem;
 
     /* Surfaces historiques (classes surface-1/2/3, hover-surface). */
     --surface-1: 0 0% 100%;
     --surface-2: 30 20% 96%;
     --surface-3: 26 39% 93%;
-    --hairline: 28 22% 88%;
+    --hairline: 30 12% 90%;
 
     color-scheme: light;
   }
@@ -214,6 +216,83 @@ section[id] {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* =========================================================================
+   Site vitrine — intro, révélations du hero, curseur
+   ========================================================================= */
+:root { --intro-delay: 1.05s; }
+html[data-intro='seen'] { --intro-delay: 0s; }
+
+.site-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #9d4432;
+  color: #fbf8f5;
+  pointer-events: none;
+  animation: site-intro-out 0.75s cubic-bezier(0.76, 0, 0.24, 1) 0.85s forwards;
+}
+html[data-intro='seen'] .site-intro { display: none; }
+.site-intro__inner { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.site-intro__mask { overflow: hidden; padding-bottom: 0.06em; }
+.site-intro__word {
+  display: block;
+  font-size: clamp(3rem, 13vw, 11rem);
+  font-weight: 800;
+  line-height: 0.85;
+  letter-spacing: -0.06em;
+  text-transform: uppercase;
+  animation: site-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.site-intro__line {
+  display: block;
+  width: min(60vw, 520px);
+  height: 1px;
+  background: #f1c7ba;
+  transform-origin: left;
+  animation: site-draw 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+}
+.site-intro__sub {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: site-fade 0.5s ease 0.35s forwards;
+}
+
+/* Lignes du titre du hero : CSS pur (le titre est l'élément LCP). */
+/* Marge haute compensée : les accents des capitales (É, Ê) dépassent
+   l'interlignage serré et ne doivent pas être rognés par le masque. */
+.hero-line { display: block; overflow: hidden; padding: 0.14em 0 0.08em; margin-top: -0.14em; }
+.hero-line > span {
+  display: block;
+  animation: site-rise 0.95s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--intro-delay) + var(--i, 0) * 90ms);
+}
+.hero-fade {
+  animation: site-fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--intro-delay) + var(--d, 0ms));
+}
+
+@keyframes site-rise { from { transform: translateY(105%); } to { transform: translateY(0); } }
+@keyframes site-draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes site-fade { to { opacity: 1; } }
+@keyframes site-fade-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes site-intro-out { to { transform: translateY(-100%); visibility: hidden; } }
+
+/* Curseur personnalisé (ordinateur) : le curseur natif est masqué, sauf
+   dans les champs de saisie. */
+html.site-cursor, html.site-cursor * { cursor: none !important; }
+html.site-cursor input, html.site-cursor textarea, html.site-cursor [contenteditable='true'] { cursor: text !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .site-intro { display: none; }
+  .hero-line > span, .hero-fade { animation: none; }
 }
 
 /* Corps des documents légaux. */

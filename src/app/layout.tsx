@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Inter_Tight } from 'next/font/google';
+import { Instrument_Serif, Manrope } from 'next/font/google';
 import { Toaster } from 'sonner';
 import './globals.css';
 import { GlobalToastBridge } from '@/components/ui/GlobalToastBridge';
@@ -12,13 +12,15 @@ import { SITE } from '@/lib/seo/config';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { PUBLIC_PATHS, PUBLIC_PREFIXES } from '@/lib/routes/public-paths';
 
-// Une seule famille pour le site et l'application : Inter pour le texte et
-// les chiffres, Inter Tight (dessin resserré) pour les titres.
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
-const interTight = Inter_Tight({
+// Identité typographique commune au site et à l'application :
+//   - Manrope : interface, textes, chiffres (variable 200 → 800) ;
+//   - Instrument Serif : accents éditoriaux (mots en italique des titres).
+const manrope = Manrope({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
+const instrumentSerif = Instrument_Serif({
   subsets: ['latin'],
-  weight: ['500', '600', '700'],
-  variable: '--font-inter-tight',
+  weight: '400',
+  style: ['normal', 'italic'],
+  variable: '--font-editorial',
   display: 'swap',
 });
 
@@ -37,30 +39,26 @@ export const metadata: Metadata = {
   creator: 'QuadCore SAS',
   publisher: 'QuadCore SAS',
   formatDetection: { telephone: false, address: false, email: false },
-  alternates: {
-    canonical: '/',
-    languages: { 'fr-FR': '/', 'en-US': '/', 'x-default': '/' },
-  },
+  alternates: { canonical: '/' },
   openGraph: {
     type: 'website',
     locale: 'fr_FR',
-    alternateLocale: ['en_US'],
     url: SITE.url,
     siteName: 'Centrium',
-    title: 'Centrium — le cockpit de gestion des ESN',
+    title: 'Centrium — le cockpit des ESN modernes',
     description: SITE.descriptionFr,
     images: [
       {
         url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'Centrium — le cockpit de gestion des ESN',
+        alt: 'Centrium — le cockpit des ESN modernes',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Centrium — le cockpit de gestion des ESN',
+    title: 'Centrium — le cockpit des ESN modernes',
     description: SITE.descriptionFr,
     images: ['/opengraph-image'],
     site: SITE.twitterHandle,
@@ -86,7 +84,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#FBFAF8',
+  themeColor: '#FBF8F5',
   colorScheme: 'light',
   width: 'device-width',
   initialScale: 1,
@@ -152,7 +150,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr" className={`${inter.variable} ${interTight.variable}`} suppressHydrationWarning>
+    <html lang="fr" className={`${manrope.variable} ${instrumentSerif.variable}`} suppressHydrationWarning>
       <head>
         <link rel="dns-prefetch" href="https://va.vercel-scripts.com" />
         <script dangerouslySetInnerHTML={{ __html: sessionGateScript }} />
