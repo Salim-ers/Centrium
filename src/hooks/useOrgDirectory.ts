@@ -149,3 +149,36 @@ export function useConsultantsLite() {
   );
   return { consultants: q.data ?? [], byId, options, loading: q.loading };
 }
+
+export type MissionLite = {
+  id: string;
+  title: string;
+  status: string;
+  company_id: string | null;
+  consultant_id: string | null;
+};
+
+export function useMissionsLite(enabled = true) {
+  const org = useOrganizationSafe();
+  const orgId = org?.activeOrgId;
+  const q = useCachedQuery<MissionLite[]>(
+    `missions-lite:${orgId ?? 'none'}`,
+    async () => {
+      const { data } = await createClient()
+        .from('missions')
+        .select('id, title, status, company_id, consultant_id')
+        .eq('organization_id', orgId!)
+        .eq('archived', false)
+        .order('start_date', { ascending: false })
+        .limit(2000);
+      return (data ?? []) as MissionLite[];
+    },
+    { enabled: !!orgId && enabled },
+  );
+  const byId = useMemo(() => new Map((q.data ?? []).map((m) => [m.id, m])), [q.data]);
+  const optionsFor = (filter: { companyId?: string | null; consultantId?: string | null }): ComboboxOption[] =>
+    (q.data ?? [])
+      .filter((m) => (!filter.companyId || m.company_id === filter.companyId) && (!filter.consultantId || m.consultant_id === filter.consultantId))
+      .map((m) => ({ value: m.id, label: m.title }));
+  return { missions: q.data ?? [], byId, optionsFor, loading: q.loading };
+}

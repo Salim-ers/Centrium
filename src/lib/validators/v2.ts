@@ -204,3 +204,16 @@ export const quoteSchema = z.object({
 });
 
 export type QuoteInput = z.input<typeof quoteSchema>;
+
+export const DOCUMENT_TEMPLATE_KINDS = ['quote', 'proposal', 'purchase_order', 'contract', 'skills_dossier'] as const;
+
+export const documentTemplateSchema = z.object({
+  kind: z.enum(DOCUMENT_TEMPLATE_KINDS),
+  name: z.string().trim().min(1, 'Nom requis').max(120),
+  intro_text: shortText(5000),
+  terms_text: shortText(8000),
+  footer_text: shortText(2000),
+  is_default: z.boolean().default(false),
+});
+
+export type DocumentTemplateInput = z.input<typeof documentTemplateSchema>;
