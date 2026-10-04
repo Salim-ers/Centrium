@@ -1,514 +1,451 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
-import { useTimesheetStatusLabels } from '@/lib/i18n/useBadges';
-import { monthsShort } from '@/lib/i18n/months';
-import {
-  ClipboardCheck,
-  CheckCircle2,
-  Eye,
-  Plus,
-  Trash2,
-  Clock3,
-  CalendarDays,
-  Percent,
-  Receipt,
-  Archive,
-  ArchiveRestore,
-} from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { BellRing, Check, ClipboardCheck, Plus, Send, X } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
+import { PageHeader, KPICard } from '@/components/app';
+import { EmptyState } from '@/components/app/EmptyState';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import {
-  PageHeader,
-  KPICard,
-  AppCard,
-  EmptyState,
-  StatusBadge,
-  type StatusTone,
-} from '@/components/app';
-import { ArchivePurgeNotice } from '@/components/app/ArchivePurgeNotice';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { StatusPill } from '@/components/ui/status-pill';
+import { Badge } from '@/components/ui/badge';
+import { Avatar } from '@/components/ui/avatar';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip } from '@/components/ui/tooltip';
+import { DataTable, type Column } from '@/components/ui/data-table';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TimesheetFormDialog } from '@/components/timesheets/TimesheetFormDialog';
-import { timesheetService, invoiceService, type TimesheetListItem } from '@/lib/services';
 import { useOrganization } from '@/lib/auth/context';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useRealtimeReload } from '@/hooks/useRealtimeReload';
-import { usePagination } from '@/hooks/usePagination';
-import { PaginationFooter } from '@/components/ui/PaginationFooter';
-import type { Timesheet } from '@/types';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { createClient } from '@/lib/supabase/client';
+import { timesheetService } from '@/lib/services';
+import { TIMESHEET_STATUS, periodLabel, statusOf } from '@/lib/status';
+import { formatDate } from '@/lib/format';
 
-const STATUS_LABEL: Record<Timesheet['status'], string> = {
-  draft: 'Brouillon',
-  submitted: 'Soumis',
-  client_validated: 'Validé',
-  rejected: 'Rejeté',
+type Row = {
+  id: string;
+  mission_id: string;
+  consultant_id: string;
+  period_month: number;
+  period_year: number;
+  days_worked: number;
+  days_validated: number;
+  status: string;
+  submitted_at: string | null;
+  client_approval_status?: string;
+  rejection_reason: string | null;
+  consultant: { first_name: string; last_name: string } | null;
+  mission: { title: string; company_id: string | null; companies: { name: string } | null } | null;
 };
 
-function TimesheetsPageInner() {
-  const { activeOrgId } = useOrganization();
-  const t = useAppT();
-  const { locale } = useLocale();
-  const isEn = locale === 'en';
-  const MONTHS = monthsShort(isEn);
-  const tsLabels = useTimesheetStatusLabels();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [showArchived, setShowArchived] = useState(false);
+type Missing = {
+  mission_id: string;
+  title: string;
+  consultant: string;
+  client: string | null;
+  month: number;
+  year: number;
+};
 
-  const {
-    data: timesheetsData,
-    loading,
-    reload,
-    setData: setTimesheets,
-  } = useCachedQuery<TimesheetListItem[]>(
-    `timesheets:${activeOrgId ?? 'none'}:${showArchived ? 'arch' : 'live'}`,
-    async () => {
-      const res = await timesheetService.list(showArchived);
-      return res.data ?? [];
-    },
+type Data = { rows: Row[]; missing: Missing[] };
+
+const APPROVAL: Record<string, { fr: string; en: string; variant: 'info' | 'success' | 'destructive' }> = {
+  pending: { fr: 'Approbation client en attente', en: 'Client approval pending', variant: 'info' },
+  approved: { fr: 'Approuvé par le client', en: 'Approved by client', variant: 'success' },
+  rejected: { fr: 'Refusé par le client', en: 'Rejected by client', variant: 'destructive' },
+};
+
+async function loadTimesheets(orgId: string, today = new Date()): Promise<Data> {
+  const supabase = createClient();
+  const prev = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const prevEnd = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().slice(0, 10);
+  const [ts, missions] = await Promise.all([
+    supabase
+      .from('timesheets')
+      .select('*, consultant:consultants(first_name, last_name), mission:missions(title, company_id, companies(name))')
+      .eq('organization_id', orgId)
+      .eq('archived', false)
+      .order('period_year', { ascending: false })
+      .order('period_month', { ascending: false })
+      .limit(3000),
+    supabase
+      .from('missions')
+      .select('id, title, start_date, end_date, consultants(first_name, last_name), companies(name)')
+      .eq('organization_id', orgId)
+      .eq('status', 'active')
+      .lte('start_date', prevEnd),
+  ]);
+  const rows = (ts.data ?? []) as unknown as Row[];
+  const prevMonth = prev.getMonth() + 1;
+  const prevYear = prev.getFullYear();
+  const prevStart = `${prevYear}-${String(prevMonth).padStart(2, '0')}-01`;
+  const missing: Missing[] = ((missions.data ?? []) as unknown as Array<{
+    id: string;
+    title: string;
+    end_date: string | null;
+    consultants: { first_name: string; last_name: string } | null;
+    companies: { name: string } | null;
+  }>)
+    .filter((m) => !m.end_date || m.end_date >= prevStart)
+    .filter((m) => !rows.some((r) => r.mission_id === m.id && r.period_month === prevMonth && r.period_year === prevYear && r.status !== 'draft'))
+    .map((m) => ({
+      mission_id: m.id,
+      title: m.title,
+      consultant: m.consultants ? `${m.consultants.first_name} ${m.consultants.last_name}` : '—',
+      client: m.companies?.name ?? null,
+      month: prevMonth,
+      year: prevYear,
+    }));
+  return { rows, missing };
+}
+
+export default function TimesheetsPage() {
+  const params = useSearchParams();
+  const { activeOrgId } = useOrganization();
+  const { can } = usePermissions();
+  const { locale } = useLocale();
+  const lang = locale === 'en' ? 'en' : 'fr';
+  const fr = lang === 'fr';
+  const canValidate = can('timesheets.validate');
+  const [tab, setTab] = useState<'pending' | 'all' | 'missing'>(params.get('status') === 'submitted' ? 'pending' : 'pending');
+  const [period, setPeriod] = useState('all');
+  const [busy, setBusy] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState<Row | null>(null);
+  const [reason, setReason] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const { data, loading, reload } = useCachedQuery<Data>(
+    `timesheets-v2:${activeOrgId ?? 'none'}`,
+    () => loadTimesheets(activeOrgId!),
     { enabled: !!activeOrgId },
   );
-  const allTimesheets = timesheetsData ?? [];
+  useRealtimeReload(['timesheets'], () => void reload(), { enabled: !!activeOrgId, debounceMs: 800 });
 
-  useRealtimeReload(['timesheets', 'timesheet_days'], () => reload());
+  const periods = useMemo(() => {
+    const keys = new Set((data?.rows ?? []).map((r) => `${r.period_year}-${String(r.period_month).padStart(2, '0')}`));
+    return [...keys].sort().reverse();
+  }, [data]);
 
-  // Drill-down depuis dashboard StatRow : ?status=submitted/draft/client_validated
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const urlStatusFilter = searchParams?.get('status') ?? null;
-  const timesheets = urlStatusFilter
-    ? allTimesheets.filter((t) => t.status === urlStatusFilter)
-    : allTimesheets;
-  const hasUrlFilter = !!urlStatusFilter;
-  const clearUrlFilter = () => router.push('/timesheets');
+  const rows = useMemo(() => {
+    let list = data?.rows ?? [];
+    if (tab === 'pending') list = list.filter((r) => r.status === 'submitted');
+    if (period !== 'all') list = list.filter((r) => `${r.period_year}-${String(r.period_month).padStart(2, '0')}` === period);
+    return list;
+  }, [data, tab, period]);
 
-  const pagination = usePagination(timesheets.length, {
-    storageKey: 'timesheets-page-size',
-  });
-  const paginatedTimesheets = pagination.paginate(timesheets);
+  const kpis = useMemo(() => {
+    const all = data?.rows ?? [];
+    const now = new Date();
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevValidated = all.filter((r) => r.status === 'client_validated' && r.period_month === prev.getMonth() + 1 && r.period_year === prev.getFullYear());
+    return {
+      pending: all.filter((r) => r.status === 'submitted').length,
+      clientPending: all.filter((r) => r.client_approval_status === 'pending').length,
+      prevValidated: prevValidated.length,
+      prevDays: prevValidated.reduce((s, r) => s + Number(r.days_validated || 0), 0),
+      missing: data?.missing.length ?? 0,
+      prevLabel: periodLabel(prev.getMonth() + 1, prev.getFullYear(), lang),
+    };
+  }, [data, lang]);
 
-  async function removeTimesheet(ts: Timesheet) {
-    const period = `${MONTHS[ts.period_month - 1]} ${ts.period_year}`;
-    if (!confirm(`${t.pages.todos.delete_confirm_prefix} ${period} ?`)) {
-      return;
-    }
-    const res = await timesheetService.remove(ts.id);
-    if (res.error) {
-      toast.error(res.error.message);
-      return;
-    }
-    setTimesheets((prev) => (prev ?? []).filter((x) => x.id !== ts.id));
-    toast.success(`${period}${t.pages.todos.toast_deleted_suffix}`);
-  }
-
-  async function archiveTimesheet(ts: Timesheet) {
-    const period = `${MONTHS[ts.period_month - 1]} ${ts.period_year}`;
-    if (!confirm(t.pages.timesheets.confirm_archive.replace('{period}', period))) return;
-    const res = await timesheetService.archive(ts.id);
-    if (res.error) {
-      toast.error(res.error.message);
-      return;
-    }
-    // Le CRA passe dans les archives → on le retire de la liste active affichée.
-    setTimesheets((prev) => (prev ?? []).filter((x) => x.id !== ts.id));
-    toast.success(t.pages.timesheets.toast_archived);
-  }
-
-  async function restoreTimesheet(ts: Timesheet) {
-    const res = await timesheetService.unarchive(ts.id);
-    if (res.error) {
-      toast.error(res.error.message);
-      return;
-    }
-    setTimesheets((prev) => (prev ?? []).filter((x) => x.id !== ts.id));
-    toast.success(t.pages.timesheets.toast_restored);
-  }
-
-  async function validate(id: string) {
-    if (!activeOrgId) {
-      toast.error(t.toasts.error_generic);
-      return;
-    }
-    const res = await timesheetService.validateAndInvoice(id, activeOrgId);
+  async function validate(r: Row) {
+    if (!activeOrgId) return;
+    setBusy(r.id);
+    const res = await timesheetService.validateAndInvoice(r.id, activeOrgId);
+    setBusy(null);
     if (res.error || !res.data) {
-      toast.error(t.toasts.error_generic + ': ' + (res.error?.message ?? ''));
+      toast.error(res.error?.message ?? (fr ? 'Validation impossible' : 'Could not approve'));
       return;
     }
-    setTimesheets((prev) =>
-      (prev ?? []).map((ts) =>
-        ts.id === id
-          ? { ...ts, status: 'client_validated', days_validated: ts.days_worked }
-          : ts,
-      ),
+    void fetch(`/api/timesheets/${r.id}/transition`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'notify_validated' }),
+    }).catch(() => {});
+    toast.success(
+      res.data.alreadyInvoiced
+        ? fr ? 'CRA validé' : 'Timesheet approved'
+        : fr ? `CRA validé · préfacture ${res.data.invoice.invoice_number} préparée` : `Approved · pre-invoice ${res.data.invoice.invoice_number} prepared`,
     );
-    if (res.data.alreadyInvoiced) {
-      toast.success(t.forms.timesheet.validated);
-    } else {
-      toast.success(t.forms.timesheet.validated + ` — ${res.data.invoice.invoice_number}`);
-    }
+    void reload();
   }
 
-  // Pendant de la facture client : génère la facture de SOUS-TRAITANCE du
-  // consultant (jours validés × TJM achat), visible dans son espace perso.
-  const [generatingId, setGeneratingId] = useState<string | null>(null);
-  async function generateConsultantInvoice(ts: Timesheet) {
-    setGeneratingId(ts.id);
-    try {
-      const res = await invoiceService.generateConsultantInvoice(ts.id);
-      if (res.error || !res.data) {
-        toast.error(t.toasts.error_generic + ': ' + (res.error?.message ?? ''));
-        return;
-      }
-      if (res.data.alreadyExists) {
-        toast.info(
-          `${t.pages.timesheets.consultant_invoice_exists} — ${res.data.invoice.invoice_number}`,
-        );
-      } else {
-        toast.success(
-          `${t.pages.timesheets.consultant_invoice_done} — ${res.data.invoice.invoice_number}`,
-        );
-      }
-    } finally {
-      setGeneratingId(null);
+  async function transition(r: Row, action: 'reject' | 'request_client_approval', why?: string) {
+    setBusy(r.id);
+    const res = await fetch(`/api/timesheets/${r.id}/transition`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, reason: why }),
+    });
+    setBusy(null);
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.error(json.message ?? json.error ?? (fr ? 'Action impossible' : 'Action failed'));
+      return false;
     }
+    toast.success(
+      action === 'reject'
+        ? fr ? 'CRA renvoyé au consultant' : 'Timesheet sent back to the consultant'
+        : fr ? 'CRA envoyé au client pour approbation' : 'Timesheet sent to the client for approval',
+    );
+    void reload();
+    return true;
   }
 
-  // KPIs CRA — basés sur le mois en cours
-  const now = new Date();
-  const currMonth = now.getMonth() + 1;
-  const currYear = now.getFullYear();
-  const thisMonth = timesheets.filter(
-    (t) => t.period_month === currMonth && t.period_year === currYear,
-  );
-  const validatedThisMonth = thisMonth.filter((t) => t.status === 'client_validated').length;
-  const pendingCount = timesheets.filter(
-    (t) => t.status === 'submitted' || t.status === 'draft',
-  ).length;
-  const totalDaysWorked = timesheets.reduce((s, t) => s + (t.days_worked ?? 0), 0);
-  const totalDaysValidated = timesheets.reduce((s, t) => s + (t.days_validated ?? 0), 0);
-  const billableRatio =
-    totalDaysWorked > 0 ? Math.round((totalDaysValidated / totalDaysWorked) * 100) : 0;
+  async function remind(m: Missing) {
+    setBusy(m.mission_id);
+    const res = await fetch('/api/timesheets/remind', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mission_id: m.mission_id, period_month: m.month, period_year: m.year }),
+    });
+    setBusy(null);
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.error(json.message ?? (fr ? 'Relance impossible' : 'Reminder failed'));
+      return;
+    }
+    toast.success(fr ? 'Consultant relancé' : 'Consultant reminded');
+  }
 
-  // Mapping statut métier → tone unifié
-  const statusToTone = (s: Timesheet['status']): StatusTone => {
-    if (s === 'client_validated') return 'success';
-    if (s === 'submitted') return 'warning';
-    if (s === 'rejected') return 'danger';
-    return 'pending';
-  };
+  const columns: Column<Row>[] = [
+    {
+      id: 'consultant',
+      header: 'Consultant',
+      mobile: 'title',
+      sortValue: (r) => (r.consultant ? `${r.consultant.last_name} ${r.consultant.first_name}` : ''),
+      cell: (r) => (
+        <span className="flex min-w-0 items-center gap-2.5">
+          <Avatar name={r.consultant ? `${r.consultant.first_name} ${r.consultant.last_name}` : '?'} size="sm" />
+          <span className="min-w-0">
+            <span className="block truncate font-medium text-foreground">{r.consultant ? `${r.consultant.first_name} ${r.consultant.last_name}` : '—'}</span>
+            <span className="block truncate text-xs text-muted-foreground">
+              {r.mission?.title}
+              {r.mission?.companies?.name ? ` · ${r.mission.companies.name}` : ''}
+            </span>
+          </span>
+        </span>
+      ),
+    },
+    {
+      id: 'period',
+      header: fr ? 'Période' : 'Period',
+      mobile: 'subtitle',
+      sortValue: (r) => r.period_year * 100 + r.period_month,
+      cell: (r) => <span className="text-[13px]">{periodLabel(r.period_month, r.period_year, lang)}</span>,
+    },
+    {
+      id: 'days',
+      header: fr ? 'Jours' : 'Days',
+      align: 'right',
+      mobile: 'meta',
+      sortValue: (r) => Number(r.days_worked),
+      cell: (r) => <span className="num">{r.status === 'client_validated' ? r.days_validated : r.days_worked}</span>,
+    },
+    {
+      id: 'status',
+      header: fr ? 'Statut' : 'Status',
+      mobile: 'trailing',
+      sortValue: (r) => r.status,
+      cell: (r) => {
+        const s = statusOf(TIMESHEET_STATUS, r.status, lang);
+        const approval = r.client_approval_status ? APPROVAL[r.client_approval_status] : null;
+        return (
+          <span className="flex flex-wrap items-center gap-1.5">
+            <StatusPill tone={s.tone}>{s.label}</StatusPill>
+            {approval && <Badge variant={approval.variant}>{approval[lang]}</Badge>}
+            {r.status === 'rejected' && r.rejection_reason && (
+              <Tooltip label={r.rejection_reason}>
+                <span className="cursor-help text-xs text-muted-foreground underline decoration-dotted">{fr ? 'motif' : 'reason'}</span>
+              </Tooltip>
+            )}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'submitted',
+      header: fr ? 'Soumis le' : 'Submitted',
+      hideOnMobile: true,
+      sortValue: (r) => r.submitted_at ?? '',
+      cell: (r) => <span className="text-[13px] text-muted-foreground">{formatDate(r.submitted_at, lang, 'short')}</span>,
+    },
+    ...(canValidate
+      ? ([
+          {
+            id: 'actions',
+            header: <span className="sr-only">Actions</span>,
+            align: 'right',
+            hideOnMobile: true,
+            cell: (r) =>
+              r.status === 'submitted' ? (
+                <span className="flex justify-end gap-1">
+                  {r.client_approval_status !== 'pending' && r.client_approval_status !== 'approved' && (
+                    <Tooltip label={fr ? 'Demander l’approbation du client' : 'Request client approval'}>
+                      <Button variant="ghost" size="icon-sm" disabled={busy === r.id} onClick={() => void transition(r, 'request_client_approval')} aria-label={fr ? 'Demander l’approbation du client' : 'Request client approval'}>
+                        <Send />
+                      </Button>
+                    </Tooltip>
+                  )}
+                  <Button variant="secondary" size="sm" disabled={busy === r.id} onClick={() => { setRejecting(r); setReason(''); }}>
+                    <X />
+                    {fr ? 'Refuser' : 'Reject'}
+                  </Button>
+                  <Button size="sm" loading={busy === r.id} onClick={() => void validate(r)}>
+                    <Check />
+                    {fr ? 'Valider' : 'Approve'}
+                  </Button>
+                </span>
+              ) : null,
+          },
+        ] as Column<Row>[])
+      : []),
+  ];
 
   return (
     <AppShell>
       <PageHeader
-        eyebrow={t.pages.timesheets.eyebrow}
-        title={
-          showArchived ? (
-            <>
-              {t.pages.timesheets.archived_title_a}{' '}
-              <span className="text-primary font-display ">
-                {t.pages.timesheets.archived_title_b}
-              </span>
-            </>
-          ) : (
-            <>
-              {t.pages.timesheets.title_a}{' '}
-              <span className="text-primary font-display ">{t.pages.timesheets.title_b}</span>
-            </>
+        eyebrow={fr ? 'Opérations' : 'Operations'}
+        title={fr ? 'CRA' : 'Timesheets'}
+        description={
+          fr
+            ? 'Validation des comptes rendus d’activité. Chaque CRA validé prépare la préfacture et met à jour le CA de la mission.'
+            : 'Timesheet approval. Each approved timesheet prepares the pre-invoice and updates mission revenue.'
+        }
+        actions={
+          can('timesheets.validate') && (
+            <Button variant="secondary" onClick={() => setCreateOpen(true)}>
+              <Plus />
+              {fr ? 'Saisir un CRA' : 'Enter a timesheet'}
+            </Button>
           )
         }
-        description={t.pages.timesheets.description}
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowArchived((v) => !v)}
-              title={showArchived ? t.pages.timesheets.see_active : t.pages.timesheets.see_archived}
-            >
-              {showArchived ? (
-                <>
-                  <ArchiveRestore className="h-4 w-4" />
-                  {t.pages.timesheets.see_active}
-                </>
-              ) : (
-                <>
-                  <Archive className="h-4 w-4" />
-                  {t.pages.timesheets.see_archived}
-                </>
-              )}
-            </Button>
-            {!showArchived && (
-              <Button onClick={() => setDialogOpen(true)}>
-                <Plus className="h-4 w-4" />
-                {t.pages.timesheets.new}
-              </Button>
-            )}
-          </div>
-        }
       />
 
-      <Reveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <KPICard
-          icon={CheckCircle2}
-          label={t.pages.timesheets.kpi_validated_month}
-          value={validatedThisMonth}
-          tone="emerald"
-        />
-        <KPICard
-          icon={Clock3}
-          label={t.pages.timesheets.kpi_pending}
-          value={pendingCount}
-          tone="amber"
-        />
-        <KPICard
-          icon={CalendarDays}
-          label={t.pages.timesheets.kpi_days_entered}
-          value={totalDaysWorked}
-          tone="magenta"
-          hint={t.pages.timesheets.kpi_validated_count.replace('{n}', String(totalDaysValidated))}
-        />
-        <KPICard
-          icon={Percent}
-          label={t.pages.timesheets.kpi_billable_ratio}
-          value={billableRatio}
-          suffix="%"
-          tone="violet"
-        />
-      </Reveal>
+      <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <KPICard label={fr ? 'À valider' : 'To approve'} value={kpis.pending} tone={kpis.pending ? 'amber' : 'neutral'} loading={loading && !data} />
+        <KPICard label={fr ? 'Chez le client' : 'With client'} value={kpis.clientPending} hint={fr ? 'Approbation demandée' : 'Approval requested'} loading={loading && !data} />
+        <KPICard label={fr ? 'Validés' : 'Approved'} value={kpis.prevValidated} hint={kpis.prevLabel} loading={loading && !data} />
+        <KPICard label={fr ? 'Jours validés' : 'Approved days'} value={kpis.prevDays} hint={kpis.prevLabel} loading={loading && !data} />
+        <KPICard label={fr ? 'CRA manquants' : 'Missing timesheets'} value={kpis.missing} hint={kpis.prevLabel} tone={kpis.missing ? 'rose' : 'neutral'} loading={loading && !data} />
+      </section>
 
-      <TimesheetFormDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        organizationId={activeOrgId ?? ''}
-        onSaved={() => reload()}
-      />
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
+          <TabsList>
+            <TabsTrigger value="pending">
+              {fr ? 'À valider' : 'To approve'} <span className="num text-xs text-muted-foreground">{kpis.pending}</span>
+            </TabsTrigger>
+            <TabsTrigger value="all">{fr ? 'Tous' : 'All'}</TabsTrigger>
+            <TabsTrigger value="missing">
+              {fr ? 'Manquants' : 'Missing'} <span className="num text-xs text-muted-foreground">{kpis.missing}</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        {tab === 'all' && (
+          <Select value={period} onChange={(e) => setPeriod(e.target.value)} className="w-48" aria-label={fr ? 'Période' : 'Period'}>
+            <option value="all">{fr ? 'Toutes les périodes' : 'All periods'}</option>
+            {periods.map((p) => {
+              const [y, m] = p.split('-').map(Number);
+              return (
+                <option key={p} value={p}>
+                  {periodLabel(m!, y!, lang)}
+                </option>
+              );
+            })}
+          </Select>
+        )}
+      </div>
 
-      {/* Bandeau filtre URL (drill-down depuis dashboard "CRA à valider") */}
-      {hasUrlFilter && (
-        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/[0.06] px-4 py-2.5">
-          <div className="text-sm">
-            <span className="font-medium">
-              {urlStatusFilter && (tsLabels[urlStatusFilter as keyof typeof tsLabels] ?? urlStatusFilter)}
-            </span>
-            <span className="ml-2 text-xs text-muted-foreground">({timesheets.length})</span>
+      {tab === 'missing' ? (
+        (data?.missing ?? []).length === 0 ? (
+          <EmptyState icon={ClipboardCheck} title={fr ? 'Aucun CRA manquant' : 'No missing timesheet'} description={fr ? 'Toutes les missions actives ont transmis leur CRA du mois dernier.' : 'All active missions have submitted last month’s timesheet.'} />
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+            <ul className="divide-y divide-border">
+              {(data?.missing ?? []).map((m) => (
+                <li key={m.mission_id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[13.5px] font-medium">{m.consultant}</div>
+                    <div className="truncate text-xs text-muted-foreground">
+                      <Link href={`/missions/${m.mission_id}`} className="hover:text-foreground">
+                        {m.title}
+                      </Link>
+                      {m.client ? ` · ${m.client}` : ''} · {periodLabel(m.month, m.year, lang)}
+                    </div>
+                  </div>
+                  {canValidate && (
+                    <Button variant="secondary" size="sm" loading={busy === m.mission_id} onClick={() => void remind(m)}>
+                      <BellRing />
+                      {fr ? 'Relancer' : 'Remind'}
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
           </div>
-          <Button variant="ghost" size="sm" onClick={clearUrlFilter} className="h-7">
-            {t.actions.remove_filter}
-          </Button>
-        </div>
-      )}
-
-      {showArchived && <ArchivePurgeNotice message={t.pages.timesheets.purge_notice} />}
-
-      {!loading && timesheets.length === 0 ? (
-        <EmptyState
-          icon={ClipboardCheck}
-          title={showArchived ? t.pages.timesheets.empty_archived_title : t.pages.timesheets.empty_title}
-          description={
-            showArchived
-              ? t.pages.timesheets.empty_archived_description
-              : t.pages.timesheets.empty_description
-          }
-          action={
-            showArchived ? (
-              <Button variant="outline" onClick={() => setShowArchived(false)}>
-                <ArchiveRestore className="h-4 w-4" />
-                {t.pages.timesheets.see_active}
-              </Button>
-            ) : hasUrlFilter ? (
-              <Button variant="outline" onClick={clearUrlFilter}>
-                {t.actions.remove_filter}
-              </Button>
-            ) : (
-              <Button onClick={() => setDialogOpen(true)} disabled={!activeOrgId}>
-                <Plus className="h-4 w-4" />
-                {t.pages.timesheets.new}
-              </Button>
-            )
-          }
-        />
+        )
       ) : (
-      <Reveal delay={0.08}>
-      <AppCard>
-        <div className="overflow-hidden rounded-2xl">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t.forms.invoice.consultant}</TableHead>
-                <TableHead>{t.forms.timesheet.period}</TableHead>
-                <TableHead>{t.forms.timesheet.days_worked}</TableHead>
-                <TableHead>{t.forms.timesheet.days_validated}</TableHead>
-                <TableHead>{t.forms.timesheet.status}</TableHead>
-                <TableHead className="text-right">{t.pages.consultants.table_actions}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell colSpan={6}>
-                      <div
-                        className="h-10 surface-1 animate-pulse rounded-lg"
-                        style={{ animationDelay: `${i * 120}ms` }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                paginatedTimesheets.map((ts, rowIdx) => (
-                  <motion.tr
-                    key={ts.id}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      duration: 0.25,
-                      delay: Math.min(rowIdx, 10) * 0.03,
-                      ease: 'easeOut',
-                    }}
-                    className="group border-b border-hairline transition-colors hover-surface"
-                  >
-                    <TableCell>
-                      {ts.consultant ? (
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="h-6 w-6 rounded-full bg-qc-gradient ring-1 ring-foreground/10 flex items-center justify-center text-white text-[9px] font-semibold shrink-0">
-                            {(ts.consultant.first_name?.[0] ?? '?').toUpperCase()}
-                            {(ts.consultant.last_name?.[0] ?? '').toUpperCase()}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium truncate">
-                              {ts.consultant.first_name} {ts.consultant.last_name}
-                            </div>
-                            {ts.mission?.title && (
-                              <div className="text-[11px] text-muted-foreground truncate">
-                                {ts.mission.title}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {MONTHS[ts.period_month - 1]} {ts.period_year}
-                    </TableCell>
-                    <TableCell>{ts.days_worked}</TableCell>
-                    <TableCell>{ts.days_validated}</TableCell>
-                    <TableCell>
-                      <StatusBadge tone={statusToTone(ts.status)}>
-                        {tsLabels[ts.status as keyof typeof tsLabels] ?? STATUS_LABEL[ts.status]}
-                      </StatusBadge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
-                        <Button size="sm" variant="ghost" asChild>
-                          <Link href={`/timesheets/${ts.id}`}>
-                            <Eye className="h-3 w-3" />
-                            {t.pages.alerts.view}
-                          </Link>
-                        </Button>
-                        {!showArchived && ts.status !== 'client_validated' && (
-                          <Button size="sm" variant="ghost" onClick={() => validate(ts.id)}>
-                            <CheckCircle2 className="h-3 w-3" />
-                            {t.actions.confirm}
-                          </Button>
-                        )}
-                        {!showArchived && ts.status === 'client_validated' && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => generateConsultantInvoice(ts)}
-                            disabled={generatingId === ts.id}
-                            title={t.pages.timesheets.consultant_invoice}
-                          >
-                            <Receipt className="h-3 w-3" />
-                            {t.pages.timesheets.consultant_invoice}
-                          </Button>
-                        )}
-                        {showArchived ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => restoreTimesheet(ts)}
-                            title={t.pages.timesheets.action_restore}
-                          >
-                            <ArchiveRestore className="h-3 w-3" />
-                            {t.pages.timesheets.action_restore}
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => archiveTimesheet(ts)}
-                            title={t.pages.timesheets.action_archive}
-                            className="text-muted-foreground"
-                          >
-                            <Archive className="h-3 w-3" />
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => removeTimesheet(ts)}
-                          title={t.actions.delete}
-                          className="text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </motion.tr>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </AppCard>
-      </Reveal>
-      )}
-
-      {timesheets.length > 0 && (
-        <PaginationFooter
-          pagination={pagination}
-          total={timesheets.length}
-          itemLabel={isEn ? 'timesheet' : 'CRA'}
-          itemLabelPlural={isEn ? 'timesheets' : 'CRA'}
+        <DataTable
+          aria-label={fr ? 'Comptes rendus d’activité' : 'Timesheets'}
+          rows={rows}
+          columns={columns}
+          getRowId={(r) => r.id}
+          rowHref={(r) => `/timesheets/${r.id}`}
+          loading={loading && !data}
+          initialSort={{ id: 'period', dir: 'desc' }}
+          empty={
+            <EmptyState
+              icon={ClipboardCheck}
+              title={tab === 'pending' ? (fr ? 'Aucun CRA à valider' : 'Nothing to approve') : fr ? 'Aucun CRA' : 'No timesheet'}
+              description={
+                tab === 'pending'
+                  ? fr
+                    ? 'Les CRA soumis par vos consultants apparaîtront ici.'
+                    : 'Timesheets submitted by consultants will show up here.'
+                  : undefined
+              }
+            />
+          }
         />
       )}
+
+      <Dialog open={!!rejecting} onOpenChange={(v) => !v && setRejecting(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{fr ? 'Renvoyer le CRA au consultant' : 'Send the timesheet back'}</DialogTitle>
+            <DialogDescription>
+              {fr ? 'Le motif est visible par le consultant, qui pourra corriger et soumettre à nouveau.' : 'The reason is shown to the consultant, who can fix and resubmit.'}
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={4} maxLength={1000} placeholder={fr ? 'ex. Le 14 était un jour férié chez le client.' : 'e.g. The 14th was a holiday at the client.'} aria-label={fr ? 'Motif' : 'Reason'} />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRejecting(null)}>
+              {fr ? 'Annuler' : 'Cancel'}
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!reason.trim()}
+              loading={!!rejecting && busy === rejecting.id}
+              onClick={async () => {
+                if (rejecting && (await transition(rejecting, 'reject', reason))) setRejecting(null);
+              }}
+            >
+              {fr ? 'Renvoyer' : 'Send back'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {activeOrgId && <TimesheetFormDialog open={createOpen} onOpenChange={setCreateOpen} organizationId={activeOrgId} onSaved={() => void reload()} />}
     </AppShell>
-  );
-}
-
-/** Entrée en cascade des sections de la page (fondu + translation). */
-function Reveal({
-  delay = 0,
-  className,
-  children,
-}: {
-  delay?: number;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay, ease: 'easeOut' }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-export default function TimesheetsPage() {
-  return (
-    <Suspense fallback={null}>
-      <TimesheetsPageInner />
-    </Suspense>
   );
 }

@@ -180,6 +180,15 @@ BEGIN
           'd000000a-0000-0000-0000-000000000001', 9, 2026, 'draft');
   ASSERT (SELECT count(*) FROM timesheets) = 1, 'consultant crée son CRA';
 END $$;
+DO $$
+DECLARE failed boolean := false;
+BEGIN
+  BEGIN
+    UPDATE timesheets SET client_approval_status = 'approved';
+  EXCEPTION WHEN OTHERS THEN failed := true;
+  END;
+  ASSERT failed, 'le consultant ne peut pas s''auto-approuver côté client';
+END $$;
 
 -- ── Client : périmètre strict de sa société ──────────────────────────────
 SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000a006', false);

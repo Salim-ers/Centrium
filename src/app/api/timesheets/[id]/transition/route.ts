@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { requireOrg } from '@/lib/auth/guards';
+import { getAuthorization } from '@/lib/auth/rbac';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail, pick, type EmailLocale } from '@/lib/email/send';
@@ -29,7 +29,7 @@ import { monthsLong } from '@/lib/i18n/months';
 export const runtime = 'nodejs';
 
 const schema = z.object({
-  action: z.enum(['submit', 'reject', 'notify_validated']),
+  action: z.enum(['submit', 'reject', 'notify_validated', 'request_client_approval']),
   reason: z.string().max(1000).optional().nullable(),
 });
 
@@ -42,7 +42,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const ctx = await requireOrg();
+  const ctx = await getAuthorization();
+  const can = (p: Parameters<typeof ctx.permissions.has>[0]) => ctx.permissions.has(p);
   const parsed = schema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: 'invalid_input' }, { status: 400 });
@@ -56,7 +57,7 @@ export async function POST(
   // (autre org, autre consultant), il n'existe simplement pas pour lui.
   const { data: ts } = await supabase
     .from('timesheets')
-    .select('id, status, period_month, period_year, consultant_id, organization_id')
+    .select('id, status, period_month, period_year, consultant_id, organization_id, mission_id')
     .eq('id', params.id)
     .maybeSingle();
   if (!ts) {
@@ -118,7 +119,7 @@ export async function POST(
       .from('profiles')
       .select('email, preferred_locale')
       .eq('organization_id', ts.organization_id)
-      .in('role', ['admin', 'business_manager']);
+      .in('role', ['admin', 'direction', 'business_manager']);
     const byLocale = new Map<EmailLocale, string[]>();
     for (const p of recipients ?? []) {
       const email = p.email as string | null;
@@ -152,8 +153,72 @@ export async function POST(
     return NextResponse.json({ data: { status: 'submitted' } });
   }
 
+  if (action === 'request_client_approval') {
+    if (!can('timesheets.validate')) {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+    }
+    if (ts.status !== 'submitted') {
+      return NextResponse.json(
+        { error: 'not_submitted', message: 'Seul un CRA soumis peut être envoyé au client pour approbation.' },
+        { status: 409 },
+      );
+    }
+    const { data: mission } = await admin
+      .from('missions')
+      .select('company_id, title')
+      .eq('id', ts.mission_id)
+      .maybeSingle();
+    if (!mission?.company_id) {
+      return NextResponse.json({ error: 'no_client', message: 'La mission n\'est rattachée à aucun client.' }, { status: 409 });
+    }
+    const { data: clientUsers } = await admin
+      .from('client_portal_users')
+      .select('user_id, email')
+      .eq('organization_id', ts.organization_id)
+      .eq('company_id', mission.company_id)
+      .is('revoked_at', null);
+    if (!clientUsers?.length) {
+      return NextResponse.json(
+        { error: 'no_portal_access', message: 'Aucun accès au portail client pour ce client. Ouvrez un accès depuis Portails.' },
+        { status: 409 },
+      );
+    }
+    const { error } = await admin
+      .from('timesheets')
+      .update({ client_approval_status: 'pending', client_approval_requested_at: new Date().toISOString() })
+      .eq('id', ts.id);
+    if (error) {
+      return NextResponse.json({ error: 'update_failed', message: error.message }, { status: 500 });
+    }
+    await admin.from('notifications').insert(
+      clientUsers.map((u) => ({
+        organization_id: ts.organization_id,
+        user_id: u.user_id,
+        kind: 'timesheet_pending',
+        priority: 'medium',
+        title: `CRA ${period} — ${consultantName}`,
+        body: 'Un compte rendu d\'activité attend votre approbation.',
+        link: `/client/timesheets/${ts.id}`,
+      })),
+    );
+    for (const u of clientUsers) {
+      await sendEmail({
+        to: u.email as string,
+        locale: 'fr',
+        subject: `CRA ${period} de ${consultantName} à approuver`,
+        paragraphs: [
+          'Bonjour,',
+          `${orgNameFor('fr')} vous transmet le compte rendu d'activité de ${consultantName} pour ${period} (mission « ${mission.title} »).`,
+          'Vous pouvez l\'approuver ou demander une correction depuis votre espace client.',
+        ],
+        cta: { label: 'Voir le CRA', url: `${appUrl}/client/timesheets/${ts.id}` },
+      });
+    }
+    return NextResponse.json({ data: { client_approval_status: 'pending', notified: clientUsers.length } });
+  }
+
   if (action === 'reject') {
-    if (!['admin', 'business_manager'].includes(ctx.role)) {
+    if (!can('timesheets.validate')) {
       return NextResponse.json({ error: 'forbidden' }, { status: 403 });
     }
     if (!reason?.trim()) {
@@ -210,7 +275,7 @@ export async function POST(
   }
 
   // notify_validated — email uniquement, aucune écriture.
-  if (!['admin', 'business_manager', 'finance'].includes(ctx.role)) {
+  if (!can('timesheets.validate') && !can('finance.edit')) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
   if (ts.status !== 'client_validated') {
