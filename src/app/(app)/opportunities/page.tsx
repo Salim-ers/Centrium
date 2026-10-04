@@ -25,6 +25,7 @@ import { PIPELINE_STAGES, stageLabel, stageOf, stageTone } from '@/lib/crm/pipel
 import { isOpenOpportunity, opportunityAmount } from '@/lib/pilotage/metrics';
 import { formatDate, formatEurCompact, relativeDays } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { RelatedLinks } from '@/components/app/RelatedLinks';
 import type { Opportunity } from '@/types';
 
 export default function OpportunitiesPage() {
@@ -185,6 +186,11 @@ export default function OpportunitiesPage() {
             )}
           </>
         }
+      />
+      <RelatedLinks
+        links={[
+          { href: '/responses', label: { fr: 'Réponses aux appels d’offres', en: 'Tender responses' }, permission: 'opportunities.view' },
+        ]}
       />
 
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">

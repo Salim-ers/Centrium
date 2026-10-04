@@ -28,6 +28,7 @@ import { addDays, nextFreeDate, planningWindow, type PlanningScale } from '@/lib
 import { isOpenOpportunity } from '@/lib/pilotage/metrics';
 import { CONSULTANT_STATUS } from '@/lib/status';
 import { formatDate, formatPct } from '@/lib/format';
+import { RelatedLinks } from '@/components/app/RelatedLinks';
 import type { JobOffer, Opportunity } from '@/types';
 
 export default function StaffingPage() {
@@ -142,6 +143,12 @@ export default function StaffingPage() {
           </TabsList>
         </Tabs>
       </PageHeader>
+      <RelatedLinks
+        links={[
+          { href: '/matching', label: { fr: 'Matching par offre', en: 'Matching by job offer' }, permission: 'staffing.view' },
+          { href: '/en-mission', label: { fr: 'Consultants en mission', en: 'Consultants on assignment' }, permission: 'missions.view' },
+        ]}
+      />
 
       {tab === 'planning' ? (
         <>

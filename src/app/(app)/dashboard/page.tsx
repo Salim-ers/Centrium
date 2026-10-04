@@ -35,6 +35,7 @@ import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { loadDashboard, type DashboardSummary } from '@/lib/pilotage/load-dashboard';
 import { formatDate, formatEurCompact, formatPct } from '@/lib/format';
+import { RelatedLinks } from '@/components/app/RelatedLinks';
 import { cn } from '@/lib/utils';
 
 const chartFallback = <Skeleton className="h-[240px] w-full" />;
@@ -104,6 +105,12 @@ export default function DashboardPage() {
               <span className="hidden sm:inline">{fr ? 'Actualiser' : 'Refresh'}</span>
             </Button>
           }
+        />
+        <RelatedLinks
+          links={[
+            { href: '/alerts', label: { fr: 'Centre d’alertes', en: 'Alert center' } },
+            { href: '/todos', label: { fr: 'Mes to-do', en: 'My to-dos' } },
+          ]}
         />
 
         <SetupChecklist />

@@ -28,6 +28,7 @@ import { consultantService, type ConsultantListItem } from '@/lib/services/consu
 import { CONSULTANT_STATUS, statusOf } from '@/lib/status';
 import { SENIORITY_LABEL } from '@/constants';
 import { formatDate, formatEur, formatPct } from '@/lib/format';
+import { RelatedLinks } from '@/components/app/RelatedLinks';
 import { cn } from '@/lib/utils';
 
 type Scope = 'staff' | 'pool' | 'positioned' | 'archived';
@@ -264,6 +265,12 @@ export default function ConsultantsPage() {
             </>
           )
         }
+      />
+      <RelatedLinks
+        links={[
+          { href: '/cv-pushed', label: { fr: 'CV envoyés aux clients', en: 'CVs sent to clients' }, permission: 'consultants.view' },
+          { href: '/templates', label: { fr: 'Modèles de dossiers', en: 'Dossier templates' }, permission: 'consultants.view' },
+        ]}
       />
 
       {scope === 'staff' && (

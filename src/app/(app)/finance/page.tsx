@@ -22,6 +22,7 @@ import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { createClient } from '@/lib/supabase/client';
 import { loadFinance, type FinanceSummary } from '@/lib/pilotage/load-finance';
 import { formatEur, formatEurCompact, formatPct } from '@/lib/format';
+import { RelatedLinks } from '@/components/app/RelatedLinks';
 import { cn } from '@/lib/utils';
 
 const RevenueMarginChart = dynamic(() => import('@/components/charts/RevenueMarginChart'), {
@@ -138,6 +139,12 @@ export default function FinancePage() {
           </TabsList>
         </Tabs>
       </PageHeader>
+      <RelatedLinks
+        links={[
+          { href: '/invoices', label: { fr: 'Factures', en: 'Invoices' }, permission: 'finance.view' },
+          { href: '/accounting', label: { fr: 'Journal comptable', en: 'Accounting journal' }, permission: 'finance.view' },
+        ]}
+      />
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsContent value="overview" className="mt-0 space-y-5">
