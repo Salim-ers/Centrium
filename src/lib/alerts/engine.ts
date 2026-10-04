@@ -26,8 +26,14 @@ import {
   detectPendingInvitations,
   detectStaleDraftInvoices,
   detectStaleOpportunities,
+  detectMissionEndings,
+  planQuoteExpiryTasks,
+  planStaleOpportunityTasks,
   type AlertCandidate,
+  type AutomationTask,
+  type QuoteRow,
 } from './detectors';
+import { resolveAutomations } from '@/lib/automations/rules';
 import { buildSmsBody, escalatePriority, shouldNotify } from './reminders';
 
 // =========================================================================
@@ -65,6 +71,7 @@ export type EngineOrgReport = {
   notified_in_app: number;
   skipped: number;
   digest_sent: boolean;
+  tasks_created: number;
   errors: string[];
 };
 
@@ -283,6 +290,20 @@ async function loadOrgData(admin: SupabaseClient, orgId: string) {
   ].find(Boolean);
   if (firstError) throw new Error(firstError.message);
 
+  // Données V2 (migration 097) chargées à part et de façon tolérante : si la
+  // migration n'est pas encore appliquée, le moteur continue sans elles.
+  const [missionsV2, oppOwners, quotesV2] = await Promise.all([
+    admin.from('missions').select('id, owner_id, renewal_status').eq('organization_id', orgId).eq('archived', false),
+    admin.from('opportunities').select('id, owner_id').eq('organization_id', orgId),
+    admin.from('quotes').select('id, number, title, status, valid_until, created_by').eq('organization_id', orgId).eq('status', 'sent'),
+  ]);
+  const missionExtra = new Map(
+    (missionsV2.error ? [] : (missionsV2.data ?? [])).map((m) => [m.id as string, m as { owner_id: string | null; renewal_status: string | null }]),
+  );
+  const oppOwner = new Map(
+    (oppOwners.error ? [] : (oppOwners.data ?? [])).map((o) => [o.id as string, (o.owner_id as string | null) ?? null]),
+  );
+
   const prefsByUser = new Map(
     (prefs.data ?? []).map((p) => [p.user_id as string, p]),
   );
@@ -356,14 +377,20 @@ async function loadOrgData(admin: SupabaseClient, orgId: string) {
     documents: (documents.data ?? []) as unknown as Array<{
       id: string; consultant_id: string; kind: string; file_name: string; expires_at: string | null;
     }>,
-    missions: missions.data ?? [],
+    missions: (missions.data ?? []).map((m) => ({
+      ...m,
+      owner_id: missionExtra.get(m.id as string)?.owner_id ?? null,
+      renewal_status: missionExtra.get(m.id as string)?.renewal_status ?? null,
+    })),
     timesheets: timesheets.data ?? [],
     invoices: invoices.data ?? [],
     contracts: contracts.data ?? [],
-    opportunities: opportunities.data ?? [],
+    opportunities: (opportunities.data ?? []).map((o) => ({ ...o, owner_id: oppOwner.get(o.id as string) ?? null })),
+    quotes: (quotesV2.error ? [] : (quotesV2.data ?? [])) as QuoteRow[],
     invitations: invitations.data ?? [],
     recipients,
     settings: resolveOrgSettings(settingsRow.data?.settings as Record<string, unknown> | null),
+    automations: resolveAutomations((settingsRow.data?.settings as { automations?: unknown } | null)?.automations),
     docReqs: docReqs.data ?? [],
   };
 }
@@ -420,7 +447,7 @@ export async function runOrgAlerts(
     name: org.name,
     detected: 0, created: 0, updated: 0, reopened: 0, auto_resolved: 0,
     notified_email: 0, notified_sms: 0, notified_in_app: 0, skipped: 0,
-    digest_sent: false, errors: [],
+    digest_sent: false, tasks_created: 0, errors: [],
   };
 
   const data = await loadOrgData(admin, org.id);
@@ -442,7 +469,10 @@ export async function runOrgAlerts(
       data.consultants as never, documentsByConsultant, data.docReqs as never, now,
     ),
     ...detectExpiringDocuments(data.documents, consultantNames, settings, now),
-    ...detectMissingTimesheets(data.missions as never, data.timesheets as never, consultantNames, now),
+    ...(data.automations.missing_timesheet_reminders.enabled
+      ? detectMissingTimesheets(data.missions as never, data.timesheets as never, consultantNames, now)
+      : []),
+    ...(data.automations.mission_ending_alerts.enabled ? detectMissionEndings(data.missions as never, consultantNames, now) : []),
     ...detectForgottenInvoices(data.timesheets as never, data.invoices as never, consultantNames, settings, now),
     ...detectStaleDraftInvoices(data.invoices as never, settings, now),
     ...detectContractAlerts(data.contracts as never, data.missions as never, consultantNames, settings, now),
@@ -488,6 +518,7 @@ export async function runOrgAlerts(
           entity_kind: cand.entity_kind,
           entity_id: cand.entity_id,
           consultant_id: cand.consultant_id ?? null,
+          assignee_id: cand.assignee_id ?? null,
           due_date: cand.due_date ?? null,
           source: 'engine',
           reminder_interval_days: interval,
@@ -551,6 +582,7 @@ export async function runOrgAlerts(
         description: cand.description,
         priority: escalated,
         due_date: cand.due_date ?? null,
+        ...(cand.assignee_id !== undefined ? { assignee_id: cand.assignee_id } : {}),
         snoozed_until: prev.status === 'snoozed' ? null : prev.snoozed_until,
         updated_at: now.toISOString(),
       })
@@ -586,8 +618,16 @@ export async function runOrgAlerts(
   const emailBudget = new Map<string, number>(); // par destinataire
   const deliveries: DeliveryLog[] = [];
 
+  // Alerte adressée (ex. fin de mission → responsable) : uniquement son
+  // destinataire s'il est membre ; sinon, diffusion par rôle.
+  const directTarget = (alert: Alert) =>
+    alert.kind === 'mission_ending' && alert.assignee_id
+      ? (data.recipients.find((r) => r.user_id === alert.assignee_id) ?? null)
+      : null;
+
   for (const { alert, candidate } of activeAlerts) {
     const cat = ALERT_CATEGORY[alert.kind];
+    const direct = directTarget(alert);
     const interval = alert.reminder_interval_days || reminderIntervalDays(alert.kind, settings);
 
     // — Canal EMAIL (org) : première notification puis relances à cadence —
@@ -595,9 +635,9 @@ export async function runOrgAlerts(
       const last = await lastDelivery(admin, org.id, alert.dedupe_key!, 'email');
       const decision = shouldNotify(alert.status, last, interval, now);
       if (decision.send) {
-        const targets = data.recipients.filter(
+        const targets = (direct ? [direct] : data.recipients).filter(
           (r) =>
-            (rolesForCategory(cat).includes(r.role) || r.user_id === alert.assignee_id) &&
+            (direct !== null || rolesForCategory(cat).includes(r.role) || r.user_id === alert.assignee_id) &&
             channelAllowed(r, cat, alert.kind, 'email'),
         );
         for (const r of targets) {
@@ -783,8 +823,8 @@ export async function runOrgAlerts(
     if (candidate.notify === 'org' || candidate.notify === 'both') {
       const lastInApp = await lastDelivery(admin, org.id, alert.dedupe_key!, 'in_app');
       if (lastInApp === null && ['new', 'in_progress'].includes(alert.status)) {
-        const targets = data.recipients.filter(
-          (r) => rolesForCategory(cat).includes(r.role) && channelAllowed(r, cat, alert.kind, 'in_app'),
+        const targets = (direct ? [direct] : data.recipients).filter(
+          (r) => (direct !== null || rolesForCategory(cat).includes(r.role)) && channelAllowed(r, cat, alert.kind, 'in_app'),
         );
         if (targets.length > 0) {
           const { error } = await admin.from('notifications').insert(
@@ -814,6 +854,19 @@ export async function runOrgAlerts(
 
   await logDeliveries(admin, deliveries);
 
+  // 3 bis. TÂCHES D'AUTOMATISATION -------------------------------------------
+  const tasks: AutomationTask[] = [
+    ...(data.automations.stale_opportunity_tasks.enabled ? planStaleOpportunityTasks(data.opportunities as never, settings, now) : []),
+    ...(data.automations.quote_expiry_alerts.enabled ? planQuoteExpiryTasks(data.quotes, now) : []),
+  ];
+  if (tasks.length) {
+    try {
+      report.tasks_created = await createAutomationTasks(admin, org.id, tasks);
+    } catch (e) {
+      report.errors.push(`tasks: ${(e as Error).message}`);
+    }
+  }
+
   // 4. DIGESTS ---------------------------------------------------------------
   try {
     const digest = await maybeSendDigest(admin, org, data.recipients, settings, now);
@@ -823,6 +876,35 @@ export async function runOrgAlerts(
   }
 
   return report;
+}
+
+/**
+ * Crée les tâches non encore créées (tous statuts confondus : une tâche
+ * terminée n'est jamais recréée pour la même clé).
+ */
+async function createAutomationTasks(admin: SupabaseClient, orgId: string, tasks: AutomationTask[]): Promise<number> {
+  const keys = tasks.map((t) => t.dedupe_key);
+  const { data: existing, error } = await admin.from('tasks').select('dedupe_key').eq('organization_id', orgId).in('dedupe_key', keys);
+  if (error) throw new Error(error.message);
+  const seen = new Set((existing ?? []).map((t) => t.dedupe_key as string));
+  const fresh = tasks.filter((t) => !seen.has(t.dedupe_key));
+  if (!fresh.length) return 0;
+  const { error: insErr } = await admin.from('tasks').insert(
+    fresh.map((t) => ({
+      organization_id: orgId,
+      title: t.title,
+      description: t.description,
+      priority: t.priority,
+      due_date: t.due_date,
+      assignee_id: t.assignee_id,
+      entity_type: t.entity_type,
+      entity_id: t.entity_id,
+      source: 'automation',
+      dedupe_key: t.dedupe_key,
+    })),
+  );
+  if (insErr) throw new Error(insErr.message);
+  return fresh.length;
 }
 
 // ── Digest quotidien / hebdomadaire ───────────────────────────────────────
@@ -933,6 +1015,7 @@ export async function runAlertsEngine(now: Date = new Date()): Promise<EngineRep
         detected: 0, created: 0, updated: 0, reopened: 0, auto_resolved: 0,
         notified_email: 0, notified_sms: 0, notified_in_app: 0, skipped: 0,
         digest_sent: false,
+        tasks_created: 0,
         errors: [(e as Error).message],
       });
     }

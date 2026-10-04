@@ -10,7 +10,6 @@
 export const AUTOMATION_RULE_IDS = [
   'mission_ending_alerts',
   'missing_timesheet_reminders',
-  'timesheet_validation_reminders',
   'stale_opportunity_tasks',
   'client_request_to_opportunity',
   'quote_expiry_alerts',
@@ -42,15 +41,7 @@ export const AUTOMATION_RULES: AutomationRule[] = [
     defaultEnabled: true,
     label: { fr: 'CRA manquants', en: 'Missing timesheets' },
     trigger: { fr: 'Le CRA du mois écoulé n’a pas été transmis', en: 'Last month’s timesheet was not submitted' },
-    action: { fr: 'Alerte et relance selon la cadence des notifications', en: 'Alert and reminders on the notification cadence' },
-  },
-  {
-    id: 'timesheet_validation_reminders',
-    category: 'cra',
-    defaultEnabled: true,
-    label: { fr: 'CRA à valider', en: 'Timesheets to validate' },
-    trigger: { fr: 'Un CRA soumis attend une validation', en: 'A submitted timesheet awaits validation' },
-    action: { fr: 'Alerte aux validateurs', en: 'Alert validators' },
+    action: { fr: 'Alerte à l’équipe et rappel au consultant (si les rappels consultants sont activés), relances selon la cadence', en: 'Alert the team and remind the consultant (if consultant reminders are on), on the notification cadence' },
   },
   {
     id: 'stale_opportunity_tasks',

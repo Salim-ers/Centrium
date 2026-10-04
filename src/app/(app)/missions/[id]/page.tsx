@@ -410,7 +410,7 @@ export default function MissionDetailPage() {
                       ))}
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      {fr ? 'Des alertes sont envoyées au Business Manager à 90, 60, 30 et 15 jours de la fin.' : 'Alerts are sent to the business manager 90, 60, 30 and 15 days before the end.'}
+                      {fr ? 'Avec l’automatisation « Fin de mission », le responsable de la mission est alerté à 90, 60, 30 et 15 jours de la fin (sauf renouvellement confirmé).' : 'With the “Mission ending” automation, the mission owner is alerted 90, 60, 30 and 15 days before the end (unless renewal is confirmed).'}
                     </p>
                   </CardContent>
                 </Card>

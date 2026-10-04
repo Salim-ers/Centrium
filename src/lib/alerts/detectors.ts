@@ -34,6 +34,8 @@ export type AlertCandidate = {
   due_date?: string | null;
   /** Audience des notifications sortantes. */
   notify: 'org' | 'consultant' | 'both';
+  /** Destinataire désigné (ex. responsable de la mission). */
+  assignee_id?: string | null;
 };
 
 const fmtDate = (iso: string) => {
@@ -473,6 +475,116 @@ export function detectPendingInvitations(
       entity_kind: 'invitation',
       entity_id: inv.id,
       notify: 'org',
+    });
+  }
+  return out;
+}
+
+// ── 8. V2 — Fin de mission (fenêtres 90/60/30/15 j, au responsable) ──────
+export const MISSION_ENDING_WINDOWS = [90, 60, 30, 15] as const;
+
+export type MissionEndingRow = MissionRow & { owner_id?: string | null; renewal_status?: string | null };
+
+const RENEWAL_LABEL: Record<string, string> = {
+  unknown: 'renouvellement non qualifié',
+  likely: 'renouvellement probable',
+  confirmed: 'renouvellement confirmé',
+  not_renewed: 'non renouvelée',
+};
+
+/**
+ * Une alerte par mission et par fenêtre franchie : la clé inclut la fenêtre,
+ * donc le passage de 90 à 60 jours ferme l'alerte précédente et en ouvre une
+ * nouvelle (nouvelle notification au responsable).
+ */
+export function detectMissionEndings(
+  missions: MissionEndingRow[],
+  consultantNames: Map<string, string>,
+  today: Date = new Date(),
+): AlertCandidate[] {
+  const out: AlertCandidate[] = [];
+  for (const m of missions) {
+    if (m.status !== 'active' || !m.end_date) continue;
+    if (m.renewal_status === 'confirmed') continue;
+    const left = daysUntil(m.end_date, today);
+    if (left < 0) continue;
+    const windows = [...MISSION_ENDING_WINDOWS].sort((x, y) => x - y);
+    const win = windows.find((w) => left <= w);
+    if (win === undefined) continue;
+    const name = consultantNames.get(m.consultant_id) ?? 'Consultant';
+    out.push({
+      dedupe_key: `mission-ending:${m.id}:${win}`,
+      kind: 'mission_ending',
+      priority: win <= 15 ? 'high' : win <= 30 ? 'medium' : 'low',
+      title: `Fin de mission dans ${left} j — ${m.title ?? 'sans titre'}`,
+      description: `${name} · fin le ${fmtDate(m.end_date)} · ${RENEWAL_LABEL[m.renewal_status ?? 'unknown'] ?? RENEWAL_LABEL.unknown}. Préparer le renouvellement ou le prochain staffing.`,
+      link: `/missions/${m.id}`,
+      entity_kind: 'mission',
+      entity_id: m.id,
+      consultant_id: m.consultant_id,
+      due_date: m.end_date,
+      notify: 'org',
+      assignee_id: m.owner_id ?? null,
+    });
+  }
+  return out;
+}
+
+// ── 9. V2 — Tâches créées par les automatisations ────────────────────────
+export type AutomationTask = {
+  dedupe_key: string;
+  title: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high';
+  due_date: string;
+  assignee_id: string | null;
+  entity_type: 'opportunity' | 'quote';
+  entity_id: string;
+};
+
+const isoDay = (d: Date) => d.toISOString().slice(0, 10);
+
+/** Relance d'une opportunité sans activité (clé liée au dernier contact). */
+export function planStaleOpportunityTasks(
+  opportunities: Array<OpportunityRow & { owner_id?: string | null }>,
+  settings: OrgNotificationSettings,
+  today: Date = new Date(),
+): AutomationTask[] {
+  const owners = new Map(opportunities.map((o) => [o.id, o]));
+  return detectStaleOpportunities(opportunities, settings, today).map((c) => {
+    const o = owners.get(c.entity_id!)!;
+    const touch = (o.last_interaction ?? o.updated_at ?? '').slice(0, 10) || 'never';
+    return {
+      dedupe_key: `auto:opp-stale:${o.id}:${touch}:${o.next_follow_up ?? ''}`,
+      title: `Relancer « ${o.title} »`.slice(0, 200),
+      description: c.description,
+      priority: c.priority === 'high' ? 'high' : 'medium',
+      due_date: isoDay(today),
+      assignee_id: o.owner_id ?? null,
+      entity_type: 'opportunity',
+      entity_id: o.id,
+    };
+  });
+}
+
+export type QuoteRow = { id: string; number: string | null; title: string; status: string; valid_until: string | null; created_by: string | null };
+
+/** Relance d'un devis envoyé qui expire dans les 7 jours. */
+export function planQuoteExpiryTasks(quotes: QuoteRow[], today: Date = new Date()): AutomationTask[] {
+  const out: AutomationTask[] = [];
+  for (const q of quotes) {
+    if (q.status !== 'sent' || !q.valid_until) continue;
+    const left = daysUntil(q.valid_until, today);
+    if (left < 0 || left > 7) continue;
+    out.push({
+      dedupe_key: `auto:quote-expiry:${q.id}:${q.valid_until}`,
+      title: (q.number ? `Relancer le devis ${q.number} avant échéance` : 'Relancer le devis avant échéance').slice(0, 200),
+      description: `« ${q.title} » expire le ${fmtDate(q.valid_until)} sans réponse du client.`,
+      priority: left <= 2 ? 'high' : 'medium',
+      due_date: q.valid_until,
+      assignee_id: q.created_by,
+      entity_type: 'quote',
+      entity_id: q.id,
     });
   }
   return out;

@@ -234,4 +234,21 @@ BEGIN
 END $$;
 RESET ROLE;
 
+-- ── 103 : pas de doublon « fin de mission » calculée / matérialisée ──────
+DO $$
+BEGIN
+  ASSERT (SELECT count(*) FROM public.compute_org_alerts('0000000a-0000-0000-0000-000000000000')
+          WHERE id = 'mission-end:e000000a-0000-0000-0000-000000000001') = 1,
+    'alerte calculée présente sans alerte moteur';
+  INSERT INTO alerts (organization_id, kind, title, source, entity_kind, entity_id, dedupe_key)
+  VALUES ('0000000a-0000-0000-0000-000000000000', 'mission_ending', 'Fin de mission dans 20 j', 'engine',
+          'mission', 'e000000a-0000-0000-0000-000000000001', 'mission-ending:e000000a-0000-0000-0000-000000000001:30');
+  ASSERT (SELECT count(*) FROM public.compute_org_alerts('0000000a-0000-0000-0000-000000000000')
+          WHERE id = 'mission-end:e000000a-0000-0000-0000-000000000001') = 0,
+    'alerte calculée masquée quand le moteur suit la mission';
+  ASSERT (SELECT count(*) FROM public.compute_org_alerts('0000000a-0000-0000-0000-000000000000')
+          WHERE kind = 'mission_ending') = 1,
+    'une seule alerte de fin de mission';
+END $$;
+
 SELECT 'v2_rls: OK' AS result;
