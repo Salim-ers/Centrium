@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireOrg } from '@/lib/auth/guards';
+import { PORTAL_PROFILE_COLUMNS } from '@/lib/portal/consultant-data';
 
 // =========================================================================
 // PATCH /api/portal/profile
@@ -108,7 +109,8 @@ export async function PATCH(req: NextRequest) {
     .update(payload)
     .eq('id', profile.consultant_id)
     .eq('organization_id', ctx.organizationId)
-    .select()
+    // Liste blanche : jamais de notes internes ni de TJM de vente en réponse.
+    .select(PORTAL_PROFILE_COLUMNS)
     .single();
 
   if (error) {

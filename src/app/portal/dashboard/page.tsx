@@ -1,269 +1,212 @@
 'use client';
 
 import Link from 'next/link';
-import {
-  ClipboardCheck,
-  Receipt,
-  Plus,
-  CheckCircle2,
-  Hourglass,
-  CalendarCheck,
-  Wallet,
-} from 'lucide-react';
+import { AlertTriangle, Briefcase, CalendarDays, ChevronRight, ClipboardCheck, FileSignature, MapPin, Plus } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import {
-  PageHeader,
-  SectionHeader,
-  KPICard,
-  AppCard,
-  AppCardBody,
-  StatusBadge,
-  EmptyState,
-  DataRow,
-  Reveal,
-  type StatusTone,
-} from '@/components/app';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusPill } from '@/components/ui/status-pill';
+import { Skeleton } from '@/components/ui/skeleton';
 import { createClient } from '@/lib/supabase/client';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
-import { formatCurrency } from '@/lib/utils';
-import type { Consultant, Timesheet, Invoice } from '@/types';
 import { useBrandName } from '@/components/brand/BrandingStyles';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { fetchMyMissions, fetchMyProfile, type PortalProfile } from '@/lib/portal/consultant-data';
+import { REMOTE_POLICY_LABEL, type RemotePolicy } from '@/lib/validators/v2';
+import { TIMESHEET_STATUS, periodLabel, statusOf } from '@/lib/status';
+import { formatDate } from '@/lib/format';
+import { daysUntil } from '@/lib/pilotage/metrics';
+import type { PortalMission, Timesheet } from '@/types';
 import { usePortalConsultant } from '../portal-context';
 
-type PortalDashboardData = {
-  consultant: Consultant | null;
+type Data = {
+  profile: PortalProfile | null;
+  missions: PortalMission[];
   timesheets: Timesheet[];
-  invoices: Invoice[];
+  toSign: Array<{ id: string; title: string | null; contract_number: string | null }>;
 };
 
-const MONTHS_FR = [
-  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
-];
-
-const MONTHS_EN = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
-const TIMESHEET_TONE: Record<Timesheet['status'], { tone: StatusTone; label: string; label_en: string }> = {
-  draft: { tone: 'pending', label: 'Brouillon', label_en: 'Draft' },
-  submitted: { tone: 'info', label: 'En attente', label_en: 'Pending' },
-  client_validated: { tone: 'success', label: 'Validé', label_en: 'Validated' },
-  rejected: { tone: 'danger', label: 'Rejeté', label_en: 'Rejected' },
-};
+async function load(consultantId: string): Promise<Data> {
+  const supabase = createClient();
+  const [profile, missions, timesheets, contracts] = await Promise.all([
+    fetchMyProfile(supabase),
+    fetchMyMissions(supabase),
+    supabase
+      .from('timesheets')
+      .select('*')
+      .eq('consultant_id', consultantId)
+      .eq('archived', false)
+      .order('period_year', { ascending: false })
+      .order('period_month', { ascending: false })
+      .limit(24),
+    supabase.from('contracts').select('id, title, contract_number').in('status', ['sent', 'pending_review']).limit(10),
+  ]);
+  return {
+    profile,
+    missions,
+    timesheets: (timesheets.data ?? []) as Timesheet[],
+    toSign: (contracts.data ?? []) as Data['toSign'],
+  };
+}
 
 export default function PortalDashboardPage() {
   const { consultantId } = usePortalConsultant();
   const brandName = useBrandName();
   const { locale } = useLocale();
-  const isEn = locale === 'en';
-  const months = isEn ? MONTHS_EN : MONTHS_FR;
+  const lang = locale === 'en' ? 'en' : 'fr';
+  const fr = lang === 'fr';
+  const { data, loading } = useCachedQuery<Data>(`portal-dashboard:${consultantId}`, () => load(consultantId));
 
-  const { data, loading } = useCachedQuery<PortalDashboardData>(
-    `portal-dashboard:${consultantId}`,
-    async () => {
-      const supabase = createClient();
-      const [{ data: c }, { data: t }, { data: i }] = await Promise.all([
-        supabase.from('consultants').select('*').eq('id', consultantId).maybeSingle(),
-        supabase
-          .from('timesheets')
-          .select('*')
-          .eq('consultant_id', consultantId)
-          .order('period_year', { ascending: false })
-          .order('period_month', { ascending: false })
-          .limit(5),
-        supabase
-          .from('invoices')
-          .select('*')
-          .eq('status', 'paid')
-          .order('payment_date', { ascending: false })
-          .limit(5),
-      ]);
-      return {
-        consultant: (c as Consultant | null) ?? null,
-        timesheets: ((t ?? []) as Timesheet[]),
-        invoices: ((i ?? []) as Invoice[]),
-      };
-    },
-  );
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+  const active = (data?.missions ?? []).filter((m) => m.status === 'active');
+  const rejected = (data?.timesheets ?? []).filter((t) => t.status === 'rejected');
+  const sheetFor = (missionId: string) => (data?.timesheets ?? []).find((t) => t.mission_id === missionId && t.period_month === month && t.period_year === year);
 
-  const consultant = data?.consultant ?? null;
-  const timesheets = data?.timesheets ?? [];
-  const invoices = data?.invoices ?? [];
-
-  const byStatus = timesheets.reduce<Record<string, number>>((acc, t) => {
-    acc[t.status] = (acc[t.status] ?? 0) + 1;
-    return acc;
-  }, {});
-  const totalPaid = invoices.reduce((s, i) => s + Number(i.amount_ht), 0);
-
-  const greeting = consultant?.first_name
-    ? (
-        <>
-          {isEn ? 'Hello, ' : 'Bonjour, '}<span className="text-primary font-display ">{consultant.first_name}.</span>
-        </>
-      )
-    : (
-        <>
-          {isEn ? 'Your ' : 'Votre '}<span className="text-primary font-display ">{isEn ? 'dashboard.' : 'tableau de bord.'}</span>
-        </>
-      );
-
-  return (
-    <div>
-      <PageHeader
-        eyebrow={isEn ? 'My space' : 'Mon espace'}
-        title={greeting}
-        description={isEn ? `Here's an overview of your ${brandName} activity.` : `Voici un aperçu de votre activité ${brandName}.`}
-        actions={
-          <Button asChild>
-            <Link href="/portal/cra/new">
-              <Plus className="h-4 w-4" />
-              {isEn ? 'New CRA' : 'Nouveau CRA'}
-            </Link>
-          </Button>
-        }
-      />
-
-      {/* KPIs */}
-      <Reveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <KPICard
-          label={isEn ? 'CRA to write' : 'CRA à rédiger'}
-          value={(byStatus.draft ?? 0) + (byStatus.rejected ?? 0)}
-          icon={ClipboardCheck}
-          tone="amber"
-          hint={isEn ? 'Drafts + rejected' : 'Brouillons + rejetés'}
-        />
-        <KPICard
-          label={isEn ? 'CRA pending' : 'CRA en attente'}
-          value={byStatus.submitted ?? 0}
-          icon={Hourglass}
-          tone="violet"
-          hint={isEn ? 'In client validation' : 'En validation client'}
-        />
-        <KPICard
-          label={isEn ? 'CRA validated' : 'CRA validés'}
-          value={byStatus.client_validated ?? 0}
-          icon={CalendarCheck}
-          tone="emerald"
-        />
-        <KPICard
-          label={isEn ? 'Collected' : 'Encaissé'}
-          value={totalPaid}
-          prefix="€"
-          icon={Wallet}
-          tone="magenta"
-          hint={isEn ? 'Paid invoices' : 'Factures payées'}
-        />
-      </Reveal>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Derniers CRA */}
-        <Reveal delay={0.08} className="lg:col-span-2">
-          <SectionHeader
-            eyebrow={isEn ? 'Activity' : 'Activité'}
-            title={<>{isEn ? 'My latest ' : 'Mes derniers '}<span className="text-primary font-display ">CRA.</span></>}
-            actions={
-              <Button size="sm" variant="outline" asChild>
-                <Link href="/portal/cra">{isEn ? 'View all' : 'Voir tout'}</Link>
-              </Button>
-            }
-          />
-          <AppCard>
-            {loading ? (
-              <AppCardBody>
-                <SkeletonRows />
-              </AppCardBody>
-            ) : timesheets.length === 0 ? (
-              <EmptyState
-                icon={ClipboardCheck}
-                title={isEn ? 'No CRA yet' : 'Aucun CRA pour le moment'}
-                description={isEn ? 'Start by creating your first activity report.' : "Commencez par créer votre premier compte-rendu d'activité."}
-                action={
-                  <Button asChild>
-                    <Link href="/portal/cra/new">
-                      <Plus className="h-4 w-4" />
-                      {isEn ? 'New CRA' : 'Nouveau CRA'}
-                    </Link>
-                  </Button>
-                }
-              />
-            ) : (
-              <div>
-                {timesheets.map((t) => {
-                  const s = TIMESHEET_TONE[t.status];
-                  return (
-                    <DataRow
-                      key={t.id}
-                      primary={`${months[t.period_month - 1]} ${t.period_year}`}
-                      secondary={`${t.days_worked} ${isEn ? 'days worked' : 'jours travaillés'}`}
-                      trailing={<StatusBadge tone={s.tone}>{isEn ? s.label_en : s.label}</StatusBadge>}
-                      href={`/portal/cra/${t.id}`}
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </AppCard>
-        </Reveal>
-
-        {/* Dernières factures payées */}
-        <Reveal delay={0.14}>
-          <SectionHeader
-            eyebrow="Finances"
-            title={<>{isEn ? 'Invoices ' : 'Factures '}<span className="text-primary font-display ">{isEn ? 'paid.' : 'payées.'}</span></>}
-          />
-          <AppCard>
-            {loading ? (
-              <AppCardBody>
-                <SkeletonRows />
-              </AppCardBody>
-            ) : invoices.length === 0 ? (
-              <EmptyState
-                icon={Receipt}
-                title={isEn ? 'No paid invoice' : 'Aucune facture payée'}
-                description={isEn ? 'Invoices will appear here as soon as they are marked as paid.' : "Les factures apparaîtront ici dès qu'elles seront marquées payées."}
-              />
-            ) : (
-              <>
-                <div>
-                  {invoices.map((i) => (
-                    <DataRow
-                      key={i.id}
-                      leading={<CheckCircle2 className="h-4 w-4 text-success" />}
-                      primary={<span className="font-mono">{i.invoice_number}</span>}
-                      secondary={i.period_label ?? ''}
-                      trailing={
-                        <span className="font-semibold text-foreground">
-                          {formatCurrency(Number(i.amount_ht))}
-                        </span>
-                      }
-                    />
-                  ))}
-                </div>
-                <AppCardBody size="sm">
-                  <Button variant="outline" className="w-full" asChild>
-                    <Link href="/portal/invoices">{isEn ? 'View all' : 'Voir toutes'}</Link>
-                  </Button>
-                </AppCardBody>
-              </>
-            )}
-          </AppCard>
-        </Reveal>
+  if (loading && !data) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-56" />
+        <Skeleton className="h-36 w-full" />
+        <Skeleton className="h-36 w-full" />
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-function SkeletonRows() {
   return (
-    <div className="space-y-2">
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="h-10 rounded-lg bg-card animate-pulse" />
-      ))}
+    <div className="space-y-5">
+      <header>
+        <h1 className="text-[22px] font-semibold tracking-tight sm:text-2xl">
+          {data?.profile?.first_name ? (fr ? `Bonjour ${data.profile.first_name}` : `Hello ${data.profile.first_name}`) : fr ? 'Bonjour' : 'Hello'}
+        </h1>
+        <p className="text-[13.5px] text-muted-foreground">{fr ? `Votre espace ${brandName}.` : `Your ${brandName} space.`}</p>
+      </header>
+
+      {rejected.length > 0 && (
+        <Link href={`/portal/cra/${rejected[0]!.id}`} className="flex items-start gap-3 rounded-xl border border-destructive/20 bg-danger-soft p-4 text-[13.5px]">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+          <span className="flex-1">
+            <span className="font-medium text-destructive">{fr ? 'CRA à corriger' : 'Timesheet to fix'}</span>
+            <span className="block text-foreground/80">
+              {periodLabel(rejected[0]!.period_month, rejected[0]!.period_year, lang)}
+              {rejected[0]!.rejection_reason ? ` — ${rejected[0]!.rejection_reason}` : ''}
+            </span>
+          </span>
+          <ChevronRight className="mt-0.5 h-4 w-4 text-muted-foreground" />
+        </Link>
+      )}
+
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle className="flex items-center gap-2">
+            <ClipboardCheck className="h-4 w-4 text-primary" />
+            {fr ? `CRA de ${periodLabel(month, year, lang)}` : `${periodLabel(month, year, lang)} timesheet`}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {active.length === 0 ? (
+            <p className="text-[13.5px] text-muted-foreground">
+              {fr ? `Aucune mission en cours. Votre référent ${brandName} vous préviendra du prochain démarrage.` : `No ongoing mission. Your ${brandName} contact will let you know about the next one.`}
+            </p>
+          ) : (
+            active.map((m) => {
+              const ts = sheetFor(m.id);
+              const st = ts ? statusOf(TIMESHEET_STATUS, ts.status, lang) : null;
+              return (
+                <div key={m.id} className="flex flex-col gap-3 rounded-lg border border-border p-3 sm:flex-row sm:items-center">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium">{m.title}</div>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[12.5px] text-muted-foreground">
+                      {m.company_name && <span>{m.company_name}</span>}
+                      {st ? <StatusPill tone={st.tone}>{st.label}</StatusPill> : <StatusPill tone="warning">{fr ? 'À remplir' : 'To fill in'}</StatusPill>}
+                      {ts && <span className="num">{fr ? `${Number(ts.days_worked)} j` : `${Number(ts.days_worked)} d`}</span>}
+                    </div>
+                  </div>
+                  {ts ? (
+                    <Button asChild variant={ts.status === 'draft' || ts.status === 'rejected' ? 'default' : 'secondary'} className="w-full sm:w-auto">
+                      <Link href={`/portal/cra/${ts.id}`}>{ts.status === 'draft' || ts.status === 'rejected' ? (fr ? 'Compléter' : 'Complete') : fr ? 'Voir' : 'View'}</Link>
+                    </Button>
+                  ) : (
+                    <Button asChild className="w-full sm:w-auto">
+                      <Link href={`/portal/cra/new?mission=${m.id}&month=${month}&year=${year}`}>
+                        <Plus />
+                        {fr ? 'Remplir mon CRA' : 'Fill in timesheet'}
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
+
+      {(data?.toSign ?? []).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileSignature className="h-4 w-4 text-primary" />
+              {fr ? 'À signer' : 'To sign'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ul className="divide-y divide-border border-t border-border">
+              {data!.toSign.map((c) => (
+                <li key={c.id}>
+                  <Link href={`/portal/contracts/${c.id}`} className="flex items-center gap-3 px-5 py-3 text-[13.5px] hover:bg-muted/50">
+                    <span className="min-w-0 flex-1 truncate font-medium">{c.title ?? c.contract_number ?? (fr ? 'Contrat' : 'Contract')}</span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle className="flex items-center gap-2">
+            <Briefcase className="h-4 w-4 text-primary" />
+            {fr ? 'Mes missions' : 'My missions'}
+          </CardTitle>
+          <Link href="/portal/missions" className="text-[13px] text-primary-deep hover:underline">
+            {fr ? 'Tout voir' : 'See all'}
+          </Link>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {active.length === 0 ? (
+            <p className="text-[13.5px] text-muted-foreground">{fr ? 'Aucune mission en cours.' : 'No ongoing mission.'}</p>
+          ) : (
+            active.map((m) => {
+              const left = m.end_date ? daysUntil(m.end_date, now) : null;
+              return (
+                <Link key={m.id} href={`/portal/missions/${m.id}`} className="block rounded-lg border border-border p-3 hover:bg-muted/40">
+                  <div className="font-medium">{m.title}</div>
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[12.5px] text-muted-foreground">
+                    {m.company_name && <span>{m.company_name}</span>}
+                    <span className="inline-flex items-center gap-1">
+                      <CalendarDays className="h-3.5 w-3.5" />
+                      {formatDate(m.start_date, lang)} → {m.end_date ? formatDate(m.end_date, lang) : fr ? 'sans date de fin' : 'open-ended'}
+                    </span>
+                    {m.location && (
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5" />
+                        {m.location}
+                      </span>
+                    )}
+                    {m.remote_policy && REMOTE_POLICY_LABEL[m.remote_policy as RemotePolicy] && <span>{REMOTE_POLICY_LABEL[m.remote_policy as RemotePolicy][lang]}</span>}
+                  </div>
+                  {left != null && left >= 0 && left <= 60 && (
+                    <div className="mt-2 text-[12.5px] text-warning">{fr ? `Se termine dans ${left} jours` : `Ends in ${left} days`}</div>
+                  )}
+                </Link>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

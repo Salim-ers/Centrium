@@ -181,6 +181,15 @@ BEGIN
   ASSERT (SELECT count(*) FROM timesheets) = 1, 'consultant crée son CRA';
 END $$;
 DO $$
+DECLARE p jsonb;
+BEGIN
+  ASSERT (SELECT count(*) FROM consultants) = 0, 'consultant ne lit plus sa ligne brute';
+  p := public.portal_my_profile();
+  ASSERT p->>'first_name' = 'Camille', 'fiche visible via la fonction portail';
+  ASSERT NOT (p ? 'daily_rate_eur'), 'TJM de vente absent du portail';
+  ASSERT NOT (p ? 'internal_notes'), 'notes internes absentes du portail';
+END $$;
+DO $$
 DECLARE failed boolean := false;
 BEGIN
   BEGIN

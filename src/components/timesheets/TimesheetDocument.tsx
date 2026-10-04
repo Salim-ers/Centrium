@@ -42,9 +42,10 @@ const DEFAULT_ISSUER: TimesheetIssuer = {
 
 type Props = {
   timesheet: Timesheet;
-  mission: Mission | null;
-  consultant: Consultant | null;
-  company: Company | null;
+  /** Sans `daily_rate_eur` (portail consultant), le bloc montants est masqué. */
+  mission: (Pick<Mission, 'title'> & { daily_rate_eur?: number | null }) | null;
+  consultant: Pick<Consultant, 'first_name' | 'last_name' | 'job_title'> | null;
+  company: Pick<Company, 'name'> | null;
   days: TimesheetDay[];
   issuer?: TimesheetIssuer | null;
 };

@@ -53,8 +53,11 @@ function formatIban(raw: string | null | undefined): string {
 type Props = {
   invoice: Invoice;
   company: Company | null;
-  mission: Mission | null;
-  consultant: Consultant | null;
+  mission: (Pick<Mission, 'title'> & { daily_rate_eur?: number | null }) | null;
+  consultant: Pick<
+    Consultant,
+    'first_name' | 'last_name' | 'job_title' | 'city' | 'company_name' | 'postal_code' | 'address' | 'siret' | 'vat_number' | 'iban' | 'bic'
+  > | null;
   timesheet: Timesheet | null;
   issuer?: InvoiceIssuer | null;
 };

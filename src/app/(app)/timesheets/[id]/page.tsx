@@ -33,6 +33,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { TimesheetDocument, type TimesheetIssuer } from '@/components/timesheets/TimesheetDocument';
 import {
   TimesheetCalendar,
+  type DayChange,
   type TimesheetDayKind,
 } from '@/components/timesheets/TimesheetCalendar';
 import { timesheetService, invoiceService } from '@/lib/services';
@@ -49,6 +50,7 @@ type TimesheetDay = {
   duration: number;
   note: string | null;
   kind: TimesheetDayKind;
+  is_remote?: boolean | null;
 };
 
 type Detail = {
@@ -224,13 +226,14 @@ export default function TimesheetDetailPage() {
 
   async function handleDayChange(
     dayDate: string,
-    next: { kind: TimesheetDayKind | null; duration?: number; note?: string | null },
+    next: DayChange,
   ) {
     const res = await timesheetService.upsertDay({
       timesheetId: timesheet.id,
       dayDate,
       kind: next.kind,
       duration: next.duration,
+      is_remote: next.is_remote,
       note: next.note,
     });
     if (res.error) {
@@ -244,7 +247,7 @@ export default function TimesheetDetailPage() {
    *  upserts en parallèle, UN SEUL reload à la fin. */
   async function handleBatchDayChange(
     dayDates: string[],
-    next: { kind: TimesheetDayKind | null; duration?: number },
+    next: DayChange,
   ) {
     const results = await Promise.all(
       dayDates.map((dayDate) =>
@@ -253,6 +256,7 @@ export default function TimesheetDetailPage() {
           dayDate,
           kind: next.kind,
           duration: next.duration,
+          is_remote: next.is_remote,
         }),
       ),
     );

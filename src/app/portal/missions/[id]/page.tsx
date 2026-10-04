@@ -1,232 +1,131 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import {
-  ArrowLeft,
-  Briefcase,
-  Building2,
-  Calendar,
-  ClipboardCheck,
-  Coins,
-  FileSignature,
-  Plus,
-} from 'lucide-react';
-import { toast } from 'sonner';
+import { useParams } from 'next/navigation';
+import { Briefcase, ClipboardCheck, Plus } from 'lucide-react';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { StatusBadge, type StatusTone } from '@/components/app';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusPill } from '@/components/ui/status-pill';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/app/EmptyState';
+import { FactList } from '@/components/app/FactList';
 import { createClient } from '@/lib/supabase/client';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import type { Mission, Timesheet } from '@/types';
+import { fetchMyMissions } from '@/lib/portal/consultant-data';
+import { REMOTE_POLICY_LABEL, type RemotePolicy } from '@/lib/validators/v2';
+import { MISSION_STATUS, TIMESHEET_STATUS, periodLabel, statusOf } from '@/lib/status';
+import { formatDate, formatEur } from '@/lib/format';
+import type { PortalMission, Timesheet } from '@/types';
+import { usePortalConsultant } from '../../portal-context';
 
-// =========================================================================
-// /portal/missions/[id] — détail d'une mission côté consultant.
-// -------------------------------------------------------------------------
-// Lecture seule : le statut d'une mission est piloté par l'organisation
-// (proposed = CV poussé chez le client ; c'est le client final qui tranche,
-// pas le consultant — pas d'accepter/refuser ici, par design).
-// RLS missions_self_select : le consultant ne peut charger QUE ses
-// missions ; un id étranger → introuvable.
-// =========================================================================
+// Détail d'une mission côté consultant : lecture seule, via
+// portal_my_missions() (jamais de TJM de vente ni de marge). Le tarif n'est
+// affiché qu'aux indépendants : c'est leur propre prix (CJM).
 
-const MONTHS = [
-  'Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin',
-  'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc',
-];
+type Data = { mission: PortalMission | null; timesheets: Timesheet[] };
 
-const MONTHS_EN = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
-
-const MISSION_STATUS: Record<Mission['status'], { label: string; label_en: string; tone: StatusTone }> = {
-  proposed: { label: 'CV envoyé', label_en: 'CV sent', tone: 'pending' },
-  active: { label: 'En cours', label_en: 'Active', tone: 'success' },
-  ended: { label: 'Terminée', label_en: 'Ended', tone: 'neutral' },
-  suspended: { label: 'Suspendue', label_en: 'Suspended', tone: 'warning' },
-  rejected: { label: 'Non retenue', label_en: 'Not selected', tone: 'danger' },
-};
-
-const CRA_STATUS: Record<Timesheet['status'], { label: string; label_en: string; tone: StatusTone }> = {
-  draft: { label: 'Brouillon', label_en: 'Draft', tone: 'pending' },
-  submitted: { label: 'En attente', label_en: 'Pending', tone: 'warning' },
-  client_validated: { label: 'Validé', label_en: 'Validated', tone: 'success' },
-  rejected: { label: 'À corriger', label_en: 'To revise', tone: 'danger' },
-};
-
-type MissionWithCompany = Mission & {
-  company: { name: string } | { name: string }[] | null;
-};
+async function load(id: string): Promise<Data> {
+  const supabase = createClient();
+  const [missions, ts] = await Promise.all([
+    fetchMyMissions(supabase),
+    supabase.from('timesheets').select('*').eq('mission_id', id).eq('archived', false).order('period_year', { ascending: false }).order('period_month', { ascending: false }),
+  ]);
+  return { mission: missions.find((m) => m.id === id) ?? null, timesheets: (ts.data ?? []) as Timesheet[] };
+}
 
 export default function PortalMissionDetailPage() {
-  const params = useParams<{ id: string }>();
-  const router = useRouter();
+  const { id } = useParams<{ id: string }>();
+  const { consultantId } = usePortalConsultant();
   const { locale } = useLocale();
-  const isEn = locale === 'en';
-  const [mission, setMission] = useState<MissionWithCompany | null>(null);
-  const [cras, setCras] = useState<Timesheet[]>([]);
-  const [loading, setLoading] = useState(true);
+  const lang = locale === 'en' ? 'en' : 'fr';
+  const fr = lang === 'fr';
+  const { data, loading } = useCachedQuery<Data>(`portal-mission:${consultantId}:${id}`, () => load(id), { enabled: !!id });
 
-  useEffect(() => {
-    if (!params?.id) return;
-    let cancelled = false;
-    const supabase = createClient();
-    (async () => {
-      const [{ data: m, error }, { data: tsRows }] = await Promise.all([
-        supabase
-          .from('missions')
-          // Le nom du client peut être bloqué par RLS (companies non
-          // exposées aux consultants) → fallback silencieux sur '—'.
-          .select('*, company:companies(name)')
-          .eq('id', params.id)
-          .maybeSingle(),
-        supabase
-          .from('timesheets')
-          .select('*')
-          .eq('mission_id', params.id)
-          .order('period_year', { ascending: false })
-          .order('period_month', { ascending: false }),
-      ]);
-      if (cancelled) return;
-      if (error || !m) {
-        toast.error(isEn ? 'Mission not found or access denied' : 'Mission introuvable ou accès refusé');
-        router.push('/portal/missions');
-        return;
-      }
-      setMission(m as MissionWithCompany);
-      setCras((tsRows ?? []) as Timesheet[]);
-      setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [params?.id, router]);
-
-  if (loading || !mission) {
-    return <div className="h-60 rounded-xl surface-1 animate-pulse" />;
+  if (loading && !data) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-2/3" />
+        <Skeleton className="h-48 w-full" />
+      </div>
+    );
   }
-
-  const companyRel = Array.isArray(mission.company) ? mission.company[0] : mission.company;
-  const clientName = companyRel?.name ?? null;
-  const st = MISSION_STATUS[mission.status];
-  const fmtDate = (d: string | null) =>
-    d
-      ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
-      : null;
+  const m = data?.mission;
+  if (!m) {
+    return (
+      <EmptyState
+        icon={Briefcase}
+        title={fr ? 'Mission introuvable' : 'Mission not found'}
+        action={
+          <Button asChild variant="secondary">
+            <Link href="/portal/missions">{fr ? 'Mes missions' : 'My missions'}</Link>
+          </Button>
+        }
+      />
+    );
+  }
+  const st = statusOf(MISSION_STATUS, m.status, lang);
+  const now = new Date();
+  const hasCurrent = data!.timesheets.some((t) => t.period_month === now.getMonth() + 1 && t.period_year === now.getFullYear());
 
   return (
-    <div>
-      <div className="mb-4 flex items-center justify-between flex-wrap gap-3">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/portal/missions">
-            <ArrowLeft className="h-4 w-4" />
-            {isEn ? 'My missions' : 'Mes missions'}
-          </Link>
-        </Button>
-        {mission.status === 'active' && (
-          <Button size="sm" asChild>
-            <Link href="/portal/cra/new">
-              <Plus className="h-4 w-4" />
-              {isEn ? 'New CRA' : 'Nouveau CRA'}
-            </Link>
-          </Button>
-        )}
+    <div className="space-y-5">
+      <div>
+        <Link href="/portal/missions" className="text-[13px] text-muted-foreground hover:text-foreground">
+          ← {fr ? 'Mes missions' : 'My missions'}
+        </Link>
+        <h1 className="mt-1 text-[22px] font-semibold tracking-tight sm:text-2xl">{m.title}</h1>
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
+          <StatusPill tone={st.tone}>{st.label}</StatusPill>
+          {m.company_name && <span>{m.company_name}</span>}
+        </div>
       </div>
 
-      <Card className="mb-4">
-        <CardContent className="p-5">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="flex items-start gap-3 min-w-0">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/15 text-primary">
-                <Briefcase className="h-5 w-5" />
-              </span>
-              <div className="min-w-0">
-                <h1 className="text-lg font-semibold leading-tight">{mission.title}</h1>
-                <div className="mt-1 flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
-                  <StatusBadge tone={st.tone}>{isEn ? st.label_en : st.label}</StatusBadge>
-                  {mission.contract_number && (
-                    <span className="inline-flex items-center gap-1 text-xs">
-                      <FileSignature className="h-3.5 w-3.5" />
-                      {mission.contract_number}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-            <div className="rounded-lg border border-hairline surface-1 px-3 py-2.5">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
-                <Building2 className="h-3.5 w-3.5" />
-                Client
-              </div>
-              <div className="mt-0.5 font-medium">{clientName ?? '—'}</div>
-            </div>
-            <div className="rounded-lg border border-hairline surface-1 px-3 py-2.5">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5" />
-                {isEn ? 'Period' : 'Période'}
-              </div>
-              <div className="mt-0.5 font-medium">
-                {fmtDate(mission.start_date) ?? '—'}
-                {mission.end_date ? ` → ${fmtDate(mission.end_date)}` : isEn ? ' → ongoing' : ' → en cours'}
-              </div>
-            </div>
-            <div className="rounded-lg border border-hairline surface-1 px-3 py-2.5">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
-                <Coins className="h-3.5 w-3.5" />
-                TJM
-              </div>
-              <div className="mt-0.5 font-medium">
-                {mission.daily_rate_eur
-                  ? `${mission.daily_rate_eur} ${isEn ? '€ excl. VAT/day' : '€ HT/j'}`
-                  : '—'}
-              </div>
-            </div>
-          </div>
+      <Card>
+        <CardContent className="pt-5">
+          <FactList
+            facts={[
+              { label: fr ? 'Début' : 'Start', value: formatDate(m.start_date, lang) },
+              { label: fr ? 'Fin' : 'End', value: m.end_date ? formatDate(m.end_date, lang) : fr ? 'Non définie' : 'Not set' },
+              { label: fr ? 'Lieu' : 'Location', value: m.location || '—' },
+              { label: fr ? 'Télétravail' : 'Remote', value: m.remote_policy && REMOTE_POLICY_LABEL[m.remote_policy as RemotePolicy] ? REMOTE_POLICY_LABEL[m.remote_policy as RemotePolicy][lang] : '—' },
+              ...(m.planned_days != null ? [{ label: fr ? 'Jours prévus' : 'Planned days', value: String(m.planned_days) }] : []),
+              ...(m.contract_number ? [{ label: fr ? 'Référence contrat' : 'Contract ref.', value: m.contract_number }] : []),
+              ...(m.consultant_rate != null ? [{ label: fr ? 'Votre tarif journalier' : 'Your day rate', value: formatEur(Number(m.consultant_rate), lang) }] : []),
+            ]}
+          />
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base inline-flex items-center gap-2">
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle className="flex items-center gap-2">
             <ClipboardCheck className="h-4 w-4 text-primary" />
-            {isEn ? 'CRA for this mission' : 'CRA de cette mission'}
-            <span className="ml-1 text-xs font-normal text-muted-foreground">
-              {cras.length}
-            </span>
+            {fr ? 'Mes CRA' : 'My timesheets'}
           </CardTitle>
+          {m.status === 'active' && !hasCurrent && (
+            <Button asChild size="sm">
+              <Link href={`/portal/cra/new?mission=${m.id}`}>
+                <Plus />
+                {fr ? 'CRA du mois' : 'This month'}
+              </Link>
+            </Button>
+          )}
         </CardHeader>
-        <CardContent>
-          {cras.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {isEn ? 'No CRA for this mission yet.' : "Aucun CRA pour cette mission pour l'instant."}
-            </p>
+        <CardContent className="p-0">
+          {data!.timesheets.length === 0 ? (
+            <p className="px-5 pb-5 text-[13px] text-muted-foreground">{fr ? 'Aucun CRA pour cette mission.' : 'No timesheet for this mission.'}</p>
           ) : (
-            <ul className="divide-y divide-hairline">
-              {cras.map((t) => {
-                const cs = CRA_STATUS[t.status];
+            <ul className="divide-y divide-border border-t border-border">
+              {data!.timesheets.map((t) => {
+                const ts = statusOf(TIMESHEET_STATUS, t.status, lang);
                 return (
                   <li key={t.id}>
-                    <Link
-                      href={`/portal/cra/${t.id}`}
-                      className="flex items-center justify-between gap-3 py-2.5 px-2 -mx-2 rounded-lg hover-surface transition"
-                    >
-                      <span className="font-medium text-sm">
-                        {(isEn ? MONTHS_EN : MONTHS)[t.period_month - 1]} {t.period_year}
-                      </span>
-                      <span className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground">
-                          {Number(t.days_worked)} {isEn ? 'd' : 'j'}
-                        </span>
-                        <StatusBadge tone={cs.tone} dot={false} className="px-2 py-0.5 text-[10px]">
-                          {isEn ? cs.label_en : cs.label}
-                        </StatusBadge>
-                      </span>
+                    <Link href={`/portal/cra/${t.id}`} className="flex items-center gap-3 px-5 py-3 text-[13.5px] hover:bg-muted/50">
+                      <span className="flex-1 font-medium">{periodLabel(t.period_month, t.period_year, lang)}</span>
+                      <span className="num text-muted-foreground">{fr ? `${Number(t.days_worked)} j` : `${Number(t.days_worked)} d`}</span>
+                      <StatusPill tone={ts.tone}>{ts.label}</StatusPill>
                     </Link>
                   </li>
                 );

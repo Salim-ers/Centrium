@@ -4,6 +4,7 @@ import { PageHeader, Reveal } from '@/components/app';
 import { useOrganization } from '@/lib/auth/context';
 import { useBrandName } from '@/components/brand/BrandingStyles';
 import { ConsultantSelfDocuments } from '@/components/portal/ConsultantSelfDocuments';
+import { SharedDocumentsList } from '@/components/portal/SharedDocumentsList';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { usePortalConsultant } from '../portal-context';
 
@@ -26,7 +27,8 @@ export default function PortalDocumentsPage() {
           : `Partagez vos documents avec ${brandName} et retrouvez ceux qui vous ont été transmis.`}
       />
 
-      <Reveal>
+      <Reveal className="space-y-6">
+        <SharedDocumentsList endpoint="/api/portal/documents" cacheKey={`portal-shared-docs:${consultantId}`} />
         <ConsultantSelfDocuments
           consultantId={consultantId}
           userId={userId}

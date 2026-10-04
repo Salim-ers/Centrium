@@ -13,15 +13,10 @@ import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { downloadElementAsPdf } from '@/lib/pdf/download-document';
-import type { Invoice, Company, Mission, Consultant, Timesheet } from '@/types';
+import { fetchMyMissions, fetchMyProfile } from '@/lib/portal/consultant-data';
+import type { Invoice, Timesheet } from '@/types';
 
-type Detail = {
-  invoice: Invoice;
-  company: Company | null;
-  mission: Mission | null;
-  consultant: Consultant | null;
-  timesheet: Timesheet | null;
-};
+type Detail = React.ComponentProps<typeof InvoiceDocument>;
 
 export default function PortalInvoiceDetailPage() {
   const params = useParams<{ id: string }>();
@@ -79,31 +74,22 @@ export default function PortalInvoiceDetailPage() {
         return;
       }
 
-      const [companyRes, missionRes, tsRes] = await Promise.all([
-        invoice.company_id
-          ? supabase.from('companies').select('*').eq('id', invoice.company_id).maybeSingle()
-          : Promise.resolve({ data: null }),
-        invoice.mission_id
-          ? supabase.from('missions').select('*').eq('id', invoice.mission_id).maybeSingle()
-          : Promise.resolve({ data: null }),
+      // Mission et fiche via les fonctions portail (liste blanche). Le tarif
+      // de la mission est celui du consultant (son prix), jamais le TJM de vente.
+      const [missions, profile, tsRes] = await Promise.all([
+        fetchMyMissions(supabase),
+        fetchMyProfile(supabase),
         invoice.timesheet_id
           ? supabase.from('timesheets').select('*').eq('id', invoice.timesheet_id).maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
-      const mission = (missionRes as { data: Mission | null }).data;
-      // Consultant : lien direct de la facture d'abord (sous-traitance),
-      // mission en secours. Ses infos légales (société, SIRET, IBAN)
-      // alimentent le bloc Émetteur du document.
-      const consultantId = invoice.consultant_id ?? mission?.consultant_id ?? null;
-      const consultantRes = consultantId
-        ? await supabase.from('consultants').select('*').eq('id', consultantId).maybeSingle()
-        : { data: null };
+      const m = missions.find((x) => x.id === invoice.mission_id) ?? null;
 
       setDetail({
         invoice: invoice as Invoice,
-        company: (companyRes as { data: Company | null }).data,
-        mission,
-        consultant: (consultantRes as { data: Consultant | null }).data,
+        company: null,
+        mission: m ? { title: m.title, daily_rate_eur: m.consultant_rate } : null,
+        consultant: profile,
         timesheet: (tsRes as { data: Timesheet | null }).data,
       });
       setLoading(false);

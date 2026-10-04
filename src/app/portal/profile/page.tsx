@@ -34,11 +34,11 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { useBrandName } from '@/components/brand/BrandingStyles';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import {
   CONSULTANT_STATUS_STYLE,
 } from '@/constants';
-import type { Consultant } from '@/types';
+import { fetchMyProfile, type PortalProfile } from '@/lib/portal/consultant-data';
 import { useOrganization } from '@/lib/auth/context';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { useConsultantStatusLabels, useSeniorityLabels } from '@/lib/i18n/useBadges';
@@ -80,7 +80,7 @@ function emptyForm(): EditableForm {
 }
 
 /** Form pré-rempli depuis la fiche consultant (partagé load/cancel). */
-function formFromConsultant(c: Consultant): EditableForm {
+function formFromConsultant(c: PortalProfile): EditableForm {
   return {
     email: c.email ?? '',
     phone: c.phone ?? '',
@@ -117,18 +117,7 @@ export default function PortalProfilePage() {
     data: consultant,
     loading,
     setData: setConsultant,
-  } = useCachedQuery<Consultant | null>(
-    `portal-profile:${consultantId}`,
-    async () => {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from('consultants')
-        .select('*')
-        .eq('id', consultantId)
-        .maybeSingle();
-      return (data as Consultant | null) ?? null;
-    },
-  );
+  } = useCachedQuery<PortalProfile | null>(`portal-profile:${consultantId}`, () => fetchMyProfile(createClient()));
 
   useEffect(() => {
     if (consultant && !editing) {
@@ -154,7 +143,7 @@ export default function PortalProfilePage() {
         return;
       }
       toast.success(isEn ? 'Profile updated' : 'Profil mis à jour');
-      setConsultant(body.data as Consultant);
+      setConsultant(body.data as PortalProfile);
       setEditing(false);
     } catch {
       toast.error(isEn ? 'Network error' : 'Erreur réseau');
@@ -250,7 +239,7 @@ export default function PortalProfilePage() {
                 <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl overflow-hidden border border-hairline bg-hairline/40">
                   <HeroStat label={isEn ? 'Seniority' : 'Séniorité'} value={seniorityLabels[c.seniority]} />
                   <HeroStat label={isEn ? 'Experience' : 'Expérience'} value={isEn ? `${c.years_experience} yrs` : `${c.years_experience} ans`} />
-                  <HeroStat label={isEn ? 'Day rate' : 'TJM'} value={formatCurrency(c.daily_rate_eur)} />
+                  <HeroStat label={isEn ? 'City' : 'Ville'} value={c.city || '—'} />
                   <HeroStat
                     label={isEn ? 'Available' : 'Disponible'}
                     value={c.available_from ? formatDate(c.available_from) : (isEn ? 'Now' : 'Maintenant')}

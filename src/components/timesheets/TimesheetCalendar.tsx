@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Briefcase, Palmtree, HeartPulse, MinusCircle, Sparkles, Trash2 } from 'lucide-react';
+import { Briefcase, Home, Palmtree, HeartPulse, MinusCircle, Sparkles, Trash2 } from 'lucide-react';
 
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
@@ -17,7 +17,12 @@ export type CalendarDay = {
   duration: number;
   kind: TimesheetDayKind;
   note: string | null;
+  /** Jour travaillé en télétravail. */
+  is_remote?: boolean | null;
 };
+
+/** Modification d'un jour : type, durée (1 / 0,5), télétravail. */
+export type DayChange = { kind: TimesheetDayKind | null; duration?: number; is_remote?: boolean; note?: string | null };
 
 type Props = {
   year: number;
@@ -27,19 +32,13 @@ type Props = {
   /** Si false, cellules non cliquables (lecture seule). */
   editable?: boolean;
   /** Callback à chaque modification. duration optionnel (1 ou 0.5). */
-  onChange?: (
-    dayDate: string,
-    next: { kind: TimesheetDayKind | null; duration?: number; note?: string | null },
-  ) => Promise<void> | void;
+  onChange?: (dayDate: string, next: DayChange) => Promise<void> | void;
   /**
    * Callback pour appliquer un même type à PLUSIEURS jours d'un coup
    * (pinceau + clic-glissé). Permet au parent de batcher les upserts et
    * de ne recharger qu'une seule fois. Fallback : onChange jour par jour.
    */
-  onBatchChange?: (
-    dayDates: string[],
-    next: { kind: TimesheetDayKind | null; duration?: number },
-  ) => Promise<void> | void;
+  onBatchChange?: (dayDates: string[], next: DayChange) => Promise<void> | void;
 };
 
 /** Pinceau de remplissage rapide : un type + durée, ou "vider". */
@@ -47,6 +46,7 @@ type Brush = {
   id: string;
   kind: TimesheetDayKind | null;
   duration?: number;
+  remote?: boolean;
   label: string;
   icon: typeof Briefcase;
   activeClass: string;
@@ -115,6 +115,7 @@ type Cell = {
 function buildBrushes(isEn: boolean): Brush[] {
   return [
     { id: 'worked', kind: 'worked', duration: 1, label: isEn ? 'Worked' : 'Travaillé', icon: Briefcase, activeClass: `${KIND_META.worked.border} ${KIND_META.worked.bg} ${KIND_META.worked.text}` },
+    { id: 'remote', kind: 'worked', duration: 1, remote: true, label: isEn ? 'Remote' : 'Télétravail', icon: Home, activeClass: `${KIND_META.worked.border} ${KIND_META.worked.bg} ${KIND_META.worked.text}` },
     { id: 'half', kind: 'worked', duration: 0.5, label: isEn ? 'Half day' : 'Demi-journée', icon: Briefcase, activeClass: `${KIND_META.worked.border} ${KIND_META.worked.bg} ${KIND_META.worked.text}` },
     { id: 'paid_leave', kind: 'paid_leave', label: kindLabel('paid_leave', isEn), icon: Palmtree, activeClass: `${KIND_META.paid_leave.border} ${KIND_META.paid_leave.bg} ${KIND_META.paid_leave.text}` },
     { id: 'sick_leave', kind: 'sick_leave', label: kindLabel('sick_leave', isEn), icon: HeartPulse, activeClass: `${KIND_META.sick_leave.border} ${KIND_META.sick_leave.bg} ${KIND_META.sick_leave.text}` },
@@ -159,7 +160,7 @@ export function TimesheetCalendar({
       }
       setSaving(true);
       try {
-        const next = { kind: brush.kind, duration: brush.duration };
+        const next: DayChange = { kind: brush.kind, duration: brush.duration, is_remote: brush.kind === 'worked' && !!brush.remote };
         if (onBatchChange) {
           await onBatchChange(isos, next);
         } else if (onChange) {
@@ -187,10 +188,12 @@ export function TimesheetCalendar({
 
   // Totaux
   const totals = useMemo(() => {
-    const t = { worked: 0, paid_leave: 0, sick_leave: 0, unpaid_leave: 0, holiday: 0 };
+    const t = { worked: 0, paid_leave: 0, sick_leave: 0, unpaid_leave: 0, holiday: 0, remote: 0 };
     for (const d of days) {
-      if (d.kind === 'worked') t.worked += Number(d.duration);
-      else t[d.kind] += 1;
+      if (d.kind === 'worked') {
+        t.worked += Number(d.duration);
+        if (d.is_remote) t.remote += Number(d.duration);
+      } else t[d.kind] += 1;
     }
     return t;
   }, [days]);
@@ -301,6 +304,7 @@ export function TimesheetCalendar({
                 <span className="font-medium">{kindLabel(k, isEn)}</span>
                 <span className="text-[10px] opacity-80">
                   {k === 'worked' ? `${count} ${isEn ? 'd' : 'j'}` : count > 0 ? `· ${count}` : ''}
+                  {k === 'worked' && totals.remote > 0 ? (isEn ? ` · ${totals.remote} remote` : ` · dont ${totals.remote} en télétravail`) : ''}
                 </span>
               </div>
             );
@@ -377,13 +381,10 @@ function CalendarCell({
       : 'cursor-pointer hover:brightness-125 hover:ring-1 hover:ring-primary/40'
     : '';
 
-  async function handlePick(
-    kind: TimesheetDayKind | null,
-    duration?: number,
-  ) {
+  async function handlePick(kind: TimesheetDayKind | null, duration?: number, remote?: boolean) {
     if (!cell.iso || !onChange) return;
     onClose();
-    await onChange(cell.iso, { kind, duration });
+    await onChange(cell.iso, { kind, duration, is_remote: kind === 'worked' && !!remote });
   }
 
   return (
@@ -414,7 +415,11 @@ function CalendarCell({
       >
         <div className="flex items-baseline justify-between">
           <span className="font-bold">{cell.dayNum}</span>
-          {Icon && <Icon className="h-3 w-3" />}
+          {cell.data?.kind === 'worked' && cell.data.is_remote ? (
+            <Home className="h-3 w-3" aria-label={isEn ? 'Remote' : 'Télétravail'} />
+          ) : (
+            Icon && <Icon className="h-3 w-3" />
+          )}
         </div>
         {cell.data && cell.data.kind === 'worked' && (
           <div
@@ -436,7 +441,7 @@ function CalendarCell({
           {(Object.keys(KIND_META) as TimesheetDayKind[]).map((k) => {
             const km = KIND_META[k];
             const KI = km.icon;
-            const isCurrent = cell.data?.kind === k && cell.data.duration === 1;
+            const isCurrent = cell.data?.kind === k && cell.data.duration === 1 && !(k === 'worked' && cell.data.is_remote);
             return (
               <button
                 key={k}
@@ -450,6 +455,16 @@ function CalendarCell({
               </button>
             );
           })}
+          {/* Télétravail */}
+          <button
+            type="button"
+            onClick={() => handlePick('worked', 1, true)}
+            className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted border-t border-hairline ${KIND_META.worked.text}`}
+          >
+            <Home className="h-3.5 w-3.5" />
+            <span className="flex-1 text-left">{isEn ? 'Remote' : 'Télétravail'}</span>
+            {cell.data?.kind === 'worked' && cell.data.is_remote && <span className="text-[9px] opacity-60">✓</span>}
+          </button>
           {/* Demi-journée */}
           <button
             type="button"

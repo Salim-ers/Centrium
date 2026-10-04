@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { PortalShell } from '@/components/layout/PortalShell';
@@ -24,7 +25,9 @@ export default async function PortalLayout({ children }: { children: React.React
 
   return (
     <PortalProvider consultantId={profile.consultant_id} userId={user.id}>
-      <PortalShell>{children}</PortalShell>
+      <PortalShell>
+        <Suspense>{children}</Suspense>
+      </PortalShell>
     </PortalProvider>
   );
 }

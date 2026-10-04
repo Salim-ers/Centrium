@@ -1117,6 +1117,8 @@ export const timesheetService = {
     kind: 'worked' | 'paid_leave' | 'sick_leave' | 'unpaid_leave' | 'holiday' | null;
     duration?: number; // 1.0 ou 0.5 pour 'worked' ; ignoré sinon
     note?: string | null;
+    /** Télétravail (jours travaillés uniquement). Non transmis si absent. */
+    is_remote?: boolean;
   }): Promise<ServiceResult<true>> {
     const supabase = createClient();
     if (input.kind === null) {
@@ -1138,6 +1140,7 @@ export const timesheetService = {
           kind: input.kind,
           duration,
           note: input.note ?? null,
+          ...(input.is_remote !== undefined ? { is_remote: input.kind === 'worked' && input.is_remote } : {}),
         },
         { onConflict: 'timesheet_id,day_date' },
       );

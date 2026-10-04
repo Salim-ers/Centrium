@@ -1,236 +1,146 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Combobox } from '@/components/ui/Combobox';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent } from '@/components/ui/card';
+import { Select } from '@/components/ui/select';
+import { Field } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { createClient } from '@/lib/supabase/client';
 import { useBrandName } from '@/components/brand/BrandingStyles';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { fetchMyMissions, fetchMyProfile } from '@/lib/portal/consultant-data';
+import { periodLabel } from '@/lib/status';
+import type { PortalMission } from '@/types';
+import { usePortalConsultant } from '../../portal-context';
 
-type MissionRow = {
-  id: string;
-  title: string;
-  daily_rate_eur: number;
-  company: { name: string } | null;
-};
-
-const MONTHS_FR = [
-  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
-];
-
-const MONTHS_EN = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
+/**
+ * Création d'un CRA : mission + mois. Le détail jour par jour (travaillé,
+ * télétravail, congés, absences) se saisit ensuite sur le calendrier.
+ * Si un CRA existe déjà pour la période, on l'ouvre au lieu d'en créer un.
+ */
 export default function PortalCraNewPage() {
   const router = useRouter();
+  const search = useSearchParams();
   const brandName = useBrandName();
+  const { consultantId } = usePortalConsultant();
   const { locale } = useLocale();
-  const isEn = locale === 'en';
-  const months = isEn ? MONTHS_EN : MONTHS_FR;
-  const [missions, setMissions] = useState<MissionRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const lang = locale === 'en' ? 'en' : 'fr';
+  const fr = lang === 'fr';
+  const now = new Date();
+
+  const [missions, setMissions] = useState<PortalMission[] | null>(null);
+  const [orgId, setOrgId] = useState<string | null>(null);
+  const [missionId, setMissionId] = useState('');
+  const [period, setPeriod] = useState(() => {
+    const m = Number(search.get('month'));
+    const y = Number(search.get('year'));
+    return m >= 1 && m <= 12 && y > 2000 ? `${y}-${m}` : `${now.getFullYear()}-${now.getMonth() + 1}`;
+  });
   const [saving, setSaving] = useState(false);
 
-  const now = new Date();
-  const [missionId, setMissionId] = useState<string>('');
-  const [month, setMonth] = useState<number>(now.getMonth() + 1);
-  const [year, setYear] = useState<number>(now.getFullYear());
-  const [days, setDays] = useState<number>(20);
-  const [notes, setNotes] = useState<string>('');
-
   useEffect(() => {
-    (async () => {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from('missions')
-        .select('id, title, daily_rate_eur, company:companies(name)')
-        .eq('status', 'active')
-        .order('start_date', { ascending: false });
-      const list = (data ?? []) as unknown as MissionRow[];
-      setMissions(list);
-      if (list.length > 0) setMissionId(list[0].id);
-      setLoading(false);
-    })();
-  }, []);
+    const supabase = createClient();
+    void Promise.all([fetchMyMissions(supabase), fetchMyProfile(supabase)]).then(([list, profile]) => {
+      const active = list.filter((m) => m.status === 'active');
+      setMissions(active);
+      setOrgId(profile?.organization_id ?? null);
+      const wanted = search.get('mission');
+      setMissionId(active.find((m) => m.id === wanted)?.id ?? active[0]?.id ?? '');
+    });
+  }, [search]);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!missionId) {
-      toast.error(
-        isEn
-          ? `No active mission. Contact your ${brandName} manager.`
-          : `Aucune mission active. Contacte ton référent ${brandName}.`
-      );
-      return;
+  // Mois courant, les deux précédents et le suivant.
+  const periods = useMemo(() => {
+    const out: Array<{ value: string; label: string }> = [];
+    for (let d = -2; d <= 1; d++) {
+      const dt = new Date(now.getFullYear(), now.getMonth() + d, 1);
+      out.push({ value: `${dt.getFullYear()}-${dt.getMonth() + 1}`, label: periodLabel(dt.getMonth() + 1, dt.getFullYear(), lang) });
     }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
+  async function create() {
+    if (!missionId || !orgId) return;
+    const [y, m] = period.split('-').map(Number) as [number, number];
     setSaving(true);
     const supabase = createClient();
-
-    // L'insert doit inclure consultant_id. RLS vérifie que c'est bien celui du user.
-    // On récupère le consultant_id depuis la mission (lien consultant → mission).
-    const { data: mission } = await supabase
-      .from('missions')
-      .select('consultant_id, organization_id')
-      .eq('id', missionId)
-      .single();
-
-    if (!mission) {
-      toast.error(isEn ? 'Mission not found' : 'Mission introuvable');
+    const { data: existing } = await supabase
+      .from('timesheets')
+      .select('id')
+      .eq('mission_id', missionId)
+      .eq('period_month', m)
+      .eq('period_year', y)
+      .eq('archived', false)
+      .maybeSingle();
+    if (existing) {
       setSaving(false);
+      router.replace(`/portal/cra/${existing.id}`);
       return;
     }
-
     const { data, error } = await supabase
       .from('timesheets')
-      .insert({
-        organization_id: mission.organization_id,
-        mission_id: missionId,
-        consultant_id: mission.consultant_id,
-        period_month: month,
-        period_year: year,
-        days_worked: days,
-        days_validated: 0,
-        status: 'draft',
-        notes: notes || null,
-      })
-      .select()
+      .insert({ organization_id: orgId, mission_id: missionId, consultant_id: consultantId, period_month: m, period_year: y, days_worked: 0, days_validated: 0, status: 'draft' })
+      .select('id')
       .single();
-
     setSaving(false);
-
-    if (error) {
-      toast.error((isEn ? 'Error: ' : 'Erreur : ') + error.message);
+    if (error || !data) {
+      toast.error(fr ? 'Création impossible. Réessayez ou contactez votre référent.' : 'Could not create. Try again or contact your manager.');
       return;
     }
-    toast.success(isEn ? 'CRA created as draft' : 'CRA créé en brouillon');
-    router.push(`/portal/cra/${data.id}`);
+    router.replace(`/portal/cra/${data.id}`);
   }
 
-  const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1];
-
   return (
-    <div>
-      <Button variant="ghost" size="sm" asChild className="mb-4">
-        <Link href="/portal/cra">
-          <ArrowLeft className="h-4 w-4" />
-          {isEn ? 'Back' : 'Retour'}
+    <div className="mx-auto max-w-xl space-y-5">
+      <div>
+        <Link href="/portal/cra" className="text-[13px] text-muted-foreground hover:text-foreground">
+          ← {fr ? 'Mes CRA' : 'My timesheets'}
         </Link>
-      </Button>
-
-      <div className="max-w-2xl mx-auto mb-6">
-        <div className="text-[10px] sm:text-[11px] font-semibold tracking-[0.3em] uppercase text-primary mb-2">
-          {isEn ? 'My space' : 'Mon espace'}
-        </div>
-        <h1 className="font-display font-light tracking-[-0.03em] leading-[1.05] text-[clamp(1.75rem,3.5vw,2.5rem)]">
-          {isEn ? 'New' : 'Nouveau'} <span className="text-primary font-display ">CRA.</span>
-        </h1>
+        <h1 className="mt-1 text-[22px] font-semibold tracking-tight sm:text-2xl">{fr ? 'Nouveau CRA' : 'New timesheet'}</h1>
+        <p className="text-[13.5px] text-muted-foreground">
+          {fr ? 'Choisissez la mission et le mois, puis remplissez le calendrier.' : 'Pick the mission and month, then fill in the calendar.'}
+        </p>
       </div>
-
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle className="sr-only">{isEn ? 'New CRA' : 'Nouveau CRA'}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div>
-              <Label>{isEn ? 'Mission *' : 'Mission *'}</Label>
-              {loading ? (
-                <div className="h-10 rounded-md bg-card animate-pulse" />
-              ) : (
-                <>
-                  <Combobox
-                    value={missionId}
-                    onChange={(v) => setMissionId(v)}
-                    options={[
-                      ...(missions.length === 0
-                        ? [{ value: '', label: isEn ? 'No active mission' : 'Aucune mission active' }]
-                        : []),
-                      ...missions.map((m) => ({
-                        value: m.id,
-                        label: `${m.title}${m.company ? ` (${m.company.name})` : ''}`,
-                      })),
-                    ]}
-                  />
-                  {missions.length === 0 && (
-                    <p className="text-xs text-warning mt-1">
-                      {isEn ? (
-                        <>No active mission is linked to your profile. Contact your {brandName} manager.</>
-                      ) : (
-                        <>
-                          Aucune mission active n&apos;est rattachée à ton profil. Contacte ton
-                          référent {brandName}.
-                        </>
-                      )}
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label>{isEn ? 'Month *' : 'Mois *'}</Label>
-                <Combobox
-                  value={String(month)}
-                  onChange={(v) => setMonth(Number(v))}
-                  options={months.map((m, i) => ({ value: String(i + 1), label: m }))}
-                />
-              </div>
-              <div>
-                <Label>{isEn ? 'Year *' : 'Année *'}</Label>
-                <Combobox
-                  value={String(year)}
-                  onChange={(v) => setYear(Number(v))}
-                  options={years.map((y) => ({ value: String(y), label: String(y) }))}
-                />
-              </div>
-              <div>
-                <Label>{isEn ? 'Days worked *' : 'Jours travaillés *'}</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={31}
-                  step={0.5}
-                  value={days}
-                  onChange={(e) => setDays(Number(e.target.value))}
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label>{isEn ? 'Notes' : 'Notes'}</Label>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={3}
-                placeholder={isEn ? 'Leave, public holidays, details…' : 'Congés, jours fériés, précisions…'}
-              />
-            </div>
-
-            <div className="flex gap-2 justify-end pt-2">
-              <Button type="button" variant="outline" onClick={() => router.push('/portal/cra')}>
-                {isEn ? 'Cancel' : 'Annuler'}
+      <Card>
+        <CardContent className="space-y-4 pt-5">
+          {missions === null ? (
+            <Skeleton className="h-24 w-full" />
+          ) : missions.length === 0 ? (
+            <p className="text-[13.5px] text-muted-foreground">
+              {fr ? `Aucune mission en cours n’est rattachée à votre profil. Contactez votre référent ${brandName}.` : `No ongoing mission is linked to your profile. Contact your ${brandName} manager.`}
+            </p>
+          ) : (
+            <>
+              <Field label="Mission" htmlFor="cra-mission">
+                <Select id="cra-mission" value={missionId} onChange={(e) => setMissionId(e.target.value)}>
+                  {missions.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.title}
+                      {m.company_name ? ` — ${m.company_name}` : ''}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label={fr ? 'Mois' : 'Month'} htmlFor="cra-period">
+                <Select id="cra-period" value={period} onChange={(e) => setPeriod(e.target.value)}>
+                  {periods.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Button className="w-full" onClick={() => void create()} loading={saving} disabled={!missionId || !orgId}>
+                {fr ? 'Continuer' : 'Continue'}
               </Button>
-              <Button type="submit" disabled={saving || !missionId}>
-                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                {isEn ? 'Create CRA' : 'Créer le CRA'}
-              </Button>
-            </div>
-          </form>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

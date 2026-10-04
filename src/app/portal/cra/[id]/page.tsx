@@ -28,7 +28,7 @@ import { timesheetService } from '@/lib/services';
 import {
   TimesheetCalendar,
   type CalendarDay,
-  type TimesheetDayKind,
+  type DayChange,
 } from '@/components/timesheets/TimesheetCalendar';
 import {
   TimesheetDocument,
@@ -37,7 +37,8 @@ import {
 import { downloadElementAsPdf } from '@/lib/pdf/download-document';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { monthsLong } from '@/lib/i18n/months';
-import type { Timesheet, Mission, Consultant, Company } from '@/types';
+import { fetchMyMissions, fetchMyProfile, type PortalProfile } from '@/lib/portal/consultant-data';
+import type { PortalMission, Timesheet } from '@/types';
 
 export default function PortalCraDetailPage() {
   const params = useParams<{ id: string }>();
@@ -55,9 +56,8 @@ export default function PortalCraDetailPage() {
   // Jours détaillés du calendrier (RLS : visibles/écrivables via le parent)
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
   // Contexte du DOCUMENT officiel (mission / client / consultant)
-  const [mission, setMission] = useState<Mission | null>(null);
-  const [consultant, setConsultant] = useState<Consultant | null>(null);
-  const [company, setCompany] = useState<Company | null>(null);
+  const [mission, setMission] = useState<PortalMission | null>(null);
+  const [consultant, setConsultant] = useState<PortalProfile | null>(null);
   const docRef = useRef<HTMLDivElement | null>(null);
   const { branding } = useOrganization();
 
@@ -85,7 +85,7 @@ export default function PortalCraDetailPage() {
       supabase.from('timesheets').select('*').eq('id', params.id).maybeSingle(),
       supabase
         .from('timesheet_days')
-        .select('id, day_date, duration, kind, note')
+        .select('id, day_date, duration, kind, note, is_remote')
         .eq('timesheet_id', params.id),
     ]);
     if (error || !data) {
@@ -99,31 +99,11 @@ export default function PortalCraDetailPage() {
     setNotes(row.notes ?? '');
     setCalendarDays((dayRows ?? []) as CalendarDay[]);
 
-    // Contexte document (best-effort — le CRA reste utilisable sans)
-    if (row.mission_id) {
-      const { data: m } = await supabase
-        .from('missions')
-        .select('*')
-        .eq('id', row.mission_id)
-        .maybeSingle();
-      setMission((m as Mission | null) ?? null);
-      if (m?.company_id) {
-        const { data: co } = await supabase
-          .from('companies')
-          .select('*')
-          .eq('id', m.company_id)
-          .maybeSingle();
-        setCompany((co as Company | null) ?? null);
-      }
-    }
-    if (row.consultant_id) {
-      const { data: c } = await supabase
-        .from('consultants')
-        .select('*')
-        .eq('id', row.consultant_id)
-        .maybeSingle();
-      setConsultant((c as Consultant | null) ?? null);
-    }
+    // Contexte du document via les fonctions portail (liste blanche : ni
+    // TJM de vente ni notes internes — le bloc montants reste masqué).
+    const [missions, profile] = await Promise.all([fetchMyMissions(supabase), fetchMyProfile(supabase)]);
+    setMission(missions.find((m) => m.id === row.mission_id) ?? null);
+    setConsultant(profile);
     setLoading(false);
   }
 
@@ -134,7 +114,7 @@ export default function PortalCraDetailPage() {
 
   async function handleDayChange(
     dayDate: string,
-    next: { kind: TimesheetDayKind | null; duration?: number; note?: string | null },
+    next: DayChange,
   ) {
     if (!ts) return;
     const res = await timesheetService.upsertDay({
@@ -142,6 +122,7 @@ export default function PortalCraDetailPage() {
       dayDate,
       kind: next.kind,
       duration: next.duration,
+      is_remote: next.is_remote,
       note: next.note,
     });
     if (res.error) {
@@ -153,7 +134,7 @@ export default function PortalCraDetailPage() {
 
   async function handleBatchDayChange(
     dayDates: string[],
-    next: { kind: TimesheetDayKind | null; duration?: number },
+    next: DayChange,
   ) {
     if (!ts) return;
     const results = await Promise.all(
@@ -163,6 +144,7 @@ export default function PortalCraDetailPage() {
           dayDate,
           kind: next.kind,
           duration: next.duration,
+          is_remote: next.is_remote,
         }),
       ),
     );
@@ -471,9 +453,9 @@ export default function PortalCraDetailPage() {
           <div ref={docRef} className="bg-muted rounded-xl p-6 overflow-auto">
             <TimesheetDocument
               timesheet={ts}
-              mission={mission}
+              mission={mission ? { title: mission.title } : null}
               consultant={consultant}
-              company={company}
+              company={mission?.company_name ? { name: mission.company_name } : null}
               days={calendarDays.map((d, i) => ({
                 id: `${d.day_date ?? i}`,
                 day_date: d.day_date,
