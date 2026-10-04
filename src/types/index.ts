@@ -405,9 +405,22 @@ export type Opportunity = {
   last_interaction: string | null;
   notes: string | null;
   lost_reason: string | null;
+  // V2 (migration 097) — optionnels tant que la migration n'est pas appliquée.
+  description?: string | null;
+  budget_eur?: number | null;
+  start_date?: string | null;
+  location?: string | null;
+  remote_policy?: string | null;
+  required_skills?: string[];
+  next_action?: string | null;
+  source?: 'manual' | 'client_portal' | 'import';
+  client_request_id?: string | null;
+  archived?: boolean;
   created_at: string;
   updated_at: string;
 };
+
+export type MissionRenewalStatus = 'unknown' | 'likely' | 'confirmed' | 'not_renewed';
 
 export type Mission = {
   id: string;
@@ -416,11 +429,234 @@ export type Mission = {
   company_id: string;
   opportunity_id: string | null;
   title: string;
+  /** TJM de vente (facturé au client). Jamais exposé au consultant. */
   daily_rate_eur: number;
   start_date: string;
   end_date: string | null;
   contract_number: string | null;
   status: 'proposed' | 'active' | 'ended' | 'suspended' | 'rejected';
+  // V2 (migration 097)
+  owner_id?: string | null;
+  planned_days?: number | null;
+  renewal_status?: MissionRenewalStatus;
+  location?: string | null;
+  remote_policy?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------- V2 : finances internes (has_permission('consultants.financials')) ----------
+
+export type ConsultantFinancials = {
+  consultant_id: string;
+  organization_id: string;
+  /** Coût journalier moyen (CJM). */
+  daily_cost_eur: number | null;
+  target_margin_pct: number | null;
+  updated_at: string;
+};
+
+export type MissionFinancials = {
+  mission_id: string;
+  organization_id: string;
+  daily_cost_eur: number | null;
+  other_costs_eur: number;
+  updated_at: string;
+};
+
+export type Certification = {
+  name: string;
+  issuer?: string | null;
+  year?: number | null;
+  expires_at?: string | null;
+};
+
+// ---------- V2 : tâches, documents, devis ----------
+
+export type TaskEntityType =
+  | 'opportunity'
+  | 'client'
+  | 'contact'
+  | 'mission'
+  | 'consultant'
+  | 'timesheet'
+  | 'quote'
+  | 'client_request';
+
+export type Task = {
+  id: string;
+  organization_id: string;
+  title: string;
+  description: string | null;
+  status: 'todo' | 'done' | 'cancelled';
+  priority: 'low' | 'medium' | 'high';
+  due_date: string | null;
+  assignee_id: string | null;
+  created_by: string | null;
+  entity_type: TaskEntityType | null;
+  entity_id: string | null;
+  source: 'manual' | 'automation';
+  dedupe_key: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DocumentKind =
+  | 'quote'
+  | 'proposal'
+  | 'purchase_order'
+  | 'contract'
+  | 'mission_document'
+  | 'skills_dossier'
+  | 'client_document'
+  | 'consultant_document'
+  | 'other';
+
+export type DocumentVisibility = 'internal' | 'client' | 'consultant';
+
+export type LibraryDocument = {
+  id: string;
+  organization_id: string;
+  kind: DocumentKind;
+  title: string;
+  description: string | null;
+  company_id: string | null;
+  consultant_id: string | null;
+  mission_id: string | null;
+  opportunity_id: string | null;
+  storage_path: string | null;
+  file_name: string | null;
+  mime_type: string | null;
+  size_bytes: number | null;
+  root_id: string | null;
+  version: number;
+  visibility: DocumentVisibility;
+  archived: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DocumentTemplate = {
+  id: string;
+  organization_id: string;
+  kind: 'quote' | 'proposal' | 'purchase_order' | 'contract' | 'skills_dossier';
+  name: string;
+  intro_text: string | null;
+  terms_text: string | null;
+  footer_text: string | null;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'declined' | 'expired';
+
+export type Quote = {
+  id: string;
+  organization_id: string;
+  number: string | null;
+  title: string;
+  company_id: string | null;
+  contact_id: string | null;
+  opportunity_id: string | null;
+  template_id: string | null;
+  status: QuoteStatus;
+  issue_date: string;
+  valid_until: string | null;
+  vat_rate: number;
+  intro_text: string | null;
+  terms_text: string | null;
+  notes: string | null;
+  total_ht: number;
+  total_ttc: number;
+  root_id: string | null;
+  version: number;
+  sent_at: string | null;
+  decided_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type QuoteItem = {
+  id: string;
+  quote_id: string;
+  position: number;
+  description: string;
+  consultant_id: string | null;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+};
+
+// ---------- V2 : portails ----------
+
+export type ClientPortalUser = {
+  user_id: string;
+  organization_id: string;
+  company_id: string;
+  contact_id: string | null;
+  email: string;
+  invited_by: string | null;
+  created_at: string;
+  last_seen_at: string | null;
+  revoked_at: string | null;
+};
+
+export type ClientRequestStatus = 'new' | 'in_review' | 'converted' | 'declined';
+
+export type ClientRequest = {
+  id: string;
+  organization_id: string;
+  company_id: string;
+  created_by: string | null;
+  title: string;
+  description: string | null;
+  skills: string[];
+  seniority: string | null;
+  location: string | null;
+  remote_policy: string | null;
+  start_date: string | null;
+  duration_months: number | null;
+  budget_eur: number | null;
+  daily_rate_eur: number | null;
+  status: ClientRequestStatus;
+  opportunity_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** Mission vue depuis le portail consultant (portal_my_missions()). */
+export type PortalMission = {
+  id: string;
+  title: string;
+  status: Mission['status'];
+  start_date: string;
+  end_date: string | null;
+  company_id: string | null;
+  company_name: string | null;
+  location: string | null;
+  remote_policy: string | null;
+  planned_days: number | null;
+  contract_number: string | null;
+  /** Tarif du consultant indépendant (CJM). null pour un salarié. */
+  consultant_rate: number | null;
+};
+
+// ---------- V2 : intégrations ----------
+
+export type IntegrationProvider = 'pennylane' | 'sage' | 'sellsy' | 'approved_platform' | 'webhook';
+
+export type Integration = {
+  id: string;
+  organization_id: string;
+  provider: IntegrationProvider;
+  status: 'not_connected' | 'requested' | 'configured' | 'error';
+  config: Record<string, unknown>;
+  last_event_at: string | null;
+  last_error: string | null;
   created_at: string;
   updated_at: string;
 };

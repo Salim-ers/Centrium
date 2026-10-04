@@ -36,7 +36,11 @@ export function normalizeQuestion(q: string): string {
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
     .replace(/[’']/g, ' ')
-    .replace(/[?!.,;:()]/g, ' ')
+    // Impératifs avec pronom (« trouve-moi », « donne-nous ») : on sépare.
+    .replace(/-(moi|nous|lui|leur|les|en|y)\b/g, ' $1')
+    // Ponctuation, sauf les points internes aux mots (node.js, asp.net).
+    .replace(/\.(?=\s|$)/g, ' ')
+    .replace(/[?!,;:()]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
