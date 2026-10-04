@@ -98,7 +98,7 @@ export function useSetupSteps() {
           done: data.clients,
           label: fr ? 'Ajouter les clients' : 'Add clients',
           hint: fr ? 'Pour suivre opportunités et missions' : 'To track opportunities and missions',
-          href: '/clients',
+          href: '/clients?import=1',
         },
       ]
     : [];

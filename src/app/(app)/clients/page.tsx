@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Building2, Plus, Search } from 'lucide-react';
+import { Building2, FileUp, Plus, Search } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader, KPICard } from '@/components/app';
@@ -13,6 +13,7 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { ClientDrawer, CLIENT_KIND_LABEL } from '@/components/clients/ClientDrawer';
+import { ClientCsvImportDialog } from '@/components/clients/ClientCsvImportDialog';
 import { useOrganization } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
@@ -33,6 +34,7 @@ export default function ClientsPage() {
   const [query, setQuery] = useState('');
   const [kind, setKind] = useState('all');
   const [drawerOpen, setDrawerOpen] = useState(params.get('new') === '1');
+  const [importOpen, setImportOpen] = useState(params.get('import') === '1');
 
   const { data, loading, reload } = useCachedQuery<ClientRow[]>(
     `clients-overview:${activeOrgId ?? 'none'}:${withFinance ? 'f' : 'n'}`,
@@ -142,10 +144,16 @@ export default function ClientsPage() {
         description={fr ? 'Comptes clients, prospects et ESN partenaires.' : 'Client accounts, prospects and partner firms.'}
         actions={
           canEdit && (
-            <Button onClick={() => setDrawerOpen(true)}>
-              <Plus />
-              {fr ? 'Nouveau client' : 'New client'}
-            </Button>
+            <>
+              <Button variant="secondary" onClick={() => setImportOpen(true)}>
+                <FileUp />
+                {fr ? 'Importer un CSV' : 'Import CSV'}
+              </Button>
+              <Button onClick={() => setDrawerOpen(true)}>
+                <Plus />
+                {fr ? 'Nouveau client' : 'New client'}
+              </Button>
+            </>
           )
         }
       />
@@ -227,6 +235,7 @@ export default function ClientsPage() {
       {activeOrgId && (
         <ClientDrawer open={drawerOpen} onOpenChange={setDrawerOpen} organizationId={activeOrgId} onSaved={() => void reload()} />
       )}
+      <ClientCsvImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={() => void reload()} />
     </AppShell>
   );
 }

@@ -251,7 +251,11 @@ export default function OnboardingSetupPage() {
     }
   }
 
+  // Étape suivante : équipe et import des données.
   function finish() {
+    router.push('/onboarding/import');
+  }
+  function later() {
     router.push('/dashboard');
   }
 
@@ -294,7 +298,7 @@ export default function OnboardingSetupPage() {
             {isEn ? 'Personalize your workspace' : 'Personnalise ton espace'}
           </h1>
           <button
-            onClick={finish}
+            onClick={later}
             className="text-xs text-muted-foreground hover:text-foreground"
           >
             {isEn ? 'Later ↗' : 'Plus tard ↗'}
@@ -306,6 +310,8 @@ export default function OnboardingSetupPage() {
           <StepDot n={2} active={step === 2} done={step > 2} label={isEn ? 'Logo & colors' : 'Logo & couleurs'} />
           <span className="h-px flex-1 bg-muted" />
           <StepDot n={3} active={step === 3} done={false} label="Signature" />
+          <span className="h-px flex-1 bg-muted" />
+          <StepDot n={4} active={false} done={false} label={isEn ? 'Team & data' : 'Équipe & données'} />
         </div>
 
         {step === 1 && (
@@ -677,7 +683,7 @@ export default function OnboardingSetupPage() {
                   {isEn ? 'Back' : 'Retour'}
                 </Button>
                 <Button onClick={finish}>
-                  {isEn ? 'Go to dashboard' : 'Accéder au dashboard'}
+                  {isEn ? 'Continue: team & data' : 'Continuer : équipe et données'}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
