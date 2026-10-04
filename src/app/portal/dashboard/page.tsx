@@ -18,6 +18,7 @@ import { formatDate } from '@/lib/format';
 import { daysUntil } from '@/lib/pilotage/metrics';
 import type { PortalMission, Timesheet } from '@/types';
 import { usePortalConsultant } from '../portal-context';
+import { PortalNotifications } from '@/components/portal/PortalNotifications';
 
 type Data = {
   profile: PortalProfile | null;
@@ -50,7 +51,7 @@ async function load(consultantId: string): Promise<Data> {
 }
 
 export default function PortalDashboardPage() {
-  const { consultantId } = usePortalConsultant();
+  const { consultantId, userId } = usePortalConsultant();
   const brandName = useBrandName();
   const { locale } = useLocale();
   const lang = locale === 'en' ? 'en' : 'fr';
@@ -141,6 +142,8 @@ export default function PortalDashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      <PortalNotifications userId={userId} />
 
       {(data?.toSign ?? []).length > 0 && (
         <Card>

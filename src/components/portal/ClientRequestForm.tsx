@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { Paperclip, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +25,10 @@ type Form = {
   daily_rate_eur: string;
 };
 
+const MAX_FILES = 5;
+const MAX_BYTES = 25 * 1024 * 1024;
+const ACCEPT = '.pdf,.docx,.doc,.xlsx,.png,.jpg,.jpeg,.txt,.csv';
+
 const EMPTY: Form = { title: '', description: '', skills: [], seniority: '', location: '', remote_policy: '', start_date: '', duration_months: '', daily_rate_eur: '' };
 
 /** Expression d'un besoin par le client ; validation zod ici puis côté serveur. */
@@ -31,6 +36,24 @@ export function ClientRequestForm({ onDone }: { onDone?: () => void }) {
   const router = useRouter();
   const [f, setF] = useState<Form>(EMPTY);
   const [busy, setBusy] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+
+  function addFiles(list: FileList | null) {
+    if (!list) return;
+    const next = [...files];
+    for (const file of Array.from(list)) {
+      if (file.size > MAX_BYTES) {
+        toast.error(`${file.name} : 25 Mo maximum.`);
+        continue;
+      }
+      if (next.length >= MAX_FILES) {
+        toast.error(`${MAX_FILES} pièces jointes maximum.`);
+        break;
+      }
+      next.push(file);
+    }
+    setFiles(next);
+  }
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((p) => ({ ...p, [k]: v }));
 
   async function submit(e: React.FormEvent) {
@@ -53,14 +76,28 @@ export function ClientRequestForm({ onDone }: { onDone?: () => void }) {
     }
     setBusy(true);
     const res = await fetch('/api/client/requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(parsed.data) });
-    setBusy(false);
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
+      setBusy(false);
       toast.error(json.message ?? 'Envoi impossible. Réessayez.');
       return;
     }
+    // Pièces jointes : envoyées une à une après la création de la demande.
+    const requestId = (json as { data?: { id?: string } }).data?.id;
+    let failed = 0;
+    if (requestId) {
+      for (const file of files) {
+        const body = new FormData();
+        body.set('file', file);
+        const up = await fetch(`/api/client/requests/${requestId}/attachments`, { method: 'POST', body }).catch(() => null);
+        if (!up || !up.ok) failed++;
+      }
+    }
+    setBusy(false);
+    if (failed) toast.error(`${failed} pièce${failed > 1 ? 's' : ''} jointe${failed > 1 ? 's' : ''} non envoyée${failed > 1 ? 's' : ''} (type ou taille non acceptés).`);
     toast.success('Demande envoyée : votre interlocuteur revient vers vous.');
     setF(EMPTY);
+    setFiles([]);
     onDone?.();
     router.refresh();
   }
@@ -109,6 +146,27 @@ export function ClientRequestForm({ onDone }: { onDone?: () => void }) {
           <Input id="rq-rate" type="number" min={0} inputMode="decimal" value={f.daily_rate_eur} onChange={(e) => set('daily_rate_eur', e.target.value)} />
         </Field>
       </div>
+      <Field label="Pièces jointes" htmlFor="rq-files" hint="Fiche de poste, cahier des charges… PDF, Word, Excel ou image, 25 Mo maximum, 5 fichiers.">
+        <div className="space-y-2">
+          <label htmlFor="rq-files" className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-border px-3 py-2.5 text-[13.5px] text-muted-foreground hover:bg-muted/50">
+            <Paperclip className="h-4 w-4" />
+            Ajouter des fichiers
+          </label>
+          <input id="rq-files" type="file" multiple accept={ACCEPT} className="sr-only" onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }} />
+          {files.length > 0 && (
+            <ul className="space-y-1">
+              {files.map((file, i) => (
+                <li key={`${file.name}-${i}`} className="flex items-center gap-2 rounded-md bg-muted/60 px-2.5 py-1.5 text-[13px]">
+                  <span className="min-w-0 flex-1 truncate">{file.name}</span>
+                  <button type="button" onClick={() => setFiles(files.filter((_, j) => j !== i))} className="rounded p-0.5 text-muted-foreground hover:text-foreground" aria-label={`Retirer ${file.name}`}>
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </Field>
       <Button type="submit" className="w-full sm:w-auto" loading={busy}>
         Envoyer la demande
       </Button>

@@ -24,6 +24,11 @@ export type ClientRequestRow = {
   opportunity_id: string | null;
 };
 
+/** Préfixe de stockage des pièces jointes d'une demande client. */
+export function requestAttachmentPrefix(organizationId: string, requestId: string) {
+  return `${organizationId}/client-requests/${requestId}/`;
+}
+
 const SENIORITY_LABEL: Record<string, string> = { junior: 'Junior', confirmed: 'Confirmé', senior: 'Senior', expert: 'Expert' };
 
 /**
@@ -72,6 +77,13 @@ export async function convertClientRequest(
   if (error || !opp) return { error: error?.message ?? 'create_failed' };
 
   await admin.from('client_requests').update({ opportunity_id: opp.id, status: 'converted' }).eq('id', request.id);
+  // Pièces jointes déjà déposées par le client : rattachées à l'opportunité.
+  await admin
+    .from('documents')
+    .update({ opportunity_id: opp.id })
+    .eq('organization_id', request.organization_id)
+    .is('opportunity_id', null)
+    .like('storage_path', `${requestAttachmentPrefix(request.organization_id, request.id)}%`);
 
   const { data: company } = await admin.from('companies').select('name').eq('id', request.company_id).maybeSingle();
 

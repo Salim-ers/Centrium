@@ -8,6 +8,7 @@ import { StatusPill } from '@/components/ui/status-pill';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getClientMissionIds, getClientPortalContext } from '@/lib/portal/client-context';
 import { CLIENT_REQUEST_STATUS_PUBLIC, periodLabel, statusOf } from '@/lib/status';
+import { PortalNotifications } from '@/components/portal/PortalNotifications';
 import { formatDate, formatEur } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -107,6 +108,8 @@ export default async function ClientHomePage() {
           </CardContent>
         </Card>
       )}
+
+      <PortalNotifications userId={me.userId} />
 
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
