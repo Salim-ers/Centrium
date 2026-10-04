@@ -10,6 +10,8 @@
 export const AUTOMATION_RULE_IDS = [
   'mission_ending_alerts',
   'missing_timesheet_reminders',
+  'timesheet_validation_reminders',
+  'consultant_available_matching',
   'stale_opportunity_tasks',
   'client_request_to_opportunity',
   'quote_expiry_alerts',
@@ -44,6 +46,22 @@ export const AUTOMATION_RULES: AutomationRule[] = [
     action: { fr: 'Alerte à l’équipe et rappel au consultant (si les rappels consultants sont activés), relances selon la cadence', en: 'Alert the team and remind the consultant (if consultant reminders are on), on the notification cadence' },
   },
   {
+    id: 'timesheet_validation_reminders',
+    category: 'cra',
+    defaultEnabled: true,
+    label: { fr: 'CRA à valider', en: 'Timesheets to approve' },
+    trigger: { fr: 'Un CRA soumis attend une validation depuis plus d’un jour', en: 'A submitted timesheet has been waiting over a day' },
+    action: { fr: 'Alerte aux personnes qui valident les CRA, relances selon la cadence', en: 'Alert the approvers, with reminders on the cadence' },
+  },
+  {
+    id: 'consultant_available_matching',
+    category: 'missions',
+    defaultEnabled: true,
+    label: { fr: 'Consultant disponible', en: 'Consultant available' },
+    trigger: { fr: 'Un consultant est disponible, ou le sera sous 30 jours', en: 'A consultant is available, or will be within 30 days' },
+    action: { fr: 'Recherche les opportunités ouvertes compatibles (score ≥ 75) et prévient son référent', en: 'Finds compatible open opportunities (score ≥ 75) and notifies their manager' },
+  },
+  {
     id: 'stale_opportunity_tasks',
     category: 'crm',
     defaultEnabled: true,
@@ -57,7 +75,7 @@ export const AUTOMATION_RULES: AutomationRule[] = [
     defaultEnabled: true,
     label: { fr: 'Demande client', en: 'Client request' },
     trigger: { fr: 'Un client dépose un besoin depuis son portail', en: 'A client submits a need from their portal' },
-    action: { fr: 'Crée l’opportunité dans le CRM et notifie l’équipe commerciale', en: 'Creates the CRM opportunity and notifies sales' },
+    action: { fr: 'Crée l’opportunité dans le CRM, recherche les consultants compatibles et notifie l’équipe commerciale', en: 'Creates the CRM opportunity, finds compatible consultants and notifies sales' },
   },
   {
     id: 'quote_expiry_alerts',

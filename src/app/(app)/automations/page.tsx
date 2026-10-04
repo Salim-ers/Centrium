@@ -33,12 +33,14 @@ async function loadActivity(orgId: string): Promise<Activity> {
   const supabase = createClient();
   const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
   const count = (p: PromiseLike<{ count: number | null; error: unknown }>) => Promise.resolve(p).then((r) => (r.error ? 0 : (r.count ?? 0)));
-  const [missionAlerts, missingTs, oppTasks, quoteTasks, requests] = await Promise.all([
+  const [missionAlerts, missingTs, oppTasks, quoteTasks, requests, toValidate, matches] = await Promise.all([
     count(supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('source', 'engine').eq('kind', 'mission_ending').gte('created_at', since)),
     count(supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('source', 'engine').eq('kind', 'timesheet_missing').gte('created_at', since)),
     count(supabase.from('tasks').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('source', 'automation').eq('entity_type', 'opportunity').gte('created_at', since)),
     count(supabase.from('tasks').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('source', 'automation').eq('entity_type', 'quote').gte('created_at', since)),
     count(supabase.from('opportunities').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('source', 'client_portal').gte('created_at', since)),
+    count(supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('source', 'engine').eq('kind', 'timesheet_pending').gte('created_at', since)),
+    count(supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('source', 'engine').eq('kind', 'consultant_available').gte('created_at', since)),
   ]);
   return {
     mission_ending_alerts: missionAlerts,
@@ -46,6 +48,8 @@ async function loadActivity(orgId: string): Promise<Activity> {
     stale_opportunity_tasks: oppTasks,
     quote_expiry_alerts: quoteTasks,
     client_request_to_opportunity: requests,
+    timesheet_validation_reminders: toValidate,
+    consultant_available_matching: matches,
   };
 }
 

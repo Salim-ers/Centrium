@@ -8,7 +8,7 @@
 
 import type { JobOffer, Opportunity, SeniorityLevel } from '@/types';
 
-type OppLike = Pick<
+export type OppLike = Pick<
   Opportunity,
   'id' | 'organization_id' | 'title' | 'company_id' | 'contact_id' | 'owner_id' | 'daily_rate_eur' | 'duration_months'
 > & {

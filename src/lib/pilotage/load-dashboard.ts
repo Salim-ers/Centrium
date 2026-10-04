@@ -103,7 +103,7 @@ export async function loadDashboard(
   const tolerant = <T>(p: PromiseLike<{ data: unknown; error: unknown }>, fallback: T): Promise<T> =>
     Promise.resolve(p).then((r) => (r.error ? fallback : ((r.data as T | null) ?? fallback)));
 
-  const [missions, consultants, timesheets, opps, missionFin, consultantFin, quotes, requests, drafts] =
+  const [missions, consultants, timesheets, opps, missionFin, consultantFin, quotes, requests, drafts, matches] =
     await Promise.all([
       tolerant(
         supabase
@@ -196,6 +196,23 @@ export async function loadDashboard(
               .eq('archived', false),
           ).then((r) => (r.error ? 0 : (r.count ?? 0)))
         : Promise.resolve(0),
+      // Consultants compatibles avec des opportunités ouvertes (moteur
+      // d'automatisations, règle « consultant disponible »).
+      can('staffing.view')
+        ? tolerant(
+            supabase
+              .from('alerts')
+              .select('id, title, description, link, priority')
+              .eq('organization_id', orgId)
+              .eq('kind', 'consultant_available')
+              .eq('source', 'engine')
+              .in('status', ['new', 'in_progress'])
+              .like('dedupe_key', 'consultant-match:%')
+              .order('priority', { ascending: false })
+              .limit(20),
+            [] as Array<{ id: string; title: string; description: string | null; link: string | null; priority: string }>,
+          )
+        : Promise.resolve([]),
     ]);
 
   const missionCost = new Map(missionFin.filter((f) => f.daily_cost_eur != null).map((f) => [f.mission_id, Number(f.daily_cost_eur)]));
@@ -334,6 +351,24 @@ export async function loadDashboard(
         en: `Quote ${q.number ?? q.title} expires ${d === 0 ? 'today' : `in ${d} day${d > 1 ? 's' : ''}`}`,
       },
       href: `/documents/quotes/${q.id}`,
+    });
+  }
+  if (matches.length > 0) {
+    const top = matches[0]!;
+    actions.push({
+      id: 'consultant-match',
+      kind: 'consultant_match',
+      tone: 'success',
+      count: matches.length,
+      title:
+        matches.length === 1
+          ? { fr: top.title, en: top.title }
+          : {
+              fr: `${matches.length} consultants correspondent à des opportunités ouvertes`,
+              en: `${matches.length} consultants match open opportunities`,
+            },
+      detail: top.description ? { fr: top.description, en: top.description } : undefined,
+      href: matches.length === 1 && top.link ? top.link : '/alerts',
     });
   }
   if (requests.length > 0) {

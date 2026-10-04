@@ -1,10 +1,11 @@
 -- =========================================================================
 -- 103_v2_automations.sql — Centre d'automatisations
 -- -------------------------------------------------------------------------
--- 1. compute_org_alerts : reprise à l'identique de la version 085, avec une
---    seule différence — l'alerte calculée « mission se termine » (≤ 30 j)
+-- 1. compute_org_alerts : reprise à l'identique de la version 085, avec
+--    deux différences — l’alerte calculée « mission se termine » (≤ 30 j)
 --    est omise lorsque le moteur a matérialisé une alerte de fin de mission
 --    pour la même mission (fenêtres 90/60/30/15 j, adressée au responsable).
+--    Idem pour « CRA à valider » quand le moteur relance déjà ce CRA.
 --    Sans automatisation active, le comportement est inchangé.
 -- 2. Index pour les tâches créées par les automatisations (dédoublonnage).
 --
@@ -114,6 +115,15 @@ AS $function$
       NULL::timestamptz, t.consultant_id
     FROM timesheets t
     WHERE t.organization_id = org_id AND t.status = 'submitted'
+      -- V2 : relance « CRA à valider » matérialisée par le moteur → pas de doublon.
+      AND NOT EXISTS (
+        SELECT 1 FROM alerts ea
+        WHERE ea.organization_id = org_id
+          AND ea.kind = 'timesheet_pending'
+          AND ea.entity_id = t.id
+          AND ea.source = 'engine'
+          AND ea.status IN ('new', 'in_progress', 'snoozed')
+      )
 
     UNION ALL
 

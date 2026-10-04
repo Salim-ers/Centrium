@@ -34,6 +34,8 @@ import {
   type QuoteRow,
 } from './detectors';
 import { resolveAutomations } from '@/lib/automations/rules';
+import { detectConsultantMatches, detectTimesheetsToValidate, type MatchOpportunityRow } from './v2-detectors';
+import { loadMatchingPool } from '@/lib/matching/server-pool';
 import { buildSmsBody, escalatePriority, shouldNotify } from './reminders';
 
 // =========================================================================
@@ -246,7 +248,7 @@ async function loadOrgData(admin: SupabaseClient, orgId: string) {
       .eq('archived', false),
     admin
       .from('timesheets')
-      .select('id, mission_id, consultant_id, period_month, period_year, status, validated_at, days_validated')
+      .select('id, mission_id, consultant_id, period_month, period_year, status, validated_at, days_validated, submitted_at')
       .eq('organization_id', orgId)
       .eq('archived', false),
     admin
@@ -463,6 +465,26 @@ export async function runOrgAlerts(
     documentsByConsultant.set(d.consultant_id, list);
   }
 
+  // Données de matching (règle « consultant disponible ») : chargées seulement
+  // si la règle est active, et sans bloquer le reste du moteur.
+  let matchCandidates: AlertCandidate[] = [];
+  if (data.automations.consultant_available_matching.enabled) {
+    try {
+      const [pool, opps] = await Promise.all([
+        loadMatchingPool(admin, org.id),
+        admin
+          .from('opportunities')
+          .select('id, organization_id, title, company_id, contact_id, owner_id, daily_rate_eur, duration_months, description, required_skills, start_date, location, status, archived')
+          .eq('organization_id', org.id),
+      ]);
+      if (!opps.error) {
+        matchCandidates = detectConsultantMatches(pool.consultants, (opps.data ?? []) as MatchOpportunityRow[], pool.skillsByConsultant, now);
+      }
+    } catch (e) {
+      report.errors.push(`matching: ${(e as Error).message}`);
+    }
+  }
+
   // 1. DÉTECTION ------------------------------------------------------------
   const candidates: AlertCandidate[] = [
     ...detectIncompleteProfiles(
@@ -473,6 +495,8 @@ export async function runOrgAlerts(
       ? detectMissingTimesheets(data.missions as never, data.timesheets as never, consultantNames, now)
       : []),
     ...(data.automations.mission_ending_alerts.enabled ? detectMissionEndings(data.missions as never, consultantNames, now) : []),
+    ...(data.automations.timesheet_validation_reminders.enabled ? detectTimesheetsToValidate(data.timesheets as never, consultantNames, now) : []),
+    ...matchCandidates,
     ...detectForgottenInvoices(data.timesheets as never, data.invoices as never, consultantNames, settings, now),
     ...detectStaleDraftInvoices(data.invoices as never, settings, now),
     ...detectContractAlerts(data.contracts as never, data.missions as never, consultantNames, settings, now),
@@ -618,10 +642,11 @@ export async function runOrgAlerts(
   const emailBudget = new Map<string, number>(); // par destinataire
   const deliveries: DeliveryLog[] = [];
 
-  // Alerte adressée (ex. fin de mission → responsable) : uniquement son
+  // Alerte adressée (fin de mission → responsable, consultant compatible →
+  // référent) : uniquement son
   // destinataire s'il est membre ; sinon, diffusion par rôle.
   const directTarget = (alert: Alert) =>
-    alert.kind === 'mission_ending' && alert.assignee_id
+    (alert.kind === 'mission_ending' || alert.kind === 'consultant_available') && alert.assignee_id
       ? (data.recipients.find((r) => r.user_id === alert.assignee_id) ?? null)
       : null;
 
