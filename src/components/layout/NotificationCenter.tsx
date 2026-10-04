@@ -62,9 +62,9 @@ export function notificationGroup(kind: string): NotificationGroup {
     case 'system':
       return 'system';
     default:
+      if (/timesheet|cra/.test(kind)) return 'cra';
       if (/opportun|client|quote|devis|request|demande/.test(kind)) return 'commercial';
       if (/consultant|staffing|available/.test(kind)) return 'staffing';
-      if (/timesheet|cra/.test(kind)) return 'cra';
       if (/invoice|finance|prefact/.test(kind)) return 'finance';
       if (/mission|contract/.test(kind)) return 'mission';
       return 'system';

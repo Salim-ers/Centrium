@@ -195,6 +195,8 @@ export function PasswordSetupForm({ mode }: { mode: Mode }) {
       router.push(nextPath);
     } else if (welcome === 'portal') {
       router.push('/portal/dashboard');
+    } else if (welcome === 'client') {
+      router.push('/client');
     } else if (welcome === 'invited' && orgName) {
       router.push(`/dashboard?invited=${encodeURIComponent(orgName)}`);
     } else {
@@ -272,7 +274,9 @@ export function PasswordSetupForm({ mode }: { mode: Mode }) {
       ? 'Choisis un nouveau mot de passe pour ton compte Centrium.'
       : welcome === 'portal'
         ? 'Tu as été ajouté en tant que consultant. Définis le mot de passe que tu utiliseras pour accéder à ton portail.'
-        : orgName
+        : welcome === 'client'
+          ? 'Votre prestataire vous a ouvert un espace client. Définissez le mot de passe que vous utiliserez pour y accéder.'
+          : orgName
           ? `Bienvenue dans ${orgName}. Définis le mot de passe que tu utiliseras pour te reconnecter.`
           : 'Définis le mot de passe qui te servira à te connecter à Centrium.';
 

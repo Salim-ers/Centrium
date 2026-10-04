@@ -219,6 +219,8 @@ export async function updateSession(request: NextRequest) {
   }
 
   const isConsultant = role === 'consultant';
+  const isClientUser = role === 'client';
+  const isClientPortal = pathname === '/client' || pathname.startsWith('/client/');
   const isSuperAdmin = role === 'super_admin';
   const isAdminRoute = pathname.startsWith('/admin');
   const hasOrg = !!orgId;
@@ -256,6 +258,24 @@ export async function updateSession(request: NextRequest) {
     // Fondateur sur la console : on laisse passer sans appliquer le
     // gating abonnement / onboarding plus bas (la console est cross-org).
     return response;
+  }
+
+  // Portail client (rôle client, sans organisation sur le profil : l'accès
+  // passe par client_portal_users, vérifié côté serveur dans /client).
+  // Confiné à /client/* ; ne paie pas d'abonnement.
+  if (isClientUser) {
+    if (pathname === '/' || pathname === '/login' || pathname === '/signup' || (!isClientPortal && !isPublic && !pathname.startsWith('/auth/'))) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/client';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
+    return response;
+  }
+  if (isClientPortal) {
+    const url = request.nextUrl.clone();
+    url.pathname = isConsultant ? '/portal/dashboard' : '/dashboard';
+    return NextResponse.redirect(url);
   }
 
   // Pas d'org active (vient de signer up) → onboarding obligatoire

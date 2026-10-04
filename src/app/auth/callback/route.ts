@@ -124,6 +124,9 @@ export async function GET(req: NextRequest) {
         .eq('id', user.id)
         .maybeSingle();
       const isConsultant = profile?.role === 'consultant';
+      if (profile?.role === 'client') {
+        return profile.password_set ? '/client' : '/auth/first-password?welcome=client';
+      }
       if (profile?.password_set) {
         return isConsultant ? '/portal/dashboard' : '/dashboard';
       }

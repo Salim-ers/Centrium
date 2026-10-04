@@ -1,6 +1,7 @@
 import 'server-only';
 import { redirect } from 'next/navigation';
 import { NextResponse } from 'next/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { requireOrg, type AuthContext, type RequireOrgOptions } from './guards';
 import {
@@ -10,6 +11,7 @@ import {
   type Permission,
   type PermissionOverride,
 } from './permissions';
+import type { UserRole } from '@/types';
 
 export type Authorization = AuthContext & {
   effectiveRole: EffectiveRole;
@@ -82,4 +84,27 @@ export async function apiPermission(
     return NextResponse.json({ error: 'Forbidden', details: { permission } }, { status: 403 });
   }
   return auth;
+}
+
+/**
+ * Membres (internes) d'une organisation disposant d'une permission —
+ * destinataires des notifications métier. Client admin requis : appelé
+ * depuis des routes serveur après contrôle d'accès.
+ */
+export async function membersWithPermission(
+  admin: SupabaseClient,
+  organizationId: string,
+  permission: Permission,
+): Promise<string[]> {
+  const [members, overridesRes] = await Promise.all([
+    admin.from('organization_members').select('user_id, role, is_owner').eq('organization_id', organizationId),
+    admin.from('role_permissions').select('role, permission, allowed').eq('organization_id', organizationId),
+  ]);
+  const overrides = overridesRes.error ? [] : ((overridesRes.data ?? []) as PermissionOverride[]);
+  return ((members.data ?? []) as Array<{ user_id: string; role: UserRole; is_owner?: boolean }>)
+    .filter((m) => {
+      const role = effectiveRole(m.role, !!m.is_owner);
+      return !!role && resolvePermissions(role, overrides).has(permission);
+    })
+    .map((m) => m.user_id);
 }

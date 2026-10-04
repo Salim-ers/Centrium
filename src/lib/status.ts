@@ -71,6 +71,14 @@ export const CONSULTANT_STATUS: Record<string, StatusDef> = {
   archived: { label: { fr: 'Archivé', en: 'Archived' }, tone: 'neutral' },
 };
 
+/** Libellés vus par le client dans son portail (sans vocabulaire interne). */
+export const CLIENT_REQUEST_STATUS_PUBLIC: Record<string, StatusDef> = {
+  new: { label: { fr: 'Envoyée', en: 'Sent' }, tone: 'neutral' },
+  in_review: { label: { fr: 'En étude', en: 'In review' }, tone: 'info' },
+  converted: { label: { fr: 'Prise en charge', en: 'Being handled' }, tone: 'success' },
+  declined: { label: { fr: 'Non retenue', en: 'Not pursued' }, tone: 'neutral' },
+};
+
 export const DOCUMENT_KIND: Record<string, L> = {
   quote: { fr: 'Devis', en: 'Quote' },
   proposal: { fr: 'Proposition commerciale', en: 'Proposal' },
