@@ -2,12 +2,12 @@
 
 Photographies issues d'[Unsplash](https://unsplash.com), sous [licence Unsplash](https://unsplash.com/license)
 (utilisation commerciale libre, sans attribution obligatoire). Aucune photo « Unsplash+ » ni image générée par IA,
-aucun visage. Fichiers téléchargés et servis depuis `public/photos` (WebP ; Next/Image produit AVIF/WebP aux bonnes
+aucun visage reconnaissable (personnes de dos uniquement). Fichiers téléchargés et servis depuis `public/photos` (WebP ; Next/Image produit AVIF/WebP aux bonnes
 tailles).
 
 | Fichier | Photographe | Source | Original | Utilisée sur |
 |---|---|---|---|---|
-| `it-circuit.webp` | Manuel | https://unsplash.com/photos/circuit-board-with-gold-pathways-CANL3bzp6wU | 2932×2932 | Accueil (respiration « Moins d'outils ») |
+| `it-dev-screens.webp` | Fatemeh Rezvani | https://unsplash.com/photos/a-man-sitting-in-front-of-two-computer-monitors-Xn3D8DIzH7Q | 4792×3194 | Accueil (respiration « Moins d'outils ») |
 | `it-code-laptop.webp` | Arnold Francisca | https://unsplash.com/photos/turned-on-macbook-pro-wit-programming-codes-display-f77Bh3inUpE | 5184×3456 | Plateforme |
 | `it-server-rack.webp` | Domaintechnik | https://unsplash.com/photos/server-rack-with-blinking-green-lights-VHmBX7FnXw0 | 4928×3264 | Sécurité |
 | `it-desk-warm.webp` | Radek Grzybowski | https://unsplash.com/photos/macbook-pro-on-brown-wooden-table-inside-room-eBRTYyjwpRY | 3165×2334 | Démo |
