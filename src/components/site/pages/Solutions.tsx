@@ -108,7 +108,7 @@ const PERSONAS: Persona[] = [
     tone: 'ivory',
     title: [['La marge.'], ['Pas l’', { em: 'intuition.' }]],
     text: 'CA signé, marge, occupation et pipeline pondéré, calculés sur les missions et les CRA réels.',
-    points: ['Tableau de bord sur douze mois', 'Analytics : occupation, CA par consultant, motifs de perte', 'Rôles et permissions de chaque équipe'],
+    points: ['Tableau de bord sur douze mois', 'Analytics : occupation, CA par consultant, motifs de perte'],
     Scene: DirectionScene,
   },
   {
@@ -117,7 +117,7 @@ const PERSONAS: Persona[] = [
     tone: 'warm',
     title: [['Vos affaires.'], ['Vos ', { em: 'consultants.' }]],
     text: 'Le pipeline, les consultants compatibles et les échéances de vos missions, au même endroit.',
-    points: ['Opportunités par étape, devis sur vos modèles', 'Matching explicable sur chaque besoin', 'Relances et fins de mission signalées'],
+    points: ['Opportunités par étape, devis sur vos modèles', 'Matching explicable sur chaque besoin'],
     Scene: BusinessScene,
   },
   {
@@ -126,7 +126,7 @@ const PERSONAS: Persona[] = [
     tone: 'dune',
     title: [['Le bon profil,'], ['au bon ', { em: 'moment.' }]],
     text: 'Les disponibilités à venir et les besoins ouverts se croisent avant que la question ne se pose.',
-    points: ['Fiches consultants : compétences, séniorité, CV', 'Intercontrat et fins de mission visibles', 'Opportunités compatibles quand un consultant se libère'],
+    points: ['Fiches consultants : compétences, séniorité, CV', 'Intercontrat et fins de mission visibles'],
     Scene: RecruitingScene,
   },
   {
@@ -135,7 +135,7 @@ const PERSONAS: Persona[] = [
     tone: 'ivory',
     title: [['Du CRA'], ['à la ', { em: 'préfacture.' }]],
     text: 'Les jours validés alimentent la préfacturation de chaque mission, sans ressaisie.',
-    points: ['CRA à valider et CRA manquants signalés', 'Préfactures calculées sur les jours validés', 'Marge par mission et par client'],
+    points: ['CRA à valider et CRA manquants signalés', 'Préfactures calculées sur les jours validés'],
     Scene: FinanceScene,
   },
   {
@@ -144,7 +144,7 @@ const PERSONAS: Persona[] = [
     tone: 'warm',
     title: [['Son CRA.'], ['Ses ', { em: 'documents.' }]],
     text: 'Un portail simple, sans licence : sa mission, son CRA et ses documents, rien de plus.',
-    points: ['Saisie du CRA et du télétravail', 'Contrats et documents partagés', 'Ni TJM de vente, ni marge, ni notes internes'],
+    points: ['Saisie du CRA et du télétravail', 'Contrats et documents partagés'],
     Scene: ConsultantScene,
   },
   {
@@ -153,7 +153,7 @@ const PERSONAS: Persona[] = [
     tone: 'dune',
     title: [['Votre client,'], ['partie ', { em: 'prenante.' }]],
     text: 'Il suit ses missions, approuve les CRA et dépose ses nouveaux besoins depuis son espace.',
-    points: ['Missions, CRA, devis et documents', 'Nouveau besoin → opportunité dans votre CRM', 'Accès révocable à tout moment'],
+    points: ['Missions, CRA, devis et documents', 'Nouveau besoin → opportunité dans votre CRM'],
     Scene: ClientScene,
   },
 ];

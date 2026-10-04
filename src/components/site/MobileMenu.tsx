@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, X } from 'lucide-react';
 
-import { CentriumLogo } from '@/components/brand/CentriumLogo';
+import { CentriumLogo, CentriumType } from '@/components/brand/CentriumLogo';
 
 import { EASE, useReducedMotion } from './kit';
 
@@ -71,8 +71,8 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
         >
           <div className="flex h-16 items-center justify-between px-5 sm:px-8">
             <Link href="/" onClick={onClose} className="flex items-center gap-2.5">
-              <CentriumLogo className="h-7 w-7" />
-              <span className="text-[15px] font-extrabold uppercase tracking-[0.18em]">Centrium</span>
+              <CentriumLogo className="h-8 w-8" color="currentColor" />
+              <CentriumType className="h-[13px]" />
             </Link>
             <button type="button" onClick={onClose} className="-mr-2 inline-flex h-11 items-center gap-2 rounded-full px-3 text-[12px] font-semibold uppercase tracking-[0.18em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ivory">
               Fermer <X className="h-4 w-4" />

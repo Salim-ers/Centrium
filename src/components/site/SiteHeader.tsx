@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { CentriumLogo } from '@/components/brand/CentriumLogo';
+import { CentriumLogo, CentriumType } from '@/components/brand/CentriumLogo';
 import { cn } from '@/lib/utils';
 
 import { MobileMenu } from './MobileMenu';
@@ -81,8 +81,10 @@ export function SiteHeader() {
       >
         <div className="mx-auto flex h-16 w-full max-w-[1680px] items-center gap-8 px-5 sm:px-8 lg:px-12 2xl:px-16">
           <Link href="/" aria-label="Centrium — accueil" className="flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra" data-cursor="Ouvrir">
-            <CentriumLogo className="h-7 w-7" />
-            <span className="text-[15px] font-extrabold uppercase tracking-[0.18em]">Centrium</span>
+            <span className={cn('flex items-center gap-2.5 transition-colors duration-500', light ? 'text-ivory' : 'text-[#A84B37]')}>
+              <CentriumLogo className="h-8 w-8" color="currentColor" />
+              <CentriumType className="h-[13px]" />
+            </span>
           </Link>
 
           <nav aria-label="Navigation principale" className="hidden flex-1 items-center justify-center gap-1 lg:flex">

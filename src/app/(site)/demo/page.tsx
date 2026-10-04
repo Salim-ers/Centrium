@@ -39,7 +39,7 @@ export default function DemoPage() {
               Démarrer l’essai de 7 jours
             </Link>
           </p>
-          <MaskImage src="/photos/notebook-glasses.webp" alt="Carnet ouvert, stylo et lunettes posés dessus" sizes="(min-width: 1024px) 40vw, 100vw" className="mt-14 hidden aspect-[16/10] rounded-[28px] lg:block" />
+          <MaskImage src="/photos/it-desk-warm.webp" alt="Ordinateur portable sur un bureau en bois, lumière chaude" sizes="(min-width: 1024px) 40vw, 100vw" className="mt-14 hidden aspect-[16/10] rounded-[28px] lg:block" />
         </div>
         <div className="lg:pt-6">
           <div className="rounded-[32px] bg-warm p-6 ring-1 ring-ink/[0.06] sm:p-10 lg:sticky lg:top-28">

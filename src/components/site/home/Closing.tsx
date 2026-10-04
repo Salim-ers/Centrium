@@ -5,7 +5,7 @@ export function Closing() {
   return (
     <Section tone="terra" aria-label="Essayer Centrium" className="overflow-hidden py-24 md:py-36">
       <Wide>
-        <Kicker n="13">Votre tour</Kicker>
+        <Kicker n="05">Votre tour</Kicker>
         <Title size="xl" className="mt-6 max-w-[14ch] text-[clamp(2.6rem,7vw,8.5rem)]" lines={[['Essayez-le sur'], ['vos propres ', { em: 'dossiers.' }]]} />
         <FlowLine light className="mt-16 max-w-5xl" />
         <div className="mt-16 flex flex-col gap-8 md:flex-row md:items-end md:justify-between">

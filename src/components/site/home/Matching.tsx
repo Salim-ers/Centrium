@@ -22,7 +22,7 @@ export function Matching() {
       <div aria-hidden className="pointer-events-none absolute -right-[10vw] top-[22%] h-[40vw] w-[40vw] rounded-full border border-terra/15" />
       <Wide className="relative">
         <div className="flex flex-wrap items-center gap-4">
-          <Kicker n="06">Matching</Kicker>
+          <Kicker n="04">Matching</Kicker>
           <span className="rounded-full border border-terra-light/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-terra-light">Intelligence explicable</span>
         </div>
         <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-end">
@@ -91,29 +91,10 @@ export function Matching() {
           </ol>
         </div>
 
-        <div className="mt-16 grid gap-10 border-t border-ivory/10 pt-12 lg:grid-cols-[minmax(0,4fr)_minmax(0,8fr)]">
-          <div>
-            <h3 className="text-[22px] font-bold uppercase tracking-[-0.02em]">Le calcul, critère par critère</h3>
-            <p className="mt-3 max-w-sm text-[15px] leading-[1.55] text-ivory/65">C’est le seul endroit où Centrium calcule à votre place. Et il montre son calcul : chaque point du score est justifié.</p>
-          </div>
-          <motion.ul key={reduce ? 'still' : 'motion'} className="grid gap-x-10 gap-y-4 sm:grid-cols-2" initial={reduce ? undefined : 'hidden'} whileInView="shown" viewport={{ once: true, margin: '-10% 0px' }}>
-            {MATCHING_CRITERIA.map((c, i) => (
-              <li key={c.label}>
-                <div className="flex justify-between text-[13.5px]">
-                  <span>{c.label}</span>
-                  <span className="tabular-nums text-ivory/60">{c.max} pts</span>
-                </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ivory/10">
-                  <motion.div
-                    className="h-full origin-left rounded-full bg-terra"
-                    style={{ width: `${(c.max / 50) * 100}%` }}
-                    variants={reduce ? undefined : { hidden: { scaleX: 0 }, shown: { scaleX: 1, transition: { duration: 0.9, delay: i * 0.06, ease: EASE } } }}
-                  />
-                </div>
-              </li>
-            ))}
-          </motion.ul>
-        </div>
+        <p className="mt-10 border-t border-ivory/10 pt-6 text-[13.5px] leading-[1.7] text-ivory/65">
+          <span className="mr-2 font-semibold uppercase tracking-[0.14em] text-terra-light">Le calcul</span>
+          {MATCHING_CRITERIA.map((c) => `${c.label} ${c.max}`).join(' · ')} — sur 100 points, chaque point justifié.
+        </p>
       </Wide>
     </Section>
   );

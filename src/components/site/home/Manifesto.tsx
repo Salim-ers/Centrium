@@ -3,7 +3,7 @@
 import { useRef } from 'react';
 import { motion, useScroll, useTransform, type MotionValue } from 'framer-motion';
 
-import { CentriumLogo } from '@/components/brand/CentriumLogo';
+import { CentriumLogo, CentriumType } from '@/components/brand/CentriumLogo';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
 import { Kicker, Section, Title, useReducedMotion, Wide } from '../kit';
@@ -85,8 +85,10 @@ export function Manifesto() {
               <Tool key={`${t.label}-${mobile}`} label={t.label} x={mobile ? t.mx : t.x} y={mobile ? t.my : t.y} p={p} />
             ))}
             <motion.div style={{ opacity: coreOpacity, scale: coreScale, x: '-50%', y: '-50%' }} className="absolute left-1/2 top-1/2 flex items-center gap-3 rounded-full bg-ivory py-3 pl-3 pr-6 text-ink shadow-[0_30px_60px_-30px_rgba(25,22,20,.6)]">
-              <CentriumLogo className="h-10 w-10" />
-              <span className="text-[18px] font-extrabold uppercase tracking-[0.18em]">Centrium</span>
+              <span className="flex items-center gap-3 text-[#A84B37]">
+                <CentriumLogo className="h-10 w-10" color="currentColor" />
+                <CentriumType className="h-[15px]" />
+              </span>
             </motion.div>
             <motion.span aria-hidden style={{ scale: ring, opacity: ringOpacity, x: '-50%', y: '-50%' }} className="absolute left-1/2 top-1/2 h-40 w-40 rounded-full border border-ivory/60" />
           </div>

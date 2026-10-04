@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
-import { CentriumLogo } from '@/components/brand/CentriumLogo';
+import { CentriumLogo, CentriumType } from '@/components/brand/CentriumLogo';
 import { LocaleToggle } from '@/components/i18n/LocaleToggle';
 import { Appear, FlowLine } from '@/components/site/kit';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
@@ -35,8 +35,8 @@ export function AuthShell({ children, title, subtitle, footer }: Props) {
           style={{ backgroundImage: 'linear-gradient(rgba(251,248,245,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(251,248,245,.06) 1px, transparent 1px)', backgroundSize: '96px 96px' }}
         />
         <Link href="/" className="relative flex items-center gap-2.5" aria-label="Centrium — accueil">
-          <CentriumLogo className="h-8 w-8" />
-          <span className="text-[15px] font-extrabold uppercase tracking-[0.18em]">Centrium</span>
+          <CentriumLogo className="h-9 w-9" color="currentColor" />
+          <CentriumType className="h-[14px]" />
         </Link>
         <div className="relative">
           <p className="text-[clamp(2.4rem,3.8vw,4.4rem)] font-extrabold uppercase leading-[0.92] tracking-[-0.05em]">
@@ -60,8 +60,10 @@ export function AuthShell({ children, title, subtitle, footer }: Props) {
         <main className="flex flex-1 items-start justify-center px-5 pb-12 pt-4 sm:items-center sm:px-8">
           <Appear className="w-full max-w-md">
             <Link href="/" className="mb-10 inline-flex items-center gap-2.5 lg:hidden" aria-label="Centrium — accueil">
-              <CentriumLogo className="h-8 w-8" />
-              <span className="text-[15px] font-extrabold uppercase tracking-[0.18em]">Centrium</span>
+              <span className="flex items-center gap-2.5 text-[#A84B37]">
+                <CentriumLogo className="h-9 w-9" color="currentColor" />
+                <CentriumType className="h-[14px]" />
+              </span>
             </Link>
             <h1 className="text-[clamp(2rem,3.4vw,2.8rem)] font-extrabold uppercase leading-[0.95] tracking-[-0.04em]">{title}</h1>
             {subtitle && <p className="mt-3 text-[15px] leading-[1.5] text-taupe">{subtitle}</p>}

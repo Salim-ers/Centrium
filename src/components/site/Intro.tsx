@@ -1,3 +1,5 @@
+import { CentriumLogo, CentriumType } from '@/components/brand/CentriumLogo';
+
 /**
  * Intro du site (≈ 1,3 s, terracotta profond) jouée une fois par session.
  * Entièrement en CSS (globals.css, `.site-intro`) : elle ne retarde ni le
@@ -13,8 +15,13 @@ export function Intro() {
       <script dangerouslySetInnerHTML={{ __html: script }} />
       <div className="site-intro" aria-hidden>
         <div className="site-intro__inner">
+          <div className="site-intro__mark">
+            <CentriumLogo className="h-full w-full" color="currentColor" title="Centrium" />
+          </div>
           <div className="site-intro__mask">
-            <span className="site-intro__word">Centrium</span>
+            <span className="site-intro__word">
+              <CentriumType className="h-full w-auto" />
+            </span>
           </div>
           <span className="site-intro__line" />
           <span className="site-intro__sub">Le cockpit des ESN modernes</span>

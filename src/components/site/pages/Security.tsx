@@ -85,7 +85,7 @@ export function Security() {
             <Title as="h1" size="xl" immediate className="mt-6 text-[clamp(2.6rem,7vw,8rem)]" lines={[['Vos données.'], ['', { em: 'Cloisonnées.' }]]} />
             <Lead className="mt-8 text-ivory/80">Cette page ne liste que des protections effectivement déployées dans Centrium. Pas de promesse générale, pas de certification que nous n’avons pas.</Lead>
           </div>
-          <MaskImage src="/photos/terracotta-shadow.webp" alt="Ombre d’une fenêtre sur un mur terre cuite" sizes="(min-width: 1024px) 38vw, 100vw" priority className="aspect-[4/5] rounded-[28px] lg:aspect-[3/4]" />
+          <MaskImage src="/photos/it-server-rack.webp" alt="Baie de serveurs aux voyants allumés" sizes="(min-width: 1024px) 38vw, 100vw" priority className="aspect-[4/5] rounded-[28px] lg:aspect-[3/4]" />
         </Wide>
       </Section>
 

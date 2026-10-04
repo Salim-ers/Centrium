@@ -1,3 +1,5 @@
+import { CentriumType } from '@/components/brand/CentriumLogo';
+
 import { Cta, Wide } from '../kit';
 import { HeroConverge } from './HeroConverge';
 
@@ -10,7 +12,9 @@ export function Hero() {
   return (
     <section data-nav="dark" className="relative overflow-hidden bg-ivory text-ink" aria-labelledby="hero-title">
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-[52svh] select-none overflow-hidden md:top-[46svh]">
-        <div className="whitespace-nowrap text-center text-[19vw] font-extrabold uppercase leading-[0.8] tracking-[-0.07em] text-terra/[0.07]">Centrium</div>
+        <div className="mx-auto w-full max-w-[1680px] px-5 text-terra/[0.07] sm:px-8 lg:px-12 2xl:px-16">
+          <CentriumType className="h-auto w-full" />
+        </div>
       </div>
 
       <Wide className="relative flex min-h-[calc(100svh-9rem)] flex-col pb-10 pt-28 md:pt-32">

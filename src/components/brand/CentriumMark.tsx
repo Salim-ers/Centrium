@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { CentriumLogo } from './CentriumLogo';
+import { CentriumLogo, CentriumType } from './CentriumLogo';
 
 type Props = {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -16,10 +16,10 @@ type Props = {
  */
 export function CentriumMark({ size = 'sm', showEditor = true, showWordmark = true, className }: Props) {
   const sizes = {
-    sm: { logo: 'h-5 w-5', name: 'text-[12px]', editor: 'text-[9px]' },
-    md: { logo: 'h-8 w-8', name: 'text-[18px]', editor: 'text-[10px]' },
-    lg: { logo: 'h-12 w-12', name: 'text-[26px]', editor: 'text-[11px]' },
-    xl: { logo: 'h-20 w-20', name: 'text-[42px]', editor: 'text-[13px]' },
+    sm: { logo: 'h-5 w-5', name: 'h-[9px]', editor: 'text-[9px]' },
+    md: { logo: 'h-8 w-8', name: 'h-[14px]', editor: 'text-[10px]' },
+    lg: { logo: 'h-12 w-12', name: 'h-[20px]', editor: 'text-[11px]' },
+    xl: { logo: 'h-20 w-20', name: 'h-[32px]', editor: 'text-[13px]' },
   }[size];
 
   return (
@@ -27,8 +27,8 @@ export function CentriumMark({ size = 'sm', showEditor = true, showWordmark = tr
       <CentriumLogo className={sizes.logo} />
       {showWordmark && (
         <div className="flex flex-col leading-none">
-          <span className={cn('font-display font-semibold tracking-tight text-foreground', sizes.name)}>
-            Centrium
+          <span className="text-[#A84B37]">
+            <CentriumType className={sizes.name} title="Centrium" />
           </span>
           {showEditor && (
             <span className={cn('mt-0.5 text-muted-foreground', sizes.editor)}>par QuadCore</span>

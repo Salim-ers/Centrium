@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
-import { CentriumLogo } from '@/components/brand/CentriumLogo';
+import { CentriumLogo, CentriumType } from '@/components/brand/CentriumLogo';
 
 const COLUMNS = [
   {
@@ -81,8 +81,8 @@ export function SiteFooter() {
         <div className="grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.3fr_repeat(4,1fr)]">
           <div>
             <Link href="/" className="inline-flex items-center gap-2.5" aria-label="Centrium — accueil">
-              <CentriumLogo className="h-7 w-7" />
-              <span className="text-[15px] font-extrabold uppercase tracking-[0.18em]">Centrium</span>
+              <CentriumLogo className="h-8 w-8" color="currentColor" />
+              <CentriumType className="h-[13px]" />
             </Link>
             <p className="mt-4 max-w-[260px] text-[14px] leading-relaxed text-ivory/60">Le cockpit des ESN modernes. Édité par QuadCore SAS, hébergé dans l’Union européenne.</p>
           </div>
@@ -104,7 +104,9 @@ export function SiteFooter() {
       </div>
 
       <div aria-hidden className="relative select-none overflow-hidden">
-        <div className="translate-y-[18%] whitespace-nowrap text-center text-[clamp(4rem,19vw,24rem)] font-extrabold uppercase leading-[0.8] tracking-[-0.07em] text-terra">Centrium</div>
+        <div className="mx-auto w-full max-w-[1680px] translate-y-[22%] px-5 text-terra sm:px-8 lg:px-12 2xl:px-16">
+          <CentriumType className="h-auto w-full" />
+        </div>
       </div>
       <div className="relative border-t border-ivory/10">
         <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-1 px-5 py-5 text-[12px] text-ivory/50 sm:flex-row sm:justify-between sm:px-8 lg:px-12 2xl:px-16">
