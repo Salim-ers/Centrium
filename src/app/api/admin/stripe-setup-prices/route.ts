@@ -3,26 +3,27 @@ import { NextResponse } from 'next/server';
 import { getSuperAdminContext } from '@/lib/auth/super-admin';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getStripe } from '@/lib/billing/stripe';
-import { isStripeLiveMode, type StripePlanId } from '@/lib/billing/config';
+import { isStripeLiveMode } from '@/lib/billing/config';
+import { SELF_SERVICE_PLAN_IDS } from '@/lib/billing/plans';
 
 // =========================================================================
 // POST /api/admin/stripe-setup-prices — Crée les prix Stripe en LIVE.
 // -------------------------------------------------------------------------
-// Fondateur only. Pour chaque plan (starter/growth/enterprise) :
-//   - si plans.stripe_price_id est DÉJÀ un prix live du bon montant → skip
-//   - sinon crée un Produit + Prix récurrent mensuel LIVE (montant lu dans
-//     plans.price_monthly_eur) et écrit l'ID dans plans.stripe_price_id
+// Fondateur only. Pour chaque offre V2 souscriptible (Starter, Team,
+// Growth) : un Produit, un Prix mensuel (plans.price_monthly_eur) et un
+// Prix annuel (plans.price_yearly_eur), écrits dans plans.stripe_price_id
+// et plans.stripe_price_yearly_id. Un prix déjà live au bon montant n'est
+// pas recréé (idempotent).
 //
-// Le checkout résout le prix depuis plans.stripe_price_id (resolve-price.ts)
-// → aucune variable Vercel à changer, aucun redéploiement. Idempotent.
+// Le checkout résout le prix depuis la table plans (resolve-price.ts) :
+// aucune variable Vercel à changer, aucun redéploiement.
 //
-// Garde-fou : refuse si la clé secrète est en mode TEST (créer des prix test
-// n'aiderait pas à passer en réel).
+// Garde-fou : refuse si la clé secrète est en mode TEST.
 // =========================================================================
 
 export const runtime = 'nodejs';
 
-const PLANS: StripePlanId[] = ['starter', 'growth', 'enterprise'];
+type Result = { status: string; priceId?: string; amount?: number; message?: string };
 
 export async function POST() {
   const ctx = await getSuperAdminContext();
@@ -44,72 +45,74 @@ export async function POST() {
 
   const { data: plans } = await admin
     .from('plans')
-    .select('id, name, price_monthly_eur, stripe_price_id')
-    .in('id', PLANS);
+    .select('id, name, price_monthly_eur, price_yearly_eur, stripe_price_id, stripe_price_yearly_id')
+    .in('id', [...SELF_SERVICE_PLAN_IDS]);
 
   const byId = new Map((plans ?? []).map((p) => [p.id as string, p]));
-  const results: Record<string, unknown> = {};
+  const results: Record<string, { month: Result; year: Result }> = {};
 
-  for (const planId of PLANS) {
-    const plan = byId.get(planId);
-    if (!plan) {
-      results[planId] = { status: 'plan_missing' };
-      continue;
-    }
-    const amountCents = Math.round(Number(plan.price_monthly_eur) * 100);
-    if (!amountCents || amountCents < 0) {
-      results[planId] = { status: 'invalid_amount' };
-      continue;
-    }
-
-    // Déjà un prix live du bon montant ? → on ne recrée pas.
-    const currentId = plan.stripe_price_id as string | null;
-    if (currentId) {
-      try {
-        const existing = await stripe.prices.retrieve(currentId);
-        if (existing.livemode && existing.unit_amount === amountCents && existing.recurring) {
-          results[planId] = { status: 'already_live', priceId: currentId };
-          continue;
-        }
-      } catch {
-        /* introuvable (prix test avec clé live) → on crée un prix live */
-      }
-    }
-
+  /** Prix live existant au bon montant et à la bonne périodicité ? */
+  async function reusable(priceId: string | null, cents: number, interval: 'month' | 'year') {
+    if (!priceId) return null;
     try {
-      // Produit + prix récurrent mensuel en une fois.
-      const price = await stripe.prices.create({
-        currency: 'eur',
-        unit_amount: amountCents,
-        recurring: { interval: 'month' },
-        product_data: { name: `Centrium ${plan.name}` },
-        metadata: { plan_id: planId },
-      });
-      await admin.from('plans').update({ stripe_price_id: price.id }).eq('id', planId);
-      results[planId] = {
-        status: 'created',
-        priceId: price.id,
-        amount: amountCents / 100,
-      };
-    } catch (e) {
-      results[planId] = {
-        status: 'error',
-        message: e instanceof Error ? e.message : 'create_failed',
-      };
+      const p = await stripe.prices.retrieve(priceId);
+      if (p.livemode && p.unit_amount === cents && p.recurring?.interval === interval) return p;
+    } catch {
+      /* introuvable (prix test avec clé live) → recréé */
     }
+    return null;
   }
 
-  const createdOrOk = Object.values(results).every(
-    (r) => ['created', 'already_live'].includes((r as { status: string }).status),
+  for (const planId of SELF_SERVICE_PLAN_IDS) {
+    const plan = byId.get(planId);
+    if (!plan) {
+      results[planId] = { month: { status: 'plan_missing' }, year: { status: 'plan_missing' } };
+      continue;
+    }
+    const out: { month: Result; year: Result } = { month: { status: 'pending' }, year: { status: 'pending' } };
+    let productId: string | null = null;
+
+    for (const interval of ['month', 'year'] as const) {
+      const eur = interval === 'month' ? Number(plan.price_monthly_eur) : Number(plan.price_yearly_eur);
+      const cents = Math.round(eur * 100);
+      if (!cents || cents < 0) {
+        out[interval] = { status: interval === 'year' ? 'no_yearly_price' : 'invalid_amount' };
+        continue;
+      }
+      const column = interval === 'month' ? 'stripe_price_id' : 'stripe_price_yearly_id';
+      const existing = await reusable((plan[column] as string | null) ?? null, cents, interval);
+      if (existing) {
+        productId = productId ?? (typeof existing.product === 'string' ? existing.product : existing.product.id);
+        out[interval] = { status: 'already_live', priceId: existing.id };
+        continue;
+      }
+      try {
+        const price = await stripe.prices.create({
+          currency: 'eur',
+          unit_amount: cents,
+          recurring: { interval },
+          ...(productId ? { product: productId } : { product_data: { name: `Centrium ${plan.name}` } }),
+          metadata: { plan_id: planId, interval },
+        });
+        productId = productId ?? (typeof price.product === 'string' ? price.product : price.product.id);
+        await admin.from('plans').update({ [column]: price.id }).eq('id', planId);
+        out[interval] = { status: 'created', priceId: price.id, amount: cents / 100 };
+      } catch (e) {
+        out[interval] = { status: 'error', message: e instanceof Error ? e.message : 'create_failed' };
+      }
+    }
+    results[planId] = out;
+  }
+
+  const ok = Object.values(results).every((r) =>
+    (['month', 'year'] as const).every((i) => ['created', 'already_live', 'no_yearly_price'].includes(r[i].status)),
   );
 
   return NextResponse.json({
     data: {
-      ok: createdOrOk,
+      ok,
       results,
-      message: createdOrOk
-        ? 'Prix LIVE en place. Les vrais paiements sont opérationnels.'
-        : 'Certains prix n\'ont pas pu être créés — voir le détail.',
+      message: ok ? 'Prix LIVE en place (mensuels et annuels). Les vrais paiements sont opérationnels.' : 'Certains prix n\'ont pas pu être créés — voir le détail.',
     },
   });
 }

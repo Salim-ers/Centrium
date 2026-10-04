@@ -1,5 +1,7 @@
 import 'server-only';
 
+import type { LegacyPlanId, SelfServicePlanId } from './plans';
+
 // =========================================================================
 // Configuration Stripe — source unique de vérité pour les env vars
 // -------------------------------------------------------------------------
@@ -127,9 +129,14 @@ export function getStripePublishableKey(): string | null {
  *   'enterprise' → STRIPE_ENTERPRISE_PRICE_ID (display name UI = "Illimité",
  *                                              id conservé pour compat)
  */
-export type StripePlanId = 'starter' | 'growth' | 'enterprise';
+export type StripePlanId = LegacyPlanId | SelfServicePlanId;
 
-const PLAN_ENV_VAR: Record<StripePlanId, string> = {
+/**
+ * Variables d'environnement historiques (offres starter / growth /
+ * enterprise). Les offres V2 n'en ont pas : leurs Price IDs (mensuel et
+ * annuel) sont créés depuis la super-console et lus dans la table plans.
+ */
+const PLAN_ENV_VAR: Partial<Record<StripePlanId, string>> = {
   starter: 'STRIPE_STARTER_PRICE_ID',
   growth: 'STRIPE_MEDIUM_PRICE_ID',
   enterprise: 'STRIPE_ENTERPRISE_PRICE_ID',
@@ -141,6 +148,7 @@ const PLAN_ENV_VAR: Record<StripePlanId, string> = {
  */
 export function requireStripePriceId(planId: StripePlanId): string {
   const envVar = PLAN_ENV_VAR[planId];
+  if (!envVar) throw new StripeConfigError(`plans.stripe_price_id (${planId})`, 'missing', 'créez les prix depuis la super-console');
   const value = process.env[envVar];
   if (!value) throw new StripeConfigError(envVar, 'missing');
   if (!STRIPE_PRICE_ID_REGEX.test(value)) {

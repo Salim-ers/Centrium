@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/dialog';
 import { PageHeader, KPICard, StatusBadge, type StatusTone } from '@/components/app';
 import { createClient } from '@/lib/supabase/client';
+import { isSelfServicePlan, type BillingInterval } from '@/lib/billing/plans';
 import { useOrganization } from '@/lib/auth/context';
 
 // =========================================================================
@@ -134,6 +135,8 @@ function BillingPageInner() {
   const [cancelOpen, setCancelOpen] = useState(false);
   // Paiement intégré : dialog + instance embedded checkout à détruire au close.
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  // Périodicité choisie dans la grille (annuel : 10 mois facturés pour 12).
+  const [interval, setBillingInterval] = useState<BillingInterval>('month');
   const embeddedRef = useRef<EmbeddedCheckoutInstance | null>(null);
 
   // Libellé de statut traduit (fallback : la clé brute).
@@ -259,7 +262,7 @@ function BillingPageInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           planId,
-          cycle: 'monthly',
+          interval,
           ...(wantEmbedded ? { ui: 'embedded' } : {}),
         }),
       });
@@ -528,11 +531,27 @@ function BillingPageInner() {
                   ? tb.plans_change_title
                   : tb.plans_choose_title}
               </h2>
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="mb-4 inline-flex rounded-lg border border-border bg-muted/50 p-1 text-[13px]" role="radiogroup" aria-label={locale === 'en' ? 'Billing period' : 'Périodicité'}>
+                {(['month', 'year'] as const).map((i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    role="radio"
+                    aria-checked={interval === i}
+                    onClick={() => setBillingInterval(i)}
+                    className={`rounded-md px-3 py-1.5 transition-colors ${interval === i ? 'bg-card font-medium shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                  >
+                    {i === 'month' ? (locale === 'en' ? 'Monthly' : 'Mensuel') : locale === 'en' ? 'Yearly · 2 months free' : 'Annuel · 2 mois offerts'}
+                  </button>
+                ))}
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {plans.map((p) => (
                   <PlanCard
                     key={p.id}
                     plan={p}
+                    interval={interval}
+                    lang={locale === 'en' ? 'en' : 'fr'}
                     currentPlanId={sub?.planId ?? null}
                     onSubscribe={() => subscribe(p.id)}
                     busy={busy === `checkout:${p.id}`}
@@ -737,6 +756,8 @@ function ActionBanner({
 
 function PlanCard({
   plan,
+  interval,
+  lang,
   currentPlanId,
   onSubscribe,
   busy,
@@ -745,6 +766,8 @@ function PlanCard({
   format,
 }: {
   plan: Plan;
+  interval: BillingInterval;
+  lang: 'fr' | 'en';
   currentPlanId: string | null;
   onSubscribe: () => void;
   busy: boolean;
@@ -754,11 +777,10 @@ function PlanCard({
 }) {
   const tb = t.pages.billing;
   const isCurrent = plan.id === currentPlanId;
-  // 'enterprise' = plan Illimité (display "Illimité"), désormais souscriptible
-  // en self-service comme les autres. Le libellé "Sur devis" ne subsiste que
-  // pour un éventuel plan legacy sans prix.
-  const isUnlimited = plan.id === 'enterprise';
-  const hasPrice = plan.price_monthly_eur != null && plan.price_monthly_eur > 0;
+  // Scale (et toute offre non self-service) : sur devis, pas de checkout.
+  const selfService = isSelfServicePlan(plan.id);
+  const yearly = interval === 'year' && selfService && plan.price_yearly_eur != null;
+  const price = yearly ? Number(plan.price_yearly_eur) : Number(plan.price_monthly_eur);
   return (
     <Card
       className={`relative ${isCurrent ? 'border-primary/60 bg-primary/[0.04]' : ''}`}
@@ -769,47 +791,23 @@ function PlanCard({
           {isCurrent && <StatusBadge tone="violet">{tb.plan_current_badge}</StatusBadge>}
         </div>
         <CardDescription>
-          {hasPrice ? (
-            <>
-              <span className="text-lg font-semibold text-foreground">
-                {format(plan.price_monthly_eur, { maximumFractionDigits: 2 })}
-              </span>
-              <span className="text-xs"> {tb.plan_per_month}</span>
-            </>
-          ) : (
-            <span className="text-lg font-semibold text-foreground">{tb.plan_on_quote}</span>
+          {!selfService && <span className="text-xs">{lang === 'en' ? 'from ' : 'dès '}</span>}
+          <span className="text-lg font-semibold text-foreground">{format(price, { maximumFractionDigits: 2 })}</span>
+          <span className="text-xs"> {yearly ? (lang === 'en' ? 'excl. VAT / year' : 'HT / an') : tb.plan_per_month}</span>
+          {yearly && (
+            <span className="block text-xs">
+              {lang === 'en' ? 'i.e. ' : 'soit '}
+              {format(Math.round((price / 12) * 100) / 100, { maximumFractionDigits: 2 })}
+              {lang === 'en' ? ' / month' : ' / mois'}
+            </span>
           )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <ul className="space-y-1.5 text-sm">
-          {plan.max_users != null && (
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-success" />
-              <span>{tb.plan_users_admin.replace('{n}', String(plan.max_users))}</span>
-            </li>
-          )}
-          {plan.max_consultants != null && (
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-success" />
-              <span>{tb.plan_up_to_consultants.replace('{n}', String(plan.max_consultants))}</span>
-            </li>
-          )}
-          {isUnlimited && (
-            <>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-success" />
-                <span>{tb.plan_unlimited_users}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-success" />
-                <span>{tb.plan_unlimited_crm}</span>
-              </li>
-            </>
-          )}
-          {(plan.features ?? []).slice(0, 4).map((f, i) => (
+          {(plan.features ?? []).slice(0, 5).map((f, i) => (
             <li key={i} className="flex items-start gap-2 text-muted-foreground">
-              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 opacity-60" />
+              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-success" />
               <span>{f}</span>
             </li>
           ))}
@@ -818,11 +816,9 @@ function PlanCard({
           <Button variant="outline" className="w-full" disabled>
             {tb.plan_current_btn}
           </Button>
-        ) : !hasPrice ? (
+        ) : !selfService ? (
           <Button variant="outline" className="w-full" asChild>
-            <a href="mailto:contact@centrium-platform.com?subject=Devis Centrium">
-              {tb.plan_contact_sales}
-            </a>
+            <a href={`/devis?plan=${plan.id}`}>{tb.plan_contact_sales}</a>
           </Button>
         ) : (
           <Button className="w-full" onClick={onSubscribe} disabled={disabled || busy}>

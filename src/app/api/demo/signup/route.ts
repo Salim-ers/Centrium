@@ -8,6 +8,7 @@ import {
   type StripePlanId,
 } from '@/lib/billing/config';
 import { resolveStripePriceId } from '@/lib/billing/resolve-price';
+import { SELF_SERVICE_PLAN_IDS, isSelfServicePlan } from '@/lib/billing/plans';
 import { resolveTax } from '@/lib/billing/tax';
 import { slugify } from '@/lib/utils';
 import { rateLimit, callerIp } from '@/lib/security/rate-limit';
@@ -32,7 +33,8 @@ import { logger } from '@/lib/logger';
 export const runtime = 'nodejs';
 
 const TRIAL_DAYS = 7;
-const CHECKOUTABLE = new Set<StripePlanId>(['starter', 'growth', 'enterprise']);
+/** Anciens liens (?plan=starter…) → offre V2 la plus proche. */
+const LEGACY_TO_V2: Record<string, string> = { starter: 'v2_starter', growth: 'v2_team', enterprise: 'v2_growth' };
 
 // Version des documents légaux acceptés au signup. À incrémenter à chaque
 // révision substantielle des CGU / Confidentialité / DPA — sert de preuve
@@ -45,7 +47,8 @@ const schema = z.object({
   last_name: z.string().min(1, 'Nom requis').max(80),
   email: z.string().email('Email invalide'),
   password: z.string().min(12, '12 caractères minimum').max(256),
-  plan_id: z.enum(['starter', 'growth', 'enterprise']).default('starter'),
+  plan_id: z.preprocess((v) => (typeof v === 'string' && LEGACY_TO_V2[v] ? LEGACY_TO_V2[v] : v), z.enum(SELF_SERVICE_PLAN_IDS).default('v2_team')),
+  interval: z.enum(['month', 'year']).default('month'),
   // Clickwrap OBLIGATOIRE : sans acceptation, le DPA (Art. 28, incorporé aux
   // CGU) n'est pas conclu → on refuse la création.
   accept_terms: z.boolean().refine((v) => v === true, {
@@ -113,12 +116,12 @@ export async function POST(req: NextRequest) {
 
   // Vérifie le plan AVANT de créer quoi que ce soit (fail fast si Stripe
   // n'est pas configuré).
-  if (!CHECKOUTABLE.has(data.plan_id)) {
+  if (!isSelfServicePlan(data.plan_id)) {
     return NextResponse.json({ error: 'unknown_plan' }, { status: 400 });
   }
   let priceId: string;
   try {
-    priceId = await resolveStripePriceId(data.plan_id);
+    priceId = await resolveStripePriceId(data.plan_id as StripePlanId, data.interval);
   } catch (e) {
     if (e instanceof StripeConfigError) {
       logger.error(`[demo/signup] ${e.envVar} ${e.kind} — plan=${data.plan_id}`);

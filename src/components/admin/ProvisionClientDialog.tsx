@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { notifyCreated, notifyError } from '@/lib/notify';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { AssetUploader } from './AssetUploader';
+import { PUBLIC_PLAN_IDS, planLabel, type PublicPlanId } from '@/lib/billing/plans';
 
 type QuoteRequest = {
   id: string;
@@ -28,7 +29,7 @@ type QuoteRequest = {
   /** Logo uploadé par le prospect (URL Supabase Storage public). */
   logo_url?: string | null;
   /** Formule choisie par le prospect sur /devis. */
-  plan_id?: 'starter' | 'growth' | 'enterprise' | null;
+  plan_id?: string | null;
 };
 
 type Props = {
@@ -65,15 +66,18 @@ type FormState = {
   admin_email: string;
   admin_first_name: string;
   admin_last_name: string;
-  plan_id: 'starter' | 'growth' | 'enterprise';
+  plan_id: PublicPlanId;
   billing_mode: 'trial_7d' | 'paid_only' | 'exempt';
 };
 
-const planOptions = (isEn: boolean): { id: FormState['plan_id']; label: string }[] => [
-  { id: 'starter', label: isEn ? 'Starter — €74.99 excl. VAT/month' : 'Starter — 74,99 € HT/mois' },
-  { id: 'growth', label: isEn ? 'Medium — €149.99 excl. VAT/month' : 'Medium — 149,99 € HT/mois' },
-  { id: 'enterprise', label: isEn ? 'Unlimited — €299.99 excl. VAT/month' : 'Illimité — 299,99 € HT/mois' },
-];
+const planOptions = (isEn: boolean): { id: FormState['plan_id']; label: string }[] =>
+  PUBLIC_PLAN_IDS.map((id) => ({ id, label: planLabel(id, isEn ? 'en' : 'fr') }));
+
+/** Formule demandée sur /devis → offre V2 (les anciennes sont converties). */
+function toPublicPlan(id: string | null | undefined): PublicPlanId {
+  if ((PUBLIC_PLAN_IDS as readonly string[]).includes(id ?? '')) return id as PublicPlanId;
+  return id === 'starter' ? 'v2_starter' : id === 'enterprise' ? 'v2_growth' : 'v2_team';
+}
 
 const billingModes = (
   isEn: boolean,
@@ -142,7 +146,7 @@ const INITIAL: FormState = {
   admin_email: '',
   admin_first_name: '',
   admin_last_name: '',
-  plan_id: 'starter',
+  plan_id: 'v2_team',
   billing_mode: 'paid_only',
 };
 
@@ -186,7 +190,7 @@ export function ProvisionClientDialog({
         admin_last_name: last,
         // Formule choisie par le prospect sur /devis — pré-sélectionnée,
         // le fondateur peut toujours la corriger avant confirmation.
-        plan_id: quoteRequest.plan_id ?? 'starter',
+        plan_id: toPublicPlan(quoteRequest.plan_id),
         billing_mode: 'paid_only',
       });
     } else {

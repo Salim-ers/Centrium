@@ -6,6 +6,7 @@ import { CheckCircle2, AlertTriangle, Loader2, CreditCard, Sparkles } from 'luci
 
 import { Button } from '@/components/ui/button';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { PLAN_CATALOG, SELF_SERVICE_PLAN_IDS } from '@/lib/billing/plans';
 
 type PriceInfo = {
   set: boolean;
@@ -139,9 +140,15 @@ export function StripeStatusBanner() {
             <Line label={isEn ? 'Secret key' : 'Clé secrète'} value={modeLabel(status.secretKeyMode)} good={status.secretKeyMode === 'live'} />
             <Line label={isEn ? 'Publishable key' : 'Clé publique'} value={modeLabel(status.publishableKeyMode)} good={status.publishableKeyMode === 'live'} />
             <Line label="Webhook" value={status.webhookSecretSet ? (isEn ? 'configured' : 'configuré') : (isEn ? 'missing' : 'manquant')} good={status.webhookSecretSet} />
-            <Line label={isEn ? 'Starter price' : 'Prix Starter'} value={priceBadge(status.prices.starter ?? { set: false })} good={status.prices.starter?.livemode === true} />
-            <Line label={isEn ? 'Medium price' : 'Prix Medium'} value={priceBadge(status.prices.medium ?? { set: false })} good={status.prices.medium?.livemode === true} />
-            <Line label={isEn ? 'Unlimited price' : 'Prix Illimité'} value={priceBadge(status.prices.enterprise ?? { set: false })} good={status.prices.enterprise?.livemode === true} />
+            {SELF_SERVICE_PLAN_IDS.flatMap((plan) =>
+              (['month', 'year'] as const).map((interval) => {
+                const key = `${plan}:${interval}`;
+                const info = status.prices[key] ?? { set: false };
+                const name = PLAN_CATALOG[plan].name;
+                const period = interval === 'month' ? (isEn ? 'monthly' : 'mensuel') : isEn ? 'yearly' : 'annuel';
+                return <Line key={key} label={`${isEn ? 'Price' : 'Prix'} ${name} ${period}`} value={priceBadge(info)} good={info.livemode === true} />;
+              }),
+            )}
           </div>
 
           {/* Clé live mais prix pas encore live → on les crée en 1 clic. */}

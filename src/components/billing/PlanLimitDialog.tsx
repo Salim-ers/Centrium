@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
+import { nextPlan as suggestNextPlan } from '@/lib/billing/plans';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 export type PlanLimitResource =
@@ -37,13 +38,9 @@ type Props = {
   onOpenChange: (open: boolean) => void;
 };
 
-// Ladder statique aligné sur le catalogue à 3 tiers publics
-// (starter/growth/enterprise). Le plan `scale` legacy est masqué
-// (is_public=false, migration 067) et jamais suggéré.
-const NEXT_PLAN: Record<string, string> = {
-  starter: 'growth',
-  growth: 'enterprise',
-};
+// Montée en gamme : Starter → Team → Growth → Scale (sur devis). Les
+// offres historiques sont orientées vers l'offre V2 supérieure.
+const SCALE_ID = 'v2_scale';
 
 // Label FR de chaque ressource pour le corps du dialog.
 const RESOURCE_LABEL: Record<PlanLimitResource, string> = {
@@ -88,10 +85,10 @@ export function PlanLimitDialog({ payload, onOpenChange }: Props) {
   // plans_public_select autorise anyone → pas besoin de Route Handler).
   useEffect(() => {
     if (!payload) return;
-    const nextPlanId = NEXT_PLAN[payload.planId];
-    if (!nextPlanId) {
-      // Déjà au top du ladder (Illimité) → contact commercial
-      setNextPlan({ id: 'enterprise', name: isEn ? 'Unlimited' : 'Illimité', limit: null });
+    const nextPlanId = suggestNextPlan(payload.planId);
+    if (!nextPlanId || nextPlanId === SCALE_ID) {
+      // Au-delà de Growth : offre Scale, sur devis.
+      setNextPlan({ id: SCALE_ID, name: 'Scale', limit: null });
       return;
     }
     const col = RESOURCE_TO_LIMIT_COLUMN[payload.resource];
@@ -117,7 +114,7 @@ export function PlanLimitDialog({ payload, onOpenChange }: Props) {
   if (!payload) return null;
 
   const resourceLabel = (isEn ? RESOURCE_LABEL_EN : RESOURCE_LABEL)[payload.resource];
-  const isTopOfLadder = !NEXT_PLAN[payload.planId];
+  const isTopOfLadder = nextPlan?.id === SCALE_ID;
 
   async function upgrade() {
     if (!nextPlan) return;
@@ -125,8 +122,7 @@ export function PlanLimitDialog({ payload, onOpenChange }: Props) {
     // on bascule sur le contact commercial. Sinon TOUS les plans — y
     // compris Illimité — passent par le Checkout Stripe standard.
     if (isTopOfLadder) {
-      window.location.href =
-        'mailto:contact@centrium-platform.com?subject=Quotas Centrium';
+      window.location.href = '/devis?plan=v2_scale';
       return;
     }
     setUpgrading(true);
@@ -134,11 +130,18 @@ export function PlanLimitDialog({ payload, onOpenChange }: Props) {
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId: nextPlan.id, cycle: 'monthly' }),
+        body: JSON.stringify({ planId: nextPlan.id, interval: 'month' }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.error(body.message ?? (isEn ? 'Upgrade failed' : 'Upgrade impossible'));
+        return;
+      }
+      if (body.updated) {
+        // Abonnement existant modifié en place (prorata).
+        toast.success(isEn ? 'Plan upgraded' : 'Plan mis à niveau');
+        onOpenChange(false);
+        window.location.reload();
         return;
       }
       if (body.url) {

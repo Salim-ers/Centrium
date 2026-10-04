@@ -5,6 +5,7 @@ import {
   type StripePlanId,
 } from '@/lib/billing/config';
 import { resolveStripePriceId } from '@/lib/billing/resolve-price';
+import { isSelfServicePlan, type BillingInterval } from '@/lib/billing/plans';
 import { resolveTax } from '@/lib/billing/tax';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireOrg } from '@/lib/auth/guards';
@@ -13,7 +14,7 @@ import { logger } from '@/lib/logger';
 // =========================================================================
 // POST /api/billing/checkout — Crée une Stripe Checkout Session
 // -------------------------------------------------------------------------
-// Body : { planId: 'starter' | 'growth' | 'enterprise', ui?: 'embedded' }
+// Body : { planId: 'v2_starter' | 'v2_team' | 'v2_growth', interval?: 'month' | 'year', ui?: 'embedded' }
 //
 // ui='embedded' → session ui_mode 'embedded' + redirect_on_completion
 // 'never' : le formulaire de paiement Stripe s'affiche DANS l'app
@@ -21,23 +22,21 @@ import { logger } from '@/lib/logger';
 // { client_secret }. Sans ui → flow hosted historique { url } (fallback
 // si la clé publique n'est pas dispo côté client).
 //
-// Plans acceptés pour checkout self-service :
-//   'starter'    → STRIPE_STARTER_PRICE_ID    (74,99 EUR HT/mois)
-//   'growth'     → STRIPE_MEDIUM_PRICE_ID     (149,99 EUR HT/mois, "Medium")
-//   'enterprise' → STRIPE_ENTERPRISE_PRICE_ID (299,99 EUR HT/mois, "Illimité")
+// Plans acceptés pour checkout self-service (V2, migration 099) :
+//   v2_starter 49 € · v2_team 99 € · v2_growth 179 € HT/mois, ou annuel
+//   (10 mois facturés). Scale et les offres historiques ne se souscrivent
+//   pas en ligne ; un abonné historique peut passer sur une offre V2.
 //
 // Plans REFUSÉS :
 //   autres       → 400 unknown_plan
 //   déjà exempt  → 403 exempt
 //   non-admin    → 403 forbidden
 //
-// Les Price IDs sont lus depuis les env vars via requireStripePriceId(),
-// avec validation de format. Erreur claire si manquant ou mal formé.
+// Price IDs lus dans la table plans (créés depuis la super-console).
 // =========================================================================
 
 export const runtime = 'nodejs';
 
-const CHECKOUTABLE_PLANS = new Set<StripePlanId>(['starter', 'growth', 'enterprise']);
 
 export async function POST(req: NextRequest) {
   const ctx = await requireOrg({ skipSubscriptionGate: true });
@@ -48,17 +47,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { planId, ui } = (await req.json().catch(() => ({}))) as {
+  const { planId, ui, interval: rawInterval } = (await req.json().catch(() => ({}))) as {
     planId?: string;
     ui?: string;
+    interval?: string;
   };
+  const interval: BillingInterval = rawInterval === 'year' ? 'year' : 'month';
 
   if (!planId) {
     return NextResponse.json({ error: 'missing_plan' }, { status: 400 });
   }
 
   // 1) Plans supportés pour checkout self-service ?
-  if (!CHECKOUTABLE_PLANS.has(planId as StripePlanId)) {
+  if (!isSelfServicePlan(planId)) {
     return NextResponse.json(
       {
         error: 'unknown_plan',
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest) {
   // 4) Résout le Price ID depuis env vars. Erreur claire si absent/mal formé.
   let priceId: string;
   try {
-    priceId = await resolveStripePriceId(planId as StripePlanId);
+    priceId = await resolveStripePriceId(planId as StripePlanId, interval);
   } catch (e) {
     if (e instanceof StripeConfigError) {
       // Log côté serveur pour l'ops, réponse générique côté client
@@ -130,21 +131,22 @@ export async function POST(req: NextRequest) {
     // DOUBLE DÉBIT mensuel (bug critique corrigé).
     const ACTIVE = new Set(['active', 'trialing', 'past_due']);
     if (sub?.stripe_subscription_id && ACTIVE.has(sub.status ?? '')) {
-      if (sub.plan_id === planId) {
+      const current = await stripe.subscriptions.retrieve(sub.stripe_subscription_id);
+      const itemId = current.items.data[0]?.id;
+      // Même prix (même plan ET même périodicité) → rien à changer.
+      if (current.items.data[0]?.price?.id === priceId) {
         return NextResponse.json(
           { error: 'same_plan', message: 'Vous êtes déjà sur ce plan.' },
           { status: 400 },
         );
       }
-      const current = await stripe.subscriptions.retrieve(sub.stripe_subscription_id);
-      const itemId = current.items.data[0]?.id;
       if (!itemId) {
         throw new Error('subscription sans item — impossible de changer de plan');
       }
       await stripe.subscriptions.update(sub.stripe_subscription_id, {
         items: [{ id: itemId, price: priceId }],
         proration_behavior: 'create_prorations',
-        metadata: { organization_id: ctx.organizationId, plan_id: planId },
+        metadata: { organization_id: ctx.organizationId, plan_id: planId, interval },
       });
       // La DB sera confirmée par le webhook customer.subscription.updated ;
       // on écrit tout de suite le plan pour un retour UI immédiat.
@@ -188,7 +190,7 @@ export async function POST(req: NextRequest) {
     //   3. Aucun des deux → pas de TVA (prix débités tels quels).
     const { sessionTax, subscriptionTax, addressRequired } = resolveTax();
     const subscription_data = {
-      metadata: { organization_id: ctx.organizationId, plan_id: planId },
+      metadata: { organization_id: ctx.organizationId, plan_id: planId, interval },
       ...subscriptionTax,
     };
 

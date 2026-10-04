@@ -4,6 +4,7 @@ import { getSuperAdminContext } from '@/lib/auth/super-admin';
 import { getStripe } from '@/lib/billing/stripe';
 import { resolveStripePriceId } from '@/lib/billing/resolve-price';
 import type { StripePlanId } from '@/lib/billing/config';
+import { SELF_SERVICE_PLAN_IDS, type BillingInterval } from '@/lib/billing/plans';
 
 // =========================================================================
 // GET /api/admin/stripe-status — Diagnostic de configuration Stripe.
@@ -44,17 +45,16 @@ export async function GET() {
   // Résout le prix RÉELLEMENT utilisé par le checkout (base d'abord, env en
   // fallback) puis l'interroge chez Stripe : révèle livemode + montant.
   // Échoue si le prix n'est pas du même mode que la clé → info précieuse.
-  const PLAN_KEYS: { key: string; plan: StripePlanId }[] = [
-    { key: 'starter', plan: 'starter' },
-    { key: 'medium', plan: 'growth' },
-    { key: 'enterprise', plan: 'enterprise' },
-  ];
+  // Offres V2 souscriptibles, mensuel et annuel (clé : `<plan>:<interval>`).
+  const PLAN_KEYS: { key: string; plan: StripePlanId; interval: BillingInterval }[] = SELF_SERVICE_PLAN_IDS.flatMap((plan) =>
+    (['month', 'year'] as const).map((interval) => ({ key: `${plan}:${interval}`, plan, interval })),
+  );
   const prices: Record<string, unknown> = {};
   const stripeReady = secretKeyMode === 'live' || secretKeyMode === 'test';
-  for (const { key, plan } of PLAN_KEYS) {
+  for (const { key, plan, interval } of PLAN_KEYS) {
     let id: string;
     try {
-      id = await resolveStripePriceId(plan);
+      id = await resolveStripePriceId(plan, interval);
     } catch {
       prices[key] = { set: false };
       continue;

@@ -30,7 +30,7 @@ const schema = z.object({
   /** URL publique du logo uploadé en amont vers le bucket quote-attachments. */
   logo_url: z.string().url().optional().nullable().or(z.literal('')),
   /** Formule choisie par le prospect — validée ensuite en super console. */
-  plan_id: z.enum(['starter', 'growth', 'enterprise']).optional().nullable(),
+  plan_id: z.enum(['starter', 'growth', 'enterprise', 'v2_starter', 'v2_team', 'v2_growth', 'v2_scale']).optional().nullable(),
 });
 
 export async function POST(req: NextRequest) {

@@ -37,6 +37,7 @@ import {
   type StatusTone,
   EmptyState,
 } from '@/components/app';
+import { planLabel } from '@/lib/billing/plans';
 
 type QuoteRequest = {
   id: string;
@@ -54,20 +55,8 @@ type QuoteRequest = {
   converted_to_organization_id: string | null;
   wanted_help: string[] | null;
   logo_url: string | null;
-  plan_id: 'starter' | 'growth' | 'enterprise' | null;
+  plan_id: string | null;
   created_at: string;
-};
-
-const PLAN_LABELS: Record<NonNullable<QuoteRequest['plan_id']>, string> = {
-  starter: 'Starter · 74,99 €',
-  growth: 'Medium · 149,99 €',
-  enterprise: 'Illimité · 299,99 €',
-};
-
-const PLAN_LABELS_EN: Record<NonNullable<QuoteRequest['plan_id']>, string> = {
-  starter: 'Starter · €74.99',
-  growth: 'Medium · €149.99',
-  enterprise: 'Unlimited · €299.99',
 };
 
 const HELP_LABELS: Record<string, string> = {
@@ -127,7 +116,6 @@ const STATUS_STYLE: Record<QuoteRequest['status'], string> = {
 export default function AdminClientsPage() {
   const { locale } = useLocale();
   const isEn = locale === 'en';
-  const planLabels = isEn ? PLAN_LABELS_EN : PLAN_LABELS;
   const helpLabels = isEn ? HELP_LABELS_EN : HELP_LABELS;
   const statusLabel = isEn ? STATUS_LABEL_EN : STATUS_LABEL;
   const [items, setItems] = useState<QuoteRequest[]>([]);
@@ -379,7 +367,7 @@ export default function AdminClientsPage() {
                           {it.plan_id && (
                             <div className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
                               <Sparkles className="h-2.5 w-2.5" />
-                              {planLabels[it.plan_id]}
+                              {planLabel(it.plan_id, isEn ? 'en' : 'fr')}
                             </div>
                           )}
                           {it.team_size && (

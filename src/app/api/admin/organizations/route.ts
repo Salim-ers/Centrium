@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getSuperAdminContext } from '@/lib/auth/super-admin';
 import { sendEmail } from '@/lib/email/send';
 import { logger } from '@/lib/logger';
+import { PUBLIC_PLAN_IDS, planLabel as planLabelOf } from '@/lib/billing/plans';
 
 // =========================================================================
 // POST /api/admin/organizations — Provisionne un nouvel espace client.
@@ -69,7 +70,11 @@ const schema = z.object({
   quote_request_id: z.string().uuid().optional().nullable(),
 
   // Abonnement choisi lors du provisionnement (suite au devis)
-  plan_id: z.enum(['starter', 'growth', 'enterprise']).default('starter'),
+  // Offres V2 ; Scale est provisionné ici (pas de checkout en ligne).
+  plan_id: z.preprocess(
+    (v) => (v === 'starter' ? 'v2_starter' : v === 'growth' ? 'v2_team' : v === 'enterprise' ? 'v2_growth' : v),
+    z.enum(PUBLIC_PLAN_IDS).default('v2_team'),
+  ),
   // trial_7d  : accès immédiat, paiement à la fin de l'essai de 7 jours
   // paid_only : accès BLOQUÉ tant que l'abonnement n'est pas payé (défaut
   //             du tunnel devis : confirmation → email avec lien de paiement)
@@ -302,12 +307,7 @@ export async function POST(req: NextRequest) {
   // d'activation et enchaîne mot de passe → paiement (paid_only) ou
   // découverte de l'espace (essai / exempt). Plus d'email Supabase
   // séparé, plus de CTA /billing qui échouait sur /login sans session.
-  const planLabel =
-    data.plan_id === 'starter'
-      ? 'Starter (74,99 € HT/mois)'
-      : data.plan_id === 'growth'
-        ? 'Medium (149,99 € HT/mois)'
-        : 'Illimité (299,99 € HT/mois)';
+  const planLabel = planLabelOf(data.plan_id, 'fr');
   const welcomeParagraphs = [
     `Bonjour${data.admin_first_name ? ` ${data.admin_first_name}` : ''},`,
     `Ta demande a été validée : ton espace ${org.name} est prêt sur Centrium.`,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Building2,
@@ -32,6 +32,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Combobox } from '@/components/ui/Combobox';
 import { MarketingShell } from '@/components/marketing/MarketingShell';
 import { cn } from '@/lib/utils';
+import { PLAN_CATALOG, PUBLIC_PLAN_IDS, type PublicPlanId } from '@/lib/billing/plans';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 /**
@@ -160,27 +161,37 @@ const INITIAL_FORM: FormState = {
   message: '',
 };
 
-type PlanId = 'starter' | 'growth' | 'enterprise';
+type PlanId = PublicPlanId;
 
-// Formules self-service — mêmes prix que /tarifs et Stripe (source :
-// lib/billing/config). Le prospect choisit ici, la super console confirme,
-// l'email d'activation embarque le lien de paiement du plan choisi.
+// Formules — même catalogue que /tarifs et Stripe (lib/billing/plans).
+// Le prospect choisit ici, la super console confirme, l'email d'activation
+// embarque le lien de paiement du plan choisi (Scale : sur devis).
 const PLAN_CARDS: {
   id: PlanId;
   name: string;
   price: string;
   tagline: string;
   popular?: boolean;
-}[] = [
-  { id: 'starter', name: 'Starter', price: '74,99 €', tagline: '1 à 5 utilisateurs · 30 consultants' },
-  { id: 'growth', name: 'Medium', price: '149,99 €', tagline: '15 utilisateurs · 150 consultants', popular: true },
-  { id: 'enterprise', name: 'Illimité', price: '299,99 €', tagline: 'Utilisateurs et consultants illimités' },
-];
+}[] = PUBLIC_PLAN_IDS.map((id) => {
+  const p = PLAN_CATALOG[id];
+  return {
+    id,
+    name: p.name,
+    price: p.selfService ? `${p.monthlyEur} €` : `dès ${p.monthlyEur} €`,
+    tagline: p.managers && p.consultants ? `${p.managers} managers · ${p.consultants} consultants` : 'Au-delà de 10 managers ou 100 consultants',
+    popular: p.highlighted,
+  };
+});
 
 export default function DevisPage() {
   const { t } = useLocale();
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
-  const [planId, setPlanId] = useState<PlanId>('growth');
+  const [planId, setPlanId] = useState<PlanId>('v2_team');
+  // Formule pré-sélectionnée depuis /tarifs (?plan=v2_growth…).
+  useEffect(() => {
+    const wanted = new URLSearchParams(window.location.search).get('plan');
+    if (wanted && (PUBLIC_PLAN_IDS as readonly string[]).includes(wanted)) setPlanId(wanted as PlanId);
+  }, []);
   const [help, setHelp] = useState<Set<HelpKey>>(new Set());
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -459,7 +470,7 @@ export default function DevisPage() {
             <p className="text-xs text-muted-foreground leading-relaxed">
               {t.devis.planIntro}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3" role="radiogroup" aria-label={t.devis.planSection}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3" role="radiogroup" aria-label={t.devis.planSection}>
               {PLAN_CARDS.map((p) => {
                 const selected = planId === p.id;
                 return (
