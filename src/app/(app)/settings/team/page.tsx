@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import {
   Users,
@@ -12,6 +13,8 @@ import {
   Shield,
   Hourglass,
   Armchair,
+  Crown,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -19,6 +22,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/Combobox';
+import { Select } from '@/components/ui/select';
+import { ASSIGNABLE_ROLES, ROLE_LABEL, type EffectiveRole } from '@/lib/auth/permissions';
 import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import {
   Table,
@@ -50,6 +55,7 @@ type Member = {
   first_name: string | null;
   last_name: string | null;
   is_founder: boolean;
+  is_owner?: boolean;
 };
 
 type Invitation = {
@@ -62,20 +68,12 @@ type Invitation = {
   created_at: string;
 };
 
-const roleLabel = (role: string, isEn: boolean): string => {
-  const map: Record<string, string> = {
-    admin: 'Admin',
-    business_manager: 'Business Manager',
-    recruiter: isEn ? 'Recruiter' : 'Recruteur',
-    finance: 'Finance',
-    viewer: 'Viewer',
-    consultant: 'Consultant',
-  };
-  return map[role] ?? role;
-};
+const roleLabel = (role: string, isEn: boolean): string =>
+  ROLE_LABEL[role as EffectiveRole]?.[isEn ? 'en' : 'fr'] ?? role;
 
 const ROLE_TONE: Record<string, StatusTone> = {
   admin: 'magenta',
+  direction: 'violet',
   business_manager: 'violet',
   recruiter: 'info',
   finance: 'info',
@@ -84,7 +82,7 @@ const ROLE_TONE: Record<string, StatusTone> = {
 };
 
 export default function TeamSettingsPage() {
-  const { activeOrgId, role } = useOrganization();
+  const { activeOrgId, role, user } = useOrganization();
   const t = useAppT();
   const { locale } = useLocale();
   const isEn = locale === 'en';
@@ -98,6 +96,7 @@ export default function TeamSettingsPage() {
   const [planLimit, setPlanLimit] = useState<PlanLimitPayload | null>(null);
 
   const isAdmin = role === 'admin';
+  const [busyMember, setBusyMember] = useState<string | null>(null);
 
   // Source UNIQUE et admin-backed (cohérente avec le compteur de quota) :
   // la liste ne dépend plus de la RLS client, qui renvoyait 0 selon le
@@ -218,6 +217,51 @@ export default function TeamSettingsPage() {
     refreshUsageCounter(); // le compteur se met à jour instantanément
   }
 
+  const iAmOwner = members.some((m) => m.user_id === user?.id && m.is_owner);
+
+  async function changeRole(userId: string, nextRole: string) {
+    setBusyMember(userId);
+    const res = await fetch(`/api/team/members/${encodeURIComponent(userId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: nextRole }),
+    });
+    setBusyMember(null);
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.error(body.message ?? t.toasts.error_generic);
+      return;
+    }
+    toast.success(isEn ? 'Role updated' : 'Rôle mis à jour');
+    load();
+  }
+
+  async function transferOwnership(m: Member) {
+    const name = [m.first_name, m.last_name].filter(Boolean).join(' ') || m.email || '';
+    if (
+      !confirm(
+        isEn
+          ? `Transfer ownership to ${name}? They become the owner (admin); you stay admin.`
+          : `Transférer la propriété à ${name} ? Ce membre devient propriétaire (administrateur) ; vous restez administrateur.`,
+      )
+    )
+      return;
+    setBusyMember(m.user_id);
+    const res = await fetch('/api/team/owner', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: m.user_id }),
+    });
+    setBusyMember(null);
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.error(body.message ?? t.toasts.error_generic);
+      return;
+    }
+    toast.success(isEn ? 'Ownership transferred' : 'Propriété transférée');
+    load();
+  }
+
   // KPI : nb membres, nb admins, invitations en attente
   const kpis = useMemo(() => {
     const total = members.length;
@@ -248,6 +292,16 @@ export default function TeamSettingsPage() {
           </>
         }
         description={t.pages.team.description}
+        actions={
+          isAdmin && (
+            <Button asChild variant="secondary">
+              <Link href="/settings/permissions">
+                <SlidersHorizontal />
+                {isEn ? 'Customise permissions' : 'Personnaliser les permissions'}
+              </Link>
+            </Button>
+          )
+        }
       />
 
       <UsageBanner resource="members" />
@@ -320,13 +374,7 @@ export default function TeamSettingsPage() {
                     id="role"
                     value={inviteRole}
                     onChange={(v) => setInviteRole(v)}
-                    options={[
-                      { value: 'viewer', label: t.pages.team.role_viewer },
-                      { value: 'recruiter', label: 'Recruiter' },
-                      { value: 'business_manager', label: 'Business Manager' },
-                      { value: 'finance', label: t.pages.team.role_finance },
-                      { value: 'admin', label: t.pages.team.role_admin },
-                    ]}
+                    options={[...ASSIGNABLE_ROLES].reverse().map((r) => ({ value: r, label: roleLabel(r, isEn) }))}
                   />
                 </div>
                 <Button
@@ -396,6 +444,12 @@ export default function TeamSettingsPage() {
                           <span>
                             {[m.first_name, m.last_name].filter(Boolean).join(' ') || '—'}
                           </span>
+                          {m.is_owner && (
+                            <StatusBadge tone="magenta" dot={false}>
+                              <Crown className="h-3 w-3" />
+                              {isEn ? 'Owner' : 'Propriétaire'}
+                            </StatusBadge>
+                          )}
                           {m.is_founder && (
                             <StatusBadge tone="magenta" dot={false}>
                               ★ Founder
@@ -407,17 +461,38 @@ export default function TeamSettingsPage() {
                         {m.email ?? '—'}
                       </TableCell>
                       <TableCell>
-                        <StatusBadge tone={ROLE_TONE[m.role] ?? 'neutral'} dot={false}>
-                          {roleLabel(m.role, isEn)}
-                        </StatusBadge>
+                        {isAdmin && !m.is_owner ? (
+                          <Select
+                            value={m.role}
+                            onChange={(e) => void changeRole(m.user_id, e.target.value)}
+                            disabled={busyMember === m.user_id}
+                            className="h-8 w-44"
+                            aria-label={isEn ? 'Role' : 'Rôle'}
+                          >
+                            {ASSIGNABLE_ROLES.map((r) => (
+                              <option key={r} value={r}>
+                                {roleLabel(r, isEn)}
+                              </option>
+                            ))}
+                          </Select>
+                        ) : (
+                          <StatusBadge tone={ROLE_TONE[m.role] ?? 'neutral'} dot={false}>
+                            {roleLabel(m.role, isEn)}
+                          </StatusBadge>
+                        )}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {new Date(m.joined_at).toLocaleDateString()}
                       </TableCell>
                       {isAdmin && (
                         <TableCell className="text-right">
-                          {/* Un fondateur ne se retire pas depuis cet écran. */}
-                          {!m.is_founder && (
+                          {iAmOwner && !m.is_owner && (
+                            <Button variant="ghost" size="sm" onClick={() => void transferOwnership(m)} disabled={busyMember === m.user_id} title={isEn ? 'Transfer ownership' : 'Transférer la propriété'}>
+                              <Crown className="h-3 w-3" />
+                            </Button>
+                          )}
+                          {/* Un fondateur ou le propriétaire ne se retire pas depuis cet écran. */}
+                          {!m.is_founder && !m.is_owner && (
                             <Button
                               variant="ghost"
                               size="sm"

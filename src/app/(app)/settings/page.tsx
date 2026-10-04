@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { LogOut, Palette, Users, User, ShieldCheck, Building2, Sparkles, CreditCard, Landmark, BellRing } from 'lucide-react';
+import { LogOut, Palette, Users, User, ShieldCheck, Building2, Sparkles, CreditCard, Landmark, BellRing, SlidersHorizontal, Plug, Workflow, DoorOpen } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
+import { usePermissions } from '@/hooks/usePermissions';
+import type { Permission } from '@/lib/auth/permissions';
 import { Button } from '@/components/ui/button';
 import { useOrganization } from '@/lib/auth/context';
 import {
@@ -36,7 +38,11 @@ type SectionKey =
   | 'facturation'
   | 'notifications'
   | 'data'
-  | 'appearance';
+  | 'appearance'
+  | 'permissions'
+  | 'integrations'
+  | 'automations'
+  | 'portals';
 
 // Hub unique "Paramètres" : Équipe et Abonnement vivent ici (le menu
 // latéral n'a plus qu'une seule entrée Organisation → Paramètres).
@@ -45,13 +51,19 @@ const SECTIONS: Array<{
   href: string;
   icon: typeof User;
   tone: SectionTone;
+  /** Masquée si l'utilisateur n'a pas la permission. */
+  permission?: Permission;
 }> = [
   { key: 'profile', href: '/settings/profile', icon: User, tone: 'magenta' },
   { key: 'branding', href: '/settings/branding', icon: Palette, tone: 'violet' },
   { key: 'team', href: '/settings/team', icon: Users, tone: 'cyan' },
+  { key: 'permissions', href: '/settings/permissions', icon: SlidersHorizontal, tone: 'cyan', permission: 'team.manage' },
   { key: 'billing', href: '/billing', icon: CreditCard, tone: 'rose' },
   { key: 'facturation', href: '/settings/facturation', icon: Landmark, tone: 'violet' },
   { key: 'notifications', href: '/settings/notifications', icon: BellRing, tone: 'amber' },
+  { key: 'automations', href: '/automations', icon: Workflow, tone: 'amber', permission: 'automations.manage' },
+  { key: 'integrations', href: '/finance?tab=integrations', icon: Plug, tone: 'violet', permission: 'finance.edit' },
+  { key: 'portals', href: '/portals', icon: DoorOpen, tone: 'emerald', permission: 'portals.manage' },
   { key: 'data', href: '/settings/privacy', icon: ShieldCheck, tone: 'emerald' },
   { key: 'appearance', href: '/settings/appearance', icon: Sparkles, tone: 'amber' },
 ];
@@ -86,6 +98,9 @@ function writeIdentityCache(orgId: string, identity: IdentityRow): void {
 export default function SettingsPage() {
   const { activeOrgId, memberships, branding } = useOrganization();
   const t = useAppT();
+  const { locale } = useLocale();
+  const fr = locale !== 'en';
+  const { can } = usePermissions();
 
   // Lecture SYNCHRONE du cache sessionStorage au premier render — pas
   // de useEffect, pas d'attente. Si cache présent, identity est posé
@@ -155,7 +170,7 @@ export default function SettingsPage() {
       />
 
       <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
-        {SECTIONS.map((s, i) => {
+        {SECTIONS.filter((s) => !s.permission || can(s.permission)).map((s, i) => {
           const Icon = s.icon;
           const titleByKey: Record<SectionKey, string> = {
             profile: t.pages.settings.card_profile_title,
@@ -166,6 +181,10 @@ export default function SettingsPage() {
             notifications: t.pages.settings.card_notifications_title,
             data: t.pages.settings.card_data_title,
             appearance: t.pages.settings.card_appearance_title,
+            permissions: fr ? 'Permissions' : 'Permissions',
+            integrations: fr ? 'Intégrations' : 'Integrations',
+            automations: fr ? 'Automatisations' : 'Automations',
+            portals: fr ? 'Portails' : 'Portals',
           };
           const descByKey: Record<SectionKey, string> = {
             profile: t.pages.settings.card_profile_description,
@@ -176,6 +195,10 @@ export default function SettingsPage() {
             notifications: t.pages.settings.card_notifications_description,
             data: t.pages.settings.card_data_description,
             appearance: t.pages.settings.card_appearance_description,
+            permissions: fr ? 'Ce que chaque rôle peut voir et faire, ajustable par rôle.' : 'What each role can see and do, adjustable per role.',
+            integrations: fr ? 'Export comptable, webhooks signés et connecteurs.' : 'Accounting export, signed webhooks and connectors.',
+            automations: fr ? 'Fins de mission, CRA manquants, relances, demandes client.' : 'Mission endings, missing timesheets, follow-ups, client requests.',
+            portals: fr ? 'Accès clients et consultants à leur espace sécurisé.' : 'Client and consultant access to their secure space.',
           };
           return (
             <motion.div

@@ -30,6 +30,7 @@ type MemberRow = {
   first_name: string | null;
   last_name: string | null;
   is_founder: boolean;
+  is_owner: boolean;
 };
 
 export async function GET() {
@@ -37,13 +38,15 @@ export async function GET() {
   const ctx = await requireOrg({ skipSubscriptionGate: true });
   const admin = createAdminClient('team-management');
 
-  const [{ data: membersRaw }, { data: invitesRaw }] = await Promise.all([
+  const membersQuery = (columns: string) =>
     admin
       .from('organization_members')
-      .select('user_id, role, joined_at, profiles(email, first_name, last_name, is_founder)')
+      .select(columns)
       .eq('organization_id', ctx.organizationId)
       .neq('role', 'consultant')
-      .order('joined_at', { ascending: true }),
+      .order('joined_at', { ascending: true });
+  const [membersRes, { data: invitesRaw }] = await Promise.all([
+    membersQuery('user_id, role, joined_at, is_owner, profiles(email, first_name, last_name, is_founder)'),
     admin
       .from('organization_invitations')
       .select('id, email, role, token, expires_at, accepted_at, created_at')
@@ -52,6 +55,11 @@ export async function GET() {
       .is('accepted_at', null)
       .order('created_at', { ascending: false }),
   ]);
+
+  // Tolérance : sans la migration 096 (colonne is_owner), on relit sans elle.
+  const membersRaw = (membersRes.error
+    ? (await membersQuery('user_id, role, joined_at, profiles(email, first_name, last_name, is_founder)')).data
+    : membersRes.data) as unknown as Array<Record<string, unknown>> | null;
 
   const members: MemberRow[] = (membersRaw ?? []).map((m) => {
     const p = m.profiles as unknown as {
@@ -68,6 +76,7 @@ export async function GET() {
       first_name: p?.first_name ?? null,
       last_name: p?.last_name ?? null,
       is_founder: !!p?.is_founder,
+      is_owner: !!m.is_owner,
     };
   });
 
