@@ -231,10 +231,22 @@ lus par le moteur existant.
 
 ## 4. Déploiement
 
+### 4.0 État au 4 octobre 2026
+
+- **Production** (`actpzvkorgxkgwutwaud`) : migrations **095 à 104 appliquées** le
+  4 octobre 2026 via l'API de gestion Supabase, une par une, sur décision du
+  fondateur (sans passage par le staging, toujours en pause).
+- Avant application : sauvegarde physique Supabase du jour constatée (17:23 UTC) et
+  export logique des 49 tables publiques (4 382 lignes), conservé hors du dépôt.
+- Après application : comptages identiques sur les 49 tables, sauf `plans` (4 → 8,
+  ajout attendu des offres V2) ; tables V2 présentes ; aucune alerte de sécurité
+  Supabase de niveau « erreur ».
+- Restent à faire : création des prix Stripe V2 (super-console, étape 4 ci-dessous).
+
 ### 4.1 Ordre
 
 1. **Base de staging** (le projet est en pause : le réactiver est une décision
-   d'exploitation) : appliquer les migrations **095 à 103** dans l'ordre. Elles sont
+   d'exploitation) : appliquer les migrations **095 à 104** dans l'ordre. Elles sont
    additives et idempotentes ; aucune donnée n'est supprimée.
 2. Contrôler en staging (voir 4.3), puis appliquer les mêmes migrations en production.
 3. Déployer le front V2 **après** les migrations : plusieurs écrans et routes lisent les
