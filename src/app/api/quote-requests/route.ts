@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     return NextResponse.json(
-      { error: 'insert_failed', message: error.message, details: error },
+      { error: 'insert_failed', message: 'Envoi impossible pour le moment. Réessayez dans quelques minutes.' },
       { status: 500 },
     );
   }

@@ -70,6 +70,7 @@ import { useOrganization } from '@/lib/auth/context';
 
 type Subscription = {
   planId: string | null;
+  interval?: BillingInterval | null;
   planName: string | null;
   priceMonthly: number | null;
   status: string;
@@ -553,6 +554,7 @@ function BillingPageInner() {
                     interval={interval}
                     lang={locale === 'en' ? 'en' : 'fr'}
                     currentPlanId={sub?.planId ?? null}
+                    currentInterval={sub?.interval ?? null}
                     onSubscribe={() => subscribe(p.id)}
                     busy={busy === `checkout:${p.id}`}
                     disabled={busy !== null}
@@ -759,6 +761,7 @@ function PlanCard({
   interval,
   lang,
   currentPlanId,
+  currentInterval,
   onSubscribe,
   busy,
   disabled,
@@ -769,6 +772,7 @@ function PlanCard({
   interval: BillingInterval;
   lang: 'fr' | 'en';
   currentPlanId: string | null;
+  currentInterval: BillingInterval | null;
   onSubscribe: () => void;
   busy: boolean;
   disabled: boolean;
@@ -776,7 +780,8 @@ function PlanCard({
   format: (amountInEur: number | null, opts?: { maximumFractionDigits?: number }) => string;
 }) {
   const tb = t.pages.billing;
-  const isCurrent = plan.id === currentPlanId;
+  // Même offre mais autre périodicité → changement possible (mensuel ↔ annuel).
+  const isCurrent = plan.id === currentPlanId && (currentInterval === null || currentInterval === interval);
   // Scale (et toute offre non self-service) : sur devis, pas de checkout.
   const selfService = isSelfServicePlan(plan.id);
   const yearly = interval === 'year' && selfService && plan.price_yearly_eur != null;

@@ -77,7 +77,7 @@ export function TalentTabs({ active, counts }: Props) {
             className={cn(
               'group inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm transition',
               isActive
-                ? 'bg-primary/15 text-primary border border-primary/30 shadow-[0_0_30px_-12px_rgba(139,92,246,0.5)]'
+                ? 'bg-primary/15 text-primary border border-primary/30'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent',
             )}
             title={t.sub}

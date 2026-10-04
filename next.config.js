@@ -109,9 +109,28 @@ const nextConfig = {
       // (/essai). On redirige tout lien résiduel (favori, footer, lien
       // externe) vers le nouveau parcours. Temporaire (307) le temps que
       // le funnel se stabilise.
+      // Demande de devis / démo (offre Scale, équipes qui veulent être
+      // accompagnées) : formulaire /demo, suivi en super-console.
       {
         source: '/devis',
-        destination: '/essai',
+        destination: '/demo',
+        permanent: false,
+      },
+      // V2 — site : pages fusionnées. /security ne liste que des protections
+      // vérifiables ; /plateforme est couvert par la page d'accueil ; le
+      // comparatif concurrent (prix obsolètes, affirmations invérifiables)
+      // est retiré.
+      { source: '/plateforme', destination: '/', permanent: true },
+      { source: '/engagements', destination: '/security', permanent: true },
+      { source: '/manifesto', destination: '/security', permanent: true },
+      { source: '/trust', destination: '/security', permanent: true },
+      { source: '/pricing', destination: '/tarifs', permanent: true },
+      { source: '/centrium-vs-boondmanager', destination: '/', permanent: true },
+      // V2 : la liste des sociétés est la page Clients (clients, prospects,
+      // ESN partenaires).
+      {
+        source: '/companies',
+        destination: '/clients',
         permanent: false,
       },
     ];

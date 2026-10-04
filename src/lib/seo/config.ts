@@ -19,9 +19,9 @@ export const SITE = {
   contactEmail: 'contact@centrium-platform.com',
   // Description courte (155 chars max — Google SERP)
   descriptionFr:
-    'Centrium by QuadCore : la plateforme métier des ESN. CV Optimizer IA, CRM commercial, matching consultants, CRA et facturation. Hébergement européen RGPD.',
+    'Le cockpit de gestion des ESN et cabinets de conseil : CRM, staffing, consultants, missions, CRA, devis et rentabilité dans un seul espace. Hébergé dans l’UE.',
   descriptionEn:
-    'Centrium by QuadCore: the operating system for modern staffing agencies. AI CV Optimizer, sales CRM, consultant matching, timesheets and billing. EU-hosted, GDPR.',
+    'The operating cockpit for IT services and consulting firms: CRM, staffing, consultants, missions, timesheets, quotes and profitability in one place. EU-hosted.',
   // Keywords pour metadata (Google les ignore depuis 2009, mais Bing
   // et certains moteurs les utilisent encore)
   keywordsFr: [
@@ -29,9 +29,10 @@ export const SITE = {
     'plateforme ESN',
     'logiciel ESN',
     'gestion consultants',
-    'CV Optimizer',
-    'matching consultants missions',
-    'CRA facturation ESN',
+    'CRM ESN',
+    'staffing consultants',
+    'CRA ESN',
+    'rentabilité ESN',
     'cabinet de conseil',
     'logiciel staffing',
     'SaaS ESN',
@@ -40,9 +41,9 @@ export const SITE = {
   keywordsEn: [
     'staffing agency software',
     'consultant management platform',
-    'AI CV optimizer',
+    'consultant staffing',
     'consultant matching',
-    'timesheet and billing',
+    'timesheets and pre-invoicing',
     'consulting firm CRM',
     'SaaS for staffing',
     'GDPR compliant',

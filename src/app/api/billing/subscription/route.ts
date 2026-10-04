@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireOrg } from '@/lib/auth/guards';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getStripe } from '@/lib/billing/stripe';
 
 // =========================================================================
 // GET /api/billing/subscription
@@ -95,9 +96,23 @@ export async function GET() {
     needsAction = 'checkout';
   }
 
+  // Périodicité réelle (mensuel / annuel) lue chez Stripe ; null si inconnue
+  // (pas d'abonnement Stripe, clé absente, erreur réseau).
+  let interval: 'month' | 'year' | null = null;
+  if (sub.stripe_subscription_id) {
+    try {
+      const s = await getStripe().subscriptions.retrieve(sub.stripe_subscription_id);
+      const i = s.items.data[0]?.price?.recurring?.interval;
+      interval = i === 'year' ? 'year' : i === 'month' ? 'month' : null;
+    } catch {
+      interval = null;
+    }
+  }
+
   return NextResponse.json({
     data: {
       planId: plan?.id ?? sub.plan_id,
+      interval,
       planName: plan?.name ?? null,
       priceMonthly: plan?.price_monthly_eur ?? null,
       status: sub.status,

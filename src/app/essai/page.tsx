@@ -10,19 +10,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { PLAN_CATALOG, SELF_SERVICE_PLAN_IDS, isSelfServicePlan, type BillingInterval, type SelfServicePlanId } from '@/lib/billing/plans';
 
-type PlanId = 'starter' | 'growth' | 'enterprise';
+type PlanId = SelfServicePlanId;
 
-const PLAN_CARDS: {
-  id: PlanId;
-  name: string;
-  price: string;
-  popular?: boolean;
-}[] = [
-  { id: 'starter', name: 'Starter', price: '74,99 €' },
-  { id: 'growth', name: 'Medium', price: '149,99 €', popular: true },
-  { id: 'enterprise', name: 'Illimité', price: '299,99 €' },
-];
+// Offres souscriptibles en ligne (Scale : sur devis via /demo).
+const PLAN_CARDS = SELF_SERVICE_PLAN_IDS.map((id) => ({
+  id,
+  name: PLAN_CATALOG[id].name,
+  monthly: PLAN_CATALOG[id].monthlyEur,
+  yearly: PLAN_CATALOG[id].yearlyEur ?? PLAN_CATALOG[id].monthlyEur * 10,
+  limits: `${PLAN_CATALOG[id].managers} managers · ${PLAN_CATALOG[id].consultants} consultants`,
+  popular: PLAN_CATALOG[id].highlighted,
+}));
 
 const LABEL = 'text-xs font-semibold tracking-wider uppercase text-muted-foreground';
 
@@ -37,7 +37,9 @@ function EssaiInner() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState(searchParams?.get('email') ?? '');
   const [password, setPassword] = useState('');
-  const [planId, setPlanId] = useState<PlanId>('growth');
+  const wantedPlan = searchParams?.get('plan');
+  const [planId, setPlanId] = useState<PlanId>(isSelfServicePlan(wantedPlan) ? wantedPlan : 'v2_team');
+  const [interval, setInterval_] = useState<BillingInterval>(searchParams?.get('interval') === 'year' ? 'year' : 'month');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailTaken, setEmailTaken] = useState(false);
@@ -59,6 +61,7 @@ function EssaiInner() {
           email,
           password,
           plan_id: planId,
+          interval,
           accept_terms: acceptTerms,
         }),
       });
@@ -173,7 +176,23 @@ function EssaiInner() {
 
         {/* Choix du plan */}
         <div className="space-y-2">
-          <Label className={LABEL}>{isEn ? 'Your plan' : 'Votre plan'}</Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label className={LABEL}>{isEn ? 'Your plan' : 'Votre plan'}</Label>
+            <div className="inline-flex rounded-md border border-border p-0.5 text-[12px]" role="radiogroup" aria-label={isEn ? 'Billing period' : 'Périodicité'}>
+              {(['month', 'year'] as const).map((i) => (
+                <button
+                  key={i}
+                  type="button"
+                  role="radio"
+                  aria-checked={interval === i}
+                  onClick={() => setInterval_(i)}
+                  className={`rounded px-2 py-0.5 ${interval === i ? 'bg-primary text-white' : 'text-muted-foreground'}`}
+                >
+                  {i === 'month' ? (isEn ? 'Monthly' : 'Mensuel') : isEn ? 'Yearly' : 'Annuel'}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="grid gap-2">
             {PLAN_CARDS.map((p) => {
               const active = planId === p.id;
@@ -190,17 +209,18 @@ function EssaiInner() {
                 >
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm text-foreground">{p.name}</span>
+                    <span className="hidden text-[11px] text-muted-foreground sm:inline">{p.limits}</span>
                     {p.popular && (
-                      <span className="text-[9px] uppercase tracking-wider rounded-full bg-primary/20 text-primary px-1.5 py-0.5 font-semibold">
-                        {isEn ? 'Popular' : 'Populaire'}
+                      <span className="rounded-full bg-brand-50 px-1.5 py-0.5 text-[10px] font-medium text-primary-deep">
+                        {isEn ? 'Recommended' : 'Recommandé'}
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-foreground">
-                      {p.price}
+                      {interval === 'year' ? p.yearly : p.monthly} €
                       <span className="text-muted-foreground text-[11px] font-normal">
-                        {isEn ? ' excl. VAT/mo' : ' HT/mois'}
+                        {interval === 'year' ? (isEn ? ' excl. VAT/yr' : ' HT/an') : isEn ? ' excl. VAT/mo' : ' HT/mois'}
                       </span>
                     </span>
                     {active && <Check className="h-4 w-4 text-primary" />}
@@ -272,7 +292,7 @@ function EssaiInner() {
         <Button
           type="submit"
           disabled={submitting || !acceptTerms}
-          className="w-full h-11 bg-qc-gradient hover:opacity-90 text-white disabled:opacity-50"
+          className="w-full h-11"
         >
           {submitting ? (
             <Loader2 className="h-4 w-4 animate-spin" />

@@ -25,9 +25,9 @@ type Page = {
 
 const PAGES: Page[] = [
   { path: '/', changeFrequency: 'weekly', priority: 1.0 },
-  { path: '/plateforme', changeFrequency: 'monthly', priority: 0.9 },
-  { path: '/engagements', changeFrequency: 'monthly', priority: 0.8 },
-  { path: '/pricing', changeFrequency: 'monthly', priority: 0.9 },
+  { path: '/tarifs', changeFrequency: 'monthly', priority: 0.9 },
+  { path: '/security', changeFrequency: 'monthly', priority: 0.8 },
+  { path: '/demo', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/essai', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/legal/mentions', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/legal/privacy', changeFrequency: 'yearly', priority: 0.3 },

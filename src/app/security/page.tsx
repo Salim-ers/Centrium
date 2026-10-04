@@ -1,10 +1,15 @@
-import { redirect } from 'next/navigation';
+import type { Metadata } from 'next';
 
-/**
- * /security a été fusionné dans /engagements (vision produit +
- * sécurité/conformité dans une seule page). Cette route reste pour
- * la rétrocompatibilité des liens existants et redirige côté serveur.
- */
-export default function SecurityRedirect() {
-  redirect('/engagements');
+import { SecurityContent } from './SecurityContent';
+
+export const metadata: Metadata = {
+  title: 'Sécurité',
+  description:
+    'Les protections réellement déployées dans Centrium : hébergement dans l’Union européenne, isolation des organisations, permissions vérifiées côté serveur, double authentification des administrateurs, documents privés.',
+  alternates: { canonical: '/security' },
+  openGraph: { title: 'Sécurité — Centrium', url: '/security', type: 'website' },
+};
+
+export default function SecurityPage() {
+  return <SecurityContent />;
 }

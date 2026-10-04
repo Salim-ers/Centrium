@@ -8,6 +8,8 @@ import {
   PlanLimitError,
   planLimitResponse,
 } from '@/lib/billing/enforce';
+import { rateLimit } from '@/lib/security/rate-limit';
+import { logAudit } from '@/lib/audit/log';
 
 // =========================================================================
 // POST /api/invitations — Crée une invitation pour l'organisation active
@@ -49,6 +51,11 @@ export async function POST(req: NextRequest) {
   const { organizationId, role, user } = await requireOrg();
   if (role !== 'admin') {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  }
+
+  const rl = await rateLimit(`org-invite:${organizationId}`, { limit: 30, windowSec: 3600 });
+  if (!rl.ok) {
+    return NextResponse.json({ error: 'too_many_requests', message: 'Trop d’invitations envoyées. Réessayez plus tard.' }, { status: 429 });
   }
 
   const body = await req.json().catch(() => ({}));
@@ -97,6 +104,14 @@ export async function POST(req: NextRequest) {
   if (error) {
     return NextResponse.json({ error: 'db_error', message: error.message }, { status: 500 });
   }
+
+  await logAudit({
+    organizationId,
+    userId: user.id,
+    entityType: 'invitation',
+    action: 'invited',
+    details: { role: parsed.data.role, email_domain: parsed.data.email.split('@')[1] ?? null },
+  });
 
   // 3. Construit l'URL de redirection après vérification email Supabase.
   // On passe par /auth/callback qui échange le code Supabase en cookies

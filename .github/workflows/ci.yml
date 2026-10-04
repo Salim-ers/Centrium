@@ -64,6 +64,11 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
           SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
 
+      # Rejoue toutes les migrations dans un Postgres embarqué (PGlite) puis
+      # exécute les tests SQL d'isolation (rôles, organisations, portails).
+      - name: Migrations + tests RLS
+        run: npm run db:check
+
   # ────────────────────────────────────────────────────────────────────
   # Build de production
   # Garantit que le build Vercel passera avant le merge.

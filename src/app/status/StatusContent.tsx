@@ -199,8 +199,8 @@ export function StatusContent({ server, db, latencyMs, integrations, statusPageU
               contact@centrium-platform.com
             </a>
             {' · '}
-            <Link href="/trust" className="underline hover:text-foreground">
-              Trust Center
+            <Link href="/security" className="underline hover:text-foreground">
+              {isEn ? 'Security' : 'Sécurité'}
             </Link>
           </p>
         </div>

@@ -2,11 +2,8 @@
 
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import type { LandingDict, Locale } from '@/lib/i18n/landing';
-import { Header } from './Header';
-import { Footer } from './Footer';
-import { Starfield } from '@/components/ui/starfield-1';
-import { PageReveal } from './PageReveal';
-import { useIsMobile } from '@/hooks/useIsMobile';
+import { SiteHeader } from '@/components/site/SiteHeader';
+import { SiteFooter } from '@/components/site/SiteFooter';
 
 /** Hook conservé pour compat des composants existants : délègue au
  *  LocaleProvider global (root layout). */
@@ -15,49 +12,26 @@ export function useLandingDict(): { t: LandingDict; locale: Locale } {
   return { t, locale };
 }
 
-/**
- * Shell partagé par TOUTES les pages marketing.
- *
- *   - StarField global fixed en arrière-plan (fond étoilé partout)
- *   - Header marketing identique (sticky, toggle FR/EN, nav routes)
- *   - PageReveal wrapper pour l'entrée animée
- *   - Footer marketing partagé
- *
- * La locale vient du LocaleProvider global (root layout) — plus de
- * state local ici, donc le toggle FR/EN fonctionne aussi sur
- * AuthShell, /login, /devis, etc.
- */
 type Props = {
   children: React.ReactNode;
+  /** Conservé pour compatibilité (plus d'animation d'entrée globale). */
   noReveal?: boolean;
   noFooter?: boolean;
 };
 
-export function MarketingShell({ children, noReveal, noFooter }: Props) {
-  const { t, locale, setLocale } = useLocale();
-  const isMobile = useIsMobile();
-
-  const inner = noReveal ? children : <PageReveal>{children}</PageReveal>;
-
+/**
+ * Habillage partagé de toutes les pages publiques : fond clair, en-tête
+ * et pied de page Centrium (même langage visuel que l'application).
+ */
+export function MarketingShell({ children, noFooter }: Props) {
   return (
-    <div className="min-h-screen text-foreground relative overflow-x-hidden">
-      <div
-        aria-hidden
-        className="fixed inset-0 z-0 pointer-events-none"
-        style={{ background: '#000' }}
-      >
-        <Starfield
-          speed={isMobile ? 0.45 : 0.6}
-          quantity={isMobile ? 180 : 420}
-        />
-      </div>
-      <Header t={t} locale={locale} onLocaleChange={setLocale} />
-      <div className="relative z-[1]">{inner}</div>
-      {!noFooter && (
-        <div className="relative z-[1]">
-          <Footer t={t} />
-        </div>
-      )}
+    <div className="min-h-screen bg-background text-foreground">
+      <a href="#contenu" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-card focus:px-3 focus:py-2 focus:shadow-md">
+        Aller au contenu
+      </a>
+      <SiteHeader />
+      <div id="contenu">{children}</div>
+      {!noFooter && <SiteFooter />}
     </div>
   );
 }

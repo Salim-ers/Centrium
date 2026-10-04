@@ -24,6 +24,6 @@ export default function SignupPage({
   searchParams?: { invite?: string };
 }) {
   const inviteToken = searchParams?.invite?.trim();
-  if (!inviteToken) redirect('/devis');
+  if (!inviteToken) redirect('/essai');
   return <InviteActivationCard token={inviteToken} />;
 }

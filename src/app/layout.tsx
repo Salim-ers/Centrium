@@ -47,20 +47,20 @@ export const metadata: Metadata = {
     alternateLocale: ['en_US'],
     url: SITE.url,
     siteName: 'Centrium',
-    title: 'Centrium — la plateforme métier des ESN',
+    title: 'Centrium — le cockpit de gestion des ESN',
     description: SITE.descriptionFr,
     images: [
       {
         url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'Centrium — la plateforme métier des ESN',
+        alt: 'Centrium — le cockpit de gestion des ESN',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Centrium — la plateforme métier des ESN',
+    title: 'Centrium — le cockpit de gestion des ESN',
     description: SITE.descriptionFr,
     images: ['/opengraph-image'],
     site: SITE.twitterHandle,

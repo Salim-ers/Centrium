@@ -3,21 +3,14 @@ import type { Metadata } from 'next';
 import { TarifsContent } from './TarifsContent';
 
 export const metadata: Metadata = {
-  title: 'Tarifs Centrium — 3 plans transparents pour ESN',
+  title: 'Tarifs',
   description:
-    "Tarifs publics Centrium : Starter 74,99 €/mois, Medium 149,99 €/mois, Illimité 299,99 €/mois. Souscription self-service en 2 minutes, annulation à tout moment.",
-  keywords: [
-    'tarif centrium',
-    'prix logiciel ESN',
-    'prix PSA staffing',
-    'tarif boondmanager',
-    'prix gestion consultants',
-  ],
+    'Starter 49 € HT/mois, Team 99 €, Growth 179 €, Scale à partir de 299 €. Tous les modules dans chaque offre, portails client et consultant sans licence, 2 mois offerts en annuel.',
+  keywords: ['tarif centrium', 'prix logiciel ESN', 'logiciel staffing prix', 'gestion consultants prix'],
   alternates: { canonical: '/tarifs' },
   openGraph: {
-    title: 'Tarifs Centrium — 3 plans publics',
-    description:
-      'Pricing transparent par paliers. Souscription et annulation self-service. Démo + devis 48h sans engagement.',
+    title: 'Tarifs Centrium',
+    description: 'Des prix affichés, des offres simples : seul le nombre de managers et de consultants change.',
     url: '/tarifs',
     type: 'website',
   },
