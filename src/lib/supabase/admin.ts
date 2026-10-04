@@ -33,7 +33,10 @@ type AdminReason =
   | 'billing-subscription' // GET /api/billing/subscription state snapshot
   | 'password-set' // POST /api/auth/update-password → profiles.password_set
   | 'team-management' // liste / suppression membres + invitations (settings/team)
-  | 'org-deletion'; // suppression d'une organisation depuis la super-console
+  | 'org-deletion' // suppression d'une organisation depuis la super-console
+  | 'integrations' // webhooks sortants et secrets d'intégration (V2)
+  | 'client-portal' // lectures du portail client, filtrées par société (V2)
+  | 'portal-access'; // création / révocation des accès portail client (V2)
 
 export function createAdminClient(reason: AdminReason): SupabaseClient {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;

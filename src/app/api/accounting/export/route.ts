@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireOrg } from '@/lib/auth/guards';
+import { getAuthorization } from '@/lib/auth/rbac';
 import { toCsv } from '@/lib/rgpd/org-export';
 import { logAudit } from '@/lib/audit/log';
 
@@ -22,8 +22,8 @@ export const dynamic = 'force-dynamic';
 // =========================================================================
 
 export async function GET(req: NextRequest) {
-  const ctx = await requireOrg({ skipSubscriptionGate: true });
-  if (ctx.role !== 'admin' && ctx.role !== 'finance') {
+  const ctx = await getAuthorization({ skipSubscriptionGate: true });
+  if (!ctx.permissions.has('finance.view')) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
