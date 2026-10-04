@@ -84,7 +84,7 @@ export const DICT: Record<Locale, LandingDict> = {
     footer: {
       tagline: 'La plateforme ESN nouvelle génération.',
       cols: {
-        product: { title: 'Produit', links: [{ label: 'Plateforme', href: '/plateforme' }, { label: 'Tarifs', href: '/pricing' }, { label: 'Demander une démo', href: '/essai' }] },
+        product: { title: 'Produit', links: [{ label: 'Plateforme', href: '/plateforme' }, { label: 'Tarifs', href: '/tarifs' }, { label: 'Demander une démo', href: '/demo' }] },
         company: { title: 'Société', links: [{ label: 'Engagements', href: '/engagements' }, { label: 'Se connecter', href: '/login' }, { label: 'Contact', href: 'mailto:contact@centrium-platform.com' }] },
       },
       engagementsLabel: 'Engagements & sécurité',
@@ -149,7 +149,7 @@ export const DICT: Record<Locale, LandingDict> = {
     footer: {
       tagline: 'The next-gen staffing agency platform.',
       cols: {
-        product: { title: 'Product', links: [{ label: 'Platform', href: '/plateforme' }, { label: 'Pricing', href: '/pricing' }, { label: 'Request a demo', href: '/essai' }] },
+        product: { title: 'Product', links: [{ label: 'Platform', href: '/plateforme' }, { label: 'Pricing', href: '/tarifs' }, { label: 'Request a demo', href: '/demo' }] },
         company: { title: 'Company', links: [{ label: 'Engagements', href: '/engagements' }, { label: 'Log in', href: '/login' }, { label: 'Contact', href: 'mailto:contact@centrium-platform.com' }] },
       },
       engagementsLabel: 'Engagements & security',

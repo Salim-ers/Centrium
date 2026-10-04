@@ -2,6 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
+    // AVIF d'abord (photos du site), WebP en repli.
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       { protocol: 'https', hostname: '**.supabase.co' },
       { protocol: 'https', hostname: '**.supabase.in' },
@@ -116,14 +118,14 @@ const nextConfig = {
         destination: '/demo',
         permanent: false,
       },
-      // V2 — site : pages fusionnées. /security ne liste que des protections
-      // vérifiables ; /plateforme est couvert par la page d'accueil ; le
+      // Site : la page Sécurité (protections vérifiables uniquement) vit
+      // sur /securite ; les anciennes pages de confiance y renvoient. Le
       // comparatif concurrent (prix obsolètes, affirmations invérifiables)
       // est retiré.
-      { source: '/plateforme', destination: '/', permanent: true },
-      { source: '/engagements', destination: '/security', permanent: true },
-      { source: '/manifesto', destination: '/security', permanent: true },
-      { source: '/trust', destination: '/security', permanent: true },
+      { source: '/security', destination: '/securite', permanent: true },
+      { source: '/engagements', destination: '/securite', permanent: true },
+      { source: '/manifesto', destination: '/securite', permanent: true },
+      { source: '/trust', destination: '/securite', permanent: true },
       { source: '/pricing', destination: '/tarifs', permanent: true },
       { source: '/centrium-vs-boondmanager', destination: '/', permanent: true },
       // V2 : la liste des sociétés est la page Clients (clients, prospects,

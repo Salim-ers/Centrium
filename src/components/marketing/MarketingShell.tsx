@@ -2,8 +2,8 @@
 
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import type { LandingDict, Locale } from '@/lib/i18n/landing';
-import { SiteHeader } from '@/components/site/SiteHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
+import { SiteHeader } from '@/components/site/SiteHeader';
 
 /** Hook conservé pour compat des composants existants : délègue au
  *  LocaleProvider global (root layout). */
@@ -20,17 +20,20 @@ type Props = {
 };
 
 /**
- * Habillage partagé de toutes les pages publiques : fond clair, en-tête
- * et pied de page Centrium (même langage visuel que l'application).
+ * Habillage des pages publiques hors site vitrine (légal, état du
+ * service) : même en-tête et même pied de page que le site. L'en-tête
+ * étant fixe, le contenu démarre sous ses 64 px.
  */
 export function MarketingShell({ children, noFooter }: Props) {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <a href="#contenu" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-card focus:px-3 focus:py-2 focus:shadow-md">
+    <div className="min-h-screen overflow-x-clip bg-ivory text-ink">
+      <a href="#contenu" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[95] focus:rounded-md focus:bg-ivory focus:px-3 focus:py-2 focus:shadow-md">
         Aller au contenu
       </a>
       <SiteHeader />
-      <div id="contenu">{children}</div>
+      <div id="contenu" className="pt-16">
+        {children}
+      </div>
       {!noFooter && <SiteFooter />}
     </div>
   );

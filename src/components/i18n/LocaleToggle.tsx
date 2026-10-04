@@ -106,9 +106,9 @@ export function LocaleToggle({
         ].join(' ')}
         aria-label={`Switch to ${next.toUpperCase()}`}
       >
-        <span className={locale === 'fr' ? 'text-white' : 'text-muted-foreground'}>FR</span>
+        <span className={locale === 'fr' ? 'text-foreground' : 'text-muted-foreground'}>FR</span>
         <span className="text-muted-foreground">/</span>
-        <span className={locale === 'en' ? 'text-white' : 'text-muted-foreground'}>EN</span>
+        <span className={locale === 'en' ? 'text-foreground' : 'text-muted-foreground'}>EN</span>
       </button>
     );
   }

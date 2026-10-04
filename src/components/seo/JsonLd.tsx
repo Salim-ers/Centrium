@@ -1,3 +1,4 @@
+import { PLAN_CATALOG, PUBLIC_PLAN_IDS } from '@/lib/billing/plans';
 import { SITE } from '@/lib/seo/config';
 
 /**
@@ -68,28 +69,40 @@ export function JsonLd() {
     // Logo explicite sur SoftwareApplication (Google Rich Results recommandé).
     logo: `${SITE.url}/brand/centrium-logo.svg`,
     publisher: { '@id': `${SITE.url}#organization` },
+    // Offres publiques : mêmes montants que la page Tarifs et Stripe.
     offers: {
-      '@type': 'Offer',
+      '@type': 'AggregateOffer',
       priceCurrency: 'EUR',
-      priceSpecification: {
-        '@type': 'PriceSpecification',
+      lowPrice: Math.min(...PUBLIC_PLAN_IDS.map((id) => PLAN_CATALOG[id].monthlyEur)),
+      offerCount: PUBLIC_PLAN_IDS.length,
+      url: `${SITE.url}/tarifs`,
+      offers: PUBLIC_PLAN_IDS.map((id) => ({
+        '@type': 'Offer',
+        name: PLAN_CATALOG[id].name,
+        price: PLAN_CATALOG[id].monthlyEur,
         priceCurrency: 'EUR',
-        description: 'Custom quote within 48h. No public grid. EU-hosted, GDPR-compliant.',
-      },
-      availability: 'https://schema.org/InStock',
-      url: `${SITE.url}/essai`,
+        priceSpecification: {
+          '@type': 'UnitPriceSpecification',
+          price: PLAN_CATALOG[id].monthlyEur,
+          priceCurrency: 'EUR',
+          unitCode: 'MON',
+          valueAddedTaxIncluded: false,
+        },
+        url: `${SITE.url}/tarifs`,
+      })),
     },
     featureList: [
-      'Consultant library with AI CV parsing',
-      'CV Optimizer with branded templates (PDF + DOCX)',
-      'AI matching consultant ↔ mission',
-      'RFP extraction from screenshot or text',
-      'Timesheets and automated invoicing',
-      'Multi-tenant Row Level Security',
-      'EU hosting, GDPR-compliant',
+      'CRM: contacts, companies, opportunities, quotes',
+      'Consultant profiles and staffing timeline',
+      'Explainable consultant matching (score out of 100, seven criteria)',
+      'Missions with sale rate, cost and margin',
+      'Monthly timesheets, approval and pre-invoicing',
+      'Client and consultant portals',
+      'Automations and analytics',
+      'Role-based permissions, organisation isolation (Row Level Security)',
+      'Hosted in the European Union',
     ],
     inLanguage: ['fr', 'en'],
-    softwareVersion: '1.0',
   };
 
   const website = {

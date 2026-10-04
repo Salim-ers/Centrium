@@ -1,16 +1,18 @@
-import { ChevronDown } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
-/** FAQ accessible (details/summary natifs : clavier et lecteurs d'écran). */
-export function Faq({ items }: { items: Array<{ q: string; a: string }> }) {
+import { cn } from '@/lib/utils';
+
+/** FAQ éditoriale, accessible (details/summary natifs : clavier et lecteurs d'écran). */
+export function Faq({ items, light = false }: { items: Array<{ q: string; a: string }>; light?: boolean }) {
   return (
-    <div className="divide-y divide-border rounded-2xl border border-border bg-card">
+    <div className={cn('border-t', light ? 'border-ivory/20' : 'border-ink/15')}>
       {items.map((it) => (
-        <details key={it.q} className="group px-5 py-1">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-[15px] font-medium [&::-webkit-details-marker]:hidden">
+        <details key={it.q} className={cn('group border-b', light ? 'border-ivory/20' : 'border-ink/15')}>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-6 text-[17px] font-semibold md:text-[19px] [&::-webkit-details-marker]:hidden">
             {it.q}
-            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" aria-hidden />
+            <Plus className="h-5 w-5 shrink-0 transition-transform duration-300 group-open:rotate-45" aria-hidden />
           </summary>
-          <p className="pb-4 text-[14.5px] leading-relaxed text-muted-foreground">{it.a}</p>
+          <p className={cn('max-w-2xl pb-6 text-[15.5px] leading-[1.6]', light ? 'text-ivory/75' : 'text-ink-soft/75')}>{it.a}</p>
         </details>
       ))}
     </div>

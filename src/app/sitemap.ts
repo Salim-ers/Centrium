@@ -3,11 +3,7 @@ import type { MetadataRoute } from 'next';
 import { SITE } from '@/lib/seo/config';
 
 /**
- * /sitemap.xml — pages publiques indexables.
- *
- * Pour chaque page on déclare les alternates FR/EN (même URL, locale
- * gérée client-side via toggle). Cela aide Google à comprendre que la
- * même URL sert deux locales, sans pénalité de contenu dupliqué.
+ * /sitemap.xml — pages publiques indexables (site vitrine en français).
  *
  * lastModified figé au build : Date.now() est interdit dans le code
  * runtime des metadata files, donc on stamp à la build via process.env
@@ -25,8 +21,10 @@ type Page = {
 
 const PAGES: Page[] = [
   { path: '/', changeFrequency: 'weekly', priority: 1.0 },
+  { path: '/plateforme', changeFrequency: 'monthly', priority: 0.9 },
+  { path: '/solutions', changeFrequency: 'monthly', priority: 0.9 },
   { path: '/tarifs', changeFrequency: 'monthly', priority: 0.9 },
-  { path: '/security', changeFrequency: 'monthly', priority: 0.8 },
+  { path: '/securite', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/demo', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/essai', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/legal/mentions', changeFrequency: 'yearly', priority: 0.3 },
@@ -42,12 +40,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     lastModified: buildDate,
     changeFrequency,
     priority,
-    alternates: {
-      languages: {
-        fr: `${SITE.url}${path}`,
-        en: `${SITE.url}${path}`,
-        'x-default': `${SITE.url}${path}`,
-      },
-    },
   }));
 }

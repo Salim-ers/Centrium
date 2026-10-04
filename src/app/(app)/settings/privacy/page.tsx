@@ -201,7 +201,7 @@ export default function PrivacySettingsPage() {
                   {isEn ? 'Data Processing Agreement (DPA)' : 'Accord de sous-traitance (DPA)'}
                 </Link>
                 <Link
-                  href="/security"
+                  href="/securite"
                   className="inline-flex items-center px-3 py-1.5 rounded-full border border-hairline hover:bg-muted transition"
                 >
                   {isEn ? 'Security & compliance' : 'Sécurité & conformité'}

@@ -69,7 +69,7 @@ export function LegalShell({ title, updatedAt, currentSlug, children }: Props) {
   return (
     <MarketingShell>
       {/* Bandeau "document de travail" sous le header */}
-      <div className="relative pt-20 border-b border-warning/30 bg-warning/10">
+      <div className="relative border-b border-warning/30 bg-warning/10">
         <div className="max-w-6xl mx-auto px-6 py-3 text-xs leading-relaxed text-warning">
           {isEn ? (
             <>

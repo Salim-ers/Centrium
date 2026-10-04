@@ -199,7 +199,7 @@ export function StatusContent({ server, db, latencyMs, integrations, statusPageU
               contact@centrium-platform.com
             </a>
             {' · '}
-            <Link href="/security" className="underline hover:text-foreground">
+            <Link href="/securite" className="underline hover:text-foreground">
               {isEn ? 'Security' : 'Sécurité'}
             </Link>
           </p>

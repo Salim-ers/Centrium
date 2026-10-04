@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
-import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
+import { CentriumLogo } from '@/components/brand/CentriumLogo';
 import { LocaleToggle } from '@/components/i18n/LocaleToggle';
-import { FadeIn } from '@/components/site/Motion';
+import { Appear, FlowLine } from '@/components/site/kit';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 type Props = {
@@ -16,35 +16,59 @@ type Props = {
   footer?: React.ReactNode;
 };
 
+const CYCLE_EN = ['Prospect', 'Opportunity', 'Mission', 'Timesheet', 'Margin'];
+
 /**
- * Shell des pages d'authentification (connexion, inscription, mot de
- * passe…) : même langage visuel que le site et l'application — fond
- * clair, carte sobre, aucune animation décorative.
+ * Shell des pages d'authentification (connexion, inscription, essai, mot
+ * de passe) : panneau terracotta à gauche sur grand écran, formulaire sur
+ * fond ivoire. Même identité que le site.
  */
 export function AuthShell({ children, title, subtitle, footer }: Props) {
   const { locale } = useLocale();
+  const en = locale === 'en';
   return (
-    <div className="relative min-h-screen bg-background text-foreground">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-gradient-to-b from-sand-100 to-transparent" aria-hidden />
-      <div className="relative flex items-center justify-between px-4 py-4 sm:px-6">
-        <Link href="/" className="inline-flex items-center gap-1.5 rounded-md px-1 py-1 text-[13px] text-muted-foreground transition-colors hover:text-foreground">
-          <ArrowLeft className="h-3.5 w-3.5" />
-          {locale === 'en' ? 'Back' : 'Retour'}
+    <div className="grid min-h-screen bg-ivory text-ink lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-terra-deep p-12 text-ivory lg:flex">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{ backgroundImage: 'linear-gradient(rgba(251,248,245,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(251,248,245,.06) 1px, transparent 1px)', backgroundSize: '96px 96px' }}
+        />
+        <Link href="/" className="relative flex items-center gap-2.5" aria-label="Centrium — accueil">
+          <CentriumLogo className="h-8 w-8" />
+          <span className="text-[15px] font-extrabold uppercase tracking-[0.18em]">Centrium</span>
         </Link>
-        <LocaleToggle variant="compact" />
-      </div>
-      <div className="relative flex min-h-[calc(100vh-4rem)] items-start justify-center px-4 pb-12 pt-6 sm:items-center sm:px-6 sm:pt-0">
-        <FadeIn className="w-full max-w-md">
-          <div className="mb-6 flex justify-center">
-            <CentriumWordmark size="md" href="/" />
-          </div>
-          <div className="mb-5 space-y-1.5 text-center">
-            <h1 className="font-display text-[clamp(1.5rem,3vw,1.9rem)] font-semibold tracking-tight">{title}</h1>
-            {subtitle && <p className="text-[14px] text-muted-foreground">{subtitle}</p>}
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-7">{children}</div>
-          {footer && <div className="mt-5 text-center text-[14px] text-muted-foreground">{footer}</div>}
-        </FadeIn>
+        <div className="relative">
+          <p className="text-[clamp(2.4rem,3.8vw,4.4rem)] font-extrabold uppercase leading-[0.92] tracking-[-0.05em]">
+            {en ? 'Run your firm.' : 'Pilotez votre ESN.'}
+            <br />
+            <em className="font-editorial font-normal normal-case italic tracking-[-0.02em] text-terra-peach">{en ? 'Not your spreadsheets.' : 'Pas vos tableurs.'}</em>
+          </p>
+          <FlowLine light active={4} steps={en ? CYCLE_EN : undefined} className="mt-14" />
+        </div>
+        <p className="relative text-[12px] text-ivory/60">{en ? 'Application hosted in the European Union' : 'Application hébergée dans l’Union européenne'}</p>
+      </aside>
+
+      <div className="flex min-h-screen flex-col">
+        <div className="flex items-center justify-between px-5 py-5 sm:px-8">
+          <Link href="/" className="inline-flex items-center gap-1.5 rounded-md px-1 py-1 text-[12.5px] font-semibold uppercase tracking-[0.14em] text-ink/60 transition-colors hover:text-ink">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            {en ? 'Back' : 'Retour'}
+          </Link>
+          <LocaleToggle variant="compact" />
+        </div>
+        <main className="flex flex-1 items-start justify-center px-5 pb-12 pt-4 sm:items-center sm:px-8">
+          <Appear className="w-full max-w-md">
+            <Link href="/" className="mb-10 inline-flex items-center gap-2.5 lg:hidden" aria-label="Centrium — accueil">
+              <CentriumLogo className="h-8 w-8" />
+              <span className="text-[15px] font-extrabold uppercase tracking-[0.18em]">Centrium</span>
+            </Link>
+            <h1 className="text-[clamp(2rem,3.4vw,2.8rem)] font-extrabold uppercase leading-[0.95] tracking-[-0.04em]">{title}</h1>
+            {subtitle && <p className="mt-3 text-[15px] leading-[1.5] text-taupe">{subtitle}</p>}
+            <div className="mt-8 rounded-[24px] bg-warm p-6 ring-1 ring-ink/[0.06] sm:p-8">{children}</div>
+            {footer && <div className="mt-6 text-[14px] text-taupe">{footer}</div>}
+          </Appear>
+        </main>
       </div>
     </div>
   );

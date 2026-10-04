@@ -1,58 +1,68 @@
 # Centrium
 
-> Centrium by QuadCore SAS is a SaaS platform for staffing agencies (ESN) and consulting firms. It centralizes consultant management, AI CV optimization, RFP responses, sales pipeline, timesheets and invoicing into one workflow. Built in Europe, GDPR-compliant, EU-hosted.
-
-Centrium replaces the typical 4-tool staffing stack (Word + Notion + WhatsApp + manual PDFs) with one workflow covering the entire cycle from sourcing to paid invoice. Designed for staffing agencies of 10 to 500 consultants and consulting firms.
+> Centrium (published by QuadCore SAS, France) is the operating cockpit for IT services companies (ESN) and consulting firms: CRM, staffing, consultants, missions, timesheets (CRA), pre-invoicing and profitability in one workspace. Tagline: "Pilotez votre ESN. Pas vos tableurs."
 
 ## Key facts
 
-- Product: B2B SaaS platform for staffing agencies and consulting firms
+- Product: B2B SaaS for IT services companies (ESN) and consulting firms
 - Publisher: QuadCore SAS (France)
-- Hosting: European region (GDPR-compliant)
-- Pricing: Custom quote within 48 hours, no public grid, 12-month minimum commitment
-- Languages: French, English (toggle FR/EN on all public pages)
-- Target audience: Business managers, recruiters, finance teams of ESN (Entreprises de Services du Numérique)
+- Hosting: database, files and application servers located in Sweden (European Union)
+- Trial: 7 days
+- Languages: French marketing site; the application is available in French and English
+- Contact: contact@centrium-platform.com
 
-## Core modules
+## Pricing (excl. VAT)
 
-- **Consultants library** — centralized talent pool with AI CV parsing, skill/seniority/city search, real-time availability and bench alerts
-- **CV Optimizer** — proprietary template with 3 variants (Standard, Dense, Executive), inline editing, PDF/DOCX export. Brand consistency across the entire library.
-- **Matching & RFP** — AI extracts job specs from RFPs (screenshot or text), suggests top 3 profiles by fit score, generates branded job spec PDFs
-- **Timesheets & Invoicing** — interactive timesheet calendar, automatic invoice generation with IBAN/VAT/legal mentions, late-payment alerts, Sage/Pennylane export
+- Starter: €49/month — up to 2 managers and 10 consultants
+- Team: €99/month — up to 5 managers and 30 consultants
+- Growth: €179/month — up to 10 managers and 100 consultants
+- Scale: from €299/month — beyond 10 managers or 100 consultants, priced with the team
+- Yearly billing: 10 months paid for 12
+- Every module is included in every plan. Client and consultant portal users never count as licences.
 
-## Engineering principles
+## Modules
 
-- Operations first: every screen designed with a real staffing agency in mind
-- AI-assisted, not autonomous: AI suggests, you approve, never invents
-- Compliance by default: EU hosting, multi-tenant Row Level Security, audit trail
+- Sales: CRM (contacts, companies, opportunities by stage, follow-up tasks), client 360 view, quotes built on templates, private versioned documents
+- Talent: consultant profiles (skills, seniority, availability, CV), staffing timeline, explainable matching
+- Delivery: missions (dates, sale rate, cost, margin, end-of-mission alerts), monthly timesheets with remote days, approval, pre-invoicing from approved days
+- Steering: dashboard, analytics (consultant utilisation, revenue per consultant, lost reasons, timesheet punctuality, quotes), automations
+- Portals: client portal (missions, timesheets approval, quotes, documents, new requests) and consultant portal (mission, timesheet, documents)
+- Organisation: role-based permissions (admin, business manager, recruiter, finance), global search
 
-## Security & compliance
+## Matching
 
-- TLS 1.2+ in transit, AES-256 at rest
-- Multi-tenant isolation via PostgreSQL RLS
-- GDPR/CNIL compliant, DPA signable on request
-- Daily encrypted backups with PITR (Point-in-Time Recovery)
-- Logged access, sensitive action audit trail
+Deterministic score out of 100 based on seven visible criteria: required skills (50 points), seniority (12), availability (12), nice-to-have skills (10), daily rate (8), languages (5), location (3). No skill is inferred or invented: only skills entered in Centrium count.
+
+## Automations (each can be switched on or off per organisation)
+
+- Mission ending: alerts at 90, 60, 30 and 15 days
+- Missing timesheets and timesheets waiting for approval: reminders
+- Consultant available: finds compatible open opportunities (score ≥ 75)
+- Stale opportunity: creates a follow-up task
+- Client request from the portal: creates the CRM opportunity and notifies sales
+- Quote expiring within 7 days: creates a follow-up task
+
+## Security (only measures actually deployed)
+
+- Database-level isolation between organisations (Row Level Security), covered by automated regression tests
+- Role permissions enforced server-side
+- Two-factor authentication (TOTP) required for administrators; 12-character minimum passwords
+- Private file storage; downloads through signed links valid for 60 seconds after a permission check
+- HTTPS with HSTS; Content-Security-Policy and other security headers
+- Audit log of sensitive actions; rate limiting on sensitive routes
+- Signed outgoing webhooks (HMAC-SHA256), HTTPS only
 
 ## Pages
 
-- [Home](https://www.centrium-platform.com/): Hero overview, 4 module pillars, live demos, customer testimonials
-- [Platform](https://www.centrium-platform.com/plateforme): Full module details with mockups and feature lists
-- [Engagements](https://www.centrium-platform.com/engagements): Manifesto, 6 security pillars, GDPR compliance commitments
-- [Pricing](https://www.centrium-platform.com/pricing): Custom-quote model, 5 sizing factors, 3 personas (growing agency / consulting firm / mid-cap), FAQ
-- [Request a quote](https://www.centrium-platform.com/devis): Pre-sales form covering company, contact, branding needs (logo, CV/contract templates), free-form requirements
-
-## Contact
-
-- Email: contact@centrium-platform.com
-- Publisher: QuadCore SAS, France
+- [Home](https://www.centrium-platform.com/)
+- [Platform](https://www.centrium-platform.com/plateforme): modules and how they connect
+- [Solutions](https://www.centrium-platform.com/solutions): leadership, business managers, recruiting, finance, consultants, clients
+- [Pricing](https://www.centrium-platform.com/tarifs)
+- [Security](https://www.centrium-platform.com/securite)
+- [Book a demo](https://www.centrium-platform.com/demo)
+- [Start the 7-day trial](https://www.centrium-platform.com/essai)
 
 ## What Centrium is not
 
-- Not an ATS (Applicant Tracking System) — it's for managing already-employed consultants, not hiring funnels
-- Not a public job board — RFPs and missions stay private inside each agency
-- Not an autonomous AI agent — AI suggests, humans approve every decision
-
-## Versioning
-
-Current version: v1 (post-MVP). Currently public-facing marketing site live; internal app gated by authentication. Public API not yet exposed.
+- Not an applicant tracking system for public hiring funnels
+- Not an autonomous AI: matching is a transparent calculation, and decisions stay with your team
