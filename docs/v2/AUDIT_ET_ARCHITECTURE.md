@@ -193,32 +193,88 @@ lus par le moteur existant.
 
 ### 2.8 Tarification
 
-| Plan | Prix HT/mois | Managers | Consultants |
-|---|---|---|---|
-| Starter | 49 € | 2 | 10 |
-| Team | 99 € | 5 | 30 |
-| Growth | 179 € | 10 | 100 |
-| Scale | dès 299 € (sur devis) | illimité | illimité |
+| Plan | Prix HT/mois | Annuel HT | Managers | Consultants | Souscription |
+|---|---|---|---|---|---|
+| Starter | 49 € | 490 € | 2 | 10 | en ligne |
+| Team (recommandé) | 99 € | 990 € | 5 | 30 | en ligne |
+| Growth | 179 € | 1 790 € | 10 | 100 | en ligne |
+| Scale | dès 299 € | sur devis | au-delà | au-delà | via /demo |
 
-Annuel : 10 mois facturés pour 12. Les utilisateurs `consultant` et `client` ne sont
-pas comptés comme licences. Les nouveaux Price IDs Stripe sont à créer avec
-`scripts/setup-stripe.ts` (action manuelle, environnement par environnement).
+- Annuel : 10 mois facturés pour 12. Tous les modules sont inclus dans chaque offre :
+  seules les limites de managers et de consultants changent (appliquées par
+  `lib/billing/enforce.ts`). Aucun quota IA n'est annoncé tant qu'il n'est pas appliqué.
+- Les utilisateurs `consultant` et `client` ne sont jamais comptés comme licences.
+- Essai : 7 jours (inchangé depuis la migration 075).
+- Les offres historiques (`starter`, `growth`, `enterprise`) restent actives pour les
+  abonnés existants ; elles ne sont plus proposées et un abonné peut passer sur une
+  offre V2 depuis la page Abonnement (changement en place, prorata Stripe).
+- Catalogue partagé : `src/lib/billing/plans.ts`. Les Price IDs (mensuel et annuel)
+  sont créés depuis la super-console (« Créer les prix Stripe ») et lus dans
+  `plans.stripe_price_id` / `plans.stripe_price_yearly_id`.
 
 ---
 
-## 3. Plan d'exécution
+## 3. Plan d'exécution (réalisé)
 
 1. Design system, tokens, mode clair, codemod des couleurs.
 2. Shell : sidebar, header, palette de commandes, centre de notifications, navigation mobile.
-3. Migrations V2 (rôles, entités, champs CRM, finances, portail client, permissions).
-4. Modules : Dashboard, CRM, Clients 360, Opportunités, Consultants 360 + dossier,
-   Staffing, Missions, CRA, Finance, Documents, Portails, Automatisations, Analytics, Paramètres.
-5. Portails client et consultant (mobile-first).
-6. Site vitrine : landing, tarifs, sécurité, FAQ, sans preuve sociale inventée.
-7. Vérifications : type-check, lint, tests unitaires, build.
+3. Migrations V2 095 → 103 (rôles, propriétaire, permissions, entités, portails,
+   tarifs, cloisonnement, approbation client, portail consultant, automatisations).
+4. Modules : Dashboard, CRM, Clients 360, Opportunités + matching, Consultants 360 +
+   dossier de compétences, Staffing, Missions, CRA, Finance & préfacturation,
+   Devis & documents, Portails, Automatisations, Analytics, Paramètres (rôles,
+   permissions, propriété), onboarding.
+5. Portails client (`/client`) et consultant (`/portal`), mobile-first.
+6. Site : accueil, tarifs, sécurité (affirmations vérifiées uniquement), démo, essai.
+7. Vérifications : type-check, lint, tests unitaires, rejeu des migrations + tests
+   SQL (`npm run db:check`, désormais dans la CI), build de production.
 
-## 4. Déploiement des migrations
+## 4. Déploiement
 
-Les migrations V2 sont **additives** (aucune suppression de colonne ni de données) et
-idempotentes (`IF NOT EXISTS`). Elles doivent être appliquées dans l'ordre, d'abord en
-staging (`docs/runbook`), puis en production, **avant** le déploiement du front V2.
+### 4.1 Ordre
+
+1. **Base de staging** (le projet est en pause : le réactiver est une décision
+   d'exploitation) : appliquer les migrations **095 à 103** dans l'ordre. Elles sont
+   additives et idempotentes ; aucune donnée n'est supprimée.
+2. Contrôler en staging (voir 4.3), puis appliquer les mêmes migrations en production.
+3. Déployer le front V2 **après** les migrations : plusieurs écrans et routes lisent les
+   nouvelles colonnes (`timesheet_days.is_remote`, `missions.owner_id`, tables
+   `quotes`, `documents`, `client_portal_users`…).
+4. Super-console → « Créer les prix Stripe » (clé live) : crée les prix mensuels et
+   annuels de Starter, Team et Growth.
+
+### 4.2 Points connus
+
+- Rejouer toutes les migrations sur une base vierge échoue déjà sur `main` (060, 062,
+  064) à cause d'un écart historique entre le dépôt et la production. Le harnais
+  `scripts/db-check.mjs` injecte cet écart pour valider la chaîne ; la production,
+  elle, contient déjà ces objets.
+- `next build` doit être lancé avec `NODE_ENV=production` (ou sans `NODE_ENV`) : une
+  variable `NODE_ENV=development` dans le shell fait échouer le prérendu (erreur
+  `<Html> should not be imported…`), sans lien avec le code.
+- La migration 102 retire la lecture directe de la fiche consultant par le
+  consultant : toutes les pages du portail passent par `portal_my_profile()` et
+  `portal_my_missions()`.
+- La migration 099 reste à 7 jours d'essai ; les descriptions d'offres ne citent que
+  des différences réellement appliquées.
+
+### 4.3 Recette en staging
+
+- Rôles : un recruteur ne voit pas les CJM ; la surcharge d'une permission s'applique
+  sans reconnexion côté serveur ; le propriétaire peut transférer la propriété.
+- Portail client : invitation depuis Portails → mot de passe → `/client` ; vérifier qu'un
+  client ne voit que sa société (missions, CRA à approuver, devis, documents) ; une
+  demande crée l'opportunité (si l'automatisation est active) avec ses pièces jointes.
+- Portail consultant : CRA avec télétravail, documents partagés, aucune donnée de vente.
+- Devis : création, envoi, acceptation par le client, nouvelle version.
+- Automatisations : lancer `/api/cron/alerts-engine` et vérifier fins de mission
+  (90/60/30/15 j au responsable), CRA à valider, consultants compatibles, tâches de
+  relance d'opportunité et de devis.
+- Facturation : préfactures validées, export CSV comptable, webhook signé de test.
+
+### 4.4 À arbitrer hors code
+
+- Les pages légales (`/legal/*`) n'ont pas été modifiées : leurs engagements
+  (sous-traitants, durées de conservation…) sont à relire par le responsable juridique.
+- Les captures du site sont des reproductions de l'interface avec des données
+  d'exemple, signalées comme telles.
