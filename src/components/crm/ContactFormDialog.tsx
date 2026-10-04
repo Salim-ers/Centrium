@@ -49,11 +49,14 @@ type Props = {
   onSaved?: (c: Contact) => void;
   /** Si fourni, le dialog passe en mode édition */
   contact?: Contact | null;
+  /** Société pré-renseignée à la création (fiche client 360). */
+  defaultCompanyId?: string | null;
 };
 
-function toFormValues(c: Contact | null | undefined): Partial<ContactInput> {
-  if (!c) return { contact_type: 'recruiter' };
+function toFormValues(c: Contact | null | undefined, defaultCompanyId?: string | null): Partial<ContactInput> {
+  if (!c) return { contact_type: defaultCompanyId ? 'client_final' : 'recruiter', company_id: defaultCompanyId ?? null };
   return {
+    company_id: c.company_id,
     first_name: c.first_name,
     last_name: c.last_name,
     contact_type: c.contact_type,
@@ -72,6 +75,7 @@ export function ContactFormDialog({
   organizationId,
   onSaved,
   contact,
+  defaultCompanyId,
 }: Props) {
   const [saving, setSaving] = useState(false);
   const isEdit = !!contact;
@@ -90,12 +94,12 @@ export function ContactFormDialog({
     formState: { errors },
   } = useForm<ContactInput>({
     resolver: zodResolver(contactSchema),
-    defaultValues: toFormValues(contact),
+    defaultValues: toFormValues(contact, defaultCompanyId),
   });
 
   useEffect(() => {
-    if (open) reset(toFormValues(contact));
-  }, [open, contact, reset]);
+    if (open) reset(toFormValues(contact, defaultCompanyId));
+  }, [open, contact, reset, defaultCompanyId]);
 
   async function onSubmit(values: ContactInput) {
     setSaving(true);
