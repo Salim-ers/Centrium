@@ -251,4 +251,55 @@ BEGIN
     'une seule alerte de fin de mission';
 END $$;
 
+-- ── 104 : dispositions du tableau de bord, strictement personnelles ──────
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000a002', false);
+DO $$ BEGIN
+  INSERT INTO user_dashboard_layouts (user_id, organization_id, view, widgets)
+  VALUES ('00000000-0000-0000-0000-00000000a002', '0000000a-0000-0000-0000-000000000000', 'direction', '[{"id":"todo"}]');
+  ASSERT (SELECT count(*) FROM user_dashboard_layouts) = 1, 'BM lit sa disposition';
+END $$;
+DO $$
+DECLARE failed boolean := false;
+BEGIN
+  BEGIN
+    -- Écrire la disposition d'un autre utilisateur : refusé.
+    INSERT INTO user_dashboard_layouts (user_id, organization_id, view, widgets)
+    VALUES ('00000000-0000-0000-0000-00000000a003', '0000000a-0000-0000-0000-000000000000', 'direction', '[]');
+  EXCEPTION WHEN OTHERS THEN failed := true;
+  END;
+  ASSERT failed, 'pas d''écriture pour un autre utilisateur';
+END $$;
+DO $$
+DECLARE failed boolean := false;
+BEGIN
+  BEGIN
+    -- Organisation forgée : refusé même pour soi.
+    INSERT INTO user_dashboard_layouts (user_id, organization_id, view, widgets)
+    VALUES ('00000000-0000-0000-0000-00000000a002', '0000000b-0000-0000-0000-000000000000', 'finance', '[]');
+  EXCEPTION WHEN OTHERS THEN failed := true;
+  END;
+  ASSERT failed, 'pas d''écriture dans une autre organisation';
+END $$;
+SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000a003', false);
+DO $$ BEGIN
+  ASSERT (SELECT count(*) FROM user_dashboard_layouts) = 0, 'le recruteur ne voit pas la disposition du BM';
+END $$;
+SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000b001', false);
+DO $$ BEGIN
+  ASSERT (SELECT count(*) FROM user_dashboard_layouts) = 0, 'org B ne voit rien de l''org A';
+END $$;
+SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000a005', false);
+DO $$
+DECLARE failed boolean := false;
+BEGIN
+  BEGIN
+    INSERT INTO user_dashboard_layouts (user_id, organization_id, view, widgets)
+    VALUES ('00000000-0000-0000-0000-00000000a005', '0000000a-0000-0000-0000-000000000000', 'direction', '[]');
+  EXCEPTION WHEN OTHERS THEN failed := true;
+  END;
+  ASSERT failed, 'un compte consultant n''a pas de tableau de bord interne';
+END $$;
+RESET ROLE;
+
 SELECT 'v2_rls: OK' AS result;

@@ -86,34 +86,35 @@ function plural(n: number, fr: [string, string], en: [string, string]) {
   return { fr: n > 1 ? fr[1] : fr[0], en: n > 1 ? en[1] : en[0] };
 }
 
-export async function loadDashboard(
-  supabase: SupabaseClient,
-  orgId: string,
-  can: Can,
-  today: Date = new Date(),
-): Promise<DashboardSummary> {
+// Une table absente (migration non appliquée) ou une erreur réseau ne doit
+// jamais casser le dashboard : on retombe sur une valeur vide.
+export const tolerant = <T>(p: PromiseLike<{ data: unknown; error: unknown }>, fallback: T): Promise<T> =>
+  Promise.resolve(p).then((r) => (r.error ? fallback : ((r.data as T | null) ?? fallback)));
+
+export type DashboardRaw = Awaited<ReturnType<typeof fetchDashboardData>>;
+
+/**
+ * Lignes brutes du tableau de bord : une seule vague de requêtes
+ * parallèles, filtrées par permission (une donnée non autorisée n'est
+ * jamais lue).
+ */
+export async function fetchDashboardData(supabase: SupabaseClient, orgId: string, can: Can, today: Date = new Date()) {
   const todayIso = iso(today);
   const since = new Date(today.getFullYear(), today.getMonth() - 11, 1);
-  const in30 = iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 30));
   const in7 = iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7));
   const financialsVisible = can('consultants.financials');
-
-  // Une table absente (migration non appliquée) ou une erreur réseau ne doit
-  // jamais casser le dashboard : on retombe sur une valeur vide.
-  const tolerant = <T>(p: PromiseLike<{ data: unknown; error: unknown }>, fallback: T): Promise<T> =>
-    Promise.resolve(p).then((r) => (r.error ? fallback : ((r.data as T | null) ?? fallback)));
 
   const [missions, consultants, timesheets, opps, missionFin, consultantFin, quotes, requests, drafts, matches] =
     await Promise.all([
       tolerant(
         supabase
           .from('missions')
-          .select('id, consultant_id, company_id, title, status, start_date, end_date, daily_rate_eur')
+          .select('id, consultant_id, company_id, title, status, start_date, end_date, daily_rate_eur, created_at')
           .eq('organization_id', orgId)
           .in('status', ['active', 'ended', 'proposed'])
           .or(`end_date.is.null,end_date.gte.${iso(since)}`)
           .limit(3000),
-        [] as MissionLite[],
+        [] as Array<MissionLite & { created_at?: string | null }>,
       ),
       tolerant(
         supabase
@@ -214,6 +215,21 @@ export async function loadDashboard(
           )
         : Promise.resolve([]),
     ]);
+
+  return { missions, consultants, timesheets, opps, missionFin, consultantFin, quotes, requests, drafts, matches, financialsVisible };
+}
+
+/** Indicateurs et actions du jour à partir des lignes brutes. */
+export async function summarizeDashboard(
+  supabase: SupabaseClient,
+  can: Can,
+  raw: DashboardRaw,
+  today: Date = new Date(),
+): Promise<DashboardSummary> {
+  const { missions, consultants, timesheets, opps, missionFin, consultantFin, quotes, requests, drafts, matches, financialsVisible } = raw;
+  const todayIso = iso(today);
+  const since = new Date(today.getFullYear(), today.getMonth() - 11, 1);
+  const in30 = iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 30));
 
   const missionCost = new Map(missionFin.filter((f) => f.daily_cost_eur != null).map((f) => [f.mission_id, Number(f.daily_cost_eur)]));
   const consultantCost = new Map(
@@ -420,4 +436,9 @@ export async function loadDashboard(
     actions,
     financialsVisible,
   };
+}
+
+/** Tableau de bord complet (fetch + résumé). */
+export async function loadDashboard(supabase: SupabaseClient, orgId: string, can: Can, today: Date = new Date()): Promise<DashboardSummary> {
+  return summarizeDashboard(supabase, can, await fetchDashboardData(supabase, orgId, can, today), today);
 }

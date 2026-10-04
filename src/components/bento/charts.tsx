@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 
 import { cn } from '@/lib/utils';
@@ -77,8 +77,20 @@ export function ActivityChart({
 }) {
   const reduce = useReducedMotion();
   const [hover, setHover] = useState<number | null>(null);
-  const W = 600;
+  const box = useRef<HTMLDivElement>(null);
+  const [W, setW] = useState(600);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const update = () => setW(Math.max(260, Math.round(el.clientWidth)));
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const H = height;
+  // Une étiquette de mois toutes les `step` valeurs, selon la largeur.
+  const step = Math.max(1, Math.ceil(data.length / Math.max(2, Math.floor(W / 46))));
   const pad = { t: 12, b: 24, l: 4, r: 4 };
   const values = data.flatMap((d) => [d.revenue, d.margin, d.forecast]).filter((v): v is number => v != null);
   const max = Math.max(1, ...values) * 1.08;
@@ -103,7 +115,7 @@ export function ActivityChart({
 
   const hp = hover != null ? data[hover] : null;
   return (
-    <div className="relative">
+    <div ref={box} className="relative">
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height }} role="img" aria-label={`${labels.revenue}, ${labels.margin}`} onMouseLeave={() => setHover(null)}>
         {[0.25, 0.5, 0.75].map((g) => (
           <line key={g} x1={0} x2={W} y1={pad.t + g * (H - pad.t - pad.b)} y2={pad.t + g * (H - pad.t - pad.b)} stroke={c.grid} strokeWidth={1} />
@@ -127,9 +139,11 @@ export function ActivityChart({
         {data.map((d, i) => (
           <g key={d.label}>
             <rect x={x(i) - W / data.length / 2} y={0} width={W / data.length} height={H} fill="transparent" onMouseEnter={() => setHover(i)} />
-            <text x={x(i)} y={H - 6} textAnchor="middle" fontSize={11} fill={c.text}>
-              {d.label}
-            </text>
+            {(i % step === 0 || i === data.length - 1) && (data.length - 1 - i >= step || i === data.length - 1) && (
+              <text x={x(i)} y={H - 6} textAnchor={i === 0 ? "start" : i === data.length - 1 ? "end" : "middle"} fontSize={11} fill={c.text}>
+                {d.label}
+              </text>
+            )}
           </g>
         ))}
         {hover != null && <line x1={x(hover)} x2={x(hover)} y1={pad.t} y2={H - pad.b} stroke={c.grid} strokeWidth={1.5} />}

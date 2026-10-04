@@ -15,6 +15,8 @@ export type KpiData = {
   value: string;
   delta?: number | null;
   deltaPositiveIsGood?: boolean;
+  /** Unité de la variation (défaut %, « pt » pour un écart de taux). */
+  deltaSuffix?: string;
   spark?: number[];
   foot?: React.ReactNode;
   /** 0–100 : barre de progression sous la valeur. */
@@ -65,7 +67,7 @@ export function KpiTile({ data, tone = 'white', index = 0, className }: { data: 
         <div>
           <div className="flex flex-wrap items-baseline gap-2">
             <span className={cn('text-[30px] font-semibold leading-none tracking-[-0.03em] tabular-nums', t.strong)}>{data.value}</span>
-            <Delta value={data.delta ?? null} tone={tone} positiveIsGood={data.deltaPositiveIsGood ?? true} />
+            <Delta value={data.delta ?? null} tone={tone} positiveIsGood={data.deltaPositiveIsGood ?? true} suffix={data.deltaSuffix} />
           </div>
           {data.progress != null && <ProgressBar value={data.progress} className={cn('mt-3', onColor && 'bg-white/20')} barClassName={onColor ? 'bg-white' : undefined} />}
           {data.spark && data.spark.length > 1 && <Sparkline values={data.spark} className="mt-2" color={onColor ? '#FFFFFF' : '#C65F46'} />}
