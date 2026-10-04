@@ -154,10 +154,21 @@ DO $$ BEGIN
 END $$;
 
 -- ── Consultant : jamais le TJM de vente ni les coûts ─────────────────────
+RESET ROLE;
+INSERT INTO notes (organization_id, entity_type, entity_id, body)
+VALUES ('0000000a-0000-0000-0000-000000000000', 'company', 'c000000a-0000-0000-0000-000000000001', 'Note commerciale interne');
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000a002', false);
+DO $$ BEGIN
+  ASSERT (SELECT count(*) FROM notes) = 1, 'un BM lit les notes internes';
+END $$;
 SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000a005', false);
 DO $$
 DECLARE r record;
 BEGIN
+  ASSERT (SELECT count(*) FROM notes) = 0, 'consultant ne lit pas les notes internes';
+  ASSERT (SELECT count(*) FROM cv_versions) = 0, 'consultant ne lit pas les dossiers des autres';
+  ASSERT (SELECT count(*) FROM contact_interactions) = 0, 'consultant ne lit pas les échanges CRM';
   ASSERT (SELECT count(*) FROM missions) = 0, 'consultant ne lit pas missions';
   ASSERT (SELECT count(*) FROM mission_financials) = 0, 'consultant ne lit pas les coûts';
   ASSERT (SELECT count(*) FROM consultant_financials) = 0, 'consultant ne lit pas son CJM brut';

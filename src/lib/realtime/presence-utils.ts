@@ -11,27 +11,31 @@
 export type PresenceColor = {
   /** Couleur de fond du pastille (bg). */
   bg: string;
-  /** Halo / ring quand l'utilisateur est en "drag" sur une colonne. */
+  /** Anneau quand l'utilisateur manipule un élément. */
   ring: string;
   /** Couleur de bordure plus marquée. */
   border: string;
-  /** Couleur de halo (rgba) — pour shadow inline. */
+  /** Couleur brute (styles inline). */
+  hex: string;
+  /** Ombre légère (rgba) — conservée pour compatibilité. */
   glow: string;
-  /** Texte clair lisible sur le fond saturé. */
+  /** Texte lisible sur le fond. */
   text: string;
   /** Nom court (debug / tooltip éventuel). */
   name: string;
 };
 
+// Teintes chaudes et désaturées, distinguables entre elles (contraste AA
+// du texte blanc sur chaque fond).
 const PALETTE: PresenceColor[] = [
-  { bg: 'bg-primary',  ring: 'ring-primary/60',  border: 'border-primary/70',  glow: 'rgba(139,92,246,0.55)',  text: 'text-white', name: 'violet' },
-  { bg: 'bg-info',     ring: 'ring-info/60',     border: 'border-info/70',     glow: 'rgba(14,165,233,0.55)',  text: 'text-white', name: 'sky' },
-  { bg: 'bg-success', ring: 'ring-success/60', border: 'border-success/70', glow: 'rgba(16,185,129,0.55)',  text: 'text-white', name: 'emerald' },
-  { bg: 'bg-warning',   ring: 'ring-warning/60',   border: 'border-warning/70',   glow: 'rgba(245,158,11,0.55)',  text: 'text-white', name: 'amber' },
-  { bg: 'bg-destructive',    ring: 'ring-destructive/60',    border: 'border-destructive/70',    glow: 'rgba(244,63,94,0.55)',   text: 'text-white', name: 'rose' },
-  { bg: 'bg-primary', ring: 'ring-primary/60', border: 'border-primary/70', glow: 'rgba(217,70,239,0.55)',  text: 'text-white', name: 'fuchsia' },
-  { bg: 'bg-info',    ring: 'ring-info/60',    border: 'border-info/70',    glow: 'rgba(6,182,212,0.55)',   text: 'text-white', name: 'cyan' },
-  { bg: 'bg-warning',  ring: 'ring-warning/60',  border: 'border-warning/70',  glow: 'rgba(249,115,22,0.55)',  text: 'text-white', name: 'orange' },
+  { bg: 'bg-[#B0503A]', ring: 'ring-[#B0503A]/60', border: 'border-[#B0503A]/70', hex: '#B0503A', glow: 'rgba(176,80,58,0.35)', text: 'text-white', name: 'terracotta' },
+  { bg: 'bg-[#3F6A8A]', ring: 'ring-[#3F6A8A]/60', border: 'border-[#3F6A8A]/70', hex: '#3F6A8A', glow: 'rgba(63,106,138,0.35)', text: 'text-white', name: 'acier' },
+  { bg: 'bg-[#5E6E3A]', ring: 'ring-[#5E6E3A]/60', border: 'border-[#5E6E3A]/70', hex: '#5E6E3A', glow: 'rgba(94,110,58,0.35)', text: 'text-white', name: 'olive' },
+  { bg: 'bg-[#8A5A1F]', ring: 'ring-[#8A5A1F]/60', border: 'border-[#8A5A1F]/70', hex: '#8A5A1F', glow: 'rgba(138,90,31,0.35)', text: 'text-white', name: 'ocre' },
+  { bg: 'bg-[#7A4E63]', ring: 'ring-[#7A4E63]/60', border: 'border-[#7A4E63]/70', hex: '#7A4E63', glow: 'rgba(122,78,99,0.35)', text: 'text-white', name: 'prune' },
+  { bg: 'bg-[#2F6B5E]', ring: 'ring-[#2F6B5E]/60', border: 'border-[#2F6B5E]/70', hex: '#2F6B5E', glow: 'rgba(47,107,94,0.35)', text: 'text-white', name: 'sapin' },
+  { bg: 'bg-[#6B5D52]', ring: 'ring-[#6B5D52]/60', border: 'border-[#6B5D52]/70', hex: '#6B5D52', glow: 'rgba(107,93,82,0.35)', text: 'text-white', name: 'taupe' },
+  { bg: 'bg-[#9D4432]', ring: 'ring-[#9D4432]/60', border: 'border-[#9D4432]/70', hex: '#9D4432', glow: 'rgba(157,68,50,0.35)', text: 'text-white', name: 'brique' },
 ];
 
 /** Couleur stable pour un utilisateur (même id → même couleur). */

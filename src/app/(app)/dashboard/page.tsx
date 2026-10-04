@@ -1,513 +1,401 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useMemo } from 'react';
 import {
-  Users,
-  TrendingUp,
-  FileText,
-  AlertTriangle,
-  Clock,
-  CheckCircle2,
-  Banknote,
-  Send,
-  Sparkles,
-  ArrowRight,
-  ShieldAlert,
-  Info,
-  ArrowUpRight,
-  RotateCcw,
-  UserPlus,
-  Wand2,
+  Briefcase,
+  CalendarClock,
+  ClipboardCheck,
+  Gauge,
+  Layers,
+  PiggyBank,
+  RefreshCw,
   Target,
-  Receipt,
-  Zap,
-  type LucideIcon,
+  TrendingUp,
+  UserMinus,
+  Users,
+  Wallet,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
+import { PageHeader, KPICard } from '@/components/app';
 import { Button } from '@/components/ui/button';
-import {
-  dashboardService,
-  type DashboardKPIs,
-  alertService,
-  type ComputedAlert,
-} from '@/lib/services';
+import { ChartCard } from '@/components/charts/ChartCard';
+import { CHART } from '@/components/charts/theme';
+import { TodayActions } from '@/components/dashboard/TodayActions';
+import { SetupChecklist } from '@/components/dashboard/SetupChecklist';
+import { EmptyState } from '@/components/app/EmptyState';
+import { Skeleton } from '@/components/ui/skeleton';
+import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
-import { useBrandName } from '@/components/brand/BrandingStyles';
-import { NewUserTutorial } from '@/components/onboarding/NewUserTutorial';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useRealtimeReload } from '@/hooks/useRealtimeReload';
-import { relativeDate } from '@/lib/utils';
-import { useCurrency } from '@/lib/i18n/CurrencyProvider';
-import { RevenueChart } from '@/components/dashboard/RevenueChart';
-import { ResetDashboardDialog } from '@/components/dashboard/ResetDashboardDialog';
-import { TopConsultantsWidget } from '@/components/dashboard/TopConsultantsWidget';
-import { HotOpportunitiesWidget } from '@/components/dashboard/HotOpportunitiesWidget';
-import { InvoicesToCollectWidget } from '@/components/dashboard/InvoicesToCollectWidget';
-import { SetupChecklist } from '@/components/dashboard/SetupChecklist';
-import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
-import {
-  PageHeader,
-  KPICard,
-  AppCard,
-  AppCardBody,
-  EmptyState as AppEmptyState,
-} from '@/components/app';
-import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { loadDashboard, type DashboardSummary } from '@/lib/pilotage/load-dashboard';
+import { formatDate, formatEurCompact, formatPct } from '@/lib/format';
+import { cn } from '@/lib/utils';
 
-type DashboardData = {
-  kpis: DashboardKPIs | null;
-  alerts: ComputedAlert[];
-  alertsTotal: number;
-};
-
-// Priorité → style visuel pour la mini-carte alerte sur le dashboard.
-const ALERT_TONE: Record<
-  ComputedAlert['priority'],
-  {
-    border: string;
-    bg: string;
-    accent: string;
-    iconBg: string;
-    iconText: string;
-    Icon: typeof ShieldAlert;
-  }
-> = {
-  critical: {
-    border: 'border-destructive/40',
-    bg: 'bg-destructive/[0.05]',
-    accent: 'bg-destructive',
-    iconBg: 'bg-destructive/15',
-    iconText: 'text-destructive',
-    Icon: ShieldAlert,
-  },
-  high: {
-    border: 'border-warning/40',
-    bg: 'bg-warning/[0.05]',
-    accent: 'bg-warning',
-    iconBg: 'bg-warning/15',
-    iconText: 'text-warning',
-    Icon: AlertTriangle,
-  },
-  medium: {
-    border: 'border-info/30',
-    bg: 'bg-info/[0.04]',
-    accent: 'bg-info',
-    iconBg: 'bg-info/15',
-    iconText: 'text-info',
-    Icon: Clock,
-  },
-  low: {
-    border: 'border-border',
-    bg: 'bg-muted',
-    accent: 'bg-muted-foreground',
-    iconBg: 'bg-muted',
-    iconText: 'text-muted-foreground',
-    Icon: Info,
-  },
-};
+const chartFallback = <Skeleton className="h-[240px] w-full" />;
+const RevenueMarginChart = dynamic(() => import('@/components/charts/RevenueMarginChart'), {
+  ssr: false,
+  loading: () => chartFallback,
+});
+const OccupancyChart = dynamic(() => import('@/components/charts/OccupancyChart'), {
+  ssr: false,
+  loading: () => chartFallback,
+});
+const ClientShareChart = dynamic(() => import('@/components/charts/ClientShareChart'), {
+  ssr: false,
+  loading: () => <Skeleton className="h-40 w-full" />,
+});
+const PipelineStagesChart = dynamic(() => import('@/components/charts/PipelineStagesChart'), {
+  ssr: false,
+  loading: () => <Skeleton className="h-48 w-full" />,
+});
 
 export default function DashboardPage() {
-  const { activeOrgId, branding } = useOrganization();
-  const brandName = useBrandName();
-  const t = useAppT();
+  const { activeOrgId, user, branding, memberships } = useOrganization();
+  const { can, ready } = usePermissions();
   const { locale } = useLocale();
-  const isEn = locale === 'en';
-  const { format: formatCurrency } = useCurrency();
-  // "Branding non configuré" = pas de logo ET pas de couleur primaire perso.
-  // Évite de hasseler les orgs qui ont décidé de garder le défaut.
-  const brandingMissing =
-    !!branding && !branding.logoUrl && !branding.primaryColor;
-  const { data, loading, reload } = useCachedQuery<DashboardData>(
-    `dashboard:${activeOrgId ?? 'none'}`,
-    async () => {
-      // Passe activeOrgId aux deux RPC pour éviter un round-trip profiles
-      // dans le service. Total : 1 RPC dashboard_kpis + 1 RPC compute_org_alerts.
-      const [kpisRes, alertsRes] = await Promise.all([
-        dashboardService.getKPIs(activeOrgId ?? undefined),
-        alertService.listComputed(activeOrgId ?? undefined),
-      ]);
-      const all = alertsRes.data ?? [];
-      return {
-        kpis: kpisRes.data ?? null,
-        alerts: all.slice(0, 5),
-        alertsTotal: all.length,
-      };
-    },
-    { enabled: !!activeOrgId },
-  );
-  const kpis = data?.kpis ?? null;
-  const alerts = data?.alerts ?? [];
-  const alertsTotal = data?.alertsTotal ?? 0;
-  const [resetOpen, setResetOpen] = useState(false);
+  const lang = locale === 'en' ? 'en' : 'fr';
+  const fr = lang === 'fr';
+  const supabase = useMemo(() => createClient(), []);
 
-  // Auto-invalidation : dès qu'une table impactant un KPI change (chez moi
-  // ou un collègue), on relance les RPC dashboard. Évite le bug "11 en
-  // mission alors qu'il y en a 0" qui demandait un F5 manuel.
-  useRealtimeReload(
-    [
-      'missions',
-      'invoices',
-      'timesheets',
-      'opportunities',
-      'job_offers',
-      'consultants',
-      'alerts',
-    ],
-    () => reload(),
-    { debounceMs: 400 },
+  const { data, loading, refreshing, reload } = useCachedQuery<DashboardSummary>(
+    `dashboard-v2:${activeOrgId ?? 'none'}`,
+    () => loadDashboard(supabase, activeOrgId!, can),
+    { enabled: !!activeOrgId && ready },
   );
+
+  useRealtimeReload(['missions', 'timesheets', 'opportunities', 'consultants', 'invoices'], () => void reload(), {
+    debounceMs: 1500,
+    enabled: !!activeOrgId,
+  });
+
+  const showRevenue = can('finance.view') || can('analytics.view');
+  const showMargin = can('consultants.financials');
+  const k = data?.kpis;
+  const isLoading = loading && !data;
+  const orgName = branding?.brandName ?? memberships.find((m) => m.id === activeOrgId)?.name ?? '';
+  const today = new Date();
+  const hour = today.getHours();
+  const greeting = fr ? (hour < 18 ? 'Bonjour' : 'Bonsoir') : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+
+  const nothingYet =
+    !!k && k.activeConsultants === 0 && k.openOpportunities === 0 && (data?.series ?? []).every((p) => !p.forecast && !p.realized);
 
   return (
-    <AppShell>
-      <ResetDashboardDialog
-        open={resetOpen}
-        onOpenChange={setResetOpen}
-        onReset={() => reload()}
-      />
-      <PageHeader
-        eyebrow={t.dashboard.eyebrow}
-        title={
-          <>
-            {t.dashboard.title_a}{' '}
-            <span className="text-primary font-display ">{t.dashboard.title_b}</span>
-          </>
-        }
-        description={t.dashboard.description.replace('{brand}', brandName)}
-        actions={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setResetOpen(true)}
-            title={t.dashboard.reset_title}
-            className="text-warning hover:bg-warning/10 border-warning/30"
-          >
-            <RotateCcw className="h-4 w-4" />
-            {t.dashboard.reset}
-          </Button>
-        }
-      />
-
-
-      {/* Auto-ouvre le tuto au 1er montage si pas vu */}
-      <NewUserTutorial />
-
-      {/* Checklist d'accueil — se masque seule quand la config est complète */}
-      <SetupChecklist />
-
-      {brandingMissing && (
-        <Link
-          href="/onboarding/setup"
-          className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-primary/40 bg-gradient-to-r from-primary/10 to-primary/5 px-5 py-4 hover:border-primary/70 transition-colors"
-        >
-          <div className="flex items-start gap-3">
-            <div className="rounded-md bg-primary/15 p-2 shrink-0">
-              <Sparkles className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <div className="text-sm font-semibold">
-                {isEn
-                  ? 'Personalize your ESN visual identity'
-                  : 'Personnalise l’identité visuelle de ton ESN'}
-              </div>
-              <div className="text-xs text-muted-foreground mt-0.5">
-                {isEn
-                  ? 'Logo, colors, signature, legal notices — so your contracts, invoices and CVs match your brand.'
-                  : 'Logo, couleurs, signature, mentions légales — pour que tes contrats, factures et CV soient à ton image.'}
-              </div>
-            </div>
-          </div>
-          <ArrowRight className="h-4 w-4 text-primary shrink-0" />
-        </Link>
-      )}
-
-      {/* KPIs — chaque carte est cliquable et drille vers la page concernée */}
-      <Reveal className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
-        <KPICard
-          icon={Users}
-          label={t.dashboard.consultants_on_mission}
-          value={kpis?.consultantsOnMission ?? 0}
-          tone="magenta"
-          loading={!kpis}
-          href="/consultants?status=on_mission"
-          hint={kpis?.consultantsOnMission ? t.dashboard.see_list : undefined}
-        />
-        <KPICard
-          icon={CheckCircle2}
-          label={t.dashboard.available}
-          value={kpis?.consultantsAvailable ?? 0}
-          tone="emerald"
-          loading={!kpis}
-          href="/consultants?status=available"
-          hint={kpis?.consultantsAvailable ? t.dashboard.see_available_pool : undefined}
-        />
-        <KPICard
-          icon={TrendingUp}
-          label={t.dashboard.open_opportunities}
-          value={kpis?.openOpportunities ?? 0}
-          tone="cyan"
-          loading={!kpis}
-          href="/crm"
-          hint={t.dashboard.commercial_pipeline}
-        />
-        <KPICard
-          icon={Banknote}
-          label={t.dashboard.invoiced_this_month}
-          valueText={kpis ? formatCurrency(kpis.revenueThisMonthInvoiced ?? 0) : '—'}
-          tone="violet"
-          loading={!kpis}
-          href="/invoices"
-          hint={
-            kpis
-              ? `${t.dashboard.cashed} ${formatCurrency(kpis.revenueThisMonthPaid)} · ${t.dashboard.forecast} ${formatCurrency(kpis.revenueThisMonth)}`
-              : undefined
+    <AppShell wide>
+      <div className="mx-auto w-full max-w-[1440px]">
+        <PageHeader
+          title={`${greeting}${user?.firstName ? `, ${user.firstName}` : ''}`}
+          description={`${orgName ? `${orgName} · ` : ''}${formatDate(today.toISOString().slice(0, 10), lang, 'long')}`}
+          actions={
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void reload()}
+              disabled={refreshing}
+              aria-label={fr ? 'Actualiser les indicateurs' : 'Refresh metrics'}
+            >
+              <RefreshCw className={cn(refreshing && 'animate-spin')} />
+              <span className="hidden sm:inline">{fr ? 'Actualiser' : 'Refresh'}</span>
+            </Button>
           }
         />
-      </Reveal>
 
-      {/* Action Row — 3 widgets actionnables : qui me rapporte, où pousser, qui me doit. */}
-      <Reveal delay={0.05} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <TopConsultantsWidget />
-        <HotOpportunitiesWidget />
-        <InvoicesToCollectWidget />
-      </Reveal>
+        <SetupChecklist />
 
-      {/* Graph CA / Missions */}
-      <Reveal delay={0.1} className="mb-6">
-        <RevenueChart />
-      </Reveal>
+        {/* Indicateurs clés : lecture en quelques secondes */}
+        <section aria-label={fr ? 'Indicateurs clés' : 'Key metrics'} className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+          {showRevenue && (
+            <>
+              <KPICard
+                label={fr ? 'CA signé' : 'Booked revenue'}
+                valueText={k ? formatEurCompact(k.bookedRevenue, lang) : undefined}
+                icon={Wallet}
+                tone="brand"
+                hint={fr ? 'Carnet des missions en cours' : 'Backlog of active missions'}
+                href="/finance"
+                loading={isLoading}
+              />
+              <KPICard
+                label={fr ? 'CA prévisionnel du mois' : 'Forecast this month'}
+                valueText={k ? formatEurCompact(k.forecastMonth, lang) : undefined}
+                icon={TrendingUp}
+                tone="brand"
+                hint={k ? `${fr ? 'Mois prochain' : 'Next month'} : ${formatEurCompact(k.forecastNextMonth, lang)}` : undefined}
+                trend={data?.series.map((p) => p.realized ?? p.forecast ?? 0)}
+                href="/finance"
+                loading={isLoading}
+              />
+            </>
+          )}
+          {showMargin && (
+            <KPICard
+              label={fr ? 'Marge moyenne' : 'Average margin'}
+              valueText={k ? formatPct(k.marginPct, lang) : undefined}
+              icon={PiggyBank}
+              tone="emerald"
+              hint={
+                k
+                  ? k.marginCovered === 0
+                    ? fr
+                      ? 'Renseignez les CJM pour la calculer'
+                      : 'Add daily costs to compute it'
+                    : fr
+                      ? `Sur ${k.marginCovered}/${k.marginTotal} missions chiffrées`
+                      : `On ${k.marginCovered}/${k.marginTotal} costed missions`
+                  : undefined
+              }
+              href="/analytics"
+              loading={isLoading}
+            />
+          )}
+          <KPICard
+            label={fr ? "Taux d'occupation" : 'Utilisation'}
+            valueText={k ? formatPct(k.occupancyRate, lang) : undefined}
+            icon={Gauge}
+            tone="neutral"
+            hint={k ? (fr ? `${k.staffed} en mission sur ${k.capacity}` : `${k.staffed} staffed of ${k.capacity}`) : undefined}
+            href="/staffing"
+            loading={isLoading}
+          />
+          {can('opportunities.view') && (
+            <KPICard
+              label={fr ? 'Pipeline pondéré' : 'Weighted pipeline'}
+              valueText={k ? formatEurCompact(k.weightedPipeline, lang) : undefined}
+              icon={Layers}
+              tone="neutral"
+              hint={k ? (fr ? `${k.openOpportunities} opportunités ouvertes` : `${k.openOpportunities} open opportunities`) : undefined}
+              href="/crm"
+              loading={isLoading}
+            />
+          )}
+          <KPICard
+            label={fr ? 'Consultants actifs' : 'Active consultants'}
+            value={k?.activeConsultants}
+            icon={Users}
+            tone="neutral"
+            href="/consultants"
+            loading={isLoading}
+          />
+          <KPICard
+            label={fr ? 'Intercontrats' : 'On bench'}
+            value={k?.bench}
+            icon={UserMinus}
+            tone={k && k.bench > 0 ? 'amber' : 'neutral'}
+            hint={fr ? 'Disponibles sans mission' : 'Available, no mission'}
+            href="/staffing?view=bench"
+            loading={isLoading}
+          />
+          {can('opportunities.view') && (
+            <KPICard
+              label={fr ? 'Opportunités ouvertes' : 'Open opportunities'}
+              value={k?.openOpportunities}
+              icon={Target}
+              tone="neutral"
+              href="/opportunities"
+              loading={isLoading}
+            />
+          )}
+          {can('timesheets.view') && (
+            <KPICard
+              label={fr ? 'CRA en attente' : 'Pending timesheets'}
+              value={k?.pendingTimesheets}
+              icon={ClipboardCheck}
+              tone={k && k.pendingTimesheets > 0 ? 'amber' : 'neutral'}
+              hint={fr ? 'Soumis, à valider' : 'Submitted, to approve'}
+              href="/timesheets?status=submitted"
+              loading={isLoading}
+            />
+          )}
+          <KPICard
+            label={fr ? 'Missions à échéance' : 'Missions ending'}
+            value={k?.missionsEnding30}
+            icon={CalendarClock}
+            tone={k && k.missionsEnding30 > 0 ? 'amber' : 'neutral'}
+            hint={fr ? 'Dans les 30 jours' : 'Within 30 days'}
+            href="/missions?ending=30"
+            loading={isLoading}
+          />
+        </section>
 
-      <Reveal delay={0.15} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Alertes prioritaires */}
-        <AppCard variant="default" tone="amber" className="lg:col-span-2">
-          <AppCardBody size="md">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-warning/30 bg-warning/10 text-warning">
-                  <AlertTriangle className="h-4 w-4" />
-                </span>
-                <div>
-                  <div className="text-foreground font-medium">{t.dashboard.priority_alerts}</div>
-                  <p className="text-[12px] text-muted-foreground">
-                    {t.dashboard.alerts_to_handle
-                      .replace('{n}', String(alertsTotal))
-                      .replace('{s}', alertsTotal > 1 ? 's' : '')}
-                    {alertsTotal > alerts.length && (
-                      <span className="text-foreground/60"> — top {alerts.length}</span>
-                    )}
-                  </p>
-                </div>
+        {nothingYet ? (
+          <EmptyState
+            className="mt-6"
+            icon={Briefcase}
+            title={fr ? 'Votre cockpit se remplira avec vos données' : 'Your cockpit fills up with your data'}
+            description={
+              fr
+                ? 'Ajoutez vos consultants, vos clients et une première mission : CA, marge et occupation se calculent automatiquement.'
+                : 'Add consultants, clients and a first mission: revenue, margin and utilisation are computed automatically.'
+            }
+            action={
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button asChild size="sm">
+                  <Link href="/consultants?new=1">{fr ? 'Ajouter un consultant' : 'Add a consultant'}</Link>
+                </Button>
+                <Button asChild size="sm" variant="secondary">
+                  <Link href="/clients?new=1">{fr ? 'Créer un client' : 'Create a client'}</Link>
+                </Button>
               </div>
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/alerts">{t.dashboard.see_all}</Link>
-              </Button>
+            }
+          />
+        ) : (
+          <>
+            <div className="mt-6 grid gap-4 lg:grid-cols-12">
+              <div className="lg:col-span-7">
+                <TodayActions actions={data?.actions ?? []} lang={lang} loading={isLoading} />
+              </div>
+              <div className="lg:col-span-5">
+                {showRevenue ? (
+                  <ChartCard
+                    title={fr ? 'Répartition du CA par client' : 'Revenue by client'}
+                    subtitle={fr ? 'CRA validés, 12 derniers mois' : 'Approved timesheets, last 12 months'}
+                    className="h-full"
+                    footer={
+                      data && data.topClients.length > 0 ? (
+                        <>
+                          {fr ? 'Premier client' : 'Top client'} :{' '}
+                          <span className="num font-medium text-foreground">
+                            {formatPct(
+                              (data.topClients[0]!.revenue / data.topClients.reduce((s, c) => s + c.revenue, 0)) * 100,
+                              lang,
+                              0,
+                            )}
+                          </span>{' '}
+                          {fr ? 'du CA' : 'of revenue'}
+                        </>
+                      ) : undefined
+                    }
+                  >
+                    {isLoading ? (
+                      <Skeleton className="h-40 w-full" />
+                    ) : data && data.topClients.length > 0 ? (
+                      <ClientShareChart clients={data.topClients} lang={lang} />
+                    ) : (
+                      <EmptyState
+                        size="compact"
+                        title={fr ? 'Pas encore de CA réalisé' : 'No actual revenue yet'}
+                        description={
+                          fr
+                            ? 'La répartition apparaît dès la validation des premiers CRA.'
+                            : 'The breakdown appears once timesheets are approved.'
+                        }
+                      />
+                    )}
+                  </ChartCard>
+                ) : (
+                  <MissionsEndingCard data={data} lang={lang} loading={isLoading} />
+                )}
+              </div>
             </div>
-            <div className="space-y-2">
-              {loading ? (
-                <Skeleton />
-              ) : alerts.length === 0 ? (
-                <AppEmptyState
-                  icon={CheckCircle2}
-                  title={t.dashboard.all_under_control}
-                  description={t.dashboard.all_under_control}
-                />
-              ) : (
-                alerts.map((alert, i) => (
-                  <DashboardAlertItem key={alert.id} alert={alert} index={i} />
-                ))
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-12">
+              {showRevenue && (
+                <ChartCard
+                  className="lg:col-span-8"
+                  title={fr ? 'CA et marge mensuels' : 'Monthly revenue and margin'}
+                  subtitle={
+                    fr
+                      ? 'Réalisé = CRA validés · Prévisionnel = missions actives (jours ouvrés)'
+                      : 'Actual = approved timesheets · Forecast = active missions (business days)'
+                  }
+                  legend={[
+                    { label: fr ? 'Réalisé' : 'Actual', color: CHART.primary },
+                    { label: fr ? 'Prévisionnel' : 'Forecast', color: CHART.primarySoft },
+                    ...(showMargin ? [{ label: fr ? 'Marge' : 'Margin', color: CHART.deep }] : []),
+                  ]}
+                >
+                  {data ? <RevenueMarginChart data={data.series} lang={lang} showMargin={showMargin} /> : chartFallback}
+                </ChartCard>
+              )}
+              {can('opportunities.view') && (
+                <ChartCard
+                  className={showRevenue ? 'lg:col-span-4' : 'lg:col-span-6'}
+                  title={fr ? 'Pipeline commercial' : 'Sales pipeline'}
+                  subtitle={fr ? 'Montant · pondéré par la probabilité' : 'Amount · weighted by probability'}
+                >
+                  {data ? <PipelineStagesChart stages={data.stages} lang={lang} /> : <Skeleton className="h-48 w-full" />}
+                </ChartCard>
+              )}
+              <ChartCard
+                className="lg:col-span-6"
+                title={fr ? 'Occupation et intercontrat' : 'Utilisation and bench'}
+                subtitle={fr ? 'Fin de mois, 6 derniers mois' : 'Month end, last 6 months'}
+                legend={[
+                  { label: fr ? "Taux d'occupation" : 'Utilisation', color: CHART.primary },
+                  { label: fr ? 'Consultants en intercontrat' : 'Consultants on bench', color: CHART.sand },
+                ]}
+              >
+                {data ? <OccupancyChart data={data.occupancy} lang={lang} /> : chartFallback}
+              </ChartCard>
+              {showRevenue && (
+                <div className="lg:col-span-6">
+                  <MissionsEndingCard data={data} lang={lang} loading={isLoading} />
+                </div>
               )}
             </div>
-          </AppCardBody>
-        </AppCard>
-
-        {/* État facturation */}
-        <AppCard variant="default" tone="violet">
-          <AppCardBody size="md">
-            <div className="mb-4 flex items-center gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/15 text-primary">
-                <FileText className="h-4 w-4" />
-              </span>
-              <div>
-                <div className="text-foreground font-medium">{t.dashboard.invoicing}</div>
-                <p className="text-[12px] text-muted-foreground">{t.dashboard.invoices_state}</p>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <StatRow
-                icon={<Send className="h-4 w-4 text-info" />}
-                label={t.dashboard.pending}
-                value={<AnimatedNumber value={kpis?.pendingInvoices} />}
-                href="/invoices?status=sent"
-              />
-              <StatRow
-                icon={<AlertTriangle className="h-4 w-4 text-destructive" />}
-                label={t.dashboard.overdue}
-                value={<AnimatedNumber value={kpis?.overdueInvoices} />}
-                highlight={kpis?.overdueInvoices ? kpis.overdueInvoices > 0 : false}
-                href="/invoices?status=overdue"
-              />
-              <StatRow
-                icon={<Clock className="h-4 w-4 text-warning" />}
-                label={t.dashboard.cra_to_validate}
-                value={<AnimatedNumber value={kpis?.pendingTimesheets} />}
-                href="/timesheets?status=submitted"
-              />
-              <Button variant="outline" className="w-full mt-2" asChild>
-                <Link href="/invoices">{t.dashboard.manage_invoicing}</Link>
-              </Button>
-            </div>
-          </AppCardBody>
-        </AppCard>
-      </Reveal>
-
-      {/* Raccourcis */}
-      <Reveal delay={0.2} className="mt-6">
-        <AppCard variant="default">
-          <AppCardBody size="md">
-            <div className="mb-4 flex items-center gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary">
-                <Zap className="h-4 w-4" />
-              </span>
-              <div className="text-foreground font-medium">{t.dashboard.quick_actions}</div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <QuickAction href="/consultants" label={t.dashboard.add_consultant} icon={UserPlus} />
-              <QuickAction href="/cv-optimizer" label={t.dashboard.generate_cv} icon={Wand2} />
-              <QuickAction href="/crm" label={t.dashboard.new_opportunity} icon={Target} />
-              <QuickAction href="/invoices" label={t.dashboard.new_invoice} icon={Receipt} />
-            </div>
-          </AppCardBody>
-        </AppCard>
-      </Reveal>
+          </>
+        )}
+      </div>
     </AppShell>
   );
 }
 
-/** Entrée en cascade des sections du dashboard (fondu + translation). */
-function Reveal({
-  delay = 0,
-  className,
-  children,
+/** Missions actives par échéance : 15, 30, 60, 90 jours. */
+function MissionsEndingCard({
+  data,
+  lang,
+  loading,
 }: {
-  delay?: number;
-  className?: string;
-  children: React.ReactNode;
+  data: DashboardSummary | null;
+  lang: 'fr' | 'en';
+  loading: boolean;
 }) {
+  const fr = lang === 'fr';
+  const b = data?.endingBuckets;
+  const buckets: Array<{ days: 15 | 30 | 60 | 90; tone: string }> = [
+    { days: 15, tone: 'text-destructive' },
+    { days: 30, tone: 'text-warning' },
+    { days: 60, tone: 'text-foreground' },
+    { days: 90, tone: 'text-foreground' },
+  ];
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay, ease: 'easeOut' }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-function StatRow({
-  icon,
-  label,
-  value,
-  highlight,
-  href,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-  highlight?: boolean;
-  href?: string;
-}) {
-  const inner = (
-    <div className="flex items-center justify-between gap-2 px-2 py-1.5 -mx-2 rounded-lg hover-surface transition group">
-      <div className="flex items-center gap-2 text-sm">
-        {icon}
-        <span className="text-muted-foreground group-hover:text-foreground transition">{label}</span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        {highlight && (
-          <span className="h-1.5 w-1.5 rounded-full bg-destructive text-destructive animate-pulse " />
-        )}
-        <span className={`font-semibold ${highlight ? 'text-destructive' : ''}`}>{value}</span>
-        {href && (
-          <ArrowUpRight className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-        )}
-      </div>
-    </div>
-  );
-  return href ? <Link href={href}>{inner}</Link> : inner;
-}
-
-function QuickAction({ href, label, icon: Icon }: { href: string; label: string; icon: LucideIcon }) {
-  return (
-    <Link
-      href={href}
-      className="group flex items-center gap-3 rounded-xl border border-hairline surface-1 px-4 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
-    >
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-110">
-        <Icon className="h-4 w-4" />
-      </span>
-      <span className="text-sm font-medium">{label}</span>
-      <ArrowUpRight className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground/40 opacity-0 transition-all duration-200 group-hover:translate-x-0.5 group-hover:opacity-100" />
-    </Link>
-  );
-}
-
-function DashboardAlertItem({ alert, index = 0 }: { alert: ComputedAlert; index?: number }) {
-  const tone = ALERT_TONE[alert.priority];
-  const inner = (
-    <div
-      className={`relative overflow-hidden rounded-lg border ${tone.border} ${tone.bg} transition-all hover:translate-x-0.5 `}
-    >
-      <div className={`absolute left-0 top-0 bottom-0 w-1 ${tone.accent}`} />
-      <div className="pl-4 pr-3 py-2.5 flex items-start gap-2.5">
-        <div className={`rounded-md p-1.5 shrink-0 ${tone.iconBg} ${tone.iconText}`}>
-          <tone.Icon className="h-3.5 w-3.5" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium leading-tight truncate">{alert.title}</div>
-          {alert.description && (
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-              {alert.description}
-            </p>
-          )}
-        </div>
-        <div className="text-right shrink-0 flex flex-col items-end gap-1">
-          {alert.due_date && (
-            <span className="text-[10px] text-muted-foreground">
-              {relativeDate(alert.due_date)}
-            </span>
-          )}
-          {alert.link && <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground" />}
-        </div>
-      </div>
-    </div>
-  );
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.06, ease: 'easeOut' }}
-    >
-      {alert.link ? (
-        <Link href={alert.link} className="block">
-          {inner}
+    <ChartCard
+      className="h-full"
+      title={fr ? 'Renouvellements à anticiper' : 'Renewals to plan'}
+      subtitle={fr ? 'Missions actives par date de fin' : 'Active missions by end date'}
+      actions={
+        <Link href="/missions" className="text-xs font-medium text-primary hover:text-primary-deep">
+          {fr ? 'Voir les missions' : 'View missions'}
         </Link>
-      ) : (
-        inner
-      )}
-    </motion.div>
-  );
-}
-
-function Skeleton() {
-  return (
-    <div className="space-y-2">
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="h-14 rounded-lg bg-foreground/[0.04] animate-pulse" />
-      ))}
-    </div>
+      }
+    >
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {buckets.map((x) => (
+          <Link
+            key={x.days}
+            href={`/missions?ending=${x.days}`}
+            className="rounded-lg border border-border p-3 transition-colors hover:border-sand-300 hover:bg-muted/40"
+          >
+            <div className="text-xs text-muted-foreground">
+              {fr ? `≤ ${x.days} jours` : `≤ ${x.days} days`}
+            </div>
+            <div className={cn('num mt-1 font-display text-2xl font-semibold', x.tone)}>
+              {loading || !b ? <span className="skeleton inline-block h-7 w-8" /> : b[x.days]}
+            </div>
+          </Link>
+        ))}
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">
+        {fr
+          ? 'Chaque tranche est exclusive : une mission à 10 jours n’apparaît que dans « ≤ 15 jours ».'
+          : 'Buckets are exclusive: a mission ending in 10 days only counts in “≤ 15 days”.'}
+      </p>
+    </ChartCard>
   );
 }

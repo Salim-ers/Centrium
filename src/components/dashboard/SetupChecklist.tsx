@@ -2,121 +2,77 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, Circle, X, Rocket, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Circle, X, ArrowRight } from 'lucide-react';
 
-import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/lib/auth/context';
-import { useCachedQuery } from '@/hooks/useCachedQuery';
-import { cn } from '@/lib/utils';
+import { useSetupSteps } from '@/hooks/useSetupSteps';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-
-// =========================================================================
-// Checklist d'accueil sur le dashboard : guide le nouvel admin dans la
-// configuration initiale (identité légale, équipe, consultant, offre). Se
-// masque automatiquement quand tout est fait, ou manuellement (mémorisé en
-// localStorage). Détection RÉELLE de l'état, pas de faux « à faire ».
-// =========================================================================
-
-type Setup = {
-  identity: boolean;
-  team: boolean;
-  consultant: boolean;
-  offer: boolean;
-};
+import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
 
 const DISMISS_KEY = (org: string) => `centrium-setup-dismissed:${org}`;
 
+/**
+ * Mise en route de l'organisation sur le dashboard : étapes RÉELLES
+ * (identité, branding, équipe, consultants, clients). Se masque quand tout
+ * est fait ou à la demande (mémorisé sur cet appareil).
+ */
 export function SetupChecklist() {
   const { locale } = useLocale();
-  const isEn = locale === 'en';
+  const fr = locale !== 'en';
   const { activeOrgId } = useOrganization();
+  const { can } = usePermissions();
+  const { steps, doneCount, total, complete, loading } = useSetupSteps();
   const [dismissed, setDismissed] = useState<boolean>(() => {
     if (typeof window === 'undefined' || !activeOrgId) return false;
-    return window.localStorage.getItem(DISMISS_KEY(activeOrgId)) === '1';
+    try {
+      return window.localStorage.getItem(DISMISS_KEY(activeOrgId)) === '1';
+    } catch {
+      return false;
+    }
   });
 
-  const { data } = useCachedQuery<Setup>(
-    `setup-checklist:${activeOrgId ?? 'none'}`,
-    async () => {
-      const supabase = createClient();
-      const [org, members, consultants, offers] = await Promise.all([
-        supabase.from('organizations').select('siren, address').eq('id', activeOrgId!).maybeSingle(),
-        supabase.from('organization_members').select('user_id', { count: 'exact', head: true }).eq('organization_id', activeOrgId!),
-        supabase.from('consultants').select('id', { count: 'exact', head: true }).eq('organization_id', activeOrgId!).eq('archived', false),
-        supabase.from('job_offers').select('id', { count: 'exact', head: true }).eq('organization_id', activeOrgId!),
-      ]);
-      return {
-        identity: !!org.data?.siren && !!org.data?.address,
-        team: (members.count ?? 0) > 1,
-        consultant: (consultants.count ?? 0) > 0,
-        offer: (offers.count ?? 0) > 0,
-      };
-    },
-    { enabled: !!activeOrgId },
-  );
-
-  if (!data || dismissed) return null;
-
-  const steps = [
-    { key: 'identity', done: data.identity, label: isEn ? 'Fill in your company identity' : 'Renseigner l’identité de l’ESN', hint: isEn ? 'SIREN, address, bank details — required to invoice' : 'SIREN, adresse, RIB — requis pour facturer', href: '/settings/facturation' },
-    { key: 'team', done: data.team, label: isEn ? 'Invite your team' : 'Inviter l’équipe', hint: isEn ? 'Business managers, recruiters, finance' : 'Business managers, recruteurs, finance', href: '/settings/team' },
-    { key: 'consultant', done: data.consultant, label: isEn ? 'Add a first consultant' : 'Ajouter un premier consultant', hint: isEn ? 'Import a CV to pre-fill the profile' : 'Importe un CV pour pré-remplir le profil', href: '/consultants' },
-    { key: 'offer', done: data.offer, label: isEn ? 'Create an offer' : 'Créer une offre', hint: isEn ? 'Kick off consultant ↔ mission matching' : 'Lance le matching consultant ↔ mission', href: '/offers' },
-  ];
-  const doneCount = steps.filter((s) => s.done).length;
-  if (doneCount === steps.length) return null; // tout est fait → on n'affiche rien
-
-  const pct = Math.round((doneCount / steps.length) * 100);
+  if (!can('settings.manage') || loading || complete || dismissed || total === 0) return null;
 
   function dismiss() {
-    if (activeOrgId) window.localStorage.setItem(DISMISS_KEY(activeOrgId), '1');
+    try {
+      if (activeOrgId) window.localStorage.setItem(DISMISS_KEY(activeOrgId), '1');
+    } catch {
+      /* stockage indisponible */
+    }
     setDismissed(true);
   }
 
   return (
-    <AnimatePresence>
-      <motion.section
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, height: 0 }}
-        className="qc-premium relative mb-6 overflow-hidden rounded-2xl border p-5"
+    <section className="relative mb-6 rounded-xl border border-border bg-card p-5 shadow-xs">
+      <button
+        type="button"
+        onClick={dismiss}
+        aria-label={fr ? 'Masquer la mise en route' : 'Hide setup'}
+        className="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
       >
-        <button
-          type="button"
-          onClick={dismiss}
-          aria-label={isEn ? 'Hide the checklist' : 'Masquer la checklist'}
-          className="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground transition"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
-        <div className="flex items-center gap-2.5 mb-1">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-hairline bg-primary/10 text-primary">
-            <Rocket className="h-4 w-4" />
-          </span>
-          <div>
-            <h2 className="font-display text-lg font-light leading-tight">{isEn ? 'Getting started' : 'Bien démarrer'}</h2>
-            <p className="text-[11px] text-muted-foreground">
-              {doneCount} / {steps.length} {isEn ? 'steps' : 'étapes'} · {pct} %
-            </p>
-          </div>
+        <X className="h-4 w-4" />
+      </button>
+      <div className="flex flex-col gap-1 pr-8 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="font-display text-[15px] font-semibold tracking-tight">
+            {fr ? 'Votre espace est presque prêt' : 'Your workspace is almost ready'}
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            {fr ? `${doneCount} étape${doneCount > 1 ? 's' : ''} sur ${total}` : `${doneCount} of ${total} steps`}
+          </p>
         </div>
-
-        <div className="my-3 h-1.5 w-full overflow-hidden rounded-full bg-foreground/10">
-          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
-        </div>
-
-        <div className="grid gap-2 sm:grid-cols-2">
-          {steps.map((s) => (
+      </div>
+      <Progress value={doneCount} max={total} className="mt-3" label={fr ? 'Progression' : 'Progress'} />
+      <ol className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        {steps.map((s) => (
+          <li key={s.key}>
             <Link
-              key={s.key}
               href={s.href}
               className={cn(
-                'group flex items-start gap-2.5 rounded-lg border p-2.5 transition-colors',
-                s.done
-                  ? 'border-success/25 bg-success/[0.04]'
-                  : 'border-hairline hover:border-primary/40 hover:bg-primary/[0.04]',
+                'group flex h-full items-start gap-2.5 rounded-lg border p-3 transition-colors',
+                s.done ? 'border-border bg-muted/40' : 'border-border hover:border-sand-300 hover:bg-muted/40',
               )}
             >
               {s.done ? (
@@ -124,19 +80,19 @@ export function SetupChecklist() {
               ) : (
                 <Circle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               )}
-              <div className="min-w-0 flex-1">
-                <div className={cn('text-sm font-medium', s.done && 'text-muted-foreground line-through')}>
+              <span className="min-w-0 flex-1">
+                <span className={cn('block text-[13px] font-medium', s.done && 'text-muted-foreground line-through')}>
                   {s.label}
-                </div>
-                {!s.done && <div className="text-[11px] text-muted-foreground mt-0.5">{s.hint}</div>}
-              </div>
+                </span>
+                {!s.done && <span className="mt-0.5 block text-xs text-muted-foreground">{s.hint}</span>}
+              </span>
               {!s.done && (
                 <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
               )}
             </Link>
-          ))}
-        </div>
-      </motion.section>
-    </AnimatePresence>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }

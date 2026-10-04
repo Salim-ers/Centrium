@@ -46,10 +46,12 @@ const Ctx = createContext<CurrencyCtx>({
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrencyState] = useState<Currency>('EUR');
 
+  // V2 : les montants de pilotage (CA, marges, préfacturation) sont affichés
+  // en euros, devise de facturation. Une conversion à taux figé serait
+  // trompeuse : l'ancienne préférence USD est ignorée et effacée.
   useEffect(() => {
     try {
-      const stored = window.localStorage.getItem(CURRENCY_KEY);
-      if (stored === 'EUR' || stored === 'USD') setCurrencyState(stored);
+      window.localStorage.removeItem(CURRENCY_KEY);
     } catch {
       /* localStorage indisponible */
     }

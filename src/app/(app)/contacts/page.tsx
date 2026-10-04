@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { useAppT } from '@/lib/i18n/LocaleProvider';
+import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { useContactTypeLabels } from '@/lib/i18n/useBadges';
 import {
   UserCircle,
@@ -57,6 +57,7 @@ import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import type { Contact } from '@/types';
 import { CONTACT_TYPE_LABEL } from '@/constants';
 import { relativeDate } from '@/lib/utils';
+import { CrmTabs } from '@/components/crm/CrmTabs';
 
 /**
  * Carnet de contacts — version simplifiée.
@@ -73,6 +74,7 @@ import { relativeDate } from '@/lib/utils';
 export default function ContactsPage() {
   const { activeOrgId } = useOrganization();
   const t = useAppT();
+  const isEn = useLocale().locale === 'en';
   const contactTypeLabels = useContactTypeLabels();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [csvOpen, setCsvOpen] = useState(false);
@@ -184,13 +186,8 @@ export default function ContactsPage() {
   return (
     <AppShell>
       <PageHeader
-        eyebrow={t.pages.contacts.eyebrow}
-        title={
-          <>
-            {t.pages.contacts.title_a}{' '}
-            <span className="text-primary font-display ">{t.pages.contacts.title_b}</span>
-          </>
-        }
+        eyebrow={isEn ? 'Sales' : 'Activité commerciale'}
+        title="CRM"
         description={
           q ? (
             <>
@@ -212,7 +209,9 @@ export default function ContactsPage() {
             </Button>
           </>
         }
-      />
+      >
+        <CrmTabs />
+      </PageHeader>
 
       <Reveal className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KPICard

@@ -1,882 +1,388 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { motion, LayoutGroup } from 'framer-motion';
-import { Plus, Trash2, Pencil } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Kanban, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
-import { useOpportunityStatusLabels } from '@/lib/i18n/useBadges';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { PageHeader } from '@/components/app';
-
-import { opportunityService } from '@/lib/services';
-import { OpportunityFormDialog } from '@/components/crm/OpportunityFormDialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { EmptyState } from '@/components/app/EmptyState';
+import { CrmTabs } from '@/components/crm/CrmTabs';
+import { OpportunityCard } from '@/components/crm/OpportunityCard';
+import { OpportunityDrawer } from '@/components/crm/OpportunityDrawer';
 import { useOrganization } from '@/lib/auth/context';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
-import { useCrmRealtime, type PeerDrag } from '@/hooks/useCrmRealtime';
+import { useCrmRealtime } from '@/hooks/useCrmRealtime';
+import { useCompaniesLite, useTeamMembers } from '@/hooks/useOrgDirectory';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { createClient } from '@/lib/supabase/client';
+import { crmService } from '@/lib/services/crm.service';
 import { broadcastOrgActivity } from '@/lib/realtime/org-activity';
-import type { Opportunity, OpportunityStatus } from '@/types';
-import { OPPORTUNITY_STATUS_LABEL } from '@/constants';
-import { relativeDate, cn } from '@/lib/utils';
-import { useCurrency } from '@/lib/i18n/CurrencyProvider';
+import { PIPELINE_STAGES, STAGE_BY_ID, probabilityForMove, stageOf, type PipelineStageId } from '@/lib/crm/pipeline';
+import { isOpenOpportunity, opportunityAmount, weightedPipeline } from '@/lib/pilotage/metrics';
+import { formatEurCompact } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import type { Opportunity } from '@/types';
 
-// Colonnes du Kanban : uniquement les statuts du pipeline actif.
-// won / lost / on_hold sont des statuts TERMINAUX → regroupés dans
-// une carte récap "Terminées" en bas du tableau pour éviter d'avoir
-// 3 colonnes vides qui prennent de la place visuelle.
-const PIPELINE_STATUSES: OpportunityStatus[] = [
-  'new',
-  'contacted',
-  'discussion',
-  'cv_sent',
-  'client_interview',
-  'negotiation',
-];
-
-const CLOSED_STATUSES: OpportunityStatus[] = ['won', 'lost', 'on_hold'];
-
-const COLUMN_DOT: Record<OpportunityStatus, string> = {
-  new: 'bg-muted-foreground',
-  contacted: 'bg-info',
-  discussion: 'bg-info',
-  cv_sent: 'bg-primary',
-  client_interview: 'bg-primary',
-  negotiation: 'bg-warning',
-  won: 'bg-success',
-  lost: 'bg-destructive',
-  on_hold: 'bg-muted-foreground',
-};
-
-/** Type MIME utilisé pour le drag&drop des cartes. */
 const DRAG_MIME = 'application/x-opportunity-id';
+/** Colonnes terminales : on n'affiche que les cartes récentes. */
+const CLOSED_VISIBLE_DAYS = 60;
 
-export default function CRMPage() {
+export default function CrmPipelinePage() {
+  const router = useRouter();
+  const params = useSearchParams();
   const { activeOrgId, user } = useOrganization();
-  const t = useAppT();
-  const { format: formatCurrency } = useCurrency();
-  const oppLabels = useOpportunityStatusLabels();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingOpp, setEditingOpp] = useState<Opportunity | null>(null);
-  // États drag & drop
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  // Ref synchrone pour savoir si onDropColumn a réussi AVANT que onDragEnd
-  // ne lise draggingId via une closure stale. Voir onDragEndCard pour
-  // l'explication détaillée du bug "broadcastCancel après drop réussi".
-  const dropSucceededRef = useRef(false);
-  const [dragOverStatus, setDragOverStatus] = useState<OpportunityStatus | null>(null);
+  const { can } = usePermissions();
+  const { locale } = useLocale();
+  const lang = locale === 'en' ? 'en' : 'fr';
+  const fr = lang === 'fr';
+  const canEdit = can('crm.edit') || can('opportunities.edit');
+  const { byId: companies } = useCompaniesLite();
+  const { byId: members, options: memberOptions } = useTeamMembers();
 
-  const {
-    data: opportunitiesData,
-    loading,
-    reload,
-    setData: setOpportunities,
-  } = useCachedQuery<Opportunity[]>(
-    `opportunities:${activeOrgId ?? 'none'}`,
+  const [query, setQuery] = useState('');
+  const [owner, setOwner] = useState<string>('all');
+  const [showOnHold, setShowOnHold] = useState(false);
+  const [drawer, setDrawer] = useState<{ open: boolean; opp: Opportunity | null }>({ open: params.get('new') === '1', opp: null });
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [overStage, setOverStage] = useState<PipelineStageId | null>(null);
+  const dropped = useRef(false);
+  const highlightStage = params.get('stage') as PipelineStageId | null;
+
+  const { data, loading, reload, setData } = useCachedQuery<Opportunity[]>(
+    `crm-opps:${activeOrgId ?? 'none'}`,
     async () => {
-      const res = await opportunityService.list();
-      return res.data ?? [];
+      const { data: rows } = await createClient()
+        .from('opportunities')
+        .select('*')
+        .eq('organization_id', activeOrgId!)
+        .order('updated_at', { ascending: false })
+        .limit(3000);
+      return ((rows ?? []) as Opportunity[]).filter((o) => !o.archived);
     },
     { enabled: !!activeOrgId },
   );
-  const opportunities = opportunitiesData ?? [];
 
-  // Temps réel : les déplacements faits par les collègues atterrissent dans
-  // notre liste sans refresh, et leurs drag-states en cours s'affichent en
-  // direct (peerByOpp / peerByColumn). onPeerDrop applique l'optimistic
-  // move dès qu'un collègue dépose, pour ne pas attendre postgres_changes.
-  const { broadcastDrag, broadcastDrop, broadcastCancel, peerByOpp, peerByColumn } = useCrmRealtime({
-    onDataChange: () => reload(),
-    onPeerDrop: (oppId, toStatus) => {
-      setOpportunities((list) =>
-        (list ?? []).map((o) => (o.id === oppId ? { ...o, status: toStatus } : o)),
-      );
+  const { data: proposalCounts } = useCachedQuery<Record<string, number>>(
+    `crm-proposals:${activeOrgId ?? 'none'}`,
+    async () => {
+      const { data: rows } = await createClient().from('opportunity_consultants').select('opportunity_id').limit(10000);
+      const out: Record<string, number> = {};
+      for (const r of rows ?? []) out[r.opportunity_id as string] = (out[r.opportunity_id as string] ?? 0) + 1;
+      return out;
     },
+    { enabled: !!activeOrgId },
+  );
+
+  const { broadcastDrag, broadcastDrop, broadcastCancel, peerByOpp, peerByColumn } = useCrmRealtime({
+    onDataChange: () => void reload(),
+    onPeerDrop: (oppId, toStatus) =>
+      setData((list) => (list ?? []).map((o) => (o.id === oppId ? { ...o, status: toStatus } : o))),
   });
 
-  function openEdit(opp: Opportunity) {
-    setEditingOpp(opp);
-    setDialogOpen(true);
-  }
+  const opps = data ?? [];
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return opps.filter((o) => {
+      if (owner === 'mine' && o.owner_id !== user?.id) return false;
+      if (owner !== 'all' && owner !== 'mine' && o.owner_id !== owner) return false;
+      if (!q) return true;
+      const client = o.company_id ? (companies.get(o.company_id)?.name ?? '') : '';
+      return `${o.title} ${client}`.toLowerCase().includes(q);
+    });
+  }, [opps, query, owner, user?.id, companies]);
 
-  function openCreate() {
-    setEditingOpp(null);
-    setDialogOpen(true);
-  }
+  const cutoff = new Date(Date.now() - CLOSED_VISIBLE_DAYS * 86_400_000).toISOString();
+  const columns = PIPELINE_STAGES.map((stage) => {
+    let items = filtered.filter((o) => stageOf(o.status) === stage.id);
+    const total = items.length;
+    if (stage.id === 'won' || stage.id === 'lost') items = items.filter((o) => o.updated_at >= cutoff);
+    return {
+      stage,
+      items,
+      total,
+      amount: items.reduce((s, o) => s + opportunityAmount(o), 0),
+    };
+  });
+  const onHold = filtered.filter((o) => o.status === 'on_hold');
+  const open = filtered.filter(isOpenOpportunity);
 
-  const byStatus = PIPELINE_STATUSES.map((status) => ({
-    status,
-    items: opportunities.filter((o) => o.status === status),
-  }));
-
-  // Opportunités terminées (gagné/perdu/veille) — regroupées dans une seule
-  // carte récap en bas, avec liste dépliable et drop target qui passe en
-  // 'won' par défaut.
-  const closedByStatus = {
-    won: opportunities.filter((o) => o.status === 'won'),
-    lost: opportunities.filter((o) => o.status === 'lost'),
-    on_hold: opportunities.filter((o) => o.status === 'on_hold'),
-  };
-  const closedTotal =
-    closedByStatus.won.length + closedByStatus.lost.length + closedByStatus.on_hold.length;
-  const [closedOpen, setClosedOpen] = useState(false);
-  const [closedFilter, setClosedFilter] = useState<OpportunityStatus | 'all'>('all');
-  const [closedDragOver, setClosedDragOver] = useState(false);
-  // Quand on drop sur la zone "Terminées", on demande quel statut (Gagné/Perdu/Veille)
-  const [pendingClosure, setPendingClosure] = useState<{ id: string; title: string } | null>(null);
-
-  const totalPipeline = opportunities
-    .filter((o) => !CLOSED_STATUSES.includes(o.status))
-    .reduce((sum, o) => sum + (Number(o.expected_revenue) || 0), 0);
-
-  async function moveOpportunity(id: string, newStatus: OpportunityStatus) {
-    const current = opportunities.find((o) => o.id === id);
-    if (!current || current.status === newStatus) return;
-
-    // Optimistic update : la carte glisse vers la nouvelle colonne avant
-    // l'aller-retour serveur. Si l'API rejette on rollback.
-    const prev = opportunitiesData;
-    setOpportunities((list) =>
-      (list ?? []).map((o) => (o.id === id ? { ...o, status: newStatus } : o)),
-    );
-
-    const res = await opportunityService.updateStatus(id, newStatus);
+  async function move(oppId: string, to: PipelineStageId) {
+    const opp = opps.find((o) => o.id === oppId);
+    if (!opp || stageOf(opp.status) === to) return;
+    const stage = STAGE_BY_ID.get(to)!;
+    const probability = probabilityForMove(opp.probability, to);
+    const prev = data;
+    setData((list) => (list ?? []).map((o) => (o.id === oppId ? { ...o, status: stage.canonical, probability } : o)));
+    const res = await crmService.moveOpportunity(opp, stage.canonical, probability);
     if (res.error) {
-      toast.error(t.pages.crm.err_update);
-      setOpportunities(prev ?? []);
+      setData(prev ?? []);
+      toast.error(fr ? 'Déplacement impossible' : 'Could not move the opportunity');
       return;
     }
-    // Toast "Déplacé vers ..." retiré sur demande utilisateur — le
-    // changement de colonne est visuellement évident, pas besoin de
-    // notification redondante en haut à droite à chaque drop.
-    // Notifie les collègues : "Salim a déplacé Mission Acme"
-    void broadcastOrgActivity(
-      activeOrgId,
-      user?.id,
-      'opportunity_moved',
-      `${current.title} → ${OPPORTUNITY_STATUS_LABEL[newStatus]}`,
-      '/crm',
-    );
+    void broadcastOrgActivity(activeOrgId, user?.id, 'opportunity_moved', `${opp.title} → ${stage.label[lang]}`, `/opportunities/${opp.id}`);
+    if (to === 'won') {
+      toast.success(fr ? 'Opportunité gagnée' : 'Opportunity won', {
+        description: fr ? 'Créez la mission associée depuis la fiche.' : 'Create the related mission from the opportunity page.',
+        action: { label: fr ? 'Ouvrir' : 'Open', onClick: () => router.push(`/opportunities/${opp.id}?tab=mission`) },
+      });
+    }
   }
 
-  async function deleteOpportunity(id: string, title: string) {
-    if (!confirm(`${t.pages.crm.confirm_delete_prefix} "${title}" ?`)) return;
-    const res = await opportunityService.delete(id);
+  async function remove(opp: Opportunity) {
+    if (!window.confirm(fr ? `Supprimer « ${opp.title} » ? Cette action est définitive.` : `Delete “${opp.title}”? This cannot be undone.`)) return;
+    const res = await crmService.deleteOpportunity(opp.id);
     if (res.error) {
-      toast.error(t.toasts.error_generic + ': ' + res.error.message);
+      toast.error(res.error.message);
       return;
     }
-    setOpportunities((prev) => (prev ?? []).filter((o) => o.id !== id));
-    toast.success(t.forms.opportunity.deleted);
-    void broadcastOrgActivity(activeOrgId, user?.id, 'opportunity_deleted', title, '/crm');
+    setData((list) => (list ?? []).filter((o) => o.id !== opp.id));
+    toast.success(fr ? 'Opportunité supprimée' : 'Opportunity deleted');
   }
 
-  // ============ Handlers Drag & Drop ============
-  function onDragStartCard(e: React.DragEvent, id: string) {
-    setDraggingId(id);
-    e.dataTransfer.setData(DRAG_MIME, id);
-    e.dataTransfer.effectAllowed = 'move';
-    // Diffuse à toute l'organisation : "je viens d'attraper cette carte".
-    const current = opportunities.find((o) => o.id === id);
-    broadcastDrag(id, current?.status ?? null);
-  }
-
-  function onDragEndCard() {
-    // Note : onDragEnd fire SYSTEMATIQUEMENT après onDrop (HTML5 spec). On
-    // ne broadcast `cancel` que si aucun drop n'a eu lieu — sinon on
-    // détruirait l'indicateur peer juste après l'avoir mis à jour via drop.
-    //
-    // BUG FIX : avant on lisait `!draggingId`, mais la closure capture la
-    // valeur du state AVANT le re-render. Le setDraggingId(null) du
-    // onDropColumn n'est visible qu'au prochain render — onDragEnd fire
-    // entre les deux → on voyait toujours draggingId === id → wasDropped
-    // === false → broadcastCancel TOUJOURS appelé, même après un drop
-    // réussi → désync peers (peer voit cancel juste après drop).
-    // Solution : flag synchrone via useRef set dans onDropColumn.
-    const wasDropped = dropSucceededRef.current;
-    dropSucceededRef.current = false; // reset pour la prochaine séquence
-    setDraggingId(null);
-    setDragOverStatus(null);
-    if (!wasDropped) broadcastCancel();
-  }
-
-  function onDragOverColumn(e: React.DragEvent, status: OpportunityStatus) {
-    // Indispensable : sans preventDefault sur dragover, onDrop ne tire pas.
-    if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (dragOverStatus !== status) {
-      setDragOverStatus(status);
-      if (draggingId) broadcastDrag(draggingId, status);
-    }
-  }
-
-  function onDragLeaveColumn(e: React.DragEvent, status: OpportunityStatus) {
-    // On ne reset que si on quitte VRAIMENT la colonne (pas si on entre
-    // dans une carte enfant). relatedTarget=null → on a quitté la fenêtre.
-    const next = e.relatedTarget as Node | null;
-    if (next && (e.currentTarget as Node).contains(next)) return;
-    if (dragOverStatus === status) setDragOverStatus(null);
-  }
-
-  function onDropColumn(e: React.DragEvent, status: OpportunityStatus) {
+  function onDrop(e: React.DragEvent, stage: PipelineStageId) {
     e.preventDefault();
     const id = e.dataTransfer.getData(DRAG_MIME);
-    setDragOverStatus(null);
+    setOverStage(null);
     setDraggingId(null);
-    if (id) {
-      // Marque le drop comme réussi de manière SYNCHRONE — onDragEnd va lire
-      // ce flag (au lieu de draggingId qui est en attente de re-render).
-      dropSucceededRef.current = true;
-      // Broadcast SYNCHRONE le drop final pour que les peers appliquent
-      // l'optimistic move immédiatement (avant postgres_changes).
-      broadcastDrop(id, status);
-      void moveOpportunity(id, status);
-    } else {
+    if (!id) {
       broadcastCancel();
+      return;
     }
+    dropped.current = true;
+    broadcastDrop(id, STAGE_BY_ID.get(stage)!.canonical);
+    void move(id, stage);
   }
 
   return (
     <AppShell wide>
       <PageHeader
-        eyebrow={t.pages.crm.eyebrow}
-        title={
-          <>
-            {t.pages.crm.title_a}{' '}
-            <span className="text-primary font-display ">{t.pages.crm.title_b}</span>
-          </>
-        }
+        eyebrow={fr ? 'Activité commerciale' : 'Sales'}
+        title="CRM"
         description={
-          <>
-            {t.pages.crm.pipeline_value} : <span className="text-foreground font-medium">{formatCurrency(totalPipeline)}</span>{' '}
-            · {t.pages.crm.description}
-          </>
+          fr
+            ? `${open.length} opportunités ouvertes · ${formatEurCompact(open.reduce((s, o) => s + opportunityAmount(o), 0), lang)} en jeu · ${formatEurCompact(weightedPipeline(open), lang)} pondérés`
+            : `${open.length} open opportunities · ${formatEurCompact(open.reduce((s, o) => s + opportunityAmount(o), 0), lang)} at stake · ${formatEurCompact(weightedPipeline(open), lang)} weighted`
         }
         actions={
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            {t.pages.crm.new_opp}
-          </Button>
+          canEdit && (
+            <Button onClick={() => setDrawer({ open: true, opp: null })}>
+              <Plus />
+              {fr ? 'Nouvelle opportunité' : 'New opportunity'}
+            </Button>
+          )
         }
-      />
+      >
+        <CrmTabs />
+      </PageHeader>
 
-      <OpportunityFormDialog
-        open={dialogOpen}
-        onOpenChange={(v) => {
-          setDialogOpen(v);
-          if (!v) setEditingOpp(null);
-        }}
-        organizationId={activeOrgId ?? ''}
-        opportunity={editingOpp}
-        onSaved={() => reload()}
-      />
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={fr ? 'Filtrer par intitulé ou client' : 'Filter by title or client'}
+            className="pl-9"
+            aria-label={fr ? 'Filtrer les opportunités' : 'Filter opportunities'}
+          />
+        </div>
+        <Select value={owner} onChange={(e) => setOwner(e.target.value)} className="sm:w-56" aria-label="Business Manager">
+          <option value="all">{fr ? 'Tous les Business Managers' : 'All business managers'}</option>
+          <option value="mine">{fr ? 'Mes opportunités' : 'My opportunities'}</option>
+          {memberOptions.map((m) => (
+            <option key={m.value} value={m.value}>
+              {m.label}
+            </option>
+          ))}
+        </Select>
+        <label className="inline-flex items-center gap-2 text-[13px] text-muted-foreground sm:ml-auto">
+          <Switch checked={showOnHold} onCheckedChange={setShowOnHold} aria-label={fr ? 'Afficher les opportunités en veille' : 'Show on-hold opportunities'} />
+          {fr ? `En veille (${onHold.length})` : `On hold (${onHold.length})`}
+        </label>
+      </div>
 
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="min-h-[220px] rounded-xl surface-1 animate-pulse"
-              style={{ animationDelay: `${i * 100}ms` }}
-            />
+      {loading && !data ? (
+        <div className="flex gap-3 overflow-hidden">
+          {PIPELINE_STAGES.map((s) => (
+            <div key={s.id} className="skeleton h-80 w-72 shrink-0 rounded-xl" />
           ))}
         </div>
-      ) : (
-        <LayoutGroup>
-        <>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          {byStatus.map((col, colIdx) => {
-            const isTarget = dragOverStatus === col.status && draggingId !== null;
-            const isSource =
-              !!draggingId &&
-              opportunities.find((o) => o.id === draggingId)?.status === col.status;
-            // Quelqu'un d'autre survole cette colonne avec une carte attrapée.
-            const peerHover = peerByColumn.get(col.status);
-            return (
-              <motion.div
-                key={col.status}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: colIdx * 0.05, ease: 'easeOut' }}
-              >
-              <div
-                onDragOver={(e) => onDragOverColumn(e, col.status)}
-                onDragLeave={(e) => onDragLeaveColumn(e, col.status)}
-                onDrop={(e) => onDropColumn(e, col.status)}
-                style={
-                  peerHover && !isTarget
-                    ? {
-                        boxShadow: `0 0 30px -12px ${peerHover.user.color.glow}`,
-                      }
-                    : undefined
-                }
-                className={cn(
-                  'rounded-xl border p-3 flex flex-col min-h-[220px] transition-all duration-200',
-                  isTarget
-                    ? 'border-primary/70 bg-primary/[0.08] shadow-[0_0_30px_-12px_rgba(168,85,247,0.65)] scale-[1.01]'
-                    : peerHover
-                      ? cn('bg-card/60 scale-[1.005]', peerHover.user.color.border)
-                      : isSource
-                        ? 'border-hairline bg-card/40 opacity-70'
-                        : 'border-hairline bg-card/40',
-                )}
-              >
-                <div className="flex items-center gap-1.5 mb-2 px-0.5">
-                  <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', COLUMN_DOT[col.status])} />
-                  <span className="text-[11px] uppercase tracking-wider text-foreground/70 font-semibold">
-                    {(oppLabels[col.status as keyof typeof oppLabels] ?? OPPORTUNITY_STATUS_LABEL[col.status])}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground font-mono ml-auto tabular-nums">
-                    {col.items.length}
-                  </span>
-                  {peerHover && (
-                    <PeerBadge peer={peerHover} label={t.pages.crm.peer_aim_label} />
-                  )}
-                </div>
-
-                <div className="space-y-2.5 flex-1">
-                  {col.items.length === 0 ? (
-                    <div
-                      className={cn(
-                        'rounded-md border border-dashed py-10 text-center text-[11px] transition-all duration-200',
-                        isTarget
-                          ? 'border-primary/60 text-primary bg-primary/[0.06]'
-                          : peerHover
-                            ? cn('bg-card/60', peerHover.user.color.border)
-                            : 'border-hairline text-muted-foreground/70 bg-card/20',
-                      )}
-                    >
-                      {isTarget
-                        ? t.pages.crm.drop_here
-                        : peerHover
-                          ? `${peerHover.user.displayName} ${t.pages.crm.drop_here_peer}`
-                          : '—'}
-                    </div>
-                  ) : (
-                    col.items.map((opp) => (
-                      <OpportunityCard
-                        key={opp.id}
-                        opportunity={opp}
-                        isDragging={draggingId === opp.id}
-                        peer={peerByOpp.get(opp.id) ?? null}
-                        onDragStart={(e) => onDragStartCard(e, opp.id)}
-                        onDragEnd={onDragEndCard}
-                        onDelete={() => deleteOpportunity(opp.id, opp.title)}
-                        onEdit={() => openEdit(opp)}
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {/* === Carte récap "Terminées" (won + lost + on_hold regroupés) === */}
-        <div
-          onDragOver={(e) => {
-            if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            setClosedDragOver(true);
-          }}
-          onDragLeave={(e) => {
-            const next = e.relatedTarget as Node | null;
-            if (next && (e.currentTarget as Node).contains(next)) return;
-            setClosedDragOver(false);
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            const id = e.dataTransfer.getData(DRAG_MIME);
-            setClosedDragOver(false);
-            setDraggingId(null);
-            if (id) {
-              // Drop sur la carte Terminées → on ouvre un dialog qui demande
-              // explicitement le statut (Gagné / Perdu / En veille).
-              const opp = opportunities.find((o) => o.id === id);
-              if (opp) {
-                setPendingClosure({ id, title: opp.title });
-              }
-            } else {
-              broadcastCancel();
-            }
-          }}
-          className={cn(
-            'mt-6 rounded-xl border p-4 transition-all',
-            closedDragOver
-              ? 'border-primary/60 bg-primary/[0.06] shadow-[0_0_30px_-12px_rgba(225,29,116,0.55)]'
-              : 'border-hairline bg-card/40',
-          )}
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-foreground/70 font-semibold">
-                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
-                {t.pages.crm.closed_opps}
-                <span className="text-muted-foreground font-mono tabular-nums">({closedTotal})</span>
-              </div>
-              <div className="mt-2 flex items-center gap-3 text-sm">
-                <ClosedStat
-                  label={t.pages.crm.closed_won}
-                  count={closedByStatus.won.length}
-                  dotClass="bg-success"
-                  onClick={() => {
-                    setClosedFilter('won');
-                    setClosedOpen(true);
-                  }}
-                />
-                <ClosedStat
-                  label={t.pages.crm.closed_lost}
-                  count={closedByStatus.lost.length}
-                  dotClass="bg-destructive"
-                  onClick={() => {
-                    setClosedFilter('lost');
-                    setClosedOpen(true);
-                  }}
-                />
-                <ClosedStat
-                  label={t.pages.crm.closed_on_hold}
-                  count={closedByStatus.on_hold.length}
-                  dotClass="bg-muted-foreground"
-                  onClick={() => {
-                    setClosedFilter('on_hold');
-                    setClosedOpen(true);
-                  }}
-                />
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setClosedFilter('all');
-                setClosedOpen(true);
-              }}
-              disabled={closedTotal === 0}
-            >
-              {t.pages.crm.see_list}
-            </Button>
-          </div>
-          <p className="mt-3 text-[11px] text-muted-foreground">
-            {t.pages.crm.drop_hint}
-          </p>
-        </div>
-
-        {/* Dialog de choix après drop sur "Terminées" */}
-        <Dialog
-          open={pendingClosure !== null}
-          onOpenChange={(open) => {
-            if (!open) setPendingClosure(null);
-          }}
-        >
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>{t.pages.crm.closure_title}</DialogTitle>
-              <DialogDescription>
-                {pendingClosure ? (
-                  <>
-                    {t.pages.crm.closure_question_prefix} <strong>« {pendingClosure.title} »</strong> ?
-                  </>
-                ) : null}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="grid grid-cols-1 gap-2 mt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  if (pendingClosure) {
-                    broadcastDrop(pendingClosure.id, 'won');
-                    void moveOpportunity(pendingClosure.id, 'won');
-                  }
-                  setPendingClosure(null);
-                }}
-                className="flex items-center gap-3 rounded-lg border border-hairline bg-card/40 hover:border-success/40 hover:bg-success/[0.06] p-4 text-left transition"
-              >
-                <span className="h-2.5 w-2.5 rounded-full bg-success" />
-                <div className="flex-1">
-                  <div className="text-sm font-semibold text-foreground">{t.pages.crm.closure_won_title}</div>
-                  <div className="text-xs text-muted-foreground">{t.pages.crm.closure_won_description}</div>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (pendingClosure) {
-                    broadcastDrop(pendingClosure.id, 'lost');
-                    void moveOpportunity(pendingClosure.id, 'lost');
-                  }
-                  setPendingClosure(null);
-                }}
-                className="flex items-center gap-3 rounded-lg border border-hairline bg-card/40 hover:border-destructive/40 hover:bg-destructive/[0.06] p-4 text-left transition"
-              >
-                <span className="h-2.5 w-2.5 rounded-full bg-destructive" />
-                <div className="flex-1">
-                  <div className="text-sm font-semibold text-foreground">{t.pages.crm.closure_lost_title}</div>
-                  <div className="text-xs text-muted-foreground">{t.pages.crm.closure_lost_description}</div>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (pendingClosure) {
-                    broadcastDrop(pendingClosure.id, 'on_hold');
-                    void moveOpportunity(pendingClosure.id, 'on_hold');
-                  }
-                  setPendingClosure(null);
-                }}
-                className="flex items-center gap-3 rounded-lg border border-hairline bg-card/40 hover:border-border hover:bg-muted p-4 text-left transition"
-              >
-                <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground" />
-                <div className="flex-1">
-                  <div className="text-sm font-semibold text-foreground">{t.pages.crm.closure_on_hold_title}</div>
-                  <div className="text-xs text-muted-foreground">{t.pages.crm.closure_on_hold_description}</div>
-                </div>
-              </button>
-            </div>
-
-            <div className="mt-3 flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPendingClosure(null)}
-              >
-                {t.pages.crm.closure_cancel}
+      ) : opps.length === 0 ? (
+        <EmptyState
+          icon={Kanban}
+          title={fr ? 'Votre pipeline est vide' : 'Your pipeline is empty'}
+          description={
+            fr
+              ? 'Créez une première opportunité, ou laissez vos clients déposer leurs besoins depuis le portail client.'
+              : 'Create a first opportunity, or let clients submit needs from the client portal.'
+          }
+          action={
+            canEdit && (
+              <Button onClick={() => setDrawer({ open: true, opp: null })}>
+                <Plus />
+                {fr ? 'Nouvelle opportunité' : 'New opportunity'}
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* === Dialog des opportunités terminées === */}
-        <ClosedOpportunitiesDialogInline
-          open={closedOpen}
-          onOpenChange={setClosedOpen}
-          opportunities={opportunities.filter((o) => CLOSED_STATUSES.includes(o.status))}
-          filter={closedFilter}
-          onFilterChange={setClosedFilter}
-          onEdit={openEdit}
-          onMove={moveOpportunity}
-          onDelete={deleteOpportunity}
+            )
+          }
         />
-        </>
-        </LayoutGroup>
+      ) : (
+        <div className="-mx-4 overflow-x-auto px-4 pb-4 md:-mx-8 md:px-8" role="region" aria-label={fr ? 'Pipeline commercial' : 'Sales pipeline'}>
+          <div className="flex min-w-max gap-3">
+            {columns.map(({ stage, items, total, amount }) => {
+              const isOver = overStage === stage.id && draggingId !== null;
+              const peer = peerByColumn.get(stage.canonical);
+              const terminal = stage.id === 'won' || stage.id === 'lost';
+              return (
+                <section
+                  key={stage.id}
+                  aria-label={stage.label[lang]}
+                  onDragOver={(e) => {
+                    if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (overStage !== stage.id) {
+                      setOverStage(stage.id);
+                      if (draggingId) broadcastDrag(draggingId, stage.canonical);
+                    }
+                  }}
+                  onDragLeave={(e) => {
+                    const next = e.relatedTarget as Node | null;
+                    if (next && (e.currentTarget as Node).contains(next)) return;
+                    if (overStage === stage.id) setOverStage(null);
+                  }}
+                  onDrop={(e) => onDrop(e, stage.id)}
+                  className={cn(
+                    'flex w-[17.5rem] shrink-0 flex-col rounded-xl border bg-sidebar/60 transition-colors',
+                    terminal && 'w-[15rem]',
+                    isOver ? 'border-primary bg-brand-50/60' : 'border-border',
+                    highlightStage === stage.id && !isOver && 'border-primary/50',
+                    peer && !isOver && 'border-dashed',
+                  )}
+                  style={peer && !isOver ? { borderColor: peer.user.color.hex } : undefined}
+                >
+                  <header className="flex items-center justify-between gap-2 px-3 pb-2 pt-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        aria-hidden
+                        className={cn(
+                          'h-2 w-2 shrink-0 rounded-full',
+                          stage.tone === 'success'
+                            ? 'bg-success'
+                            : stage.tone === 'danger'
+                              ? 'bg-destructive'
+                              : stage.tone === 'warning'
+                                ? 'bg-warning'
+                                : stage.tone === 'brand'
+                                  ? 'bg-primary'
+                                  : stage.tone === 'info'
+                                    ? 'bg-info'
+                                    : 'bg-muted-foreground/60',
+                        )}
+                      />
+                      <h2 className="truncate text-[13px] font-semibold text-foreground">{stage.label[lang]}</h2>
+                      <span className="num text-xs text-muted-foreground">{total}</span>
+                    </div>
+                    <span className="num text-xs text-muted-foreground">{amount > 0 ? formatEurCompact(amount, lang) : ''}</span>
+                  </header>
+                  <div className="flex min-h-[8rem] flex-1 flex-col gap-2 px-2 pb-2">
+                    {items.map((o) => {
+                      const p = peerByOpp.get(o.id);
+                      return (
+                        <OpportunityCard
+                          key={o.id}
+                          opp={o}
+                          lang={lang}
+                          clientName={o.company_id ? companies.get(o.company_id)?.name : null}
+                          ownerName={o.owner_id ? members.get(o.owner_id)?.name : null}
+                          proposals={proposalCounts?.[o.id] ?? 0}
+                          canEdit={canEdit}
+                          dragging={draggingId === o.id}
+                          peer={p ? { name: p.user.displayName, color: p.user.color.hex } : null}
+                          onDragStart={(e) => {
+                            setDraggingId(o.id);
+                            e.dataTransfer.setData(DRAG_MIME, o.id);
+                            e.dataTransfer.effectAllowed = 'move';
+                            broadcastDrag(o.id, o.status);
+                          }}
+                          onDragEnd={() => {
+                            const wasDropped = dropped.current;
+                            dropped.current = false;
+                            setDraggingId(null);
+                            setOverStage(null);
+                            if (!wasDropped) broadcastCancel();
+                          }}
+                          onMove={(to) => void move(o.id, to)}
+                          onEdit={() => setDrawer({ open: true, opp: o })}
+                          onDelete={() => void remove(o)}
+                        />
+                      );
+                    })}
+                    {items.length === 0 && (
+                      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
+                        {canEdit ? (fr ? 'Déposez une opportunité ici' : 'Drop an opportunity here') : fr ? 'Aucune opportunité' : 'No opportunity'}
+                      </div>
+                    )}
+                    {terminal && total > items.length && (
+                      <a
+                        href={`/opportunities?stage=${stage.id}`}
+                        className="rounded-md px-2 py-1.5 text-center text-xs font-medium text-primary hover:bg-brand-50"
+                      >
+                        {fr ? `Voir les ${total} (plus de ${CLOSED_VISIBLE_DAYS} j inclus)` : `View all ${total}`}
+                      </a>
+                    )}
+                  </div>
+                </section>
+              );
+            })}
+            {showOnHold && (
+              <section className="flex w-[15rem] shrink-0 flex-col rounded-xl border border-dashed border-border bg-card/60">
+                <header className="flex items-center gap-2 px-3 pb-2 pt-3">
+                  <span aria-hidden className="h-2 w-2 rounded-full bg-muted-foreground/40" />
+                  <h2 className="text-[13px] font-semibold">{fr ? 'En veille' : 'On hold'}</h2>
+                  <span className="num text-xs text-muted-foreground">{onHold.length}</span>
+                </header>
+                <div className="flex flex-col gap-2 px-2 pb-2">
+                  {onHold.map((o) => (
+                    <OpportunityCard
+                      key={o.id}
+                      opp={o}
+                      lang={lang}
+                      clientName={o.company_id ? companies.get(o.company_id)?.name : null}
+                      ownerName={o.owner_id ? members.get(o.owner_id)?.name : null}
+                      canEdit={canEdit}
+                      onMove={(to) => void move(o.id, to)}
+                      onEdit={() => setDrawer({ open: true, opp: o })}
+                      onDelete={() => void remove(o)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeOrgId && (
+        <OpportunityDrawer
+          open={drawer.open}
+          onOpenChange={(v) => setDrawer((d) => ({ ...d, open: v }))}
+          organizationId={activeOrgId}
+          opportunity={drawer.opp}
+          onSaved={(o) => {
+            setData((list) => {
+              const rest = (list ?? []).filter((x) => x.id !== o.id);
+              return [o, ...rest];
+            });
+          }}
+        />
       )}
     </AppShell>
-  );
-}
-
-function ClosedStat({
-  label,
-  count,
-  dotClass,
-  onClick,
-}: {
-  label: string;
-  count: number;
-  dotClass: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={count === 0}
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-md border border-hairline bg-card/60 px-2.5 py-1.5 transition',
-        count > 0
-          ? 'hover-surface hover:border-primary/40 cursor-pointer'
-          : 'opacity-50 cursor-default',
-      )}
-    >
-      <span className={cn('h-1.5 w-1.5 rounded-full', dotClass)} />
-      <span className="text-xs font-medium text-foreground">{label}</span>
-      <span className="text-xs font-mono text-muted-foreground tabular-nums">{count}</span>
-    </button>
-  );
-}
-
-function ClosedOpportunitiesDialogInline({
-  open,
-  onOpenChange,
-  opportunities,
-  filter,
-  onFilterChange,
-  onEdit,
-  onMove,
-  onDelete,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  opportunities: Opportunity[];
-  filter: OpportunityStatus | 'all';
-  onFilterChange: (f: OpportunityStatus | 'all') => void;
-  onEdit: (o: Opportunity) => void;
-  onMove: (id: string, s: OpportunityStatus) => Promise<void>;
-  onDelete: (id: string, title: string) => Promise<void>;
-}) {
-  const t = useAppT();
-  const { locale } = useLocale();
-  const isEn = locale === 'en';
-  const { format: formatCurrency } = useCurrency();
-  const oppLabels = useOpportunityStatusLabels();
-  const filtered =
-    filter === 'all' ? opportunities : opportunities.filter((o) => o.status === filter);
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{t.pages.crm.closed_dialog_title}</DialogTitle>
-          <DialogDescription>
-            {t.pages.crm.closed_dialog_description}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex flex-wrap items-center gap-1.5 mt-2">
-          {(['all', 'won', 'lost', 'on_hold'] as const).map((f) => (
-            <button
-              key={f}
-              type="button"
-              onClick={() => onFilterChange(f)}
-              className={cn(
-                'rounded-md border px-2.5 py-1 text-xs font-medium transition',
-                filter === f
-                  ? 'border-primary/60 bg-primary/10 text-primary'
-                  : 'border-hairline text-muted-foreground hover:text-foreground hover-surface',
-              )}
-            >
-              {f === 'all' ? t.pages.crm.closed_filter_all : (oppLabels[f as keyof typeof oppLabels] ?? OPPORTUNITY_STATUS_LABEL[f])}
-              <span className="ml-1.5 text-[10px] tabular-nums opacity-70">
-                ({f === 'all' ? opportunities.length : opportunities.filter((o) => o.status === f).length})
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-4 space-y-2">
-          {filtered.length === 0 ? (
-            <div className="rounded-md border border-dashed border-hairline py-8 text-center text-sm text-muted-foreground">
-              {t.pages.crm.closed_empty}
-            </div>
-          ) : (
-            filtered.map((opp) => (
-              <div
-                key={opp.id}
-                className="flex items-center gap-3 rounded-md border border-hairline bg-card/40 px-3 py-2.5"
-              >
-                <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', COLUMN_DOT[opp.status])} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-foreground truncate">{opp.title}</div>
-                  <div className="text-[11px] text-muted-foreground truncate">
-                    {oppLabels[opp.status as keyof typeof oppLabels] ?? OPPORTUNITY_STATUS_LABEL[opp.status]}
-                    {opp.expected_revenue ? ` · ${formatCurrency(Number(opp.expected_revenue))}` : ''}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <Button size="sm" variant="outline" onClick={() => onEdit(opp)}>
-                    {t.pages.crm.closed_open}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => void onMove(opp.id, 'negotiation')}
-                    title={isEn ? 'Reopen this opportunity' : 'Réouvrir cette opportunité'}
-                  >
-                    {t.pages.crm.closed_reopen}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-destructive border-destructive/30 hover:bg-destructive/10"
-                    onClick={() => void onDelete(opp.id, opp.title)}
-                  >
-                    ✕
-                  </Button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function PeerBadge({ peer, label }: { peer: PeerDrag; label?: string }) {
-  const { locale } = useLocale();
-  const isEn = locale === 'en';
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 ml-auto rounded-full px-1.5 py-0.5',
-        'text-[9px] font-bold tracking-wide animate-pulse',
-        peer.user.color.bg,
-        peer.user.color.text,
-      )}
-      style={{ boxShadow: `0 0 12px -2px ${peer.user.color.glow}` }}
-      title={isEn ? `${peer.user.displayName} is dragging a card` : `${peer.user.displayName} est en train de glisser une carte`}
-    >
-      <span className="h-1 w-1 rounded-full bg-muted" />
-      {peer.user.initials}
-      {label && <span className="font-medium opacity-90 normal-case">{label}</span>}
-    </span>
-  );
-}
-
-function OpportunityCard({
-  opportunity,
-  isDragging,
-  peer,
-  onDragStart,
-  onDragEnd,
-  onDelete,
-  onEdit,
-}: {
-  opportunity: Opportunity;
-  isDragging: boolean;
-  peer: PeerDrag | null;
-  onDragStart: (e: React.DragEvent) => void;
-  onDragEnd: () => void;
-  onDelete: () => void;
-  onEdit: () => void;
-}) {
-  const t = useAppT();
-  const { locale } = useLocale();
-  const isEn = locale === 'en';
-  const { format: formatCurrency } = useCurrency();
-  // Si un collègue est en train de glisser cette carte, on bloque le drag
-  // local (sinon conflit de mises à jour) et on affiche son indicateur.
-  const lockedByPeer = !!peer;
-  return (
-    // Wrapper motion SANS gestion de drag framer : le drag HTML5 reste sur la
-    // Card. layoutId fait glisser la carte en douceur d'une colonne à l'autre
-    // (drop local, move d'un collègue, réouverture depuis "Terminées").
-    <motion.div
-      layout
-      layoutId={`opp-${opportunity.id}`}
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 380, damping: 32, mass: 0.7 }}
-    >
-    <Card
-      draggable={!lockedByPeer}
-      onDragStart={(e) => {
-        if (lockedByPeer) {
-          e.preventDefault();
-          return;
-        }
-        onDragStart(e);
-      }}
-      onDragEnd={onDragEnd}
-      style={
-        peer
-          ? {
-              boxShadow: `0 0 24px -6px ${peer.user.color.glow}`,
-            }
-          : undefined
-      }
-      className={cn(
-        'qc-card-hover group relative select-none transition-all duration-200',
-        // Curseur main "grab/grabbing" pour signaler le drag.
-        isDragging ? 'cursor-grabbing opacity-50 rotate-2 scale-95' : '',
-        lockedByPeer
-          ? cn('cursor-not-allowed ring-2', peer.user.color.ring, peer.user.color.border)
-          : 'cursor-grab active:cursor-grabbing',
-      )}
-    >
-      {/* Grip handle RETIRÉ (demande utilisateur : il chevauchait le titre
-          dans les colonnes étroites). Le curseur grab + le hover de la carte
-          suffisent à signaler qu'elle est déplaçable. */}
-      <CardContent className="p-3 space-y-1.5">
-        {peer && (
-          <div className="flex items-center justify-end">
-            <PeerBadge peer={peer} label={t.pages.crm.peer_move_label} />
-          </div>
-        )}
-        <div className="flex items-start justify-between gap-1.5">
-          <h3
-            className="text-sm font-semibold leading-snug line-clamp-2 flex-1 min-w-0"
-            title={opportunity.title}
-          >
-            {opportunity.title}
-          </h3>
-          <div className="flex items-center gap-0.5 shrink-0">
-            <span
-              className={cn(
-                'h-2 w-2 rounded-full mt-1.5 mr-0.5',
-                opportunity.priority === 'critical'
-                  ? 'bg-destructive'
-                  : opportunity.priority === 'high'
-                    ? 'bg-warning'
-                    : opportunity.priority === 'medium'
-                      ? 'bg-info'
-                      : 'bg-muted-foreground',
-              )}
-              title={opportunity.priority}
-            />
-            <button
-              type="button"
-              // empêche le drag de démarrer quand on clique sur le bouton
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={onEdit}
-              className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 rounded hover:bg-primary/15 flex items-center justify-center cursor-pointer"
-              title={t.pages.crm.card_edit_title}
-              aria-label={isEn ? 'Edit' : 'Éditer'}
-            >
-              <Pencil className="h-3.5 w-3.5 text-primary" />
-            </button>
-            <button
-              type="button"
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={onDelete}
-              className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 rounded hover:bg-destructive/15 flex items-center justify-center cursor-pointer"
-              title={t.pages.crm.card_delete_title}
-              aria-label={isEn ? 'Delete' : 'Supprimer'}
-            >
-              <Trash2 className="h-3.5 w-3.5 text-destructive" />
-            </button>
-          </div>
-        </div>
-
-        {opportunity.expected_revenue ? (
-          <p className="text-xs font-semibold text-primary">
-            {formatCurrency(Number(opportunity.expected_revenue))}
-            {opportunity.probability && (
-              <span className="text-muted-foreground ml-1 font-normal">
-                · {opportunity.probability}%
-              </span>
-            )}
-          </p>
-        ) : null}
-
-        {(opportunity.daily_rate_eur || opportunity.duration_months) && (
-          <div className="text-[11px] text-muted-foreground">
-            {opportunity.daily_rate_eur && (
-              <>TJM {formatCurrency(Number(opportunity.daily_rate_eur))}</>
-            )}
-            {opportunity.daily_rate_eur && opportunity.duration_months && ' · '}
-            {opportunity.duration_months && <>{opportunity.duration_months} {isEn ? 'months' : 'mois'}</>}
-          </div>
-        )}
-
-        {opportunity.next_follow_up && (
-          <p className="text-[11px] text-muted-foreground">
-            ⏰ {relativeDate(opportunity.next_follow_up)}
-          </p>
-        )}
-      </CardContent>
-    </Card>
-    </motion.div>
   );
 }

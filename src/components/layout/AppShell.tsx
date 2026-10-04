@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext } from 'react';
+import { createContext, Suspense, useContext } from 'react';
 import Link from 'next/link';
 
 import { cn } from '@/lib/utils';
@@ -50,7 +50,10 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
             collapsed ? 'md:pl-16' : 'md:pl-60',
           )}
         >
-          <div className="flex flex-1 flex-col">{children}</div>
+          {/* Suspense : les pages qui lisent useSearchParams() restent rendables statiquement. */}
+          <div className="flex flex-1 flex-col">
+            <Suspense fallback={null}>{children}</Suspense>
+          </div>
           <footer className="border-t border-border">
             <div className="flex flex-col gap-2 px-4 py-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between md:px-8">
               <div>© {new Date().getFullYear()} Centrium · {fr ? 'édité par QuadCore' : 'by QuadCore'}</div>
