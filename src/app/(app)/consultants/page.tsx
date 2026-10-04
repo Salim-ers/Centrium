@@ -1,919 +1,407 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
-import { useConsultantStatusLabels, useSeniorityLabels } from '@/lib/i18n/useBadges';
-import {
-  notifyDestructive,
-  notifyError,
-  notifyCreated,
-} from '@/lib/notify';
-import {
-  Plus,
-  Search,
-  Eye,
-  Pencil,
-  Trash2,
-  ArchiveRestore,
-  Archive,
-  FileUp,
-  KeyRound,
-  Send,
-  Users,
-  UserCheck,
-  Briefcase,
-  Timer,
-} from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { toast } from 'sonner';
+import { Archive, ArchiveRestore, DoorOpen, FileUp, Plus, Search, Users } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { TalentTabs } from '@/components/consultants/TalentTabs';
+import { PageHeader, KPICard } from '@/components/app';
+import { EmptyState } from '@/components/app/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { StatusPill } from '@/components/ui/status-pill';
+import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import {
-  PageHeader,
-  KPICard,
-  AppCard,
-  EmptyState,
-  StatusBadge,
-  BulkActionBar,
-} from '@/components/app';
-import { useBulkSelection } from '@/hooks/useBulkSelection';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip } from '@/components/ui/tooltip';
+import { DataTable, type Column } from '@/components/ui/data-table';
 import { ConsultantFormDialog } from '@/components/consultants/ConsultantFormDialog';
-import { AssignMissionDialog } from '@/components/missions/AssignMissionDialog';
-import { JobFamilyFilter } from '@/components/consultants/JobFamilyFilter';
-import { CityFilter } from '@/components/consultants/CityFilter';
 import { CsvImportDialog } from '@/components/consultants/CsvImportDialog';
-import { GrantPortalDialog } from '@/components/consultants/GrantPortalDialog';
-import { UsageBanner, USAGE_REFRESH_EVENT } from '@/components/billing/UsageBanner';
-import { Combobox } from '@/components/ui/Combobox';
-import { cn } from '@/lib/utils';
-import {
-  classifyJobFamily,
-  type JobFamilyId,
-} from '@/lib/consultants/job-family';
-
-import {
-  consultantService,
-  type ConsultantListItem,
-} from '@/lib/services/consultant.service';
 import { useOrganization } from '@/lib/auth/context';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
-import { useRealtimeReload } from '@/hooks/useRealtimeReload';
-import { usePagination } from '@/hooks/usePagination';
-import { PaginationFooter } from '@/components/ui/PaginationFooter';
-import type { Consultant } from '@/types';
-import {
-  CONSULTANT_STATUS_LABEL,
-  CONSULTANT_STATUS_STYLE,
-  SENIORITY_LABEL,
-} from '@/constants';
-import { useCurrency } from '@/lib/i18n/CurrencyProvider';
+import { useMatchingPool } from '@/hooks/useMatchingPool';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { consultantService, type ConsultantListItem } from '@/lib/services/consultant.service';
+import { CONSULTANT_STATUS, statusOf } from '@/lib/status';
+import { SENIORITY_LABEL } from '@/constants';
+import { formatDate, formatEur, formatPct } from '@/lib/format';
+import { cn } from '@/lib/utils';
 
-/**
- * Onglet "Consultants" — toutes les fiches sans distinction
- * bibliothèque/vivier (concept fusionné).
- *
- * Exclut les profils qui ont une mission "proposed" ou "active"
- * (ils vivent dans /cv-pushed et /en-mission).
- *
- * "Pousser CV" ouvre AssignMissionDialog (sélection d'offre + TJM).
- * Création d'une mission "proposed" → le profil bascule en CV poussés.
- */
-function ConsultantsPageInner() {
+type Scope = 'staff' | 'pool' | 'positioned' | 'archived';
+
+export default function ConsultantsPage() {
+  const params = useSearchParams();
   const { activeOrgId } = useOrganization();
-  const t = useAppT();
+  const { can } = usePermissions();
   const { locale } = useLocale();
-  const isEn = locale === 'en';
-  const { format: formatCurrency } = useCurrency();
-  const consultantStatusI18n = useConsultantStatusLabels();
-  const seniorityI18n = useSeniorityLabels();
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingConsultant, setEditingConsultant] = useState<Consultant | null>(null);
-  const [showArchived, setShowArchived] = useState(false);
-  const [assignTo, setAssignTo] = useState<ConsultantListItem | null>(null);
-  const [familyFilter, setFamilyFilter] = useState<Set<JobFamilyId>>(new Set());
-  const [cityFilter, setCityFilter] = useState<Set<string>>(new Set());
+  const lang = locale === 'en' ? 'en' : 'fr';
+  const fr = lang === 'fr';
+  const canEdit = can('consultants.edit');
+  const showRates = can('consultants.financials') || can('finance.view');
+  const { skillsByConsultant } = useMatchingPool();
+
+  const [scope, setScope] = useState<Scope>('staff');
+  const [query, setQuery] = useState('');
+  const [skill, setSkill] = useState('');
+  const [status, setStatus] = useState('all');
+  const [availability, setAvailability] = useState('any');
+  const [owner, setOwner] = useState('all');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [dialog, setDialog] = useState<{ open: boolean; prospect: boolean }>({ open: params.get('new') === '1', prospect: false });
   const [csvOpen, setCsvOpen] = useState(false);
-  const [grantingPortal, setGrantingPortal] = useState<Consultant | null>(null);
 
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 200);
-    return () => clearTimeout(t);
-  }, [search]);
-
-  const {
-    data: consultantsData,
-    loading,
-    reload,
-    setData: setConsultants,
-  } = useCachedQuery<ConsultantListItem[]>(
-    `consultants-pool:${activeOrgId ?? 'none'}:${showArchived ? 'arch' : 'active'}:${debouncedSearch}`,
+  const { data, loading, reload, setData } = useCachedQuery<ConsultantListItem[]>(
+    `consultants-v2:${activeOrgId ?? 'none'}:${scope}`,
     async () => {
-      const res = await consultantService.list({
-        // Plus de distinction bibliothèque/vivier : on prend tout.
-        is_prospect: 'all',
-        search: debouncedSearch || undefined,
-        archived: showArchived,
-      });
+      const res = await consultantService.list(
+        scope === 'archived'
+          ? { archived: true, is_prospect: 'all' }
+          : scope === 'pool'
+            ? { is_prospect: true }
+            : scope === 'positioned'
+              ? { is_prospect: 'all', cv_pushed: true }
+              : { is_prospect: false },
+      );
       return res.data ?? [];
     },
     { enabled: !!activeOrgId },
   );
 
-  // Sync temps réel : modifs faites par un collègue (édition fiche, ajout
-  // skill, archivage, push CV qui crée une mission…) se voient sans F5.
-  useRealtimeReload(['consultants', 'consultant_skills', 'missions'], () => reload());
+  const owners = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of data ?? []) if (c.owner) m.set(c.owner.id, `${c.owner.first_name ?? ''} ${c.owner.last_name ?? ''}`.trim() || c.owner.email);
+    return [...m.entries()];
+  }, [data]);
 
-  // Exclusion : profils avec mission proposed/active → ils vivent dans CV poussés
-  // ou En Mission. Une seule présence par profil, partout dans l'app.
-  // ⚠️ active_missions peut être absent sur des fiches anciennes (sécurité null).
-  const allInPool = (consultantsData ?? [])
-    .filter((c) => (c.active_missions?.length ?? 0) === 0)
-    // Tri alphabétique sur le nom de famille (puis prénom). Stable et
-    // français-friendly grâce à 'fr' qui gère accents et casse.
-    .slice()
-    .sort((a, b) => {
-      const an = `${a.last_name ?? ''} ${a.first_name ?? ''}`.toLowerCase();
-      const bn = `${b.last_name ?? ''} ${b.first_name ?? ''}`.toLowerCase();
-      return an.localeCompare(bn, 'fr');
+  const today = new Date().toISOString().slice(0, 10);
+  const in30 = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+  const in60 = new Date(Date.now() + 60 * 86_400_000).toISOString().slice(0, 10);
+
+  const rows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const sk = skill.trim().toLowerCase();
+    return (data ?? []).filter((c) => {
+      if (status !== 'all' && c.status !== status) return false;
+      if (owner !== 'all' && c.owner_id !== owner) return false;
+      const freeOn = c.status === 'available' ? today : (c.available_from ?? c.current_mission_end);
+      if (availability === 'now' && c.status !== 'available') return false;
+      if (availability === '30' && !(freeOn && freeOn <= in30)) return false;
+      if (availability === '60' && !(freeOn && freeOn <= in60)) return false;
+      if (sk) {
+        const skills = skillsByConsultant.get(c.id) ?? [];
+        if (!skills.some((s) => s.name.toLowerCase().includes(sk))) return false;
+      }
+      if (!q) return true;
+      return `${c.first_name} ${c.last_name} ${c.job_title} ${c.city ?? ''}`.toLowerCase().includes(q);
     });
+  }, [data, query, skill, status, availability, owner, skillsByConsultant, today, in30, in60]);
 
-  // Comptes par corps de métier (sur la liste avant filtre famille pour rester
-  // stable visuellement quand on coche/décoche un domaine).
-  const familyCounts = (() => {
-    const base: Record<JobFamilyId, number> = {
-      qa: 0, dev: 0, data: 0, devops: 0, cyber: 0, pm: 0,
-      ba: 0, architect: 0, support: 0, design: 0, other: 0,
+  const kpis = useMemo(() => {
+    const list = scope === 'staff' ? (data ?? []) : [];
+    const pool = list.filter((c) => c.status !== 'unavailable');
+    const onMission = list.filter((c) => c.status === 'on_mission').length;
+    const available = list.filter((c) => c.status === 'available').length;
+    const soon = list.filter((c) => {
+      const d = c.available_from ?? c.current_mission_end;
+      return c.status !== 'available' && !!d && d >= today && d <= in30;
+    }).length;
+    return {
+      total: list.length,
+      onMission,
+      available,
+      soon,
+      bench: pool.length ? (available / pool.length) * 100 : null,
     };
-    for (const c of allInPool) {
-      base[classifyJobFamily(c.job_title)] += 1;
-    }
-    return base;
-  })();
+  }, [data, scope, today, in30]);
 
-  // Comptage villes : on s'aligne sur la sélection famille pour que les
-  // villes proposées correspondent au sous-ensemble actuellement visible.
-  const familyFiltered =
-    familyFilter.size === 0
-      ? allInPool
-      : allInPool.filter((c) =>
-          familyFilter.has(classifyJobFamily(c.job_title)),
-        );
-  const cityCounts = (() => {
-    const map = new Map<string, number>();
-    for (const c of familyFiltered) {
-      if (c.city && c.city.trim()) {
-        map.set(c.city, (map.get(c.city) ?? 0) + 1);
-      }
-    }
-    return Array.from(map.entries())
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-  })();
-
-  const cityFiltered = familyFiltered.filter((c) =>
-    cityFilter.size === 0 ? true : c.city ? cityFilter.has(c.city) : false,
-  );
-
-  // Drill-down depuis dashboard/widgets : ?status=available, ?status=on_mission,
-  // ?endedBefore=today. On lit l'URL et on filtre la liste affichée. Si filtre
-  // actif, on affiche un bandeau au-dessus du tableau avec un bouton "Retirer".
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const urlStatusFilter = searchParams?.get('status') ?? null;
-  const urlEndedBefore = searchParams?.get('endedBefore') ?? null;
-  const consultants = (() => {
-    let list = cityFiltered;
-    if (urlStatusFilter) {
-      list = list.filter((c) => c.status === urlStatusFilter);
-    }
-    if (urlEndedBefore === 'today') {
-      const today = new Date().toISOString().slice(0, 10);
-      list = list.filter(
-        (c) => c.current_mission_end !== null && (c.current_mission_end as string) <= today,
-      );
-    }
-    return list;
-  })();
-  const hasUrlFilter = !!urlStatusFilter || !!urlEndedBefore;
-  const clearUrlFilter = () => router.push('/consultants');
-
-  const totalCount = consultants.length;
-  const pagination = usePagination(totalCount, {
-    storageKey: 'consultants-page-size',
-  });
-  const paginated = pagination.paginate(consultants);
-
-  // Sélection multiple — bornée à la page courante pour rester lisible
-  const bulkSel = useBulkSelection(paginated.map((c) => c.id));
-  const [bulkBusy, setBulkBusy] = useState(false);
-
-  /** Rafraîchit le compteur de quota (« X / 20 consultants ») instantanément
-   *  après toute mutation qui change le nombre de consultants. */
-  function bumpUsage() {
-    if (typeof window !== 'undefined') window.dispatchEvent(new Event(USAGE_REFRESH_EVENT));
-  }
-
-  async function handleBulkArchive() {
-    if (bulkSel.selectedCount === 0) return;
-    if (!confirm(isEn ? `Archive ${bulkSel.selectedCount} consultant${bulkSel.selectedCount > 1 ? 's' : ''}?` : `Archiver ${bulkSel.selectedCount} consultant${bulkSel.selectedCount > 1 ? 's' : ''} ?`)) return;
-    setBulkBusy(true);
-    const ids = [...bulkSel.selected];
-    const res = await consultantService.archiveMany(ids);
-    setBulkBusy(false);
+  async function archive(ids: string[], restore = false) {
+    const res = restore ? await consultantService.unarchiveMany(ids) : await consultantService.archiveMany(ids);
     if (res.error) {
-      notifyError((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
+      toast.error(res.error.message);
       return;
     }
-    notifyCreated(isEn ? `${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} archived` : `${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} archivé${(res.data ?? ids.length) > 1 ? 's' : ''}`);
-    bulkSel.clear();
-    bumpUsage();
-    void reload();
-  }
-
-  async function handleBulkUnarchive() {
-    if (bulkSel.selectedCount === 0) return;
-    setBulkBusy(true);
-    const ids = [...bulkSel.selected];
-    const res = await consultantService.unarchiveMany(ids);
-    setBulkBusy(false);
-    if (res.error) {
-      notifyError((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
-      return;
-    }
-    notifyCreated(isEn ? `${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} restored` : `${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} restauré${(res.data ?? ids.length) > 1 ? 's' : ''}`);
-    bulkSel.clear();
-    bumpUsage();
-    void reload();
-  }
-
-  async function handleBulkDelete() {
-    if (bulkSel.selectedCount === 0) return;
-    if (
-      !confirm(
-        isEn
-          ? `PERMANENTLY delete ${bulkSel.selectedCount} consultant${bulkSel.selectedCount > 1 ? 's' : ''}? This action is irreversible.`
-          : `Supprimer DÉFINITIVEMENT ${bulkSel.selectedCount} consultant${bulkSel.selectedCount > 1 ? 's' : ''} ? Cette action est irréversible.`,
-      )
-    )
-      return;
-    setBulkBusy(true);
-    const ids = [...bulkSel.selected];
-    const res = await consultantService.deleteMany(ids);
-    setBulkBusy(false);
-    if (res.error) {
-      notifyError((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
-      return;
-    }
-    notifyDestructive(isEn ? `${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} deleted` : `${res.data ?? ids.length} consultant${(res.data ?? ids.length) > 1 ? 's' : ''} supprimé${(res.data ?? ids.length) > 1 ? 's' : ''}`);
-    bulkSel.clear();
-    bumpUsage();
-    void reload();
-  }
-
-  function openCreate() {
-    setEditingConsultant(null);
-    setDialogOpen(true);
-  }
-
-  function openEdit(consultant: Consultant) {
-    setEditingConsultant(consultant);
-    setDialogOpen(true);
-  }
-
-  async function handleStatusChange(consultantId: string, next: Consultant['status']) {
-    // Optimistic update : la liste se rafraîchit avant l'aller-retour DB.
-    // On capture le statut ACTUEL du consultant (pas tout l'array) pour
-    // un rollback ciblé qui ne réécrase pas les autres updates entre-temps.
-    let previousStatus: Consultant['status'] | null = null;
-    setConsultants((list) =>
-      (list ?? []).map((c) => {
-        if (c.id !== consultantId) return c;
-        previousStatus = c.status;
-        return { ...c, status: next };
-      }),
+    setData((list) => (list ?? []).filter((c) => !ids.includes(c.id)));
+    setSelected(new Set());
+    toast.success(
+      restore
+        ? fr ? `${ids.length} profil(s) restauré(s)` : `${ids.length} profile(s) restored`
+        : fr ? `${ids.length} profil(s) archivé(s)` : `${ids.length} profile(s) archived`,
     );
-    const res = await consultantService.update(consultantId, { status: next });
-    if (res.error) {
-      notifyError((isEn ? 'Could not update status: ' : 'Mise à jour du statut impossible : ') + res.error.message);
-      if (previousStatus !== null) {
-        const rollback = previousStatus;
-        setConsultants((list) =>
-          (list ?? []).map((c) => (c.id === consultantId ? { ...c, status: rollback } : c)),
+  }
+
+  const columns: Column<ConsultantListItem>[] = [
+    {
+      id: 'name',
+      header: 'Consultant',
+      mobile: 'title',
+      sortValue: (c) => `${c.last_name} ${c.first_name}`,
+      cell: (c) => (
+        <span className="flex min-w-0 items-center gap-2.5">
+          <Avatar name={`${c.first_name} ${c.last_name}`} size="sm" />
+          <span className="min-w-0">
+            <span className="block truncate font-medium text-foreground">
+              {c.first_name} {c.last_name}
+            </span>
+            <span className="block truncate text-xs text-muted-foreground">
+              {c.job_title}
+              {c.seniority ? ` · ${SENIORITY_LABEL[c.seniority]}` : ''}
+            </span>
+          </span>
+        </span>
+      ),
+    },
+    {
+      id: 'status',
+      header: fr ? 'Statut' : 'Status',
+      mobile: 'trailing',
+      sortValue: (c) => c.status,
+      cell: (c) => {
+        const s = statusOf(CONSULTANT_STATUS, c.status, lang);
+        return <StatusPill tone={s.tone}>{s.label}</StatusPill>;
+      },
+    },
+    {
+      id: 'availability',
+      header: fr ? 'Disponibilité' : 'Availability',
+      mobile: 'meta',
+      sortValue: (c) => (c.status === 'available' ? '0000' : (c.available_from ?? c.current_mission_end ?? '9999')),
+      cell: (c) => {
+        if (c.status === 'available' && (!c.available_from || c.available_from <= today))
+          return <span className="text-[13px] font-medium text-success">{fr ? 'Immédiate' : 'Now'}</span>;
+        const d = c.available_from ?? c.current_mission_end;
+        return d ? <span className="text-[13px] text-muted-foreground">{formatDate(d, lang, 'short')}</span> : <span className="text-muted-foreground">—</span>;
+      },
+    },
+    {
+      id: 'mission',
+      header: fr ? 'Mission actuelle' : 'Current mission',
+      hideOnMobile: true,
+      sortValue: (c) => c.active_missions[0]?.title ?? '',
+      cell: (c) => {
+        const m = c.active_missions.find((x) => x.status === 'active') ?? c.active_missions[0];
+        return m ? <span className="block max-w-[14rem] truncate text-[13px] text-muted-foreground">{m.title}</span> : <span className="text-muted-foreground">—</span>;
+      },
+    },
+    {
+      id: 'skills',
+      header: fr ? 'Compétences clés' : 'Key skills',
+      hideOnMobile: true,
+      cell: (c) => {
+        const skills = (skillsByConsultant.get(c.id) ?? [])
+          .slice()
+          .sort((a, b) => Number(b.is_highlighted) - Number(a.is_highlighted) || (b.level ?? 0) - (a.level ?? 0))
+          .slice(0, 3);
+        return skills.length ? (
+          <span className="flex flex-wrap gap-1">
+            {skills.map((s) => (
+              <Badge key={s.id} variant="secondary">
+                {s.name}
+              </Badge>
+            ))}
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
         );
-      }
-    }
-  }
+      },
+    },
+    {
+      id: 'city',
+      header: fr ? 'Ville' : 'City',
+      hideOnMobile: true,
+      mobile: 'meta',
+      sortValue: (c) => c.city ?? '',
+      cell: (c) => <span className="text-[13px] text-muted-foreground">{c.city ?? '—'}</span>,
+    },
+    ...(showRates
+      ? ([
+          {
+            id: 'rate',
+            header: 'TJM',
+            align: 'right',
+            hideOnMobile: true,
+            sortValue: (c) => Number(c.daily_rate_eur ?? 0),
+            cell: (c) => <span className="num text-[13px]">{c.daily_rate_eur ? formatEur(Number(c.daily_rate_eur), lang) : '—'}</span>,
+          },
+        ] as Column<ConsultantListItem>[])
+      : []),
+    {
+      id: 'portal',
+      header: <span className="sr-only">{fr ? 'Portail' : 'Portal'}</span>,
+      hideOnMobile: true,
+      cell: (c) =>
+        c.has_portal ? (
+          <Tooltip label={fr ? 'Accès au portail consultant actif' : 'Consultant portal access active'}>
+            <span className="inline-flex text-muted-foreground" aria-label={fr ? 'Accès portail' : 'Portal access'}>
+              <DoorOpen className="h-4 w-4" />
+            </span>
+          </Tooltip>
+        ) : null,
+    },
+  ];
 
-  async function archiveConsultant(consultant: Consultant) {
-    const displayName = `${consultant.first_name ?? ''} ${consultant.last_name ?? ''}`.trim() || (isEn ? 'this consultant' : 'ce consultant');
-    if (
-      !confirm(
-        isEn
-          ? `Archive ${displayName}? The profile disappears from the list but its data (CV, timesheets, invoices) is kept.`
-          : `Archiver ${displayName} ? Le profil disparaît de la liste mais ses données (CV, CRA, factures) sont conservées.`,
-      )
-    ) {
-      return;
-    }
-    const res = await consultantService.archive(consultant.id);
-    if (res.error) {
-      notifyError((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
-      return;
-    }
-    setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
-    bumpUsage();
-  }
-
-  async function unarchiveConsultant(consultant: Consultant) {
-    const res = await consultantService.unarchive(consultant.id);
-    if (res.error) {
-      notifyError((isEn ? 'Error: ' : 'Erreur : ') + res.error.message);
-      return;
-    }
-    setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
-    bumpUsage();
-  }
-
-  async function hardDeleteConsultant(consultant: Consultant) {
-    const fullName = `${consultant.first_name} ${consultant.last_name}`;
-    if (
-      !confirm(
-        isEn
-          ? `⚠️ PERMANENT deletion of ${fullName} and all their data (CV, experiences, education, skills, documents).\n\nThis action is IRREVERSIBLE. Continue?`
-          : `⚠️ Suppression DÉFINITIVE de ${fullName} et de toutes ses données (CV, expériences, formations, compétences, documents).\n\nCette action est IRRÉVERSIBLE. Continuer ?`,
-      )
-    ) {
-      return;
-    }
-    const typed = prompt(
-      isEn
-        ? `To confirm, type the consultant's full name exactly:\n${fullName}`
-        : `Pour confirmer, tape exactement le nom complet du consultant :\n${fullName}`,
-    );
-    if (typed?.trim() !== fullName) {
-      notifyError(isEn ? 'Incorrect confirmation — deletion cancelled.' : 'Confirmation incorrecte — suppression annulée.');
-      return;
-    }
-    const res = await consultantService.delete(consultant.id);
-    if (res.error) {
-      const msg = /foreign key|violates foreign|reference/i.test(res.error.message)
-        ? isEn
-          ? `Not possible: ${fullName} has linked timesheets, invoices or contracts. Delete them first.`
-          : `Impossible : ${fullName} a des CRA, factures ou contrats liés. Supprime-les d'abord.`
-        : (isEn ? 'Error: ' : 'Erreur : ') + res.error.message;
-      notifyError(msg);
-      return;
-    }
-    notifyDestructive(isEn ? `${fullName} permanently deleted` : `${fullName} supprimé définitivement`);
-    setConsultants((prev) => (prev ?? []).filter((c) => c.id !== consultant.id));
-    bumpUsage();
-  }
-
-  const headerSub = showArchived
-    ? isEn
-      ? `${consultants.length} archived`
-      : `${consultants.length} ${consultants.length > 1 ? 'archivés' : 'archivé'}`
-    : `${consultants.length} ${t.pages.consultants.profiles_available} — ${t.pages.consultants.not_positioned_yet}`;
-
-  // KPIs : total / en mission (présent dans consultantsData) / disponibles / intercontrat
-  // ⚠️ active_missions inclut les statuts 'active' ET 'proposed' (CV poussé).
-  // On compte "En Mission" UNIQUEMENT les missions vraiment actives.
-  // Un CV juste poussé pour une opportunité n'est pas "en mission".
-  const allData = consultantsData ?? [];
-  const totalLibrary = allData.length;
-  const hasActiveMission = (c: typeof allData[number]) =>
-    (c.active_missions ?? []).some((m) => m.status === 'active');
-  const onMissionCount = allData.filter(hasActiveMission).length;
-  const availableCount = allData.filter((c) => c.status === 'available').length;
-  const interContractCount = allData.filter(
-    (c) => !hasActiveMission(c) && c.status !== 'archived',
-  ).length;
-  const interContractRatio =
-    totalLibrary > 0 ? Math.round((interContractCount / totalLibrary) * 100) : 0;
+  const isEmptyScope = !loading && (data ?? []).length === 0;
 
   return (
     <AppShell>
-      <TalentTabs active="consultants" counts={{ consultants: allInPool.length }} />
       <PageHeader
-        eyebrow={t.pages.consultants.eyebrow}
-        title={
-          <>
-            {t.pages.consultants.title_a}{' '}
-            <span className="text-primary font-display ">{t.pages.consultants.title_b}</span>
-          </>
-        }
-        description={headerSub}
+        eyebrow={fr ? 'Ressources' : 'Resources'}
+        title="Consultants"
+        description={fr ? 'Effectif, vivier et profils positionnés.' : 'Staff, talent pool and positioned profiles.'}
         actions={
-          <>
-            <Button
-              variant="outline"
-              onClick={() => setShowArchived((v) => !v)}
-              title={showArchived ? t.pages.consultants.see_active : t.pages.consultants.see_archived}
-            >
-              {showArchived ? (
-                <>
-                  <ArchiveRestore className="h-4 w-4" />
-                  {t.pages.consultants.see_active}
-                </>
-              ) : (
-                <>
-                  <Archive className="h-4 w-4" />
-                  {t.pages.consultants.see_archived}
-                </>
-              )}
-            </Button>
-            {!showArchived && (
-              <>
-                <Button variant="outline" onClick={() => setCsvOpen(true)}>
-                  <FileUp className="h-4 w-4" />
-                  {t.pages.consultants.import_csv}
-                </Button>
-                <Button onClick={openCreate}>
-                  <Plus className="h-4 w-4" />
-                  {t.pages.consultants.new}
-                </Button>
-              </>
+          canEdit && (
+            <>
+              <Button variant="secondary" onClick={() => setCsvOpen(true)}>
+                <FileUp />
+                {fr ? 'Importer' : 'Import'}
+              </Button>
+              <Button onClick={() => setDialog({ open: true, prospect: scope === 'pool' })}>
+                <Plus />
+                {scope === 'pool' ? (fr ? 'Ajouter au vivier' : 'Add to pool') : fr ? 'Ajouter un consultant' : 'Add a consultant'}
+              </Button>
+            </>
+          )
+        }
+      />
+
+      {scope === 'staff' && (
+        <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <KPICard label={fr ? 'Effectif' : 'Headcount'} value={kpis.total} loading={loading && !data} />
+          <KPICard label={fr ? 'En mission' : 'On mission'} value={kpis.onMission} loading={loading && !data} />
+          <KPICard label={fr ? 'Disponibles' : 'Available'} value={kpis.available} tone={kpis.available ? 'amber' : 'neutral'} loading={loading && !data} />
+          <KPICard label={fr ? 'Disponibles sous 30 j' : 'Free within 30 d'} value={kpis.soon} loading={loading && !data} />
+          <KPICard label={fr ? 'Taux d’intercontrat' : 'Bench rate'} valueText={formatPct(kpis.bench, lang, 0)} loading={loading && !data} />
+        </section>
+      )}
+
+      <Tabs value={scope} onValueChange={(v) => { setScope(v as Scope); setSelected(new Set()); }} className="mb-4">
+        <TabsList>
+          <TabsTrigger value="staff">{fr ? 'Effectif' : 'Staff'}</TabsTrigger>
+          <TabsTrigger value="pool">{fr ? 'Vivier' : 'Talent pool'}</TabsTrigger>
+          <TabsTrigger value="positioned">{fr ? 'Positionnés' : 'Positioned'}</TabsTrigger>
+          <TabsTrigger value="archived">{fr ? 'Archivés' : 'Archived'}</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,16rem)_minmax(0,12rem)_repeat(3,minmax(0,11rem))]">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={fr ? 'Nom, poste, ville' : 'Name, title, city'} className="pl-9" aria-label={fr ? 'Rechercher' : 'Search'} />
+        </div>
+        <Input value={skill} onChange={(e) => setSkill(e.target.value)} placeholder={fr ? 'Compétence (ex. AWS)' : 'Skill (e.g. AWS)'} aria-label={fr ? 'Filtrer par compétence' : 'Filter by skill'} />
+        <Select value={status} onChange={(e) => setStatus(e.target.value)} aria-label={fr ? 'Statut' : 'Status'}>
+          <option value="all">{fr ? 'Tous statuts' : 'All statuses'}</option>
+          {Object.entries(CONSULTANT_STATUS)
+            .filter(([k]) => k !== 'archived')
+            .map(([k, v]) => (
+              <option key={k} value={k}>
+                {v.label[lang]}
+              </option>
+            ))}
+        </Select>
+        <Select value={availability} onChange={(e) => setAvailability(e.target.value)} aria-label={fr ? 'Disponibilité' : 'Availability'}>
+          <option value="any">{fr ? 'Toute disponibilité' : 'Any availability'}</option>
+          <option value="now">{fr ? 'Disponible maintenant' : 'Available now'}</option>
+          <option value="30">{fr ? 'Sous 30 jours' : 'Within 30 days'}</option>
+          <option value="60">{fr ? 'Sous 60 jours' : 'Within 60 days'}</option>
+        </Select>
+        <Select value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Business Manager">
+          <option value="all">{fr ? 'Tous les référents' : 'All owners'}</option>
+          {owners.map(([id, name]) => (
+            <option key={id} value={id}>
+              {name}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      {selected.size > 0 && canEdit && (
+        <div className="sticky top-16 z-10 mb-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-2 shadow-md">
+          <span className="num text-[13px]">
+            {selected.size} {fr ? 'sélectionné(s)' : 'selected'}
+          </span>
+          <div className="flex gap-2">
+            {scope === 'archived' ? (
+              <Button size="sm" variant="secondary" onClick={() => void archive([...selected], true)}>
+                <ArchiveRestore />
+                {fr ? 'Restaurer' : 'Restore'}
+              </Button>
+            ) : (
+              <Button size="sm" variant="secondary" onClick={() => void archive([...selected])}>
+                <Archive />
+                {fr ? 'Archiver' : 'Archive'}
+              </Button>
             )}
-          </>
-        }
-      />
+            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
+              {fr ? 'Annuler' : 'Cancel'}
+            </Button>
+          </div>
+        </div>
+      )}
 
-      {!showArchived && (
-        <Reveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <KPICard
+      <DataTable
+        aria-label="Consultants"
+        rows={rows}
+        columns={columns}
+        getRowId={(c) => c.id}
+        rowHref={(c) => `/consultants/${c.id}`}
+        loading={loading && !data}
+        selectable={canEdit}
+        selected={selected}
+        onSelectedChange={setSelected}
+        initialSort={{ id: 'name', dir: 'asc' }}
+        empty={
+          <EmptyState
             icon={Users}
-            label={t.pages.consultants.kpi_library}
-            value={totalLibrary}
-            tone="magenta"
-            hint={t.pages.consultants.kpi_library_sub}
+            title={
+              isEmptyScope
+                ? scope === 'pool'
+                  ? fr ? 'Vivier vide' : 'Empty talent pool'
+                  : scope === 'archived'
+                    ? fr ? 'Aucun profil archivé' : 'No archived profiles'
+                    : scope === 'positioned'
+                      ? fr ? 'Aucun profil positionné' : 'No positioned profiles'
+                      : fr ? 'Aucun consultant' : 'No consultants'
+                : fr ? 'Aucun résultat' : 'No results'
+            }
+            description={
+              isEmptyScope && scope === 'staff'
+                ? fr
+                  ? 'Ajoutez vos consultants un par un, ou importez-les depuis un fichier CSV.'
+                  : 'Add consultants one by one, or import them from a CSV file.'
+                : undefined
+            }
+            action={
+              isEmptyScope && scope === 'staff' && canEdit ? (
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Button onClick={() => setDialog({ open: true, prospect: false })}>
+                    <Plus />
+                    {fr ? 'Ajouter un consultant' : 'Add a consultant'}
+                  </Button>
+                  <Button variant="secondary" onClick={() => setCsvOpen(true)}>
+                    <FileUp />
+                    {fr ? 'Importer un CSV' : 'Import a CSV'}
+                  </Button>
+                </div>
+              ) : undefined
+            }
           />
-          <KPICard
-            icon={Briefcase}
-            label={t.pages.consultants.kpi_on_mission}
-            value={onMissionCount}
-            tone="violet"
-          />
-          <KPICard
-            icon={UserCheck}
-            label={t.pages.consultants.kpi_available}
-            value={availableCount}
-            tone="emerald"
-          />
-          <KPICard
-            icon={Timer}
-            label={t.pages.consultants.kpi_intercontract}
-            value={interContractRatio}
-            suffix="%"
-            tone="amber"
-            hint={`${interContractCount} ${t.pages.consultants.kpi_intercontract_sub}`}
-          />
-        </Reveal>
-      )}
-
-      <ConsultantFormDialog
-        open={dialogOpen}
-        onOpenChange={(v) => {
-          setDialogOpen(v);
-          if (!v) setEditingConsultant(null);
-        }}
-        organizationId={activeOrgId ?? ''}
-        consultant={editingConsultant}
-        onSaved={() => {
-          reload();
-          bumpUsage();
-        }}
-      />
-
-      <AssignMissionDialog
-        open={!!assignTo}
-        onOpenChange={(v) => {
-          if (!v) setAssignTo(null);
-        }}
-        consultant={
-          assignTo
-            ? {
-                id: assignTo.id,
-                first_name: assignTo.first_name,
-                last_name: assignTo.last_name,
-                daily_rate_eur: assignTo.daily_rate_eur,
-              }
-            : null
         }
-        onAssigned={() => {
-          setConsultants((prev) => (prev ?? []).filter((c) => c.id !== assignTo?.id));
-          reload();
-        }}
+        className={cn(selected.size > 0 && 'ring-1 ring-primary/20')}
       />
 
-      <CsvImportDialog
-        open={csvOpen}
-        onOpenChange={setCsvOpen}
-        onImported={() => {
-          reload();
-          bumpUsage();
-        }}
-      />
-
-      <GrantPortalDialog
-        open={!!grantingPortal}
-        onOpenChange={(v) => {
-          if (!v) setGrantingPortal(null);
-        }}
-        consultant={grantingPortal}
-        onGranted={() => reload()}
-      />
-
-      <UsageBanner resource="consultants" />
-
-      {/* Barre d'outils unifiée : recherche + filtres métier + ville dans
-          un seul bloc premium. PAS d'overflow-hidden ici — le popover du
-          CityFilter (position absolute) doit pouvoir déborder du bloc. */}
-      <Reveal delay={0.05}>
-        <div className="qc-premium relative mb-6 rounded-2xl border p-4 space-y-3.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative flex-1 min-w-[220px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={t.pages.consultants.search_placeholder}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <CityFilter
-              cities={cityCounts}
-              selected={cityFilter}
-              onChange={setCityFilter}
-            />
-          </div>
-
-          <JobFamilyFilter
-            counts={familyCounts}
-            total={allInPool.length}
-            active={familyFilter}
-            onChange={setFamilyFilter}
-          />
-        </div>
-      </Reveal>
-
-      {/* Bandeau filtre URL actif (drill-down depuis dashboard/widget) */}
-      {hasUrlFilter && (
-        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/[0.06] px-4 py-2.5">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary">
-              <Search className="h-3 w-3" />
-            </span>
-            <span className="text-muted-foreground">{isEn ? 'Active filter:' : 'Filtre actif :'}</span>
-            <span className="font-medium">
-              {urlStatusFilter === 'available' && (isEn ? 'Available' : 'Disponibles')}
-              {urlStatusFilter === 'on_mission' && (isEn ? 'On mission' : 'En mission')}
-              {urlStatusFilter === 'soon_available' && (isEn ? 'Soon available' : 'Bientôt disponibles')}
-              {urlStatusFilter === 'unavailable' && (isEn ? 'Unavailable' : 'Indisponibles')}
-              {urlEndedBefore === 'today' && (isEn ? ' · mission ended' : ' · mission terminée')}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              ({totalCount} {isEn ? 'profiles' : 'profils'})
-            </span>
-          </div>
-          <Button variant="ghost" size="sm" onClick={clearUrlFilter} className="h-7">
-            {isEn ? 'Clear filter' : 'Retirer le filtre'}
-          </Button>
-        </div>
-      )}
-
-      {!loading && consultantsData !== null && totalCount === 0 ? (
-        <EmptyState
-          icon={Users}
-          title={
-            showArchived
-              ? isEn ? 'No archived profile' : 'Aucun profil archivé'
-              : isEn ? 'No profile available' : 'Aucun profil disponible'
-          }
-          description={
-            showArchived
-              ? isEn ? 'Archived profiles will appear here.' : 'Les profils archivés apparaîtront ici.'
-              : isEn
-                ? 'Import your first CSV library or create a consultant manually.'
-                : 'Importez votre première bibliothèque CSV ou créez un consultant manuellement.'
-          }
-          action={
-            !showArchived ? (
-              <div className="flex gap-2 justify-center">
-                <Button variant="outline" onClick={() => setCsvOpen(true)}>
-                  <FileUp className="h-4 w-4" />
-                  {isEn ? 'Import CSV' : 'Importer CSV'}
-                </Button>
-                <Button onClick={openCreate}>
-                  <Plus className="h-4 w-4" />
-                  {isEn ? 'New consultant' : 'Nouveau consultant'}
-                </Button>
-              </div>
-            ) : undefined
-          }
+      {activeOrgId && (
+        <ConsultantFormDialog
+          open={dialog.open}
+          onOpenChange={(v) => setDialog((d) => ({ ...d, open: v }))}
+          organizationId={activeOrgId}
+          isProspect={dialog.prospect}
+          onSaved={() => void reload()}
         />
-      ) : (
-      <Reveal delay={0.1}>
-      <AppCard>
-        <div className="overflow-hidden rounded-2xl">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">
-                  <input
-                    type="checkbox"
-                    aria-label={isEn ? 'Select all' : 'Tout sélectionner'}
-                    checked={bulkSel.allSelected}
-                    ref={(el) => {
-                      if (el) el.indeterminate = bulkSel.someSelected;
-                    }}
-                    onChange={(e) => (e.target.checked ? bulkSel.selectAll() : bulkSel.clear())}
-                    className="h-4 w-4 cursor-pointer accent-primary"
-                  />
-                </TableHead>
-                <TableHead>{t.pages.consultants.table_consultant}</TableHead>
-                <TableHead>{t.pages.consultants.table_seniority}</TableHead>
-                <TableHead>{t.pages.consultants.table_daily_rate}</TableHead>
-                <TableHead>{t.pages.consultants.table_city}</TableHead>
-                <TableHead>{t.pages.consultants.table_status}</TableHead>
-                <TableHead className="text-right">{t.pages.consultants.table_actions}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {/* data===null = query pas encore lancée (activeOrgId pas prêt).
-                  On affiche le skeleton plutôt qu'un "Aucun profil disponible"
-                  trompeur le temps que l'auth se réhydrate au F5. */}
-              {loading || consultantsData === null ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell colSpan={7}>
-                      <div
-                        className="h-10 rounded-lg surface-1 animate-pulse"
-                        style={{ animationDelay: `${i * 120}ms` }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                paginated.map((c, rowIdx) => (
-                  <motion.tr
-                    key={c.id}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      duration: 0.25,
-                      delay: Math.min(rowIdx, 10) * 0.03,
-                      ease: 'easeOut',
-                    }}
-                    className={cn(
-                      'group border-b border-hairline transition-colors hover-surface',
-                      bulkSel.isSelected(c.id) && 'bg-primary/[0.04]',
-                    )}
-                  >
-                    <TableCell className="w-10">
-                      <input
-                        type="checkbox"
-                        aria-label={`${isEn ? 'Select' : 'Sélectionner'} ${c.first_name} ${c.last_name}`}
-                        checked={bulkSel.isSelected(c.id)}
-                        onChange={() => bulkSel.toggle(c.id)}
-                        className="h-4 w-4 cursor-pointer accent-primary"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 shrink-0 rounded-full bg-qc-gradient ring-1 ring-foreground/10 flex items-center justify-center text-white text-xs font-semibold transition-transform duration-200 group-hover:scale-105">
-                          {(c.first_name?.[0] ?? '?').toUpperCase()}
-                          {(c.last_name?.[0] ?? '').toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="font-medium">
-                            <span className="uppercase">{c.last_name ?? '—'}</span>{' '}
-                            {c.first_name ?? ''}
-                          </div>
-                          <div className="text-xs text-muted-foreground">{c.job_title ?? '—'}</div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{c.seniority ? (seniorityI18n[c.seniority] ?? SENIORITY_LABEL[c.seniority] ?? c.seniority) : '—'}</Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {c.daily_rate_eur ? formatCurrency(c.daily_rate_eur) : '—'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-xs">
-                      {c.city ?? '—'}
-                    </TableCell>
-                    <TableCell>
-                      {showArchived || c.status === 'on_mission' || c.status === 'archived' ? (
-                        // En lecture seule : 'on_mission' est piloté par le trigger
-                        // missions, 'archived' par l'archivage du profil.
-                        <StatusBadge
-                          tone={
-                            c.status === 'on_mission'
-                              ? 'magenta'
-                              : c.status === 'archived'
-                                ? 'neutral'
-                                : c.status === 'available'
-                                  ? 'success'
-                                  : c.status === 'soon_available'
-                                    ? 'warning'
-                                    : 'neutral'
-                          }
-                        >
-                          {consultantStatusI18n[c.status as keyof typeof consultantStatusI18n] ?? CONSULTANT_STATUS_LABEL[c.status]}
-                        </StatusBadge>
-                      ) : (
-                        <Combobox
-                          value={c.status}
-                          onChange={(v) =>
-                            handleStatusChange(c.id, v as Consultant['status'])
-                          }
-                          className="w-[140px]"
-                          // La couleur du statut va sur le BOUTON (triggerClassName),
-                          // pas sur le conteneur — sinon la pastille verte débordait
-                          // du cadre (le bouton du Combobox est h-10 par défaut).
-                          triggerClassName={cn(
-                            'h-8 px-2.5 text-xs font-medium leading-none',
-                            CONSULTANT_STATUS_STYLE[c.status],
-                          )}
-                          ariaLabel={`Statut de ${c.first_name ?? ''} ${c.last_name ?? ''}`}
-                          options={[
-                            { value: 'available', label: consultantStatusI18n.available },
-                            { value: 'soon_available', label: consultantStatusI18n.soon_available },
-                            { value: 'unavailable', label: consultantStatusI18n.unavailable },
-                          ]}
-                        />
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
-                        <Button variant="ghost" size="sm" asChild title={t.pages.consultants.action_view}>
-                          <Link href={`/consultants/${c.id}`}>
-                            <Eye className="h-3.5 w-3.5" />
-                            {t.pages.consultants.action_view}
-                          </Link>
-                        </Button>
-                        {showArchived ? (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => unarchiveConsultant(c)}
-                              title={isEn ? 'Restore' : 'Restaurer'}
-                              className="text-success hover:text-success"
-                            >
-                              <ArchiveRestore className="h-3.5 w-3.5" />
-                              {isEn ? 'Restore' : 'Restaurer'}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => hardDeleteConsultant(c)}
-                              title={isEn ? 'Delete permanently' : 'Supprimer définitivement'}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              {isEn ? 'Delete' : 'Supprimer'}
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setAssignTo(c)}
-                              title={
-                                isEn
-                                  ? 'Push the CV to an offer (pick the offer + confirm day rate)'
-                                  : 'Pousser le CV sur une offre (choisis l\'offre + valide le TJM)'
-                              }
-                              className="text-primary hover:bg-primary/10"
-                            >
-                              <Send className="h-3.5 w-3.5" />
-                              {t.pages.consultants.action_push_cv}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEdit(c)}
-                              title={isEn ? 'Edit' : 'Éditer'}
-                            >
-                              <Pencil className="h-3.5 w-3.5 text-primary" />
-                            </Button>
-                            {!c.has_portal && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setGrantingPortal(c)}
-                                title={isEn ? 'Create a consultant portal access' : 'Créer un accès portail consultant'}
-                                className="text-primary hover:text-primary"
-                              >
-                                <KeyRound className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => archiveConsultant(c)}
-                              title={isEn ? 'Archive' : 'Archiver'}
-                            >
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </motion.tr>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </AppCard>
-      </Reveal>
       )}
-
-      <PaginationFooter
-        pagination={pagination}
-        total={totalCount}
-        itemLabel={isEn ? 'profile' : 'profil'}
-      />
-
-      <BulkActionBar
-        count={bulkSel.selectedCount}
-        entityLabel="consultant"
-        onClear={bulkSel.clear}
-        actions={
-          showArchived
-            ? [
-                {
-                  label: isEn ? 'Restore' : 'Restaurer',
-                  icon: <ArchiveRestore className="h-3.5 w-3.5" />,
-                  onClick: handleBulkUnarchive,
-                  busy: bulkBusy,
-                },
-                {
-                  label: isEn ? 'Delete permanently' : 'Supprimer définitivement',
-                  icon: <Trash2 className="h-3.5 w-3.5" />,
-                  onClick: handleBulkDelete,
-                  variant: 'destructive',
-                  busy: bulkBusy,
-                },
-              ]
-            : [
-                {
-                  label: isEn ? 'Archive' : 'Archiver',
-                  icon: <Archive className="h-3.5 w-3.5" />,
-                  onClick: handleBulkArchive,
-                  busy: bulkBusy,
-                },
-              ]
-        }
-      />
+      <CsvImportDialog open={csvOpen} onOpenChange={setCsvOpen} isProspect={scope === 'pool'} onImported={() => void reload()} />
     </AppShell>
-  );
-}
-
-/** Entrée en cascade des sections de la page (fondu + translation). */
-function Reveal({
-  delay = 0,
-  className,
-  children,
-}: {
-  delay?: number;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay, ease: 'easeOut' }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-export default function ConsultantsPage() {
-  return (
-    <Suspense fallback={null}>
-      <ConsultantsPageInner />
-    </Suspense>
   );
 }

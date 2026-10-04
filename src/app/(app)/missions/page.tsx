@@ -80,8 +80,9 @@ export default function MissionsPage() {
   useEffect(() => {
     if (params.get('new') !== '1') return;
     const opp = params.get('opportunity');
+    const consultant = params.get('consultant');
     if (!opp) {
-      setDrawer({ open: true });
+      setDrawer({ open: true, draft: consultant ? { consultant_id: consultant } : undefined });
       return;
     }
     void draftFromOpportunity(opp).then((draft) => setDrawer({ open: true, draft: draft ?? undefined }));
