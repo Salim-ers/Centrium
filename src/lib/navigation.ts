@@ -22,6 +22,15 @@ import {
   Workflow,
   ListChecks,
   ClipboardList,
+  Building2,
+  Palette,
+  SlidersHorizontal,
+  CreditCard,
+  BellRing,
+  Plug,
+  ShieldCheck,
+  User,
+  Sparkles,
   type LucideIcon,
 } from 'lucide-react';
 import type { Permission } from '@/lib/auth/permissions';
@@ -163,6 +172,34 @@ export const SECTION_TABS: Record<'crm' | 'operations' | 'staffing', SectionTab[
   ],
 };
 
+export type SettingsSection = SectionTab & { icon: LucideIcon; group: 'org' | 'workspace' | 'account' };
+
+/** Groupes de la navigation interne des Paramètres. */
+export const SETTINGS_GROUPS: Array<{ id: SettingsSection['group']; label: Label }> = [
+  { id: 'org', label: { fr: 'Organisation', en: 'Organization' } },
+  { id: 'workspace', label: { fr: 'Espace de travail', en: 'Workspace' } },
+  { id: 'account', label: { fr: 'Mon compte', en: 'My account' } },
+];
+
+/**
+ * Sections des Paramètres : une navigation interne compacte, le contenu à
+ * droite. Les pages historiques (/billing, /automations) restent valides.
+ */
+export const SETTINGS_SECTIONS: SettingsSection[] = [
+  { group: 'org', href: '/settings', label: { fr: 'Organisation', en: 'Organization' }, icon: Building2, permission: 'dashboard.view', match: ['/settings', '/settings/facturation'] },
+  { group: 'org', href: '/settings/branding', label: { fr: 'Branding', en: 'Branding' }, icon: Palette, permission: 'dashboard.view', match: ['/settings/branding'] },
+  { group: 'org', href: '/settings/team', label: { fr: 'Équipe', en: 'Team' }, icon: Users, permission: 'dashboard.view', match: ['/settings/team'] },
+  { group: 'org', href: '/settings/permissions', label: { fr: 'Rôles & permissions', en: 'Roles & permissions' }, icon: SlidersHorizontal, permission: 'team.manage', match: ['/settings/permissions'] },
+  { group: 'org', href: '/settings/subscription', label: { fr: 'Abonnement', en: 'Subscription' }, icon: CreditCard, permission: 'dashboard.view', match: ['/settings/subscription', '/billing'] },
+  { group: 'workspace', href: '/settings/notifications', label: { fr: 'Notifications', en: 'Notifications' }, icon: BellRing, permission: 'dashboard.view', match: ['/settings/notifications'] },
+  { group: 'workspace', href: '/settings/automations', label: { fr: 'Automatisations', en: 'Automations' }, icon: Workflow, permission: 'automations.manage', match: ['/settings/automations', '/automations'] },
+  { group: 'workspace', href: '/settings/portals', label: { fr: 'Portails', en: 'Portals' }, icon: DoorOpen, permission: 'portals.manage', match: ['/settings/portals'] },
+  { group: 'workspace', href: '/settings/integrations', label: { fr: 'Intégrations', en: 'Integrations' }, icon: Plug, permission: 'finance.edit', match: ['/settings/integrations'] },
+  { group: 'workspace', href: '/settings/privacy', label: { fr: 'Sécurité & données', en: 'Security & data' }, icon: ShieldCheck, permission: 'dashboard.view', match: ['/settings/privacy'] },
+  { group: 'account', href: '/settings/profile', label: { fr: 'Mon profil', en: 'My profile' }, icon: User, permission: 'dashboard.view', match: ['/settings/profile'] },
+  { group: 'account', href: '/settings/appearance', label: { fr: 'Apparence', en: 'Appearance' }, icon: Sparkles, permission: 'dashboard.view', match: ['/settings/appearance'] },
+];
+
 /** Pages sans entrée de menu, trouvables par la palette (⌘K). */
 export const HIDDEN_PAGES: NavItem[] = [
   { id: 'todos', label: { fr: 'À faire', en: 'To do' }, href: '/todos', icon: ListChecks, permission: 'dashboard.view', keywords: ['tâches', 'relances', 'inbox', 'alertes'] },
@@ -209,7 +246,7 @@ export function breadcrumb(pathname: string, lang: 'fr' | 'en'): string[] {
     return hidden ? [hidden.label[lang]] : [];
   }
   const crumbs = [item.label[lang]];
-  const tabs = (SECTION_TABS as Record<string, SectionTab[] | undefined>)[item.id];
+  const tabs = item.id === 'settings' ? SETTINGS_SECTIONS : (SECTION_TABS as Record<string, SectionTab[] | undefined>)[item.id];
   const tab = tabs ? activeSectionTab(tabs, pathname) : null;
   if (tab) crumbs.push(tab.label[lang]);
   return crumbs;

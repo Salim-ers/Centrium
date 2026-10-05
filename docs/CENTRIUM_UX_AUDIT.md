@@ -105,7 +105,7 @@ DetailDrawer, SegmentedControl / tabs, EmptyState, StatusBadge, Avatar.
 | 13 | Pilotage financier : 4 indicateurs, grand graphique, signaux à droite (concentration, intercontrat, marges sous l’objectif, encours), répartition commutable clients / consultants / missions ; préfacturation en 4 étapes (à préparer, à contrôler, prêtes à exporter, exportées) ; export CSV au format configurable, journaux, webhook ; connecteurs simulés retirés | fait |
 | 14 | Analytics 4 vues | à faire |
 | 15 | Portails | à faire |
-| 16 | Paramètres | à faire |
+| 16 | Paramètres : navigation interne compacte (organisation, branding, équipe, rôles, abonnement, notifications, automatisations, portails, intégrations, sécurité, mon compte), contenu à droite ; branding avec aperçu en direct (dossier, devis, portail) | fait |
 | 17–18 | Responsive, performance | à faire |
 
 Chaque phase : TypeScript, lint, tests, build, vérification visuelle

@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { usePermissions } from '@/hooks/usePermissions';
-import { HIDDEN_PAGES, NAV_ITEMS, SECONDARY_ITEMS, SECTION_TABS, canSeeNavItem } from '@/lib/navigation';
+import { HIDDEN_PAGES, NAV_ITEMS, SECONDARY_ITEMS, SECTION_TABS, SETTINGS_SECTIONS, canSeeNavItem } from '@/lib/navigation';
 import { useOrganizationSafe } from '@/lib/auth/context';
 import { pushRecent, readRecents, type Recent } from '@/lib/recents';
 import { globalSearch, type SearchKind, type SearchResult } from '@/lib/search/global-search';
@@ -249,6 +249,8 @@ export function CommandPalette() {
       }),
       ...HIDDEN_PAGES.map((i) => ({ id: i.id, label: i.label[lang], hint: undefined as string | undefined, href: i.href, icon: i.icon, item: i, keywords: i.keywords ?? [] })),
       ...SECONDARY_ITEMS.map((i) => ({ id: i.id, label: i.label[lang], hint: undefined as string | undefined, href: i.href, icon: i.icon, item: i, keywords: i.keywords ?? [] })),
+      // Sections des Paramètres : « branding », « équipe », « abonnement »…
+      ...SETTINGS_SECTIONS.filter((t) => t.href !== '/settings').map((t) => ({ id: `settings:${t.href}`, label: t.label[lang], hint: lang === 'fr' ? 'Paramètres' : 'Settings', href: t.href, icon: t.icon, item: t, keywords: [] as string[] })),
     ];
     const seen = new Set<string>();
     for (const p of pages) {

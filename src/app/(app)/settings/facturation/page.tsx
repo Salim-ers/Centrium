@@ -131,18 +131,11 @@ export default function FacturationSettingsPage() {
         backHref="/settings"
         backLabel={isEn ? 'Back to settings' : 'Retour aux paramètres'}
         eyebrow={isEn ? 'Organization' : 'Organisation'}
-        title={
-          <>
-            {isEn ? 'Billing' : 'Facturation'}{' '}
-            <span className="text-primary font-display ">
-              {isEn ? '& company.' : '& société.'}
-            </span>
-          </>
-        }
+        title={isEn ? 'Organization' : 'Organisation'}
         description={
           isEn
-            ? 'Bank details and legal information for your company — printed on your invoices and contracts.'
-            : 'RIB et mentions légales de votre ESN — imprimés sur vos factures et contrats.'
+            ? 'Company, legal information and bank details — shown on your quotes, contracts and pre-invoices.'
+            : 'Société, mentions légales et RIB — repris sur vos devis, contrats et préfactures.'
         }
         actions={<Landmark className="h-5 w-5 text-primary" />}
       />
@@ -150,8 +143,8 @@ export default function FacturationSettingsPage() {
       {!isAdmin && (
         <div className="mb-6 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
           {isEn
-            ? 'Only administrators can edit the billing information.'
-            : 'Seuls les administrateurs peuvent modifier les informations de facturation.'}
+            ? 'Only administrators can edit the organization information.'
+            : 'Seuls les administrateurs peuvent modifier les informations de l’organisation.'}
         </div>
       )}
 
@@ -160,61 +153,7 @@ export default function FacturationSettingsPage() {
           <Loader2 className="h-4 w-4 animate-spin" /> {isEn ? 'Loading…' : 'Chargement…'}
         </div>
       ) : (
-        <div className="max-w-2xl space-y-8">
-          {/* ---- RIB / coordonnées bancaires (la demande principale) ---- */}
-          <section>
-            <SectionHeader
-              eyebrow={isEn ? 'Payment' : 'Paiement'}
-              title={
-                <>
-                  {isEn ? 'Bank' : 'Coordonnées'}{' '}
-                  <span className="text-primary font-display ">
-                    {isEn ? 'details (RIB).' : 'bancaires (RIB).'}
-                  </span>
-                </>
-              }
-              description={
-                isEn
-                  ? 'Shown on your client invoices in a « Coordonnées bancaires » block so your clients can pay you by bank transfer.'
-                  : 'Affichées sur vos factures clients dans un bloc « Coordonnées bancaires » pour que vos clients vous règlent par virement.'
-              }
-              actions={<Landmark className="h-4 w-4 text-primary" />}
-            />
-            <AppCard variant="default" tone="magenta">
-              <AppCardBody size="md" className="space-y-4">
-                <Field
-                  id="bank_name"
-                  label={isEn ? 'Bank' : 'Banque'}
-                  placeholder={isEn ? 'e.g. BNP Paribas' : 'Ex : BNP Paribas'}
-                  value={val('bank_name')}
-                  onChange={setText('bank_name')}
-                  disabled={!isAdmin}
-                  maxLength={120}
-                />
-                <Field
-                  id="iban"
-                  label="IBAN"
-                  placeholder="FR76 3000 4000 0100 0000 0000 000"
-                  value={val('iban')}
-                  onChange={setText('iban')}
-                  disabled={!isAdmin}
-                  maxLength={40}
-                  mono
-                />
-                <Field
-                  id="bic"
-                  label="BIC / SWIFT"
-                  placeholder="BNPAFRPPXXX"
-                  value={val('bic')}
-                  onChange={setText('bic')}
-                  disabled={!isAdmin}
-                  maxLength={20}
-                  mono
-                />
-              </AppCardBody>
-            </AppCard>
-          </section>
-
+        <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
           {/* ---- Mentions légales société ---- */}
           <section>
             <SectionHeader
@@ -229,8 +168,8 @@ export default function FacturationSettingsPage() {
               }
               description={
                 isEn
-                  ? 'Address, registration and legal representative — reproduced on invoices and contracts (required for a compliant invoice).'
-                  : 'Adresse, immatriculation et représentant légal — repris sur factures et contrats (obligatoire pour une facture conforme).'
+                  ? 'Address, registration and legal representative — reproduced on your quotes, contracts and pre-invoices.'
+                  : 'Adresse, immatriculation et représentant légal — repris sur vos devis, contrats et préfactures.'
               }
               actions={<Building2 className="h-4 w-4 text-primary" />}
             />
@@ -350,7 +289,61 @@ export default function FacturationSettingsPage() {
             </AppCard>
           </section>
 
-          <div className="flex justify-end">
+          {/* ---- RIB / coordonnées bancaires (la demande principale) ---- */}
+          <section>
+            <SectionHeader
+              eyebrow={isEn ? 'Payment' : 'Paiement'}
+              title={
+                <>
+                  {isEn ? 'Bank' : 'Coordonnées'}{' '}
+                  <span className="text-primary font-display ">
+                    {isEn ? 'details (RIB).' : 'bancaires (RIB).'}
+                  </span>
+                </>
+              }
+              description={
+                isEn
+                  ? 'Shown in a « Coordonnées bancaires » block on the documents you send, for bank transfer payment.'
+                  : 'Affichées dans un bloc « Coordonnées bancaires » sur les documents envoyés, pour le règlement par virement.'
+              }
+              actions={<Landmark className="h-4 w-4 text-primary" />}
+            />
+            <AppCard variant="default" tone="magenta">
+              <AppCardBody size="md" className="space-y-4">
+                <Field
+                  id="bank_name"
+                  label={isEn ? 'Bank' : 'Banque'}
+                  placeholder={isEn ? 'e.g. BNP Paribas' : 'Ex : BNP Paribas'}
+                  value={val('bank_name')}
+                  onChange={setText('bank_name')}
+                  disabled={!isAdmin}
+                  maxLength={120}
+                />
+                <Field
+                  id="iban"
+                  label="IBAN"
+                  placeholder="FR76 3000 4000 0100 0000 0000 000"
+                  value={val('iban')}
+                  onChange={setText('iban')}
+                  disabled={!isAdmin}
+                  maxLength={40}
+                  mono
+                />
+                <Field
+                  id="bic"
+                  label="BIC / SWIFT"
+                  placeholder="BNPAFRPPXXX"
+                  value={val('bic')}
+                  onChange={setText('bic')}
+                  disabled={!isAdmin}
+                  maxLength={20}
+                  mono
+                />
+              </AppCardBody>
+            </AppCard>
+          </section>
+
+          <div className="flex justify-end xl:col-span-2">
             <Button
               type="button"
               disabled={!isAdmin || saving}

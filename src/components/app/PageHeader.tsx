@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { useInShellFrame } from '@/components/layout/shell-frame';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -33,11 +34,14 @@ type Props = {
 export function PageHeader({ title, description, actions, tabs, backHref, backLabel, children, className }: Props) {
   const { locale } = useLocale();
   const resolvedBackLabel = backLabel ?? (locale === 'en' ? 'Back' : 'Retour');
+  // Dans un cadre de section, la navigation interne remplace le lien retour.
+  const framed = useInShellFrame();
+  const showBack = !!backHref && !framed;
   return (
     <header className={cn('mb-4 shrink-0', className)}>
-      {backHref && (
+      {showBack && (
         <Link
-          href={backHref}
+          href={backHref!}
           className="group -ml-1 mb-1.5 inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
         >
           <ChevronLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />

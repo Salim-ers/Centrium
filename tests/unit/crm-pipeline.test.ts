@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { OPEN_STAGES, PIPELINE_STAGES, nextStage } from '@/lib/crm/pipeline';
 import { followUpState, pipelineSentence, summarizePipeline } from '@/lib/crm/summary';
-import { HIDDEN_PAGES, NAV_ITEMS, SECTION_TABS, activeSectionTab, breadcrumb, canSeeNavItem, isNavItemActive } from '@/lib/navigation';
+import { HIDDEN_PAGES, NAV_ITEMS, SECTION_TABS, SETTINGS_SECTIONS, activeSectionTab, breadcrumb, canSeeNavItem, isNavItemActive } from '@/lib/navigation';
 import type { Permission } from '@/lib/auth/permissions';
 import type { OpportunityStatus } from '@/types';
 
@@ -114,5 +114,21 @@ describe('Navigation V2 : huit destinations, un seul niveau d’onglets', () => 
     expect(breadcrumb('/finance', 'fr')).toEqual(['Opérations', 'Pilotage financier']);
     expect(breadcrumb('/missions/abc', 'fr')).toEqual(['Missions']);
     expect(breadcrumb('/cv-optimizer', 'fr')).toEqual(['Talents']);
+  });
+
+  it('nomme la section des Paramètres dans le fil d’Ariane', () => {
+    expect(breadcrumb('/settings', 'fr')).toEqual(['Paramètres', 'Organisation']);
+    expect(breadcrumb('/settings/branding', 'fr')).toEqual(['Paramètres', 'Branding']);
+    expect(breadcrumb('/settings/subscription', 'en')).toEqual(['Settings', 'Subscription']);
+    expect(breadcrumb('/billing', 'fr')).toEqual(['Paramètres', 'Abonnement']);
+  });
+
+  it('ne montre une section des Paramètres qu’avec sa permission', () => {
+    const only = (granted: string[]) => SETTINGS_SECTIONS.filter((s) => canSeeNavItem(s, (p) => granted.includes(p))).map((s) => s.href);
+    const member = only(['dashboard.view']);
+    expect(member).toContain('/settings/branding');
+    expect(member).not.toContain('/settings/permissions');
+    expect(member).not.toContain('/settings/integrations');
+    expect(only(['dashboard.view', 'team.manage', 'finance.edit'])).toEqual(expect.arrayContaining(['/settings/permissions', '/settings/integrations']));
   });
 });

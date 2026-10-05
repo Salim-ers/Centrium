@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Palette, Upload, Trash2, Loader2, RotateCcw, LayoutTemplate, PenLine } from 'lucide-react';
+import Link from 'next/link';
+import { Upload, Trash2, Loader2, RotateCcw, LayoutTemplate, PenLine } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
@@ -11,12 +12,10 @@ import { Label } from '@/components/ui/label';
 import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { useOrganization } from '@/lib/auth/context';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import {
-  PageHeader,
-  SectionHeader,
-  AppCard,
-  AppCardBody,
-} from '@/components/app';
+import { PageHeader } from '@/components/app';
+import { Segmented } from '@/components/app/Segmented';
+import { DossierPreview, PortalPreview, QuotePreview } from '@/components/settings/BrandPreview';
+import { cn } from '@/lib/utils';
 
 const DEFAULT_PRIMARY = '#C65F46';
 const DEFAULT_ACCENT = '#9D4432';
@@ -89,6 +88,10 @@ export default function BrandingSettingsPage() {
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
   const [defaultTemplate, setDefaultTemplate] = useState<TemplateId>('standard');
 
+  const [preview, setPreview] = useState<'dossier' | 'quote' | 'portal'>('dossier');
+  const [portalDark, setPortalDark] = useState(false);
+  const [identity, setIdentity] = useState<{ address?: string | null; postal_code?: string | null; city?: string | null; siren?: string | null } | null>(null);
+
   const fileRef = useRef<HTMLInputElement | null>(null);
   const sigRef = useRef<HTMLInputElement | null>(null);
 
@@ -126,6 +129,19 @@ export default function BrandingSettingsPage() {
       alive = false;
     };
   }, [applyFromApi]);
+
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/organizations/identity')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body: { data?: { address?: string | null; postal_code?: string | null; city?: string | null; siren?: string | null } } | null) => {
+        if (alive && body?.data) setIdentity(body.data);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const save = async () => {
     if (!isAdmin) return;
@@ -286,456 +302,233 @@ export default function BrandingSettingsPage() {
       accent !== (initial.brand_accent_color ?? DEFAULT_ACCENT) ||
       defaultTemplate !== (initial.default_cv_template ?? 'standard'));
 
+  const previewProps = {
+    logoUrl,
+    primary,
+    accent,
+    brandName: brandName.trim() || initial?.name || (isEn ? 'Your company' : 'Votre ESN'),
+    tagline: footerTagline.trim(),
+    identity,
+    lang: (isEn ? 'en' : 'fr') as 'fr' | 'en',
+  };
+
   return (
     <AppShell>
       <PageHeader
-        backHref="/settings"
-        backLabel={isEn ? 'Back to settings' : 'Retour aux paramètres'}
-        eyebrow={isEn ? 'Organization' : 'Organisation'}
-        title={
-          <>
-            {isEn ? 'Visual' : 'Identité'}{' '}
-            <span className="text-primary font-display ">
-              {isEn ? 'identity.' : 'visuelle.'}
-            </span>
-          </>
-        }
+        title="Branding"
         description={
           isEn
-            ? 'Branding shown to your consultants and clients: sidebar, generated CVs, contracts, invoices, CRA.'
-            : 'Branding affiché à vos consultants et à vos clients : sidebar, CV générés, contrats, factures, CRA.'
+            ? 'Set your identity once: dossiers, quotes, contracts and portals pick it up automatically.'
+            : 'Votre identité, réglée une fois : dossiers, devis, contrats et portails la reprennent automatiquement.'
         }
-        actions={<Palette className="h-5 w-5 text-primary" />}
+        actions={
+          isAdmin && (
+            <Button type="button" disabled={!dirty || saving} onClick={save} loading={saving}>
+              {isEn ? 'Save' : 'Enregistrer'}
+            </Button>
+          )
+        }
       />
 
       {!isAdmin && (
-        <div className="mb-6 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
-          {isEn
-            ? 'Only administrators can modify the visual identity.'
-            : "Seuls les administrateurs peuvent modifier l'identité visuelle."}
-        </div>
+        <p className="mb-4 rounded-xl bg-warning-soft px-4 py-2.5 text-[13px] text-warning">
+          {isEn ? 'Only administrators can modify the visual identity.' : "Seuls les administrateurs peuvent modifier l'identité visuelle."}
+        </p>
       )}
 
       {loading ? (
-        <div className="flex items-center gap-2 text-muted-foreground text-sm">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> {isEn ? 'Loading…' : 'Chargement…'}
         </div>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-          <div className="space-y-8">
-            <section>
-              <SectionHeader
-                eyebrow="Assets"
-                title={
-                  <>
-                    {isEn ? 'Brand' : 'Logo'}{' '}
-                    <span className="text-primary font-display ">
-                      {isEn ? 'logo.' : 'de marque.'}
-                    </span>
-                  </>
-                }
-                description={
-                  isEn
-                    ? 'PNG, JPG, WebP or SVG — 5 MB max. Shown in the header of CVs.'
-                    : 'PNG, JPG, WebP ou SVG — 5 Mo maximum. Affiché en en-tête des CV.'
-                }
-              />
-              <AppCard variant="default" tone="magenta">
-                <AppCardBody size="md">
-                <div className="flex items-start gap-5">
-                  <div className="h-24 w-40 rounded-md border border-border bg-foreground/40 flex items-center justify-center overflow-hidden">
-                    {logoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={logoUrl}
-                        alt="Logo"
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    ) : (
-                      <QuadCoreLogo size="sm" variant="light" />
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <input
-                        ref={fileRef}
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                        className="hidden"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) uploadLogo(f);
-                        }}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={!isAdmin || uploading}
-                        onClick={() => fileRef.current?.click()}
-                      >
-                        {uploading ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Upload className="h-4 w-4" />
-                        )}
-                        {logoUrl
-                          ? isEn
-                            ? 'Replace'
-                            : 'Remplacer'
-                          : isEn
-                            ? 'Upload'
-                            : 'Téléverser'}
-                      </Button>
-                      {logoUrl && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={!isAdmin || deletingLogo}
-                          onClick={removeLogo}
-                        >
-                          {deletingLogo ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                          {isEn ? 'Delete' : 'Supprimer'}
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {isEn
-                        ? 'Transparent background recommended. Otherwise a generic logo is used.'
-                        : 'Transparent recommandé. À défaut, un logo générique est utilisé.'}
-                    </p>
-                  </div>
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,25rem)_minmax(0,1fr)]">
+          <div className="space-y-3">
+            <section className="tile-surface p-4">
+              <h2 className="mb-3 text-[13.5px] font-semibold">{isEn ? 'Logo and signature' : 'Logo et signature'}</h2>
+              <div className="flex items-center gap-3">
+                <div className="flex h-16 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-white p-2">
+                  {logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" />
+                  ) : (
+                    <QuadCoreLogo size="sm" variant="light" />
+                  )}
                 </div>
-                </AppCardBody>
-              </AppCard>
-            </section>
-
-            <section>
-              <SectionHeader
-                eyebrow={isEn ? 'Official document' : 'Document officiel'}
-                title={
-                  <>
-                    {isEn ? 'Official' : 'Signature'}{' '}
-                    <span className="text-primary font-display ">
-                      {isEn ? 'signature.' : 'officielle.'}
-                    </span>
-                  </>
-                }
-                description={
-                  isEn
-                    ? 'Transparent PNG strongly recommended — 3 MB max. Embedded in contracts, CRA and invoices in place of the styled text rendering.'
-                    : 'PNG transparent fortement recommandé — 3 Mo maximum. Incrustée dans les contrats, CRA et factures à la place du rendu texte stylisé.'
-                }
-                actions={<PenLine className="h-4 w-4 text-primary" />}
-              />
-              <AppCard variant="default" tone="violet">
-                <AppCardBody size="md">
-                <div className="flex items-start gap-5">
-                  <div className="h-24 w-40 rounded-md border border-border bg-muted flex items-center justify-center overflow-hidden">
-                    {signatureUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={signatureUrl}
-                        alt="Signature"
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    ) : (
-                      <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                        {isEn ? 'No signature' : 'Aucune signature'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <input
-                        ref={sigRef}
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp"
-                        className="hidden"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) uploadSignature(f);
-                        }}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={!isAdmin || uploadingSig}
-                        onClick={() => sigRef.current?.click()}
-                      >
-                        {uploadingSig ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Upload className="h-4 w-4" />
-                        )}
-                        {signatureUrl
-                          ? isEn
-                            ? 'Replace'
-                            : 'Remplacer'
-                          : isEn
-                            ? 'Upload'
-                            : 'Téléverser'}
-                      </Button>
-                      {signatureUrl && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={!isAdmin || deletingSig}
-                          onClick={removeSignature}
-                        >
-                          {deletingSig ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                          {isEn ? 'Delete' : 'Supprimer'}
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {isEn
-                        ? 'Scan or export of a signed stroke, on a transparent background.'
-                        : "Scan ou export d'un trait signé, sur fond transparent."}
-                    </p>
-                  </div>
-                </div>
-                </AppCardBody>
-              </AppCard>
-            </section>
-
-            <section>
-              <SectionHeader
-                eyebrow={isEn ? 'Footer' : 'Mentions'}
-                title={
-                  <>
-                    {isEn ? 'Brand' : 'Texte'}{' '}
-                    <span className="text-primary font-display ">
-                      {isEn ? 'text.' : 'de marque.'}
-                    </span>
-                  </>
-                }
-                description={
-                  isEn
-                    ? `Shown in the footer of CVs, contracts and invoices (e.g. "MyCompany — IT Services & Consulting").`
-                    : `Affiché dans le footer des CV, contrats et factures (ex: "MaSociété — IT Services & Consulting").`
-                }
-              />
-              <AppCard variant="default" tone="cyan">
-                <AppCardBody size="md" className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="brand_name">{isEn ? 'Brand name' : 'Nom de marque'}</Label>
-                    <Input
-                      id="brand_name"
-                      value={brandName}
-                      onChange={(e) => setBrandName(e.target.value)}
-                      placeholder={initial?.name ?? (isEn ? 'Your company' : 'Votre ESN')}
-                      disabled={!isAdmin}
-                      maxLength={120}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="footer_tagline">
-                      {isEn ? 'Footer tagline' : 'Tagline du footer'}
-                    </Label>
-                    <Input
-                      id="footer_tagline"
-                      value={footerTagline}
-                      onChange={(e) => setFooterTagline(e.target.value)}
-                      placeholder="IT Services & Consulting"
-                      disabled={!isAdmin}
-                      maxLength={160}
-                    />
-                  </div>
-                </AppCardBody>
-              </AppCard>
-            </section>
-
-            <section>
-              <SectionHeader
-                eyebrow="Palette"
-                title={
-                  <>
-                    {isEn ? 'Brand' : 'Couleurs'}{' '}
-                    <span className="text-primary font-display ">
-                      {isEn ? 'colors.' : 'de marque.'}
-                    </span>
-                  </>
-                }
-                description={
-                  isEn
-                    ? 'Separators, job titles and decorative accents on CVs.'
-                    : 'Séparateurs, intitulés de poste et accents décoratifs des CV.'
-                }
-                actions={
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    disabled={!isAdmin}
-                    onClick={resetColors}
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                    {isEn ? 'Reset' : 'Réinitialiser'}
-                  </Button>
-                }
-              />
-              <AppCard variant="default" tone="rose">
-                <AppCardBody size="md" className="grid gap-4 sm:grid-cols-2">
-                  <ColorField
-                    label={isEn ? 'Primary color' : 'Couleur principale'}
-                    hint={
-                      isEn
-                        ? 'Used for headings, banners and titles.'
-                        : 'Utilisée pour les titres, bandeaux et intitulés.'
-                    }
-                    value={primary}
-                    onChange={setPrimary}
-                    disabled={!isAdmin}
-                  />
-                  <ColorField
-                    label={isEn ? 'Accent color' : "Couleur d'accent"}
-                    hint={
-                      isEn
-                        ? 'Used for bullets, separators and highlights.'
-                        : 'Utilisée pour les puces, séparateurs et highlights.'
-                    }
-                    value={accent}
-                    onChange={setAccent}
-                    disabled={!isAdmin}
-                  />
-                </AppCardBody>
-              </AppCard>
-            </section>
-
-            <section>
-              <SectionHeader
-                eyebrow="Layout"
-                title={
-                  <>
-                    {isEn ? 'Default' : 'Template'}{' '}
-                    <span className="text-primary font-display ">
-                      {isEn ? 'template.' : 'par défaut.'}
-                    </span>
-                  </>
-                }
-                description={
-                  isEn
-                    ? 'Layout preselected when opening the CV Optimizer. Each user can still switch it on a one-off basis.'
-                    : "Layout présélectionné à l'ouverture du CV Optimizer. Chaque utilisateur peut toujours changer ponctuellement."
-                }
-                actions={<LayoutTemplate className="h-4 w-4 text-primary" />}
-              />
-              <AppCard variant="default" tone="amber">
-                <AppCardBody size="md" className="space-y-2">
-                  {TEMPLATE_OPTIONS.map((opt) => {
-                    const selected = defaultTemplate === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        disabled={!isAdmin}
-                        onClick={() => setDefaultTemplate(opt.id)}
-                        className={[
-                          'w-full rounded-md border px-4 py-3 text-left transition-colors',
-                          'disabled:cursor-not-allowed disabled:opacity-60',
-                          selected
-                            ? 'border-primary/70 bg-primary/10'
-                            : 'border-border hover:border-border/80 hover:bg-muted/30',
-                        ].join(' ')}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-sm">{opt.name}</span>
-                          {selected && (
-                            <span className="text-[10px] uppercase tracking-wider text-primary font-bold">
-                              {isEn ? 'Selected' : 'Sélectionné'}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {isEn ? opt.description_en : opt.description}
-                        </p>
-                      </button>
-                    );
-                  })}
-                </AppCardBody>
-              </AppCard>
-            </section>
-
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                disabled={!isAdmin || !dirty || saving}
-                onClick={save}
-                className="bg-gradient-to-r from-primary to-primary hover:opacity-95"
-              >
-                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                {isEn ? 'Save' : 'Enregistrer'}
-              </Button>
-            </div>
-          </div>
-
-          <aside className="space-y-4">
-            <SectionHeader
-              eyebrow="Preview"
-              title={
-                <>
-                  {isEn ? 'CV' : 'Aperçu'}{' '}
-                  <span className="text-primary font-display ">
-                    {isEn ? 'preview.' : 'CV.'}
-                  </span>
-                </>
-              }
-              description={isEn ? 'Rendering applied to CVs.' : 'Rendu appliqué sur les CV.'}
-            />
-            <AppCard variant="luminous" tone="magenta">
-              <AppCardBody size="md">
-                <div className="rounded-md border border-border bg-white text-foreground p-5">
-                  <div className="h-12 flex items-center">
-                    {logoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={logoUrl}
-                        alt=""
-                        className="h-10 w-auto object-contain"
-                      />
-                    ) : (
-                      <QuadCoreLogo size="sm" variant="light" />
-                    )}
-                  </div>
-                  <div
-                    className="mt-4 h-[2px] w-full"
-                    style={{
-                      background: `linear-gradient(90deg, ${primary} 0%, ${accent} 55%, transparent 100%)`,
+                <div className="min-w-0 space-y-1.5">
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void uploadLogo(f);
                     }}
                   />
-                  <div className="mt-4">
-                    <div className="text-[20px] font-bold leading-tight text-foreground">
-                      Jean Dupont
-                    </div>
-                    <div className="text-[13px] font-semibold mt-1" style={{ color: primary }}>
-                      {isEn ? 'Senior Consultant' : 'Consultant Senior'}
-                    </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button type="button" variant="secondary" size="sm" disabled={!isAdmin || uploading} onClick={() => fileRef.current?.click()}>
+                      {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                      {logoUrl ? (isEn ? 'Replace' : 'Remplacer') : isEn ? 'Upload logo' : 'Ajouter le logo'}
+                    </Button>
+                    {logoUrl && (
+                      <Button type="button" variant="ghost" size="sm" disabled={!isAdmin || deletingLogo} onClick={removeLogo} aria-label={isEn ? 'Delete the logo' : 'Supprimer le logo'}>
+                        {deletingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      </Button>
+                    )}
                   </div>
-                  <div className="mt-4 text-[10px] text-muted-foreground flex justify-between border-t border-border pt-2">
-                    <span>
-                      {brandName.trim() || initial?.name || (isEn ? 'Your company' : 'Votre ESN')}
-                      {(footerTagline.trim() || '') && ` — ${footerTagline.trim()}`}
-                    </span>
-                    <span className="uppercase tracking-wider">
-                      {isEn ? 'Confidential' : 'Confidentiel'}
-                    </span>
-                  </div>
+                  <p className="text-xs text-muted-foreground">{isEn ? 'PNG, JPG, WebP or SVG, 5 MB max. Transparent background recommended.' : 'PNG, JPG, WebP ou SVG, 5 Mo max. Fond transparent conseillé.'}</p>
                 </div>
-              </AppCardBody>
-            </AppCard>
-          </aside>
+              </div>
+              <div className="mt-3 flex items-center gap-3 border-t border-border pt-3">
+                <div className="flex h-12 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/40 p-1.5">
+                  {signatureUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={signatureUrl} alt="Signature" className="max-h-full max-w-full object-contain" />
+                  ) : (
+                    <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{isEn ? 'No signature' : 'Aucune signature'}</span>
+                  )}
+                </div>
+                <div className="min-w-0 space-y-1.5">
+                  <input
+                    ref={sigRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void uploadSignature(f);
+                    }}
+                  />
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button type="button" variant="secondary" size="sm" disabled={!isAdmin || uploadingSig} onClick={() => sigRef.current?.click()}>
+                      {uploadingSig ? <Loader2 className="h-4 w-4 animate-spin" /> : <PenLine className="h-4 w-4" />}
+                      {signatureUrl ? (isEn ? 'Replace' : 'Remplacer') : isEn ? 'Add signature' : 'Ajouter la signature'}
+                    </Button>
+                    {signatureUrl && (
+                      <Button type="button" variant="ghost" size="sm" disabled={!isAdmin || deletingSig} onClick={removeSignature} aria-label={isEn ? 'Delete the signature' : 'Supprimer la signature'}>
+                        {deletingSig ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">{isEn ? 'Embedded in contracts and timesheets.' : 'Incrustée dans les contrats et les CRA.'}</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="tile-surface p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-[13.5px] font-semibold">{isEn ? 'Colors' : 'Couleurs'}</h2>
+                <Button type="button" variant="ghost" size="sm" disabled={!isAdmin} onClick={resetColors}>
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  {isEn ? 'Reset' : 'Réinitialiser'}
+                </Button>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                <ColorField
+                  label={isEn ? 'Primary color' : 'Couleur principale'}
+                  hint={isEn ? 'Titles, banners, buttons.' : 'Titres, bandeaux, boutons.'}
+                  value={primary}
+                  onChange={setPrimary}
+                  disabled={!isAdmin}
+                />
+                <ColorField
+                  label={isEn ? 'Secondary color' : 'Couleur secondaire'}
+                  hint={isEn ? 'Bullets, separators, highlights.' : 'Puces, séparateurs, mises en avant.'}
+                  value={accent}
+                  onChange={setAccent}
+                  disabled={!isAdmin}
+                />
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">{isEn ? 'Uploading a logo suggests colors you can adjust.' : 'Ajouter un logo propose des couleurs, à ajuster.'}</p>
+            </section>
+
+            <section className="tile-surface space-y-3 p-4">
+              <h2 className="text-[13.5px] font-semibold">{isEn ? 'Name and document footer' : 'Nom et pied de page'}</h2>
+              <div className="space-y-1.5">
+                <Label htmlFor="brand_name">{isEn ? 'Display name' : 'Nom affiché'}</Label>
+                <Input id="brand_name" value={brandName} onChange={(e) => setBrandName(e.target.value)} placeholder={initial?.name ?? (isEn ? 'Your company' : 'Votre ESN')} disabled={!isAdmin} maxLength={120} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="footer_tagline">{isEn ? 'Footer line' : 'Ligne de pied de page'}</Label>
+                <Input id="footer_tagline" value={footerTagline} onChange={(e) => setFooterTagline(e.target.value)} placeholder="IT Services & Consulting" disabled={!isAdmin} maxLength={160} />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {isEn ? 'Address and legal mentions come from ' : 'Adresse et mentions légales viennent de '}
+                <Link href="/settings" className="font-medium text-app-terra-dark underline-offset-2 hover:underline">
+                  {isEn ? 'Organization' : 'Organisation'}
+                </Link>
+                .
+              </p>
+            </section>
+
+            <section className="tile-surface p-4">
+              <h2 className="mb-2 flex items-center gap-2 text-[13.5px] font-semibold">
+                <LayoutTemplate className="h-4 w-4 text-app-terra" />
+                {isEn ? 'Default dossier layout' : 'Mise en page par défaut des dossiers'}
+              </h2>
+              <div className="space-y-1.5">
+                {TEMPLATE_OPTIONS.map((opt) => {
+                  const selected = defaultTemplate === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      disabled={!isAdmin}
+                      onClick={() => setDefaultTemplate(opt.id)}
+                      aria-pressed={selected}
+                      className={cn(
+                        'w-full rounded-xl border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60',
+                        selected ? 'border-app-terra/60 bg-app-peach-light' : 'border-border hover:bg-muted/40',
+                      )}
+                    >
+                      <span className="flex items-center justify-between text-[13px] font-semibold">
+                        {opt.name}
+                        {selected && <span className="text-[10.5px] font-bold uppercase tracking-wider text-app-terra">{isEn ? 'Default' : 'Par défaut'}</span>}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-muted-foreground">{isEn ? opt.description_en : opt.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+
+          <section className="tile-surface flex flex-col p-4 xl:sticky xl:top-0 xl:max-h-[calc(100dvh-7.5rem)] xl:self-start">
+            <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-2">
+              <h2 className="text-[13.5px] font-semibold">{isEn ? 'Live preview' : 'Aperçu en direct'}</h2>
+              <div className="flex flex-wrap items-center gap-2">
+                {preview === 'portal' && (
+                  <Segmented<'light' | 'dark'>
+                    label={isEn ? 'Portal menu' : 'Menu du portail'}
+                    value={portalDark ? 'dark' : 'light'}
+                    onChange={(v) => setPortalDark(v === 'dark')}
+                    options={[
+                      { value: 'light', label: isEn ? 'Light' : 'Clair' },
+                      { value: 'dark', label: isEn ? 'Dark' : 'Sombre' },
+                    ]}
+                  />
+                )}
+                <Segmented<'dossier' | 'quote' | 'portal'>
+                  label={isEn ? 'Document' : 'Document'}
+                  value={preview}
+                  onChange={setPreview}
+                  options={[
+                    { value: 'dossier', label: isEn ? 'Dossier' : 'Dossier' },
+                    { value: 'quote', label: isEn ? 'Quote' : 'Devis' },
+                    { value: 'portal', label: isEn ? 'Portal' : 'Portail' },
+                  ]}
+                />
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl bg-app-sand/50 p-4 sm:p-6">
+              {preview === 'dossier' && <DossierPreview {...previewProps} />}
+              {preview === 'quote' && <QuotePreview {...previewProps} />}
+              {preview === 'portal' && <PortalPreview {...previewProps} dark={portalDark} />}
+            </div>
+            <p className="mt-2 shrink-0 text-xs text-muted-foreground">
+              {isEn ? 'Same structure for every organization; your logo, colors and mentions adapt it.' : 'Même structure pour toutes les organisations ; votre logo, vos couleurs et vos mentions l’adaptent.'}
+            </p>
+          </section>
         </div>
       )}
     </AppShell>

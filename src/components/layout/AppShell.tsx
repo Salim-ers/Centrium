@@ -4,6 +4,7 @@ import { createContext, Suspense, useContext, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 
 import { cn } from '@/lib/utils';
+import { useInShellFrame } from './shell-frame';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { CommandPalette } from './CommandPalette';
@@ -12,6 +13,8 @@ import { OrgActivityListener } from '@/components/realtime/OrgActivityListener';
 import { SessionPresenceGate } from '@/components/auth/SessionPresenceGate';
 import { useAppearance } from '@/hooks/useAppearance';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+
+export { ShellFrame, useInShellFrame } from './shell-frame';
 
 /** Présent quand la chrome (barre latérale + barre supérieure) est rendue par un layout. */
 const ChromeContext = createContext(false);
@@ -71,6 +74,8 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
  */
 export function AppShell({ children, wide = false, fill = false }: { children: React.ReactNode; wide?: boolean; fill?: boolean }) {
   const insideChrome = useContext(ChromeContext);
+  const framed = useInShellFrame();
+  if (framed) return <div className={cn('min-w-0', fill && 'flex h-full min-h-0 flex-col')}>{children}</div>;
   const content = (
     <div
       className={cn(
