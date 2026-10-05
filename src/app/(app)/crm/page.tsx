@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CheckCircle2, Kanban, PauseCircle, Plus, XCircle, type LucideIcon } from 'lucide-react';
+import { AlarmClock, CheckCircle2, Kanban, PauseCircle, Plus, Trophy, Wallet, XCircle, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -11,7 +11,8 @@ import { PageHeader } from '@/components/app';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/app/EmptyState';
 import { showBrandToast } from '@/components/ui/BrandToast';
-import { CrmStats } from '@/components/crm/CrmStats';
+import { StatStrip } from '@/components/app/StatStrip';
+import { OpportunityQuickView } from '@/components/crm/OpportunityQuickView';
 import { CrmToolbar } from '@/components/crm/CrmToolbar';
 import { OpportunityCard } from '@/components/crm/OpportunityCard';
 import { OpportunityDrawer } from '@/components/crm/OpportunityDrawer';
@@ -26,6 +27,7 @@ import { crmService } from '@/lib/services/crm.service';
 import { broadcastOrgActivity } from '@/lib/realtime/org-activity';
 import { OPEN_STAGES, STAGE_BY_ID, probabilityForMove, stageOf, type PipelineStageId } from '@/lib/crm/pipeline';
 import { opportunityAmount } from '@/lib/pilotage/metrics';
+import { summarizePipeline } from '@/lib/crm/summary';
 import { formatEurCompact } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { Opportunity, OpportunityStatus } from '@/types';
@@ -87,6 +89,8 @@ export default function CrmPipelinePage() {
     opp: null,
   });
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  // Aperçu dans un tiroir : on garde le kanban derrière.
+  const [quickId, setQuickId] = useState<string | null>(null);
   const [over, setOver] = useState<Target | null>(null);
   const dropped = useRef(false);
   const highlightStage = params.get('stage') as PipelineStageId | null;
@@ -235,17 +239,21 @@ export default function CrmPipelinePage() {
       onMove: (to: PipelineStageId) => void move(o.id, to),
       onEdit: () => setDrawer({ open: true, opp: o }),
       onDelete: () => void remove(o),
+      onOpen: () => setQuickId(o.id),
     };
   };
 
   const newStage = drawer.stage ? STAGE_BY_ID.get(drawer.stage) : undefined;
+  const quickOpp = quickId ? (opps.find((o) => o.id === quickId) ?? null) : null;
+  const summary = summarizePipeline(filtered, today);
+  const won = outcomeCount('won');
+  const lost = outcomeCount('lost');
 
   return (
-    <AppShell wide>
+    <AppShell fill>
       <PageHeader
-        eyebrow={fr ? 'Activité commerciale' : 'Sales'}
         title="CRM"
-        description={fr ? 'Suivez chaque opportunité, du premier contact à la signature.' : 'Follow every opportunity, from first contact to signature.'}
+        description={fr ? 'Chaque opportunité, du premier contact à la signature.' : 'Every opportunity, from first contact to signature.'}
         actions={
           canEdit && (
             <Button onClick={() => setDrawer({ open: true, opp: null })}>
@@ -257,14 +265,57 @@ export default function CrmPipelinePage() {
         tabs={<SectionTabs section="crm" />}
       />
 
-      {opps.length > 0 && <CrmStats opps={filtered} today={today} lang={lang} />}
+      {opps.length > 0 && (
+        <StatStrip
+          className="mb-3"
+          items={[
+            { label: fr ? 'opportunités en cours' : 'open opportunities', value: summary.open, tone: 'terra', icon: Kanban },
+            { label: fr ? 'en jeu' : 'at stake', value: formatEurCompact(summary.amount, lang), tone: 'white', icon: Wallet },
+            { label: fr ? 'relances en retard' : 'overdue follow-ups', value: summary.overdue, tone: summary.overdue ? 'peach' : 'ivory', icon: AlarmClock },
+            {
+              label: fr ? 'taux de gain' : 'win rate',
+              value: won + lost ? `${Math.round((won / (won + lost)) * 100)} %` : '—',
+              tone: 'soft',
+              icon: Trophy,
+              title: fr ? `${won} gagnée(s) sur ${won + lost} conclue(s)` : `${won} won of ${won + lost} closed`,
+            },
+          ]}
+        />
+      )}
 
-      <CrmToolbar lang={lang} view="board" query={query} onQuery={setQuery} owner={owner} onOwner={setOwner} members={memberOptions} />
+      <div className="shrink-0">
+        <CrmToolbar lang={lang} view="board" query={query} onQuery={setQuery} owner={owner} onOwner={setOwner} members={memberOptions}>
+          {opps.length > 0 &&
+            OUTCOMES.map((o) => {
+              const isOver = over === o.id && draggingId !== null;
+              return (
+                <Link
+                  key={o.id}
+                  href={`/opportunities?stage=${o.id}`}
+                  draggable={false}
+                  title={fr ? 'Déposez une carte ici, ou ouvrez la liste' : 'Drop a card here, or open the list'}
+                  onDragOver={(e) => canEdit && dragOver(e, o.id)}
+                  onDragLeave={(e) => dragLeave(e, o.id)}
+                  onDrop={(e) => canEdit && onDrop(e, o.id)}
+                  className={cn(
+                    'inline-flex h-9 items-center gap-2 rounded-xl border px-3 text-[13px] transition-colors',
+                    isOver ? o.overClass : 'border-border bg-card hover:border-sand-300',
+                    draggingId && !isOver && 'border-dashed border-app-terra/50',
+                  )}
+                >
+                  <o.icon className={cn('h-4 w-4', o.iconClass)} />
+                  <span className="font-medium">{draggingId ? o.drop[lang] : o.label[lang]}</span>
+                  {!draggingId && <span className="num text-muted-foreground">{outcomeCount(o.id)}</span>}
+                </Link>
+              );
+            })}
+        </CrmToolbar>
+      </div>
 
       {loading && !data ? (
-        <div className="grid min-w-0 grid-cols-5 gap-3 overflow-hidden">
-          {OPEN_STAGES.map((s) => (
-            <div key={s.id} className="skeleton h-80 rounded-2xl" />
+        <div className="grid min-h-0 flex-1 grid-cols-5 gap-3 overflow-hidden">
+          {OPEN_STAGES.map((st) => (
+            <div key={st.id} className="skeleton rounded-2xl" />
           ))}
         </div>
       ) : opps.length === 0 ? (
@@ -286,101 +337,82 @@ export default function CrmPipelinePage() {
           }
         />
       ) : (
-        <>
-          {/* Issues : liens vers la liste filtrée, et cibles de dépôt pendant un glisser. */}
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            {OUTCOMES.map((o) => {
-              const isOver = over === o.id && draggingId !== null;
+        // Le kanban occupe toute la hauteur restante ; chaque colonne défile seule.
+        <div className="-mx-4 min-h-0 flex-1 overflow-x-auto px-4 md:-mx-6 md:px-6" role="region" aria-label={fr ? 'Pipeline commercial' : 'Sales pipeline'}>
+          <div className="grid h-full min-h-[360px] min-w-[1040px] grid-cols-5 gap-3">
+            {columns.map(({ stage, items, amount }) => {
+              const isOver = over === stage.id && draggingId !== null;
+              const peer = peerByColumn.get(stage.canonical);
               return (
-                <Link
-                  key={o.id}
-                  href={`/opportunities?stage=${o.id}`}
-                  draggable={false}
-                  onDragOver={(e) => canEdit && dragOver(e, o.id)}
-                  onDragLeave={(e) => dragLeave(e, o.id)}
-                  onDrop={(e) => canEdit && onDrop(e, o.id)}
+                <section
+                  key={stage.id}
+                  aria-label={stage.label[lang]}
+                  onDragOver={(e) => dragOver(e, stage.id)}
+                  onDragLeave={(e) => dragLeave(e, stage.id)}
+                  onDrop={(e) => onDrop(e, stage.id)}
                   className={cn(
-                    'inline-flex h-9 items-center gap-2 rounded-xl border px-3 text-[13px] transition-colors',
-                    isOver ? o.overClass : 'border-border bg-card hover:border-sand-300',
-                    draggingId && !isOver && 'border-dashed',
+                    'flex min-h-0 min-w-0 flex-col rounded-2xl border bg-app-sand/45 transition-colors',
+                    isOver ? 'border-app-terra bg-app-peach-light' : 'border-black/[0.05]',
+                    highlightStage === stage.id && !isOver && 'border-app-terra/50',
+                    peer && !isOver && 'border-dashed',
                   )}
+                  style={peer && !isOver ? { borderColor: peer.user.color.hex } : undefined}
                 >
-                  <o.icon className={cn('h-4 w-4', o.iconClass)} />
-                  <span className="font-medium">{draggingId ? o.drop[lang] : o.label[lang]}</span>
-                  {!draggingId && <span className="num text-muted-foreground">{outcomeCount(o.id)}</span>}
-                </Link>
+                  <header className="shrink-0 px-3 pb-2 pt-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span aria-hidden className={cn('h-2 w-2 shrink-0 rounded-full', DOT[stage.tone])} />
+                        <h2 className="truncate text-[13px] font-semibold text-foreground">{stage.label[lang]}</h2>
+                        <span className="num rounded-full bg-white/80 px-1.5 text-[11px] font-semibold text-muted-foreground">{items.length}</span>
+                      </div>
+                      <span className="num shrink-0 text-xs font-medium text-muted-foreground">{amount > 0 ? formatEurCompact(amount, lang) : ''}</span>
+                    </div>
+                    <p className="mt-0.5 truncate pl-4 text-[11.5px] text-muted-foreground">{stage.hint[lang]}</p>
+                  </header>
+                  <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
+                    {items.map((o) => (
+                      <OpportunityCard key={o.id} {...cardProps(o)} />
+                    ))}
+                    {items.length === 0 && (
+                      <p className="px-2 py-5 text-center text-xs text-muted-foreground">
+                        {draggingId ? (fr ? 'Déposer ici' : 'Drop here') : fr ? 'Aucune opportunité' : 'No opportunity'}
+                      </p>
+                    )}
+                  </div>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => setDrawer({ open: true, opp: null, stage: stage.id })}
+                      className="mx-2 mb-2 inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg text-xs font-medium text-muted-foreground transition-colors hover:bg-white hover:text-foreground focus-visible:outline-none focus-visible:shadow-focus"
+                      aria-label={fr ? `Ajouter une opportunité en « ${stage.label.fr} »` : `Add an opportunity to “${stage.label.en}”`}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      {fr ? 'Ajouter' : 'Add'}
+                    </button>
+                  )}
+                </section>
               );
             })}
-            {/* Le glisser-déposer suppose une souris : au doigt, le menu « … » des cartes. */}
-            <span className="hidden text-xs text-muted-foreground [@media(pointer:fine)]:inline">
-              {draggingId
-                ? fr
-                  ? 'Déposez la carte sur une étape ou une issue.'
-                  : 'Drop the card on a stage or an outcome.'
-                : fr
-                  ? 'Glissez une carte d’une étape à l’autre pour la faire avancer.'
-                  : 'Drag a card from one stage to the next to move it forward.'}
-            </span>
           </div>
+        </div>
+      )}
 
-          <div className="-mx-4 overflow-x-auto px-4 pb-4 md:-mx-8 md:px-8" role="region" aria-label={fr ? 'Pipeline commercial' : 'Sales pipeline'}>
-            <div className="grid min-w-[1040px] grid-cols-5 gap-3">
-              {columns.map(({ stage, items, amount }) => {
-                const isOver = over === stage.id && draggingId !== null;
-                const peer = peerByColumn.get(stage.canonical);
-                return (
-                  <section
-                    key={stage.id}
-                    aria-label={stage.label[lang]}
-                    onDragOver={(e) => dragOver(e, stage.id)}
-                    onDragLeave={(e) => dragLeave(e, stage.id)}
-                    onDrop={(e) => onDrop(e, stage.id)}
-                    className={cn(
-                      'flex min-w-0 flex-col rounded-2xl border bg-sidebar/60 transition-colors',
-                      isOver ? 'border-primary bg-brand-50/60' : 'border-border',
-                      highlightStage === stage.id && !isOver && 'border-primary/50',
-                      peer && !isOver && 'border-dashed',
-                    )}
-                    style={peer && !isOver ? { borderColor: peer.user.color.hex } : undefined}
-                  >
-                    <header className="px-3 pb-2 pt-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span aria-hidden className={cn('h-2 w-2 shrink-0 rounded-full', DOT[stage.tone])} />
-                          <h2 className="truncate text-[13px] font-semibold text-foreground">{stage.label[lang]}</h2>
-                          <span className="num text-xs text-muted-foreground">{items.length}</span>
-                        </div>
-                        <span className="num shrink-0 text-xs text-muted-foreground">{amount > 0 ? formatEurCompact(amount, lang) : ''}</span>
-                      </div>
-                      <p className="mt-0.5 truncate pl-4 text-[11.5px] text-muted-foreground">{stage.hint[lang]}</p>
-                    </header>
-                    <div className="flex min-h-[7rem] flex-1 flex-col gap-2 px-2 pb-2">
-                      {items.map((o) => (
-                        <OpportunityCard key={o.id} {...cardProps(o)} />
-                      ))}
-                      {items.length === 0 && (
-                        <p className="px-2 py-5 text-center text-xs text-muted-foreground">
-                          {draggingId ? (fr ? 'Déposer ici' : 'Drop here') : fr ? 'Aucune opportunité' : 'No opportunity'}
-                        </p>
-                      )}
-                      {canEdit && (
-                        <button
-                          type="button"
-                          onClick={() => setDrawer({ open: true, opp: null, stage: stage.id })}
-                          className="mt-auto inline-flex h-8 items-center justify-center gap-1 rounded-lg text-xs font-medium text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:shadow-focus"
-                          aria-label={fr ? `Ajouter une opportunité en « ${stage.label.fr} »` : `Add an opportunity to “${stage.label.en}”`}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                          {fr ? 'Ajouter' : 'Add'}
-                        </button>
-                      )}
-                    </div>
-                  </section>
-                );
-              })}
-            </div>
-          </div>
-        </>
+      {activeOrgId && (
+        <OpportunityQuickView
+          opp={quickOpp}
+          open={!!quickOpp}
+          onOpenChange={(v) => {
+            if (!v) setQuickId(null);
+          }}
+          lang={lang}
+          organizationId={activeOrgId}
+          clientName={quickOpp?.company_id ? companies.get(quickOpp.company_id)?.name : null}
+          ownerName={quickOpp?.owner_id ? members.get(quickOpp.owner_id)?.name : null}
+          canEdit={canEdit}
+          today={today}
+          onEdit={(o) => setDrawer({ open: true, opp: o })}
+          onMove={(o, to) => void move(o.id, to)}
+        />
       )}
 
       {activeOrgId && (

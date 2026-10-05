@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Plus, Target } from 'lucide-react';
+import { AlarmClock, Kanban, Plus, Target, Trophy, Wallet } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader } from '@/components/app';
@@ -12,7 +12,7 @@ import { Select } from '@/components/ui/select';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Avatar } from '@/components/ui/avatar';
 import { DataTable, type Column, linkActions } from '@/components/ui/data-table';
-import { CrmStats } from '@/components/crm/CrmStats';
+import { StatStrip } from '@/components/app/StatStrip';
 import { CrmToolbar } from '@/components/crm/CrmToolbar';
 import { OpportunityDrawer } from '@/components/crm/OpportunityDrawer';
 import { RelatedLinks } from '@/components/app/RelatedLinks';
@@ -23,7 +23,7 @@ import { useCompaniesLite, useTeamMembers } from '@/hooks/useOrgDirectory';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { createClient } from '@/lib/supabase/client';
 import { OPEN_STAGES, PIPELINE_STAGES, stageLabel, stageOf, stageTone } from '@/lib/crm/pipeline';
-import { followUpState } from '@/lib/crm/summary';
+import { followUpState, summarizePipeline } from '@/lib/crm/summary';
 import { isOpenOpportunity, opportunityAmount } from '@/lib/pilotage/metrics';
 import { formatDate, formatEurCompact } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -158,7 +158,7 @@ export default function OpportunitiesPage() {
   ];
 
   return (
-    <AppShell wide>
+    <AppShell fill>
       <PageHeader
         eyebrow={fr ? 'Activité commerciale' : 'Sales'}
         title="CRM"
@@ -174,7 +174,23 @@ export default function OpportunitiesPage() {
         tabs={<SectionTabs section="crm" />}
       />
 
-      {(data ?? []).length > 0 && <CrmStats opps={byOwner} today={today} lang={lang} />}
+      {(data ?? []).length > 0 &&
+        (() => {
+          const sum = summarizePipeline(byOwner, today);
+          const won = byOwner.filter((o) => stageOf(o.status) === 'won').length;
+          const lost = byOwner.filter((o) => stageOf(o.status) === 'lost').length;
+          return (
+            <StatStrip
+              className="mb-3"
+              items={[
+                { label: fr ? 'opportunités en cours' : 'open opportunities', value: sum.open, tone: 'terra', icon: Kanban },
+                { label: fr ? 'en jeu' : 'at stake', value: formatEurCompact(sum.amount, lang), tone: 'white', icon: Wallet },
+                { label: fr ? 'relances en retard' : 'overdue follow-ups', value: sum.overdue, tone: sum.overdue ? 'peach' : 'ivory', icon: AlarmClock },
+                { label: fr ? 'taux de gain' : 'win rate', value: won + lost ? `${Math.round((won / (won + lost)) * 100)} %` : '—', tone: 'soft', icon: Trophy },
+              ]}
+            />
+          );
+        })()}
 
       <CrmToolbar lang={lang} view="list" query={query} onQuery={setQuery} owner={owner} onOwner={setOwner} members={memberOptions}>
         <Select value={stage} onChange={(e) => setStage(e.target.value)} className="sm:w-44" aria-label={fr ? 'Étape' : 'Stage'}>
@@ -192,6 +208,7 @@ export default function OpportunitiesPage() {
       </CrmToolbar>
 
       <DataTable
+        fill
         aria-label={fr ? 'Opportunités' : 'Opportunities'}
         rows={rows}
         columns={columns}
@@ -218,7 +235,7 @@ export default function OpportunitiesPage() {
         }
       />
 
-      <div className="mt-8">
+      <div className="mt-3 shrink-0 [&>nav]:mb-0 [&>nav]:mt-0">
         <RelatedLinks
           links={[
             { href: '/offers', label: { fr: 'Fiches de poste', en: 'Job descriptions' }, permission: 'opportunities.view' },

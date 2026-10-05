@@ -65,6 +65,12 @@ type Props<T> = {
   onSelectedChange?: (next: Set<string>) => void;
   /** Lignes affichées par page (défaut 50). */
   pageSize?: number;
+  /**
+   * Écran « un écran » : le tableau occupe la hauteur restante, défile en
+   * interne (en-tête collant) et pagine (25 / 50 par page) au lieu de
+   * rallonger la page.
+   */
+  fill?: boolean;
   className?: string;
   'aria-label'?: string;
   /**
@@ -128,6 +134,7 @@ export function DataTable<T>({
   selected,
   onSelectedChange,
   pageSize = 50,
+  fill = false,
   className,
   tableId,
   rowActions,
@@ -138,6 +145,9 @@ export function DataTable<T>({
   const router = useRouter();
   const [sort, setSort] = React.useState<SortState>(initialSort);
   const [limit, setLimit] = React.useState(pageSize);
+  // Pagination du mode `fill`.
+  const [page, setPage] = React.useState(0);
+  const [perPage, setPerPage] = React.useState(25);
   const [hiddenCols, toggleCol] = useHiddenColumns(tableId);
   const [menuRow, setMenuRow] = React.useState<string | null>(null);
   const allColumns = columnsProp;
@@ -165,7 +175,11 @@ export function DataTable<T>({
     return copy;
   }, [rows, sort, columns, locale]);
 
-  const visible = sorted.slice(0, limit);
+  const pageCount = Math.max(1, Math.ceil(sorted.length / perPage));
+  const safePage = Math.min(page, pageCount - 1);
+  const visible = fill ? sorted.slice(safePage * perPage, safePage * perPage + perPage) : sorted.slice(0, limit);
+  // Nouveau filtre ou nouveau tri : retour à la première page.
+  React.useEffect(() => setPage(0), [rows.length, sort, perPage]);
   const allIds = React.useMemo(() => rows.map(getRowId), [rows, getRowId]);
   const allSelected = !!selected && allIds.length > 0 && allIds.every((id) => selected.has(id));
   const someSelected = !!selected && !allSelected && allIds.some((id) => selected.has(id));
@@ -208,7 +222,7 @@ export function DataTable<T>({
   };
 
   return (
-    <div className={cn('tile-surface overflow-hidden', className)}>
+    <div className={cn('tile-surface overflow-hidden', fill && 'flex min-h-0 flex-1 flex-col', className)}>
       {tableId && (
         <div className="hidden items-center justify-end border-b border-border px-3 py-1.5 md:flex">
           <DropdownMenu>
@@ -240,9 +254,9 @@ export function DataTable<T>({
         </div>
       )}
       {/* Desktop / tablette */}
-      <div className="hidden overflow-x-auto md:block">
+      <div className={cn('hidden overflow-x-auto md:block', fill && 'min-h-0 flex-1 overflow-y-auto')}>
         <table className="w-full text-sm" aria-label={rest['aria-label']}>
-          <thead className="bg-transparent">
+          <thead className={cn('bg-transparent', fill && 'sticky top-0 z-[1] bg-card shadow-[0_1px_0_hsl(var(--border))]')}>
             <tr className="border-b border-border">
               {selectable && (
                 <th className="w-10 px-3">
@@ -398,7 +412,7 @@ export function DataTable<T>({
       </div>
 
       {/* Mobile : cartes empilées */}
-      <ul className="divide-y divide-border md:hidden">
+      <ul className={cn('divide-y divide-border md:hidden', fill && 'min-h-0 flex-1 overflow-y-auto')}>
         {visible.map((row) => {
           const id = getRowId(row);
           const href = rowHref?.(row);
@@ -443,7 +457,46 @@ export function DataTable<T>({
         })}
       </ul>
 
-      {sorted.length > limit && (
+      {fill && sorted.length > 25 && (
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border px-4 py-2 text-xs text-muted-foreground">
+          <span className="num">
+            {safePage * perPage + 1}–{Math.min(sorted.length, (safePage + 1) * perPage)} {fr ? 'sur' : 'of'} {sorted.length}
+          </span>
+          <div className="flex items-center gap-1">
+            <select
+              value={perPage}
+              onChange={(e) => setPerPage(Number(e.target.value))}
+              aria-label={fr ? 'Lignes par page' : 'Rows per page'}
+              className="mr-2 h-7 rounded-md border border-border bg-card px-1.5 text-xs text-foreground"
+            >
+              <option value={25}>25 / page</option>
+              <option value={50}>50 / page</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={safePage === 0}
+              className="rounded-md px-2 py-1 font-medium text-foreground hover:bg-muted disabled:opacity-40"
+              aria-label={fr ? 'Page précédente' : 'Previous page'}
+            >
+              ‹
+            </button>
+            <span className="num px-1">
+              {safePage + 1} / {pageCount}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+              disabled={safePage >= pageCount - 1}
+              className="rounded-md px-2 py-1 font-medium text-foreground hover:bg-muted disabled:opacity-40"
+              aria-label={fr ? 'Page suivante' : 'Next page'}
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      )}
+      {!fill && sorted.length > limit && (
         <div className="flex items-center justify-between border-t border-border px-4 py-2.5 text-xs text-muted-foreground">
           <span className="num">
             {visible.length} / {sorted.length}

@@ -114,7 +114,11 @@ export default function Client360Page() {
   const { locale } = useLocale();
   const lang = locale === 'en' ? 'en' : 'fr';
   const fr = lang === 'fr';
-  const [tab, setTab] = useState(params.get('tab') ?? 'overview');
+  const [tab, setTab] = useState(() => {
+    const t = params.get('tab') ?? 'overview';
+    if (t === 'finance') return 'missions';
+    return ['overview', 'opportunities', 'missions', 'documents'].includes(t) ? t : 'overview';
+  });
   const [editing, setEditing] = useState(false);
   const [newOpp, setNewOpp] = useState(false);
   const [newContact, setNewContact] = useState(false);
@@ -224,21 +228,14 @@ export default function Client360Page() {
         <div className="min-w-0">
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList variant="underline">
-              <TabsTrigger value="overview">{fr ? 'Vue d’ensemble' : 'Overview'}</TabsTrigger>
-              <TabsTrigger value="contacts">
-                Contacts <span className="num text-xs text-muted-foreground">{data.contacts.length}</span>
-              </TabsTrigger>
+              <TabsTrigger value="overview">{fr ? 'Aperçu' : 'Overview'}</TabsTrigger>
               <TabsTrigger value="opportunities">
                 {fr ? 'Opportunités' : 'Opportunities'} <span className="num text-xs text-muted-foreground">{data.opportunities.length}</span>
               </TabsTrigger>
               <TabsTrigger value="missions">
                 Missions <span className="num text-xs text-muted-foreground">{data.missions.length}</span>
               </TabsTrigger>
-              {(m.revenue12m !== null || can('timesheets.view')) && <TabsTrigger value="finance">{fr ? 'CRA & finance' : 'Timesheets & finance'}</TabsTrigger>}
-              {can('documents.view') && <TabsTrigger value="documents">{fr ? 'Devis & documents' : 'Quotes & documents'}</TabsTrigger>}
-              <TabsTrigger value="tasks">{fr ? 'Tâches' : 'Tasks'}</TabsTrigger>
-              <TabsTrigger value="notes">Notes</TabsTrigger>
-              <TabsTrigger value="history">{fr ? 'Historique' : 'History'}</TabsTrigger>
+              {can('documents.view') && <TabsTrigger value="documents">{fr ? 'Documents' : 'Documents'}</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="overview" className="space-y-5">
@@ -323,9 +320,7 @@ export default function Client360Page() {
                   </CardContent>
                 </Card>
               )}
-            </TabsContent>
-
-            <TabsContent value="contacts">
+            
               <ListCard
                 title="Contacts"
                 count={data.contacts.length}
@@ -369,7 +364,28 @@ export default function Client360Page() {
                   </Row>
                 ))}
               </ListCard>
+              <div className="grid gap-5 xl:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{fr ? 'Tâches' : 'Tasks'}</CardTitle>
+                  </CardHeader>
+                  <CardContent><TaskList entityType="client" entityId={c.id} filter="all" compact /></CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Notes</CardTitle>
+                  </CardHeader>
+                  <CardContent><NotesPanel entityType="company" entityId={c.id} canEdit={can('clients.edit')} /></CardContent>
+                </Card>
+              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>{fr ? 'Historique' : 'History'}</CardTitle>
+                </CardHeader>
+                <CardContent><ActivityTimeline entityType="company" entityId={c.id} /></CardContent>
+              </Card>
             </TabsContent>
+
 
             <TabsContent value="opportunities">
               <ListCard title={fr ? 'Opportunités' : 'Opportunities'} count={data.opportunities.length} empty={fr ? 'Aucune opportunité.' : 'No opportunity.'}>
@@ -410,9 +426,7 @@ export default function Client360Page() {
                   })}
                 </ListCard>
               ))}
-            </TabsContent>
-
-            <TabsContent value="finance" className="space-y-5">
+            
               <ListCard title={fr ? 'CRA liés' : 'Related timesheets'} count={data.timesheets.length} empty={fr ? 'Aucun CRA.' : 'No timesheet.'}>
                 {data.timesheets.slice(0, 24).map((t) => {
                   const st = statusOf(TIMESHEET_STATUS, t.status, lang);
@@ -453,6 +467,7 @@ export default function Client360Page() {
                 </ListCard>
               )}
             </TabsContent>
+
 
             <TabsContent value="documents" className="space-y-5">
               <ListCard
@@ -503,15 +518,6 @@ export default function Client360Page() {
               </ListCard>
             </TabsContent>
 
-            <TabsContent value="tasks">
-              <TaskList entityType="client" entityId={c.id} filter="all" compact />
-            </TabsContent>
-            <TabsContent value="notes">
-              <NotesPanel entityType="company" entityId={c.id} canEdit={can('clients.edit')} />
-            </TabsContent>
-            <TabsContent value="history">
-              <ActivityTimeline entityType="company" entityId={c.id} />
-            </TabsContent>
           </Tabs>
         </div>
 

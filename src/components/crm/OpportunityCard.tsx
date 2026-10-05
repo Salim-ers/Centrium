@@ -32,6 +32,8 @@ type Props = {
   onMove: (to: PipelineStageId) => void;
   onEdit: () => void;
   onDelete: () => void;
+  /** Ouvre l'aperçu (tiroir) ; sans lui, le titre mène à la fiche. */
+  onOpen?: () => void;
 };
 
 /**
@@ -53,6 +55,7 @@ export function OpportunityCard({
   onMove,
   onEdit,
   onDelete,
+  onOpen,
 }: Props) {
   const fr = lang === 'fr';
   const amount = opportunityAmount(opp);
@@ -66,10 +69,16 @@ export function OpportunityCard({
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       aria-label={opp.title}
+      onClick={(e) => {
+        // Un clic sur la carte ouvre l'aperçu, sauf sur un bouton ou un lien.
+        if (!onOpen || (e.target as HTMLElement).closest('button, a, [role="menu"], [role="menuitem"]')) return;
+        onOpen();
+      }}
       className={cn(
-        'group relative rounded-xl border border-border bg-card p-3 shadow-xs transition-[box-shadow,border-color,opacity,transform] duration-150',
+        'group relative rounded-xl border border-black/[0.06] bg-card p-2.5 shadow-[0_1px_2px_rgba(25,22,20,.05)] transition-[box-shadow,border-color,opacity,transform] duration-150',
+        onOpen && 'cursor-pointer',
         canEdit && 'cursor-grab active:cursor-grabbing',
-        'hover:border-sand-300 hover:shadow-md',
+        'hover:-translate-y-px hover:border-app-terra/25 hover:shadow-[0_10px_22px_-14px_rgba(25,22,20,.35)]',
         dragging && 'rotate-[0.5deg] opacity-50',
         peer && 'ring-2 ring-offset-1',
       )}
@@ -83,7 +92,13 @@ export function OpportunityCard({
       <div className="flex items-start gap-2">
         <Link
           href={`/opportunities/${opp.id}`}
-          className="min-w-0 flex-1 text-[13.5px] font-medium leading-5 text-foreground outline-none hover:text-primary-deep focus-visible:underline"
+          onClick={(e) => {
+            // Clic simple : aperçu ; Ctrl / Cmd + clic : fiche dans un nouvel onglet.
+            if (!onOpen || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+            e.preventDefault();
+            onOpen();
+          }}
+          className="min-w-0 flex-1 text-[13px] font-semibold leading-[18px] text-foreground outline-none hover:text-primary-deep focus-visible:underline"
           draggable={false}
         >
           {opp.title}
@@ -94,16 +109,30 @@ export function OpportunityCard({
           </span>
         )}
       </div>
-      {clientName && <div className="mt-0.5 truncate text-xs text-muted-foreground">{clientName}</div>}
+      {clientName && <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">{clientName}</div>}
 
-      <div className="mt-2 flex h-6 items-center justify-between gap-2">
-        <span className="num text-[13px] font-semibold text-foreground">{amount > 0 ? formatEurCompact(amount, lang) : '—'}</span>
+      <div className="mt-1.5 flex h-6 items-center justify-between gap-2">
+        <span className="num min-w-0 truncate text-[13px] font-semibold text-foreground">
+          {amount > 0 ? formatEurCompact(amount, lang) : '—'}
+          {opp.probability != null && <span className="ml-1.5 text-[11.5px] font-medium text-muted-foreground">· {opp.probability} %</span>}
+        </span>
+        {canEdit && next && (
+          <button
+            type="button"
+            onClick={() => onMove(next.id)}
+            title={fr ? `Passer à « ${next.label.fr} »` : `Move to “${next.label.en}”`}
+            aria-label={fr ? `Passer ${opp.title} à « ${next.label.fr} »` : `Move ${opp.title} to “${next.label.en}”`}
+            className="ml-auto inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-app-terra opacity-0 transition hover:bg-app-peach-light focus-visible:opacity-100 group-hover:opacity-100"
+          >
+            <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        )}
         {canEdit && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="-mr-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground opacity-60 transition hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                className="-mr-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground opacity-50 transition hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
                 aria-label={fr ? `Actions pour ${opp.title}` : `Actions for ${opp.title}`}
               >
                 <MoreHorizontal className="h-4 w-4" />
@@ -145,7 +174,7 @@ export function OpportunityCard({
       {follow && (
         <div
           className={cn(
-            'mt-1.5 flex min-w-0 items-center gap-1 text-[11.5px]',
+            'mt-1 flex min-w-0 items-center gap-1 text-[11.5px]',
             follow === 'late' ? 'font-medium text-destructive' : follow === 'today' ? 'font-medium text-warning' : 'text-muted-foreground',
           )}
           title={opp.next_action ?? undefined}

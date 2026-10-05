@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { StatStrip } from '@/components/app/StatStrip';
 import { motion } from 'framer-motion';
 import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { useContactTypeLabels } from '@/lib/i18n/useBadges';
@@ -41,7 +42,6 @@ import { ContactFormDialog } from '@/components/crm/ContactFormDialog';
 import { Input } from '@/components/ui/input';
 import {
   PageHeader,
-  KPICard,
   AppCard,
   EmptyState,
   StatusBadge,
@@ -187,7 +187,7 @@ export default function ContactsPage() {
   const partnerCount = allContacts.filter((c) => c.contact_type === 'esn_partner').length;
 
   return (
-    <AppShell>
+    <AppShell fill>
       <PageHeader
         eyebrow={isEn ? 'Sales' : 'Activité commerciale'}
         title="CRM"
@@ -215,32 +215,15 @@ export default function ContactsPage() {
         tabs={<SectionTabs section="crm" />}
       />
 
-      <Reveal className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <KPICard accent="terra"
-          label={t.pages.contacts.kpi_total}
-          value={allContacts.length}
-          icon={Users}
-          tone="magenta"
-        />
-        <KPICard
-          label={t.pages.contacts.kpi_recruiters}
-          value={recruiterCount}
-          icon={Briefcase}
-          tone="cyan"
-        />
-        <KPICard
-          label={t.pages.contacts.kpi_clients}
-          value={clientCount}
-          icon={Building2}
-          tone="violet"
-        />
-        <KPICard accent="soft"
-          label={t.pages.contacts.kpi_esn}
-          value={partnerCount}
-          icon={Network}
-          tone="amber"
-        />
-      </Reveal>
+      <StatStrip
+        className="mb-3"
+        items={[
+          { label: t.pages.contacts.kpi_total, value: allContacts.length, tone: 'terra', icon: Users },
+          { label: t.pages.contacts.kpi_recruiters, value: recruiterCount, tone: 'white', icon: Briefcase },
+          { label: t.pages.contacts.kpi_clients, value: clientCount, tone: 'ivory', icon: Building2 },
+          { label: t.pages.contacts.kpi_esn, value: partnerCount, tone: 'soft', icon: Network },
+        ]}
+      />
 
       <ContactCsvImportDialog
         open={csvOpen}
@@ -272,8 +255,8 @@ export default function ContactsPage() {
         onSaved={() => reload()}
       />
 
-      <Reveal delay={0.05}>
-        <div className="qc-premium relative mb-4 rounded-2xl border p-3">
+      <Reveal delay={0.05} className="mb-3 shrink-0">
+        <div className="sm:max-w-sm">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -312,13 +295,13 @@ export default function ContactsPage() {
           }
         />
       ) : (
-      <Reveal delay={0.1}>
-      <AppCard>
+      <Reveal delay={0.1} className="flex min-h-0 flex-1 flex-col">
+      <AppCard className="flex min-h-0 flex-1 flex-col">
         {/* overflow-x-auto : sur écran étroit le tableau défile au lieu de
             clipper la colonne Actions (carte en overflow-hidden arrondi). */}
-        <div className="p-0 overflow-x-auto">
+        <div className="min-h-0 flex-1 overflow-auto p-0">
           <Table>
-            <TableHeader>
+            <TableHeader className="sticky top-0 z-[1] bg-card">
               <TableRow>
                 <TableHead>{t.pages.contacts.table_contact}</TableHead>
                 <TableHead className="w-[96px]">{t.pages.contacts.table_type}</TableHead>

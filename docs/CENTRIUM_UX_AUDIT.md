@@ -95,7 +95,7 @@ DetailDrawer, SegmentedControl / tabs, EmptyState, StatusBadge, Avatar.
 | 2–3 | App Shell 100dvh, barre latérale sombre, barre supérieure | fait |
 | 4 | Palette ⌘K (récents, actions), Créer (touche C) | fait |
 | 5 | Dashboard un écran (grille 12 × 6, 4 vues, mise en route compacte) | fait |
-| 6 | CRM (onglets, kanban plein écran, tiroir) | à faire |
+| 6 | CRM (onglets, kanban plein écran, tiroir d’aperçu, liste, clients, contacts, fiche client 4 onglets) | fait |
 | 7 | Talents | à faire |
 | 8 | Dossiers de compétences, modèles neutres | à faire |
 | 9 | Staffing, matching | à faire |

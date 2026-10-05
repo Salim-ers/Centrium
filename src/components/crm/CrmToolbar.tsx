@@ -29,7 +29,7 @@ export function CrmToolbar({ lang, view, query, onQuery, owner, onOwner, members
     { id: 'list', href: '/opportunities', icon: List, label: fr ? 'Liste' : 'List' },
   ] as const;
   return (
-    <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+    <div className="mb-3 flex shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
       <div className="relative w-full sm:max-w-xs">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input

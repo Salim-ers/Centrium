@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Building2, FileUp, Plus, Search } from 'lucide-react';
+import { Briefcase, Building2, FileUp, PieChart, Plus, Search, Wallet } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { PageHeader, KPICard } from '@/components/app';
+import { PageHeader } from '@/components/app';
+import { StatStrip } from '@/components/app/StatStrip';
 import { EmptyState } from '@/components/app/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -138,7 +139,7 @@ export default function ClientsPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell fill>
       <PageHeader tabs={<SectionTabs section="crm" />}
         eyebrow={fr ? 'Activité commerciale' : 'Sales'}
         title={fr ? 'Clients' : 'Clients'}
@@ -159,29 +160,27 @@ export default function ClientsPage() {
         }
       />
 
-      <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KPICard accent="terra" label={fr ? 'Comptes' : 'Accounts'} value={data?.length} loading={loading && !data} />
-        <KPICard label={fr ? 'Clients avec mission' : 'Clients with missions'} value={totals.active} loading={loading && !data} />
-        {withFinance && (
-          <>
-            <KPICard
-              label={fr ? 'CA 12 mois' : 'Revenue 12 months'}
-              valueText={formatEurCompact(totals.revenue, lang)}
-              hint={fr ? 'CRA validés' : 'Approved timesheets'}
-              loading={loading && !data}
-            />
-            <KPICard accent="peach"
-              label={fr ? 'Concentration' : 'Concentration'}
-              valueText={formatPct(totals.topShare, lang, 0)}
-              hint={totals.topName ? (fr ? `Part de ${totals.topName}` : `${totals.topName}'s share`) : undefined}
-              tone={totals.topShare != null && totals.topShare > 40 ? 'amber' : 'neutral'}
-              loading={loading && !data}
-            />
-          </>
-        )}
-      </section>
+      <StatStrip
+        className="mb-3"
+        items={[
+          { label: fr ? 'comptes' : 'accounts', value: loading && !data ? '…' : (data?.length ?? 0), tone: 'terra', icon: Building2 },
+          { label: fr ? 'clients avec mission' : 'clients with missions', value: loading && !data ? '…' : totals.active, tone: 'white', icon: Briefcase },
+          ...(withFinance
+            ? [
+                { label: fr ? 'CA 12 mois · CRA validés' : 'revenue 12 months', value: formatEurCompact(totals.revenue, lang), tone: 'ivory' as const, icon: Wallet },
+                {
+                  label: totals.topName ? (fr ? `part de ${totals.topName}` : `${totals.topName}'s share`) : fr ? 'concentration' : 'concentration',
+                  value: formatPct(totals.topShare, lang, 0),
+                  tone: (totals.topShare != null && totals.topShare > 40 ? 'peach' : 'soft') as 'peach' | 'soft',
+                  icon: PieChart,
+                  title: fr ? 'Part du premier client dans le CA validé sur 12 mois' : 'Top client share of approved revenue (12 months)',
+                },
+              ]
+            : []),
+        ]}
+      />
 
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+      <div className="mb-3 flex shrink-0 flex-col gap-2 sm:flex-row">
         <div className="relative w-full sm:max-w-xs">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -203,6 +202,7 @@ export default function ClientsPage() {
       </div>
 
       <DataTable
+        fill
         aria-label={fr ? 'Clients' : 'Clients'}
         rows={rows}
         columns={columns}
