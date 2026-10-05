@@ -41,18 +41,27 @@ export function SiteHeader() {
       last = y;
       const header = ref.current;
       const h = header?.offsetHeight ?? 64;
-      const under = document.elementsFromPoint(window.innerWidth / 2, h / 2).find((el) => !header?.contains(el));
-      const section = under?.closest<HTMLElement>('[data-nav]');
+      // Première section [data-nav] sous l'en-tête. Les calques qui n'en sont
+      // pas (panneau de transition, intro) sont ignorés : sinon l'en-tête
+      // restait en texte sombre sur un hero foncé après une navigation.
+      const section = document
+        .elementsFromPoint(window.innerWidth / 2, h / 2)
+        .filter((el) => !header?.contains(el))
+        .map((el) => el.closest<HTMLElement>('[data-nav]'))
+        .find(Boolean);
       setLight(section?.dataset.nav === 'light');
     };
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(measure);
     };
     measure();
+    // Nouvelle mesure une fois la transition de page et l'intro terminées.
+    const timers = [150, 500, 1100].map((t) => window.setTimeout(measure, t));
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll);
     return () => {
       cancelAnimationFrame(frame);
+      timers.forEach((t) => window.clearTimeout(t));
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
     };
