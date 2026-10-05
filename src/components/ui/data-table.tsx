@@ -34,6 +34,8 @@ export type Column<T> = {
   width?: string;
   /** Peut être masquée par l'utilisateur (défaut : oui, sauf la première colonne). */
   hideable?: boolean;
+  /** Masquée par défaut (réactivable dans « Colonnes ») tant que l'utilisateur n'a rien choisi. */
+  defaultHidden?: boolean;
 };
 
 /** Action sur une ligne : menu « … » et clic droit. */
@@ -84,8 +86,8 @@ type Props<T> = {
 
 const COLUMNS_KEY = 'centrium-table-columns:';
 
-function useHiddenColumns(tableId: string | undefined) {
-  const [hidden, setHidden] = React.useState<Set<string>>(new Set());
+function useHiddenColumns(tableId: string | undefined, defaults: string[]) {
+  const [hidden, setHidden] = React.useState<Set<string>>(() => new Set(defaults));
   React.useEffect(() => {
     if (!tableId) return;
     try {
@@ -148,7 +150,10 @@ export function DataTable<T>({
   // Pagination du mode `fill`.
   const [page, setPage] = React.useState(0);
   const [perPage, setPerPage] = React.useState(25);
-  const [hiddenCols, toggleCol] = useHiddenColumns(tableId);
+  const [hiddenCols, toggleCol] = useHiddenColumns(
+    tableId,
+    columnsProp.filter((c) => c.defaultHidden).map((c) => c.id),
+  );
   const [menuRow, setMenuRow] = React.useState<string | null>(null);
   const allColumns = columnsProp;
   const isHideable = (c: Column<T>, i: number) => c.hideable ?? i > 0;
@@ -365,7 +370,16 @@ export function DataTable<T>({
                         )}
                       >
                         {href && ci === 0 ? (
-                          <Link href={href} className="rounded-sm outline-none hover:text-primary-deep focus-visible:underline" prefetch={false}>
+                          <Link
+                            href={href}
+                            className="rounded-sm outline-none hover:text-primary-deep focus-visible:underline"
+                            prefetch={false}
+                            onClick={(e) => {
+                              if (!onRowClick || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                              e.preventDefault();
+                              onRowClick(row);
+                            }}
+                          >
                             {content}
                           </Link>
                         ) : (
@@ -444,9 +458,18 @@ export function DataTable<T>({
             </div>
           );
           return (
-            <li key={id} onClick={onRowClick ? () => onRowClick(row) : undefined}>
+            <li key={id} onClick={!href && onRowClick ? () => onRowClick(row) : undefined}>
               {href ? (
-                <Link href={href} prefetch={false} className="block active:bg-muted/60">
+                <Link
+                  href={href}
+                  prefetch={false}
+                  className="block active:bg-muted/60"
+                  onClick={(e) => {
+                    if (!onRowClick || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                    e.preventDefault();
+                    onRowClick(row);
+                  }}
+                >
                   {body}
                 </Link>
               ) : (

@@ -3,10 +3,14 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { Archive, ArchiveRestore, DoorOpen, FileUp, Plus, Search, Users } from 'lucide-react';
+import { Archive, ArchiveRestore, Briefcase, DoorOpen, Eye, FileText, FileUp, Plus, Search, SlidersHorizontal, Target, UserCheck, Users } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { PageHeader, KPICard } from '@/components/app';
+import { PageHeader } from '@/components/app';
+import { StatStrip } from '@/components/app/StatStrip';
+import { ConsultantQuickView } from '@/components/consultants/ConsultantQuickView';
+import { Drawer, DrawerBody, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
+import { Field } from '@/components/ui/label';
 import { EmptyState } from '@/components/app/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +18,6 @@ import { Select } from '@/components/ui/select';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip } from '@/components/ui/tooltip';
 import { DataTable, type Column, linkActions } from '@/components/ui/data-table';
 import { ConsultantFormDialog } from '@/components/consultants/ConsultantFormDialog';
@@ -53,6 +56,9 @@ export default function ConsultantsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [dialog, setDialog] = useState<{ open: boolean; prospect: boolean }>({ open: params.get('new') === '1', prospect: false });
   const [csvOpen, setCsvOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  // Aperçu dans un tiroir ; la fiche complète reste à un clic.
+  const [quickId, setQuickId] = useState<string | null>(null);
 
   const { data, loading, reload, setData } = useCachedQuery<ConsultantListItem[]>(
     `consultants-v2:${activeOrgId ?? 'none'}:${scope}`,
@@ -156,7 +162,7 @@ export default function ConsultantsPage() {
     },
     {
       id: 'status',
-      header: fr ? 'Statut' : 'Status',
+      header: fr ? 'Profil' : 'Profile',
       mobile: 'trailing',
       sortValue: (c) => c.status,
       cell: (c) => {
@@ -178,7 +184,7 @@ export default function ConsultantsPage() {
     },
     {
       id: 'mission',
-      header: fr ? 'Mission actuelle' : 'Current mission',
+      header: 'Mission',
       hideOnMobile: true,
       sortValue: (c) => c.active_missions[0]?.title ?? '',
       cell: (c) => {
@@ -188,7 +194,7 @@ export default function ConsultantsPage() {
     },
     {
       id: 'skills',
-      header: fr ? 'Compétences clés' : 'Key skills',
+      header: fr ? 'Compétences' : 'Skills',
       hideOnMobile: true,
       cell: (c) => {
         const skills = (skillsByConsultant.get(c.id) ?? [])
@@ -212,6 +218,7 @@ export default function ConsultantsPage() {
       id: 'city',
       header: fr ? 'Ville' : 'City',
       hideOnMobile: true,
+      defaultHidden: true,
       mobile: 'meta',
       sortValue: (c) => c.city ?? '',
       cell: (c) => <span className="text-[13px] text-muted-foreground">{c.city ?? '—'}</span>,
@@ -232,6 +239,7 @@ export default function ConsultantsPage() {
       id: 'portal',
       header: <span className="sr-only">{fr ? 'Portail' : 'Portal'}</span>,
       hideOnMobile: true,
+      defaultHidden: true,
       cell: (c) =>
         c.has_portal ? (
           <Tooltip label={fr ? 'Accès au portail consultant actif' : 'Consultant portal access active'}>
@@ -244,13 +252,46 @@ export default function ConsultantsPage() {
   ];
 
   const isEmptyScope = !loading && (data ?? []).length === 0;
+  const advancedCount = (status !== 'all' ? 1 : 0) + (owner !== 'all' ? 1 : 0);
+  const quick = quickId ? ((data ?? []).find((c) => c.id === quickId) ?? null) : null;
+  const scopes: Array<{ id: Scope; label: string }> = [
+    { id: 'staff', label: fr ? 'Effectif' : 'Staff' },
+    { id: 'pool', label: fr ? 'Vivier' : 'Talent pool' },
+    { id: 'positioned', label: fr ? 'Positionnés' : 'Positioned' },
+    { id: 'archived', label: fr ? 'Archivés' : 'Archived' },
+  ];
 
   return (
-    <AppShell>
+    <AppShell fill>
       <PageHeader
-        eyebrow={fr ? 'Ressources' : 'Resources'}
         title="Consultants"
-        description={fr ? 'Effectif, vivier et profils positionnés.' : 'Staff, talent pool and positioned profiles.'}
+        description={
+          loading && !data
+            ? fr ? 'Chargement…' : 'Loading…'
+            : `${rows.length} ${rows.length > 1 ? 'talents' : 'talent'}${scope === 'pool' ? (fr ? ' dans le vivier' : ' in the pool') : scope === 'archived' ? (fr ? ' archivés' : ' archived') : scope === 'positioned' ? (fr ? ' positionnés' : ' positioned') : ''}`
+        }
+        tabs={
+          <div role="tablist" aria-label={fr ? 'Population' : 'Population'} className="no-scrollbar inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-app-terra/20 bg-card p-1">
+            {scopes.map((sc) => (
+              <button
+                key={sc.id}
+                type="button"
+                role="tab"
+                aria-selected={scope === sc.id}
+                onClick={() => {
+                  setScope(sc.id);
+                  setSelected(new Set());
+                }}
+                className={cn(
+                  'inline-flex h-8 shrink-0 items-center rounded-lg px-3.5 text-[13px] font-semibold transition-colors',
+                  scope === sc.id ? 'bg-app-terra text-white shadow-[0_6px_14px_-8px_rgba(198,95,70,.9)]' : 'text-app-terra-dark hover:bg-app-peach-light',
+                )}
+              >
+                {sc.label}
+              </button>
+            ))}
+          </div>
+        }
         actions={
           canEdit && (
             <>
@@ -260,73 +301,53 @@ export default function ConsultantsPage() {
               </Button>
               <Button onClick={() => setDialog({ open: true, prospect: scope === 'pool' })}>
                 <Plus />
-                {scope === 'pool' ? (fr ? 'Ajouter au vivier' : 'Add to pool') : fr ? 'Ajouter un consultant' : 'Add a consultant'}
+                {scope === 'pool' ? (fr ? 'Ajouter au vivier' : 'Add to pool') : fr ? 'Ajouter' : 'Add'}
               </Button>
             </>
           )
         }
       />
-      <RelatedLinks
-        links={[
-          { href: '/cv-pushed', label: { fr: 'CV envoyés aux clients', en: 'CVs sent to clients' }, permission: 'consultants.view' },
-          { href: '/templates', label: { fr: 'Modèles de dossiers', en: 'Dossier templates' }, permission: 'consultants.view' },
-        ]}
-      />
 
       {scope === 'staff' && (
-        <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <KPICard accent="terra" label={fr ? 'Effectif' : 'Headcount'} value={kpis.total} loading={loading && !data} />
-          <KPICard label={fr ? 'En mission' : 'On mission'} value={kpis.onMission} loading={loading && !data} />
-          <KPICard label={fr ? 'Disponibles' : 'Available'} value={kpis.available} tone={kpis.available ? 'amber' : 'neutral'} loading={loading && !data} />
-          <KPICard label={fr ? 'Disponibles sous 30 j' : 'Free within 30 d'} value={kpis.soon} loading={loading && !data} />
-          <KPICard accent="peach" label={fr ? 'Taux d’intercontrat' : 'Bench rate'} valueText={formatPct(kpis.bench, lang, 0)} loading={loading && !data} />
-        </section>
+        <StatStrip
+          className="mb-3"
+          items={[
+            { label: fr ? 'talents' : 'talents', value: loading && !data ? '…' : kpis.total, tone: 'terra', icon: Users },
+            {
+              label: fr ? `disponibles · ${kpis.soon} sous 30 j` : `available · ${kpis.soon} within 30 d`,
+              value: loading && !data ? '…' : kpis.available,
+              tone: kpis.available ? 'peach' : 'ivory',
+              icon: UserCheck,
+              title: fr ? `Intercontrat : ${formatPct(kpis.bench, lang, 0)}` : `Bench: ${formatPct(kpis.bench, lang, 0)}`,
+            },
+            { label: fr ? 'en mission' : 'on mission', value: loading && !data ? '…' : kpis.onMission, tone: 'white', icon: Briefcase },
+          ]}
+        />
       )}
 
-      <Tabs value={scope} onValueChange={(v) => { setScope(v as Scope); setSelected(new Set()); }} className="mb-4">
-        <TabsList>
-          <TabsTrigger value="staff">{fr ? 'Effectif' : 'Staff'}</TabsTrigger>
-          <TabsTrigger value="pool">{fr ? 'Vivier' : 'Talent pool'}</TabsTrigger>
-          <TabsTrigger value="positioned">{fr ? 'Positionnés' : 'Positioned'}</TabsTrigger>
-          <TabsTrigger value="archived">{fr ? 'Archivés' : 'Archived'}</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,16rem)_minmax(0,12rem)_repeat(3,minmax(0,11rem))]">
-        <div className="relative">
+      {/* Barre d'outils unique ; les filtres avancés vivent dans un tiroir. */}
+      <div className="mb-3 flex shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="relative w-full sm:max-w-xs">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={fr ? 'Nom, poste, ville' : 'Name, title, city'} className="pl-9" aria-label={fr ? 'Rechercher' : 'Search'} />
         </div>
-        <Input value={skill} onChange={(e) => setSkill(e.target.value)} placeholder={fr ? 'Compétence (ex. AWS)' : 'Skill (e.g. AWS)'} aria-label={fr ? 'Filtrer par compétence' : 'Filter by skill'} />
-        <Select value={status} onChange={(e) => setStatus(e.target.value)} aria-label={fr ? 'Statut' : 'Status'}>
-          <option value="all">{fr ? 'Tous statuts' : 'All statuses'}</option>
-          {Object.entries(CONSULTANT_STATUS)
-            .filter(([k]) => k !== 'archived')
-            .map(([k, v]) => (
-              <option key={k} value={k}>
-                {v.label[lang]}
-              </option>
-            ))}
-        </Select>
-        <Select value={availability} onChange={(e) => setAvailability(e.target.value)} aria-label={fr ? 'Disponibilité' : 'Availability'}>
+        <Input value={skill} onChange={(e) => setSkill(e.target.value)} placeholder={fr ? 'Compétence (ex. AWS)' : 'Skill (e.g. AWS)'} className="sm:w-48" aria-label={fr ? 'Filtrer par compétence' : 'Filter by skill'} />
+        <Select value={availability} onChange={(e) => setAvailability(e.target.value)} className="sm:w-48" aria-label={fr ? 'Disponibilité' : 'Availability'}>
           <option value="any">{fr ? 'Toute disponibilité' : 'Any availability'}</option>
           <option value="now">{fr ? 'Disponible maintenant' : 'Available now'}</option>
           <option value="30">{fr ? 'Sous 30 jours' : 'Within 30 days'}</option>
           <option value="60">{fr ? 'Sous 60 jours' : 'Within 60 days'}</option>
         </Select>
-        <Select value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Business Manager">
-          <option value="all">{fr ? 'Tous les référents' : 'All owners'}</option>
-          {owners.map(([id, name]) => (
-            <option key={id} value={id}>
-              {name}
-            </option>
-          ))}
-        </Select>
+        <Button variant="secondary" onClick={() => setFiltersOpen(true)} className="sm:ml-auto">
+          <SlidersHorizontal />
+          {fr ? 'Plus de filtres' : 'More filters'}
+          {advancedCount > 0 && <span className="num rounded-full bg-app-terra px-1.5 text-[11px] font-semibold text-white">{advancedCount}</span>}
+        </Button>
       </div>
 
       {selected.size > 0 && canEdit && (
-        <div className="sticky top-0 z-10 mb-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-2 shadow-md">
-          <span className="num text-[13px]">
+        <div className="mb-3 flex shrink-0 items-center justify-between gap-3 rounded-xl border border-app-terra/20 bg-app-peach-light px-4 py-2">
+          <span className="num text-[13px] font-medium">
             {selected.size} {fr ? 'sélectionné(s)' : 'selected'}
           </span>
           <div className="flex gap-2">
@@ -349,12 +370,19 @@ export default function ConsultantsPage() {
       )}
 
       <DataTable
+        fill
         aria-label="Consultants"
         rows={rows}
         columns={columns}
         getRowId={(c) => c.id}
         rowHref={(c) => `/consultants/${c.id}`}
-        rowActions={(c) => linkActions(`/consultants/${c.id}`, fr)}
+        onRowClick={(c) => setQuickId(c.id)}
+        rowActions={(c) => [
+          { label: fr ? 'Aperçu' : 'Quick view', icon: Eye, onSelect: () => setQuickId(c.id) },
+          { label: fr ? 'Générer un dossier' : 'Generate a dossier', icon: FileText, href: `/consultants/${c.id}/dossier` },
+          { label: fr ? 'Positionner' : 'Position', icon: Target, href: `/consultants/${c.id}?tab=opportunities` },
+          ...linkActions(`/consultants/${c.id}`, fr).map((a, i) => (i === 0 ? { ...a, separatorBefore: true } : a)),
+        ]}
         tableId="consultants"
         loading={loading && !data}
         selectable={canEdit}
@@ -399,6 +427,72 @@ export default function ConsultantsPage() {
           />
         }
         className={cn(selected.size > 0 && 'ring-1 ring-primary/20')}
+      />
+
+      <div className="mt-3 shrink-0 [&>nav]:mb-0 [&>nav]:mt-0">
+        <RelatedLinks
+          links={[
+            { href: '/cv-optimizer', label: { fr: 'Dossiers de compétences', en: 'Skills dossiers' }, permission: 'consultants.view' },
+            { href: '/cv-pushed', label: { fr: 'CV envoyés aux clients', en: 'CVs sent to clients' }, permission: 'consultants.view' },
+            { href: '/templates', label: { fr: 'Modèles de dossiers', en: 'Dossier templates' }, permission: 'consultants.view' },
+          ]}
+        />
+      </div>
+
+      <Drawer open={filtersOpen} onOpenChange={setFiltersOpen}>
+        <DrawerContent side="right" className="sm:max-w-sm">
+          <DrawerHeader>
+            <DrawerTitle>{fr ? 'Plus de filtres' : 'More filters'}</DrawerTitle>
+          </DrawerHeader>
+          <DrawerBody className="space-y-4">
+            <Field label={fr ? 'Statut' : 'Status'} htmlFor="flt-status">
+              <Select id="flt-status" value={status} onChange={(e) => setStatus(e.target.value)}>
+                <option value="all">{fr ? 'Tous statuts' : 'All statuses'}</option>
+                {Object.entries(CONSULTANT_STATUS)
+                  .filter(([k]) => k !== 'archived')
+                  .map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v.label[lang]}
+                    </option>
+                  ))}
+              </Select>
+            </Field>
+            <Field label={fr ? 'Référent' : 'Owner'} htmlFor="flt-owner">
+              <Select id="flt-owner" value={owner} onChange={(e) => setOwner(e.target.value)}>
+                <option value="all">{fr ? 'Tous les référents' : 'All owners'}</option>
+                {owners.map(([id, name]) => (
+                  <option key={id} value={id}>
+                    {name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </DrawerBody>
+          <DrawerFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setStatus('all');
+                setOwner('all');
+              }}
+            >
+              {fr ? 'Réinitialiser' : 'Reset'}
+            </Button>
+            <Button onClick={() => setFiltersOpen(false)}>{fr ? 'Voir les résultats' : 'Show results'}</Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
+      <ConsultantQuickView
+        consultant={quick}
+        open={!!quick}
+        onOpenChange={(v) => {
+          if (!v) setQuickId(null);
+        }}
+        lang={lang}
+        skills={quick ? (skillsByConsultant.get(quick.id) ?? []) : []}
+        showRates={showRates}
+        today={today}
       />
 
       {activeOrgId && (
