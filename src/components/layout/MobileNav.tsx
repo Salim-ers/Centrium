@@ -34,7 +34,7 @@ export function MobileNav() {
         <Menu />
       </Button>
       <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerContent side="left" className="bg-sidebar p-0" hideClose>
+        <DrawerContent side="left" className="w-[260px] bg-app-dock p-0" hideClose>
           <DrawerTitle className="sr-only">{locale === 'en' ? 'Navigation' : 'Navigation'}</DrawerTitle>
           <SidebarBody onItemClick={() => setOpen(false)} />
         </DrawerContent>

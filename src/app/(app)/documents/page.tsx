@@ -28,6 +28,7 @@ import { createClient } from '@/lib/supabase/client';
 import { DOCUMENT_KIND, QUOTE_STATUS, statusOf } from '@/lib/status';
 import { formatDate, formatEur, formatEurCompact, formatPct } from '@/lib/format';
 import type { LibraryDocument, Quote } from '@/types';
+import { SectionTabs } from '@/components/layout/SectionTabs';
 
 type QuoteRow = Pick<Quote, 'id' | 'number' | 'title' | 'status' | 'total_ht' | 'issue_date' | 'valid_until' | 'version' | 'root_id' | 'company_id' | 'sent_at' | 'decided_at'>;
 type ContractRow = { id: string; title: string | null; status: string; contract_number: string | null; created_at: string };
@@ -86,7 +87,8 @@ export default function DocumentsPage() {
   const [query, setQuery] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [openDocId, setOpenDocId] = useState<string | null>(params.get('doc'));
-  const [uploadOpen, setUploadOpen] = useState(false);
+  // « + Créer → Document » ouvre directement l'ajout (?new=1).
+  const [uploadOpen, setUploadOpen] = useState(params.get('new') === '1');
   const [versionOf, setVersionOf] = useState<LibraryDocument | null>(null);
 
   useEffect(() => {
@@ -266,7 +268,7 @@ export default function DocumentsPage() {
 
   return (
     <AppShell>
-      <PageHeader
+      <PageHeader tabs={<SectionTabs section="operations" />}
         eyebrow={fr ? 'Opérations' : 'Operations'}
         title={fr ? 'Devis & documents' : 'Quotes & documents'}
         description={

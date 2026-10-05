@@ -1,7 +1,7 @@
 'use client';
 
-import { createContext, Suspense, useContext } from 'react';
-import Link from 'next/link';
+import { createContext, Suspense, useContext, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 import { cn } from '@/lib/utils';
 import { Sidebar } from './Sidebar';
@@ -9,29 +9,34 @@ import { Header } from './Header';
 import { CommandPalette } from './CommandPalette';
 import { BrandingStyles } from '@/components/brand/BrandingStyles';
 import { OrgActivityListener } from '@/components/realtime/OrgActivityListener';
-import { ManageCookiesLink } from '@/components/marketing/CookieBanner';
 import { SessionPresenceGate } from '@/components/auth/SessionPresenceGate';
-import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
 import { useAppearance } from '@/hooks/useAppearance';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
-/** Présent quand la chrome (sidebar + header) est rendue par un layout. */
+/** Présent quand la chrome (barre latérale + barre supérieure) est rendue par un layout. */
 const ChromeContext = createContext(false);
 
 /**
- * Chrome persistante de l'application : sidebar, header, palette de
- * commandes, notifications. Rendue UNE fois par le layout `(app)` — elle
- * ne se remonte pas à chaque navigation.
+ * Coque de l'application, rendue une fois par le layout `(app)` : hauteur
+ * `100dvh`, barre latérale fixe, barre supérieure fixe, et un espace de
+ * travail qui défile seul. Seul l'espace de travail change d'une page à
+ * l'autre.
  */
 export function AppChrome({ children }: { children: React.ReactNode }) {
-  const [collapsed] = useSidebarCollapsed();
   // Applique la densité choisie (Paramètres → Affichage) dès l'arrivée.
   useAppearance();
+  const pathname = usePathname();
   const { locale } = useLocale();
   const fr = locale !== 'en';
+
+  // L'espace de travail défile seul : on le remet en haut à chaque page.
+  useEffect(() => {
+    document.getElementById('main')?.scrollTo({ top: 0 });
+  }, [pathname]);
+
   return (
     <ChromeContext.Provider value={true}>
-      <div className="app-bg relative flex min-h-screen flex-col bg-background text-foreground">
+      <div className="app-bg flex h-dvh overflow-hidden bg-background text-foreground">
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[70] focus:rounded-md focus:bg-card focus:px-3 focus:py-2 focus:text-sm focus:shadow-md"
@@ -41,37 +46,14 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
         <BrandingStyles />
         <SessionPresenceGate />
         <Sidebar />
-        <Header />
-        <CommandPalette />
-        <main
-          id="main"
-          className={cn(
-            'app-main relative flex flex-1 flex-col pt-16 transition-[padding] duration-300 ease-out-soft',
-            collapsed ? 'md:pl-[72px]' : 'md:pl-[260px]',
-          )}
-        >
-          {/* Suspense : les pages qui lisent useSearchParams() restent rendables statiquement. */}
-          <div className="flex flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Header />
+          <main id="main" tabIndex={-1} className="app-main relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden focus:outline-none">
+            {/* Suspense : les pages qui lisent useSearchParams() restent rendables statiquement. */}
             <Suspense fallback={null}>{children}</Suspense>
-          </div>
-          <footer className="border-t border-border">
-            <div className="flex flex-col gap-2 px-4 py-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between md:px-8">
-              <div>© {new Date().getFullYear()} Centrium · {fr ? 'édité par QuadCore' : 'by QuadCore'}</div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                <Link href="/settings/privacy" className="hover:text-foreground">
-                  {fr ? 'Mes données' : 'My data'}
-                </Link>
-                <Link href="/legal/privacy" className="hover:text-foreground">
-                  {fr ? 'Confidentialité' : 'Privacy'}
-                </Link>
-                <Link href="/legal/cgu" className="hover:text-foreground">
-                  {fr ? 'CGU' : 'Terms'}
-                </Link>
-                <ManageCookiesLink className="hover:text-foreground" />
-              </div>
-            </div>
-          </footer>
-        </main>
+          </main>
+        </div>
+        <CommandPalette />
         <OrgActivityListener />
       </div>
     </ChromeContext.Provider>
@@ -83,12 +65,20 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
  * contenu (la chrome est déjà là) ; hors layout, il rend la chrome complète
  * pour rester compatible.
  *
- * `wide` : pleine largeur (pipeline, planning, tableaux denses).
+ * `wide` : pleine largeur. `fill` : la page occupe exactement la hauteur de
+ * l'espace de travail et fait défiler ses propres zones (tableaux, colonnes),
+ * jamais la page entière.
  */
-export function AppShell({ children, wide = false }: { children: React.ReactNode; wide?: boolean }) {
+export function AppShell({ children, wide = false, fill = false }: { children: React.ReactNode; wide?: boolean; fill?: boolean }) {
   const insideChrome = useContext(ChromeContext);
   const content = (
-    <div className={cn('mx-auto w-full flex-1 px-4 py-6 md:px-8 md:py-8', wide ? 'max-w-none' : 'max-w-[1360px]')}>
+    <div
+      className={cn(
+        'mx-auto w-full px-4 py-5 md:px-6',
+        wide || fill ? 'max-w-none' : 'max-w-[1440px]',
+        fill ? 'flex h-full min-h-0 flex-col md:py-5' : 'md:py-6',
+      )}
+    >
       {children}
     </div>
   );

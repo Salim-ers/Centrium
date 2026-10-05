@@ -34,6 +34,7 @@ import type { JobOffer, Consultant } from '@/types';
 import { CONSULTANT_STATUS_LABEL, CONSULTANT_STATUS_STYLE } from '@/constants';
 import { useConsultantStatusLabels } from '@/lib/i18n/useBadges';
 import { useCurrency } from '@/lib/i18n/CurrencyProvider';
+import { SectionTabs } from '@/components/layout/SectionTabs';
 
 function MatchingInner() {
   const { activeOrgId } = useOrganization();
@@ -149,7 +150,7 @@ function MatchingInner() {
         }}
       />
 
-      <PageHeader
+      <PageHeader tabs={<SectionTabs section="staffing" />}
         eyebrow={t.pages.matching.eyebrow}
         title={
           <>

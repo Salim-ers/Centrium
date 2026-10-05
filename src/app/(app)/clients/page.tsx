@@ -21,6 +21,7 @@ import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { createClient } from '@/lib/supabase/client';
 import { loadClients, type ClientRow } from '@/lib/pilotage/load-clients';
 import { formatDate, formatEurCompact, formatPct } from '@/lib/format';
+import { SectionTabs } from '@/components/layout/SectionTabs';
 
 export default function ClientsPage() {
   const params = useSearchParams();
@@ -138,7 +139,7 @@ export default function ClientsPage() {
 
   return (
     <AppShell>
-      <PageHeader
+      <PageHeader tabs={<SectionTabs section="crm" />}
         eyebrow={fr ? 'Activité commerciale' : 'Sales'}
         title={fr ? 'Clients' : 'Clients'}
         description={fr ? 'Comptes clients, prospects et ESN partenaires.' : 'Client accounts, prospects and partner firms.'}

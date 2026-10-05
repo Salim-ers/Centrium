@@ -24,6 +24,7 @@ import { loadFinance, type FinanceSummary } from '@/lib/pilotage/load-finance';
 import { formatEur, formatEurCompact, formatPct } from '@/lib/format';
 import { RelatedLinks } from '@/components/app/RelatedLinks';
 import { cn } from '@/lib/utils';
+import { SectionTabs } from '@/components/layout/SectionTabs';
 
 const RevenueMarginChart = dynamic(() => import('@/components/charts/RevenueMarginChart'), {
   ssr: false,
@@ -109,7 +110,7 @@ export default function FinancePage() {
 
   return (
     <AppShell>
-      <PageHeader
+      <PageHeader tabs={<SectionTabs section="operations" />}
         eyebrow={fr ? 'Opérations' : 'Operations'}
         title={fr ? 'Finance & préfacturation' : 'Finance & pre-invoicing'}
         description={

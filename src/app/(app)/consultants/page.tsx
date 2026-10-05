@@ -325,7 +325,7 @@ export default function ConsultantsPage() {
       </div>
 
       {selected.size > 0 && canEdit && (
-        <div className="sticky top-[4.5rem] z-10 mb-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-2 shadow-md">
+        <div className="sticky top-0 z-10 mb-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-2 shadow-md">
           <span className="num text-[13px]">
             {selected.size} {fr ? 'sélectionné(s)' : 'selected'}
           </span>

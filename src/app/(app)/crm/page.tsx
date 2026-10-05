@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/app/EmptyState';
 import { showBrandToast } from '@/components/ui/BrandToast';
 import { CrmStats } from '@/components/crm/CrmStats';
-import { CrmTabs } from '@/components/crm/CrmTabs';
 import { CrmToolbar } from '@/components/crm/CrmToolbar';
 import { OpportunityCard } from '@/components/crm/OpportunityCard';
 import { OpportunityDrawer } from '@/components/crm/OpportunityDrawer';
@@ -30,6 +29,7 @@ import { opportunityAmount } from '@/lib/pilotage/metrics';
 import { formatEurCompact } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { Opportunity, OpportunityStatus } from '@/types';
+import { SectionTabs } from '@/components/layout/SectionTabs';
 
 const DRAG_MIME = 'application/x-opportunity-id';
 
@@ -254,9 +254,8 @@ export default function CrmPipelinePage() {
             </Button>
           )
         }
-      >
-        <CrmTabs />
-      </PageHeader>
+        tabs={<SectionTabs section="crm" />}
+      />
 
       {opps.length > 0 && <CrmStats opps={filtered} today={today} lang={lang} />}
 

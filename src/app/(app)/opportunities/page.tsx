@@ -13,7 +13,6 @@ import { StatusPill } from '@/components/ui/status-pill';
 import { Avatar } from '@/components/ui/avatar';
 import { DataTable, type Column, linkActions } from '@/components/ui/data-table';
 import { CrmStats } from '@/components/crm/CrmStats';
-import { CrmTabs } from '@/components/crm/CrmTabs';
 import { CrmToolbar } from '@/components/crm/CrmToolbar';
 import { OpportunityDrawer } from '@/components/crm/OpportunityDrawer';
 import { RelatedLinks } from '@/components/app/RelatedLinks';
@@ -29,6 +28,7 @@ import { isOpenOpportunity, opportunityAmount } from '@/lib/pilotage/metrics';
 import { formatDate, formatEurCompact } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { Opportunity } from '@/types';
+import { SectionTabs } from '@/components/layout/SectionTabs';
 
 /**
  * CRM — liste des opportunités : même onglet que le tableau, triable, avec
@@ -171,9 +171,8 @@ export default function OpportunitiesPage() {
             </Button>
           )
         }
-      >
-        <CrmTabs />
-      </PageHeader>
+        tabs={<SectionTabs section="crm" />}
+      />
 
       {(data ?? []).length > 0 && <CrmStats opps={byOwner} today={today} lang={lang} />}
 

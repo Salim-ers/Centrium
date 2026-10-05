@@ -25,14 +25,14 @@ section[id] {
 
 @layer base {
   :root {
-    --background: 36 23% 96%;          /* #F7F5F2 fond de l'application */
-    --foreground: 20 9% 13%;           /* #25211F */
+    --background: 27 27% 96%;          /* #F7F4F1 fond de l'application */
+    --foreground: 26 9% 15%;           /* #292522 texte */
 
     --card: 0 0% 100%;
-    --card-foreground: 20 9% 13%;
+    --card-foreground: 26 9% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 20 9% 13%;
+    --popover-foreground: 26 9% 15%;
 
     --primary: 12 53% 53%;             /* #C65F46 terracotta */
     --primary-deep: 10 52% 41%;        /* #9D4432 terracotta profond */
@@ -47,7 +47,7 @@ section[id] {
     --terracotta-soft: 14 59% 87%;     /* #F1D3C9 */
 
     --muted: 30 20% 95%;
-    --muted-foreground: 23 5% 48%;     /* #827A75 */
+    --muted-foreground: 22 5% 49%;     /* #837A75 */
 
     --accent: 26 39% 95%;
     --accent-foreground: 30 4% 9%;

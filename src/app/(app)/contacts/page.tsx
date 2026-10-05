@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import { useContactTypeLabels } from '@/lib/i18n/useBadges';
@@ -57,7 +58,7 @@ import { PaginationFooter } from '@/components/ui/PaginationFooter';
 import type { Contact } from '@/types';
 import { CONTACT_TYPE_LABEL } from '@/constants';
 import { relativeDate } from '@/lib/utils';
-import { CrmTabs } from '@/components/crm/CrmTabs';
+import { SectionTabs } from '@/components/layout/SectionTabs';
 
 /**
  * Carnet de contacts — version simplifiée.
@@ -76,7 +77,9 @@ export default function ContactsPage() {
   const t = useAppT();
   const isEn = useLocale().locale === 'en';
   const contactTypeLabels = useContactTypeLabels();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const params = useSearchParams();
+  // « + Créer → Contact » ouvre directement le formulaire (?new=1).
+  const [dialogOpen, setDialogOpen] = useState(params.get('new') === '1');
   const [csvOpen, setCsvOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [reminderContact, setReminderContact] = useState<Contact | null>(null);
@@ -209,9 +212,8 @@ export default function ContactsPage() {
             </Button>
           </>
         }
-      >
-        <CrmTabs />
-      </PageHeader>
+        tabs={<SectionTabs section="crm" />}
+      />
 
       <Reveal className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KPICard accent="terra"

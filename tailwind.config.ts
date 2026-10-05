@@ -93,6 +93,22 @@ const config: Config = {
           soft: '#F1D3C9', // terracotta doux (widgets)
           blush: '#F5E3DD', // peach clair (widgets)
         },
+        // Palette de l'application V2 (docs/CENTRIUM_UX_AUDIT.md §4). Les
+        // jetons terra-* restent ceux du site vitrine, qui n'est pas modifié.
+        app: {
+          bg: '#F7F4F1',
+          card: '#FFFFFF',
+          terra: '#C65F46',
+          'terra-dark': '#A64735',
+          'terra-deep': '#7E3528',
+          peach: '#F2D8CF',
+          'peach-light': '#F9EBE6',
+          sand: '#EFE6E0',
+          charcoal: '#191817',
+          dock: '#1B1817',
+          text: '#292522',
+          muted: '#837A75',
+        },
         ivory: '#FBF8F5',
         warm: '#FFFDFC', // blanc chaud
         dune: '#F2E9E3', // sable du site

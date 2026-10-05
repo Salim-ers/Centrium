@@ -17,6 +17,8 @@ import {
   Sparkles,
   ArrowRight,
   Loader2,
+  Clock,
+  ClipboardCheck,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -24,7 +26,9 @@ import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { usePermissions } from '@/hooks/usePermissions';
-import { NAV_SECTIONS, canSeeNavItem } from '@/lib/navigation';
+import { HIDDEN_PAGES, NAV_ITEMS, SECONDARY_ITEMS, SECTION_TABS, canSeeNavItem } from '@/lib/navigation';
+import { useOrganizationSafe } from '@/lib/auth/context';
+import { pushRecent, readRecents, type Recent } from '@/lib/recents';
 import { globalSearch, type SearchKind, type SearchResult } from '@/lib/search/global-search';
 import type { Permission } from '@/lib/auth/permissions';
 import { AssistantAnswer } from '@/components/assistant/AssistantAnswer';
@@ -75,11 +79,18 @@ type QuickAction = {
 
 const QUICK_ACTIONS: QuickAction[] = [
   { id: 'new-client', label: { fr: 'Créer un client', en: 'Create a client' }, href: '/clients?new=1', permission: 'clients.edit', keywords: 'nouveau société compte' },
+  { id: 'new-contact', label: { fr: 'Créer un contact', en: 'Create a contact' }, href: '/contacts?new=1', permission: 'crm.edit', keywords: 'nouveau interlocuteur personne' },
   { id: 'new-opportunity', label: { fr: 'Créer une opportunité', en: 'Create an opportunity' }, href: '/crm?new=1', permission: 'opportunities.edit', keywords: 'nouveau besoin affaire deal' },
   { id: 'new-consultant', label: { fr: 'Ajouter un consultant', en: 'Add a consultant' }, href: '/consultants?new=1', permission: 'consultants.edit', keywords: 'nouveau talent cv' },
   { id: 'new-mission', label: { fr: 'Créer une mission', en: 'Create a mission' }, href: '/missions?new=1', permission: 'missions.edit', keywords: 'nouvelle affectation' },
   { id: 'new-quote', label: { fr: 'Créer un devis', en: 'Create a quote' }, href: '/documents/quotes/new', permission: 'documents.edit', keywords: 'nouveau proposition' },
+  { id: 'new-timesheet', label: { fr: 'Saisir un CRA', en: 'Enter a timesheet' }, href: '/timesheets?new=1', permission: 'timesheets.validate', keywords: 'compte rendu activité temps' },
+  { id: 'new-document', label: { fr: 'Ajouter un document', en: 'Add a document' }, href: '/documents?new=1', permission: 'documents.edit', keywords: 'contrat pièce fichier' },
+  { id: 'new-dossier', label: { fr: 'Générer un dossier de compétences', en: 'Generate a skills dossier' }, href: '/cv-optimizer', permission: 'consultants.view', keywords: 'cv optimizer dossier export pdf word' },
+  { id: 'see-staffing', label: { fr: 'Voir le staffing', en: 'Open staffing' }, href: '/staffing', permission: 'staffing.view', keywords: 'planning disponibilités' },
 ];
+
+const RECENT_ICON: Record<string, LucideIcon> = { client: Building2, contact: UserRound, consultant: Users, mission: Briefcase, opportunity: Target, document: FileText, quote: Receipt, timesheet: ClipboardCheck };
 
 function normalize(s: string) {
   return s
@@ -109,6 +120,9 @@ export function CommandPalette() {
   const [active, setActive] = React.useState(0);
   const [assistantQuestion, setAssistantQuestion] = React.useState<string | null>(null);
   const listRef = React.useRef<HTMLDivElement>(null);
+  const org = useOrganizationSafe();
+  const orgId = org?.activeOrgId;
+  const [recents, setRecents] = React.useState<Recent[]>([]);
   const supabase = React.useMemo(() => createClient(), []);
 
   // Raccourci clavier Ctrl/Cmd + K et ouverture programmatique.
@@ -132,12 +146,13 @@ export function CommandPalette() {
   }, []);
 
   React.useEffect(() => {
+    if (open) setRecents(readRecents(orgId));
     if (!open) {
       setQuery('');
       setResults([]);
       setAssistantQuestion(null);
     }
-  }, [open]);
+  }, [open, orgId]);
 
   // Recherche serveur avec anti-rebond.
   React.useEffect(() => {
@@ -172,6 +187,19 @@ export function CommandPalette() {
     const out: Entry[] = [];
     const isQuestion = query.trim().length > 3 && looksLikeQuestion(query);
 
+    if (!q) {
+      for (const r of recents) {
+        out.push({
+          id: `recent:${r.href}`,
+          group: lang === 'fr' ? 'Récemment consulté' : 'Recently viewed',
+          label: r.label,
+          hint: r.kind && r.kind in KIND_LABEL ? KIND_LABEL[r.kind as SearchKind][lang] : undefined,
+          icon: (r.kind && RECENT_ICON[r.kind]) || Clock,
+          run: () => go(r.href),
+        });
+      }
+    }
+
     if (query.trim().length > 3) {
       out.push({
         id: 'assistant',
@@ -191,7 +219,10 @@ export function CommandPalette() {
           label: r.title,
           hint: r.subtitle,
           icon: KIND_ICON[r.kind],
-          run: () => go(r.href),
+          run: () => {
+            pushRecent(orgId, { href: r.href, label: r.title, kind: r.kind });
+            go(r.href);
+          },
         });
       }
     }
@@ -209,24 +240,27 @@ export function CommandPalette() {
       });
     }
 
-    for (const section of NAV_SECTIONS) {
-      for (const item of section.items) {
-        if (!canSeeNavItem(item, can)) continue;
-        const hay = normalize(`${item.label[lang]} ${section.label[lang]} ${(item.keywords ?? []).join(' ')}`);
-        if (q && !hay.includes(q)) continue;
-        out.push({
-          id: `nav:${item.id}`,
-          group: lang === 'fr' ? 'Aller à' : 'Go to',
-          label: item.label[lang],
-          hint: section.label[lang],
-          icon: item.icon,
-          run: () => go(item.href),
-        });
-      }
+    const goTo = lang === 'fr' ? 'Aller à' : 'Go to';
+    const pages = [
+      ...NAV_ITEMS.map((i) => ({ id: i.id, label: i.label[lang], hint: undefined as string | undefined, href: i.href, icon: i.icon, item: i, keywords: i.keywords ?? [] })),
+      ...(Object.entries(SECTION_TABS) as Array<[string, (typeof SECTION_TABS)[keyof typeof SECTION_TABS]]>).flatMap(([sid, tabs]) => {
+        const parent = NAV_ITEMS.find((n) => n.id === sid);
+        return tabs.map((t) => ({ id: `${sid}:${t.href}`, label: t.label[lang], hint: parent?.label[lang], href: t.href, icon: parent?.icon ?? ArrowRight, item: t, keywords: [] as string[] }));
+      }),
+      ...HIDDEN_PAGES.map((i) => ({ id: i.id, label: i.label[lang], hint: undefined as string | undefined, href: i.href, icon: i.icon, item: i, keywords: i.keywords ?? [] })),
+      ...SECONDARY_ITEMS.map((i) => ({ id: i.id, label: i.label[lang], hint: undefined as string | undefined, href: i.href, icon: i.icon, item: i, keywords: i.keywords ?? [] })),
+    ];
+    const seen = new Set<string>();
+    for (const p of pages) {
+      if (seen.has(p.href + p.label) || !canSeeNavItem(p.item, can)) continue;
+      seen.add(p.href + p.label);
+      const hay = normalize(`${p.label} ${p.hint ?? ''} ${p.keywords.join(' ')}`);
+      if (q && !hay.includes(q)) continue;
+      out.push({ id: `nav:${p.id}`, group: goTo, label: p.label, hint: p.hint, icon: p.icon, run: () => go(p.href) });
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, results, lang, go]);
+  }, [query, results, lang, go, recents]);
 
   React.useEffect(() => setActive(0), [query, results.length]);
 

@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader } from '@/components/app';
-import { CrmTabs } from '@/components/crm/CrmTabs';
 import { TaskList } from '@/components/crm/TaskList';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useOrganization } from '@/lib/auth/context';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { SectionTabs } from '@/components/layout/SectionTabs';
 
 export default function CrmTasksPage() {
   const { user } = useOrganization();
@@ -26,9 +26,8 @@ export default function CrmTasksPage() {
             ? 'Relances, rappels et suivis. Les automatisations créent aussi des tâches (opportunité sans activité, demande client…).'
             : 'Follow-ups and reminders. Automations also create tasks (stale opportunity, client request…).'
         }
-      >
-        <CrmTabs />
-      </PageHeader>
+        tabs={<SectionTabs section="crm" />}
+      />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Tabs value={scope} onValueChange={(v) => setScope(v as 'mine' | 'all')}>

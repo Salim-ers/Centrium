@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { OPEN_STAGES, PIPELINE_STAGES, nextStage } from '@/lib/crm/pipeline';
 import { followUpState, pipelineSentence, summarizePipeline } from '@/lib/crm/summary';
-import { NAV_SECTIONS, canSeeNavItem, isNavItemActive } from '@/lib/navigation';
+import { HIDDEN_PAGES, NAV_ITEMS, SECTION_TABS, activeSectionTab, breadcrumb, canSeeNavItem, isNavItemActive } from '@/lib/navigation';
 import type { Permission } from '@/lib/auth/permissions';
 import type { OpportunityStatus } from '@/types';
 
@@ -73,40 +73,46 @@ describe('CRM : résumé du pipeline', () => {
   });
 });
 
-describe('Navigation : CRM et CV Optimizer', () => {
-  const items = NAV_SECTIONS.flatMap((s) => s.items);
-  const byId = (id: string) => items.find((i) => i.id === id)!;
+describe('Navigation V2 : huit destinations, un seul niveau d’onglets', () => {
+  const byId = (id: string) => NAV_ITEMS.find((i) => i.id === id)!;
   const canWith = (perms: Permission[]) => (p: Permission) => perms.includes(p);
 
-  it('n’a plus d’entrée « Opportunités » séparée : tout passe par le CRM', () => {
-    expect(items.some((i) => i.id === 'opportunities')).toBe(false);
-    expect(isNavItemActive(byId('crm'), '/opportunities/abc')).toBe(true);
-    expect(isNavItemActive(byId('crm'), '/contacts')).toBe(true);
+  it('expose exactement les huit destinations prévues, dans l’ordre', () => {
+    expect(NAV_ITEMS.map((i) => i.id)).toEqual(['dashboard', 'crm', 'talents', 'staffing', 'missions', 'operations', 'analytics', 'portals']);
   });
 
-  it('montre le CRM à qui voit les opportunités, même sans le droit CRM (finance)', () => {
-    expect(canSeeNavItem(byId('crm'), canWith(['opportunities.view']))).toBe(true);
-    expect(canSeeNavItem(byId('crm'), canWith(['crm.view']))).toBe(true);
+  it('regroupe opportunités, clients et contacts dans le CRM', () => {
+    for (const path of ['/crm', '/opportunities/abc', '/clients', '/clients/abc', '/contacts', '/crm/tasks']) {
+      expect(isNavItemActive(byId('crm'), path)).toBe(true);
+    }
+    // La finance voit les clients sans le droit CRM.
+    expect(canSeeNavItem(byId('crm'), canWith(['clients.view']))).toBe(true);
     expect(canSeeNavItem(byId('crm'), canWith(['finance.view']))).toBe(false);
   });
 
-  it('n’a plus de section Collaboration : portails et automatisations passent par Paramètres', () => {
-    expect(NAV_SECTIONS.some((s) => s.id === 'collaboration')).toBe(false);
-    for (const id of ['portals', 'automations']) {
-      const item = byId(id);
-      expect(item.sidebar).toBe(false);
-      // Toujours trouvables (palette, fil d'Ariane).
-      expect(isNavItemActive(item, `/${id}`)).toBe(true);
+  it('retire le CV Optimizer du menu : il devient le dossier de compétences des Talents', () => {
+    expect(NAV_ITEMS.some((i) => i.href === '/cv-optimizer')).toBe(false);
+    expect(HIDDEN_PAGES.some((p) => p.href === '/cv-optimizer')).toBe(true);
+    expect(isNavItemActive(byId('talents'), '/cv-optimizer')).toBe(true);
+  });
+
+  it('range CRA, documents et finance sous Opérations', () => {
+    for (const path of ['/timesheets', '/documents', '/documents/quotes/new', '/finance', '/invoices']) {
+      expect(isNavItemActive(byId('operations'), path)).toBe(true);
     }
   });
 
-  it('remet le CV Optimizer dans le menu, sous Ressources', () => {
-    const ressources = NAV_SECTIONS.find((s) => s.id === 'ressources')!;
-    const cv = ressources.items.find((i) => i.id === 'cv-optimizer');
-    expect(cv?.href).toBe('/cv-optimizer');
-    expect(isNavItemActive(cv!, '/cv-optimizer')).toBe(true);
-    // La page n'allume plus « Consultants ».
-    expect(isNavItemActive(byId('consultants'), '/cv-optimizer')).toBe(false);
-    expect(canSeeNavItem(cv!, canWith(['consultants.view']))).toBe(true);
+  it('choisit l’onglet le plus spécifique', () => {
+    expect(activeSectionTab(SECTION_TABS.crm, '/crm/tasks')?.href).toBe('/crm/tasks');
+    expect(activeSectionTab(SECTION_TABS.crm, '/crm')?.href).toBe('/crm');
+    expect(activeSectionTab(SECTION_TABS.crm, '/opportunities/abc')?.href).toBe('/crm');
+    expect(activeSectionTab(SECTION_TABS.staffing, '/matching')?.href).toBe('/matching');
+  });
+
+  it('construit un fil d’Ariane court : destination, puis onglet', () => {
+    expect(breadcrumb('/clients/abc', 'fr')).toEqual(['CRM', 'Clients']);
+    expect(breadcrumb('/finance', 'fr')).toEqual(['Opérations', 'Pilotage financier']);
+    expect(breadcrumb('/missions/abc', 'fr')).toEqual(['Missions']);
+    expect(breadcrumb('/cv-optimizer', 'fr')).toEqual(['Talents']);
   });
 });

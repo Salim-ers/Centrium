@@ -30,6 +30,7 @@ import { CONSULTANT_STATUS } from '@/lib/status';
 import { formatDate, formatPct } from '@/lib/format';
 import { RelatedLinks } from '@/components/app/RelatedLinks';
 import type { JobOffer, Opportunity } from '@/types';
+import { SectionTabs } from '@/components/layout/SectionTabs';
 
 export default function StaffingPage() {
   const params = useSearchParams();
@@ -125,7 +126,7 @@ export default function StaffingPage() {
 
   return (
     <AppShell wide>
-      <PageHeader
+      <PageHeader tabs={<SectionTabs section="staffing" />}
         eyebrow={fr ? 'Ressources' : 'Resources'}
         title="Staffing"
         description={fr ? 'Qui est en mission, qui se libère, qui positionner.' : 'Who is staffed, who is freeing up, who to propose.'}

@@ -29,6 +29,7 @@ import { createClient } from '@/lib/supabase/client';
 import { timesheetService } from '@/lib/services';
 import { TIMESHEET_STATUS, periodLabel, statusOf } from '@/lib/status';
 import { formatDate } from '@/lib/format';
+import { SectionTabs } from '@/components/layout/SectionTabs';
 
 type Row = {
   id: string;
@@ -120,7 +121,8 @@ export default function TimesheetsPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<Row | null>(null);
   const [reason, setReason] = useState('');
-  const [createOpen, setCreateOpen] = useState(false);
+  // « + Créer → CRA » ouvre directement la saisie (?new=1).
+  const [createOpen, setCreateOpen] = useState(params.get('new') === '1');
 
   const { data, loading, reload } = useCachedQuery<Data>(
     `timesheets-v2:${activeOrgId ?? 'none'}`,
@@ -312,7 +314,7 @@ export default function TimesheetsPage() {
 
   return (
     <AppShell>
-      <PageHeader
+      <PageHeader tabs={<SectionTabs section="operations" />}
         eyebrow={fr ? 'Opérations' : 'Operations'}
         title={fr ? 'CRA' : 'Timesheets'}
         description={

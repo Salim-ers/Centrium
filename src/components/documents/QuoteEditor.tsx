@@ -262,7 +262,7 @@ export function QuoteEditor({
       </div>
 
       <div className="hidden 2xl:block">
-        <div className="sticky top-20 origin-top scale-[0.82]">
+        <div className="sticky top-4 origin-top scale-[0.82]">
           <QuoteDocument
             quote={{ number: null, title: q.title || (fr ? 'Objet du devis' : 'Quote subject'), issue_date: q.issue_date, valid_until: q.valid_until ?? null, vat_rate: Number(q.vat_rate) || 0, intro_text: q.intro_text ?? null, terms_text: q.terms_text ?? null, version: 1 }}
             items={q.items.map((i) => ({ description: i.description, quantity: Number(i.quantity) || 0, unit: i.unit ?? 'jour', unit_price: Number(i.unit_price) || 0 }))}
