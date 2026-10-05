@@ -2,11 +2,11 @@ import { DASHBOARD_H, DASHBOARD_W, ProductDashboard } from '../ProductDashboard'
 import { ScaleFrame } from '../ScaleFrame';
 import { EXAMPLE_LABEL } from '../demo-data';
 import { Appear, Cta, FlowLine, Kicker, Lead, MaskImage, Section, Title, Wide } from '../kit';
+import { Roles } from './Roles';
 
 type Module = { name: string; text: string };
-const GROUPS: Array<{ n: string; title: string; modules: Module[] }> = [
+const GROUPS: Array<{ title: string; modules: Module[] }> = [
   {
-    n: '01',
     title: 'Commerce',
     modules: [
       { name: 'CRM', text: 'Contacts, sociétés et opportunités dans un pipeline par étape.' },
@@ -15,7 +15,6 @@ const GROUPS: Array<{ n: string; title: string; modules: Module[] }> = [
     ],
   },
   {
-    n: '02',
     title: 'Talents',
     modules: [
       { name: 'Consultants', text: 'La fiche de chaque consultant : compétences, séniorité, disponibilité, CV.' },
@@ -24,7 +23,6 @@ const GROUPS: Array<{ n: string; title: string; modules: Module[] }> = [
     ],
   },
   {
-    n: '03',
     title: 'Production',
     modules: [
       { name: 'Missions', text: 'Dates, consultant, TJM de vente et coût : la marge de chaque mission.' },
@@ -33,7 +31,6 @@ const GROUPS: Array<{ n: string; title: string; modules: Module[] }> = [
     ],
   },
   {
-    n: '04',
     title: 'Pilotage',
     modules: [
       { name: 'Tableau de bord', text: 'CA signé, marge, à traiter, activité, staffing et pipeline sur un écran.' },
@@ -42,7 +39,6 @@ const GROUPS: Array<{ n: string; title: string; modules: Module[] }> = [
     ],
   },
   {
-    n: '05',
     title: 'Ouverture',
     modules: [
       { name: 'Portail client', text: 'Votre client suit ses missions et dépose ses besoins.' },
@@ -52,13 +48,16 @@ const GROUPS: Array<{ n: string; title: string; modules: Module[] }> = [
   },
 ];
 
-/** Page Plateforme (Produit) : le cycle, puis les modules. */
+/**
+ * Page Fonctionnalités (/plateforme) : le cycle, l'aperçu du cockpit, les
+ * modules, puis ce que Centrium apporte à chaque fonction de l'ESN.
+ */
 export function Platform() {
   return (
     <>
       <Section tone="deep" aria-label="Plateforme" className="overflow-hidden pb-20 pt-32 md:pb-28 md:pt-40">
         <Wide>
-          <Kicker n="01">Plateforme</Kicker>
+          <Kicker>Fonctionnalités</Kicker>
           <Title as="h1" size="hero" immediate className="mt-8 text-[clamp(2.8rem,8vw,9.5rem)]" lines={[['Un seul espace.'], ['Tout le ', { em: 'cycle.' }]]} />
           <div className="mt-10 grid gap-8 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
             <Lead className="text-ivory/85">Centrium réunit le commerce, le staffing, la production et la rentabilité de votre ESN. Chaque module alimente le suivant, sans ressaisie.</Lead>
@@ -68,6 +67,9 @@ export function Platform() {
               </Cta>
               <Cta href="#modules" variant="outline-light" cursor="Explorer">
                 Les modules
+              </Cta>
+              <Cta href="#roles" variant="outline-light" cursor="Explorer">
+                Par fonction
               </Cta>
             </div>
           </div>
@@ -90,7 +92,7 @@ export function Platform() {
         <Wide>
           <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-end">
             <div>
-              <Kicker n="02">Fonctionnalités</Kicker>
+              <Kicker>Les modules</Kicker>
               <Title size="lg" className="mt-6" lines={[['Quinze modules.'], ['Un seul ', { em: 'flux.' }]]} />
             </div>
             <Lead className="lg:justify-self-end">Tous inclus dans chaque offre. Aucun module en option.</Lead>
@@ -98,10 +100,9 @@ export function Platform() {
 
           <div className="mt-20 space-y-24">
             {GROUPS.map((g) => (
-              <div key={g.n} className="grid gap-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,9fr)]">
+              <div key={g.title} className="grid gap-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,9fr)]">
                 <div className="lg:sticky lg:top-28 lg:self-start">
-                  <div className="text-[12px] font-semibold tabular-nums tracking-[0.2em] text-terra">{g.n}</div>
-                  <h2 className="mt-2 text-[clamp(2rem,3.4vw,3.4rem)] font-extrabold uppercase leading-none tracking-[-0.045em]">{g.title}</h2>
+                  <h2 className="text-[clamp(2rem,3.4vw,3.4rem)] font-extrabold uppercase leading-none tracking-[-0.045em]">{g.title}</h2>
                 </div>
                 <div className="grid gap-px overflow-hidden rounded-[28px] bg-line md:grid-cols-3">
                   {g.modules.map((m, i) => (
@@ -116,6 +117,8 @@ export function Platform() {
           </div>
         </Wide>
       </Section>
+
+      <Roles />
 
       <section data-nav="light" aria-label="Sécurité" className="relative h-[80svh] min-h-[520px] overflow-hidden bg-terra-dark text-ivory">
         <MaskImage src="/photos/it-code-laptop.webp" alt="Ordinateur portable affichant du code" sizes="100vw" className="absolute inset-0" />

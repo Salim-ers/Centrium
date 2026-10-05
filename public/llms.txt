@@ -55,8 +55,7 @@ Deterministic score out of 100 based on seven visible criteria: required skills 
 ## Pages
 
 - [Home](https://www.centrium-platform.com/)
-- [Platform](https://www.centrium-platform.com/plateforme): modules and how they connect
-- [Solutions](https://www.centrium-platform.com/solutions): leadership, business managers, recruiting, finance, consultants, clients
+- [Features](https://www.centrium-platform.com/plateforme): modules, how they connect, and what each role gets (leadership, business managers, recruiting, finance, consultants, clients)
 - [Pricing](https://www.centrium-platform.com/tarifs)
 - [Security](https://www.centrium-platform.com/securite)
 - [Book a demo](https://www.centrium-platform.com/demo)

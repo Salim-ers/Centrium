@@ -17,7 +17,7 @@ const CARD: Record<Tone, string> = {
   ink: 'bg-gradient-to-br from-[#2D2724] via-ink to-[#0F0D0C] text-ivory shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_28px_56px_-30px_rgba(25,22,20,0.8)]',
 };
 
-function Card({ n, title, text, tone = 'light', className, children }: { n: string; title: string; text: string; tone?: Tone; className?: string; children: React.ReactNode }) {
+function Card({ label, title, text, tone = 'light', className, children }: { label: string; title: string; text: string; tone?: Tone; className?: string; children: React.ReactNode }) {
   const reduce = useReducedMotion();
   const dark = tone !== 'light';
   return (
@@ -30,7 +30,7 @@ function Card({ n, title, text, tone = 'light', className, children }: { n: stri
       transition={{ duration: 0.6, ease: EASE }}
       data-cursor="Explorer"
     >
-      <div className={cn('text-[11.5px] font-semibold tabular-nums tracking-[0.2em]', dark ? 'text-white/60' : 'text-terra')}>{n}</div>
+      <div className={cn('text-[11.5px] font-semibold uppercase tracking-[0.18em]', dark ? 'text-white/60' : 'text-terra')}>{label}</div>
       <h3 className="mt-2 max-w-[20ch] text-[clamp(1.25rem,1.7vw,1.6rem)] font-extrabold uppercase leading-[1.02] tracking-[-0.03em]">{title}</h3>
       <p className={cn('mt-2 max-w-[42ch] text-[14.5px] leading-[1.5]', dark ? 'text-white/75' : 'text-ink-soft/70')}>{text}</p>
       <div className="mt-auto pt-6">{children}</div>
@@ -161,7 +161,7 @@ function CraVisual() {
         <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-success">
           <Check className="h-3.5 w-3.5" strokeWidth={3} /> Validé
         </span>
-        <span className="text-white/80">→ préfacture prête</span>
+        <span className="text-white/80">Préfacture prête</span>
       </div>
     </div>
   );
@@ -234,32 +234,32 @@ export function Modules() {
       <Wide>
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <Kicker n="03">Le cockpit</Kicker>
+            <Kicker>Le cockpit</Kicker>
             <Title size="lg" className="mt-6 text-[clamp(2.1rem,4.6vw,5.2rem)]" lines={[['Tout le cycle.'], ['Un seul ', { em: 'espace.' }]]} />
           </div>
           <p className="text-[12px] font-medium uppercase tracking-[0.2em] text-taupe">{EXAMPLE_LABEL}</p>
         </div>
 
         <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-12">
-          <Card n="01" title="Du premier contact à la mission." text="Contacts, opportunités et devis dans un pipeline. Une affaire gagnée devient une mission." className="xl:col-span-7">
+          <Card label="CRM & devis" title="Du premier contact à la mission." text="Contacts, opportunités et devis dans un pipeline. Une affaire gagnée devient une mission." className="xl:col-span-7">
             <CrmVisual />
           </Card>
-          <Card n="02" title="Les bonnes personnes. Au bon moment." text="Missions, fins de mission et propositions sur une même ligne de temps." className="xl:col-span-5">
+          <Card label="Staffing" title="Les bonnes personnes. Au bon moment." text="Missions, fins de mission et propositions sur une même ligne de temps." className="xl:col-span-5">
             <StaffingVisual />
           </Card>
-          <Card n="03" title="De l’opportunité à la rentabilité." text="Chaque mission porte ses taux et sa marge, sans tableur." className="xl:col-span-4">
+          <Card label="Marge" title="De l’opportunité à la rentabilité." text="Chaque mission porte ses taux et sa marge, sans tableur." className="xl:col-span-4">
             <MarginVisual />
           </Card>
-          <Card n="04" title="Le temps. Sans la friction." text="Le consultant saisit, vous validez, la préfacture est prête." tone="terra" className="xl:col-span-4">
+          <Card label="CRA" title="Le temps. Sans la friction." text="Le consultant saisit, vous validez, la préfacture est prête." tone="terra" className="xl:col-span-4">
             <CraVisual />
           </Card>
-          <Card n="05" title="Votre client entre dans le flux." text="Un besoin déposé sur son portail devient une opportunité." className="xl:col-span-4">
+          <Card label="Portails" title="Votre client entre dans le flux." text="Un besoin déposé sur son portail devient une opportunité." className="xl:col-span-4">
             <PortalVisual />
           </Card>
-          <Card n="06" title="Centrium garde un œil ouvert." text="Des règles simples préviennent la bonne personne, au bon moment." tone="ink" className="xl:col-span-7">
+          <Card label="Automatisations" title="Centrium garde un œil ouvert." text="Des règles simples préviennent la bonne personne, au bon moment." tone="ink" className="xl:col-span-7">
             <AutomationVisual />
           </Card>
-          <Card n="07" title="Les chiffres qui comptent." text="Occupation, CA par consultant, transformation : sur vos données." className="xl:col-span-5">
+          <Card label="Analytics" title="Les chiffres qui comptent." text="Occupation, CA par consultant, transformation : sur vos données." className="xl:col-span-5">
             <AnalyticsVisual />
           </Card>
         </div>

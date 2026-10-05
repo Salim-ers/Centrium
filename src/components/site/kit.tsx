@@ -73,14 +73,9 @@ export function Wide({ className, children }: { className?: string; children: Re
 }
 
 /** Repère de section : numéro + libellé, en capitales espacées. */
-export function Kicker({ n, children, className }: { n?: string; children: React.ReactNode; className?: string }) {
-  return (
-    <div className={cn('flex items-center gap-3 text-[12px] font-semibold uppercase tracking-[0.22em] opacity-80', className)}>
-      {n && <span className="tabular-nums">{n}</span>}
-      {n && <span className="h-px w-8 bg-current opacity-50" aria-hidden />}
-      <span>{children}</span>
-    </div>
-  );
+/** Sur-titre de section : un libellé court, sans numérotation. */
+export function Kicker({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn('text-[12px] font-semibold uppercase tracking-[0.22em] opacity-80', className)}>{children}</div>;
 }
 
 // ── Titres éditoriaux ───────────────────────────────────────────────────

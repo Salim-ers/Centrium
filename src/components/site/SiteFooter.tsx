@@ -7,22 +7,22 @@ const COLUMNS = [
   {
     title: 'Produit',
     links: [
-      { href: '/plateforme', label: 'Plateforme' },
-      { href: '/plateforme#modules', label: 'Fonctionnalités' },
+      { href: '/plateforme', label: 'Fonctionnalités' },
+      { href: '/plateforme#modules', label: 'Les modules' },
       { href: '/tarifs', label: 'Tarifs' },
       { href: '/essai', label: 'Essai de 7 jours' },
       { href: '/demo', label: 'Demander une démo' },
     ],
   },
   {
-    title: 'Solutions',
+    title: 'Par fonction',
     links: [
-      { href: '/solutions#direction', label: 'Direction' },
-      { href: '/solutions#business-managers', label: 'Business managers' },
-      { href: '/solutions#recrutement', label: 'Recrutement' },
-      { href: '/solutions#finance', label: 'ADV & finance' },
-      { href: '/solutions#consultants', label: 'Consultants' },
-      { href: '/solutions#clients', label: 'Clients' },
+      { href: '/plateforme#direction', label: 'Direction' },
+      { href: '/plateforme#business-managers', label: 'Business managers' },
+      { href: '/plateforme#recrutement', label: 'Recrutement' },
+      { href: '/plateforme#finance', label: 'ADV & finance' },
+      { href: '/plateforme#consultants', label: 'Consultants' },
+      { href: '/plateforme#clients', label: 'Clients' },
     ],
   },
   {

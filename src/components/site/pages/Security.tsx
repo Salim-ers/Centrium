@@ -81,7 +81,7 @@ export function Security() {
       <Section tone="ink" aria-label="Sécurité" className="overflow-hidden pb-20 pt-32 md:pb-28 md:pt-40">
         <Wide className="grid gap-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-end">
           <div>
-            <Kicker n="01">Sécurité</Kicker>
+            <Kicker>Sécurité</Kicker>
             <Title as="h1" size="xl" immediate className="mt-6 text-[clamp(2.6rem,7vw,8rem)]" lines={[['Vos données.'], ['', { em: 'Cloisonnées.' }]]} />
             <Lead className="mt-8 text-ivory/80">Cette page ne liste que des protections effectivement déployées dans Centrium. Pas de promesse générale, pas de certification que nous n’avons pas.</Lead>
           </div>
@@ -92,11 +92,10 @@ export function Security() {
       <Section tone="ivory" aria-label="Protections" className="py-24 md:py-32">
         <Wide>
           <ol className="border-t border-ink/15">
-            {BLOCKS.map((b, i) => (
+            {BLOCKS.map((b) => (
               <li key={b.title} className="border-b border-ink/15">
                 <Appear className="grid gap-6 py-10 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:gap-12">
                   <div className="flex items-baseline gap-4">
-                    <span className="text-[12px] font-semibold tabular-nums tracking-[0.2em] text-terra">{String(i + 1).padStart(2, '0')}</span>
                     <h2 className="text-[clamp(1.6rem,2.6vw,2.4rem)] font-extrabold uppercase leading-[1] tracking-[-0.035em]">{b.title}</h2>
                   </div>
                   <ul className="space-y-3">
@@ -117,7 +116,7 @@ export function Security() {
       <Section tone="dune" aria-label="Documents et contacts" className="py-24 md:py-28">
         <Wide className="grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
           <div>
-            <Kicker n="02">Documents</Kicker>
+            <Kicker>Documents</Kicker>
             <Title size="md" className="mt-6" lines={[['Tout est ', { em: 'écrit.' }]]} />
             <p className="mt-6 text-[15px] text-ink-soft/75">
               Une question de sécurité ?{' '}

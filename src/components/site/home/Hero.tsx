@@ -19,11 +19,8 @@ export function Hero() {
 
       <Wide className="relative flex min-h-[calc(100svh-9rem)] flex-col pb-10 pt-28 md:pt-32">
         <div className="hero-fade flex items-center justify-between gap-6 text-[11.5px] font-semibold uppercase tracking-[0.22em] text-taupe" style={{ ['--d' as string]: '0ms' }}>
-          <span className="flex items-center gap-3">
-            <span className="h-2 w-2 rounded-full bg-terra" aria-hidden />
-            Le cockpit des ESN modernes
-          </span>
-          <span className="hidden md:block">CRM · Staffing · Missions · CRA · Marge</span>
+          <span>Le cockpit des ESN modernes</span>
+          <span className="hidden md:block">CRM, staffing, missions, CRA et marge</span>
         </div>
 
         <h1 id="hero-title" className="mt-auto pt-16 font-extrabold uppercase leading-[0.86] tracking-[-0.055em] text-[clamp(2.9rem,8.4vw,10rem)]">

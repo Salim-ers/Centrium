@@ -65,7 +65,7 @@ export function Pricing() {
         <Wide className="grid gap-14 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-20">
           <div>
             <div className="lg:sticky lg:top-28">
-              <Kicker n="01">Tarifs</Kicker>
+              <Kicker>Tarifs</Kicker>
               <Title as="h1" size="lg" immediate className="mt-6 text-[clamp(2.6rem,5.6vw,6.4rem)]" lines={[['Choisissez'], ['votre ', { em: 'échelle.' }]]} />
               <Lead className="mt-6">Tous les modules dans chaque offre. Seuls changent le nombre de managers et de consultants. Les portails client et consultant ne comptent jamais comme licences.</Lead>
               <div className="mt-8">
@@ -85,7 +85,6 @@ export function Pricing() {
                   <Appear delay={i * 0.05} className="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
                     <div>
                       <div className="flex items-center gap-3">
-                        <span className={cn('text-[12px] font-semibold tabular-nums tracking-[0.2em]', p.highlighted ? 'text-terra md:text-terra-peach' : 'text-terra')}>0{i + 1}</span>
                         <h2 className="text-[clamp(2rem,3.6vw,3.4rem)] font-extrabold uppercase leading-none tracking-[-0.045em]">{p.name}</h2>
                         {p.highlighted && <span className="rounded-full bg-terra px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white md:bg-ivory md:text-terra-deep">Recommandé</span>}
                       </div>
@@ -123,7 +122,7 @@ export function Pricing() {
       <Section tone="deep" aria-label="Inclus dans chaque offre" className="py-24 md:py-32">
         <Wide className="grid gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-20">
           <div>
-            <Kicker n="02">Inclus partout</Kicker>
+            <Kicker>Inclus partout</Kicker>
             <Title size="md" className="mt-6" lines={[['Pas de module'], ['en ', { em: 'option.' }]]} />
           </div>
           <ul className="grid gap-x-10 sm:grid-cols-2">
@@ -139,7 +138,7 @@ export function Pricing() {
       <Section tone="warm" aria-label="Questions sur les tarifs" className="py-24 md:py-32">
         <Wide className="grid gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-20">
           <div>
-            <Kicker n="03">Questions</Kicker>
+            <Kicker>Questions</Kicker>
             <Title size="md" className="mt-6" lines={[['Avant de vous'], ['', { em: 'lancer.' }]]} />
             <p className="mt-6 text-[15px] text-ink-soft/75">
               Une autre question ?{' '}

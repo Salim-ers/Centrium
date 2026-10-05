@@ -22,7 +22,7 @@ export function Matching() {
       <div aria-hidden className="pointer-events-none absolute -right-[10vw] top-[22%] h-[40vw] w-[40vw] rounded-full border border-terra/15" />
       <Wide className="relative">
         <div className="flex flex-wrap items-center gap-4">
-          <Kicker n="04">Matching</Kicker>
+          <Kicker>Matching</Kicker>
           <span className="rounded-full border border-terra-light/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-terra-light">Intelligence explicable</span>
         </div>
         <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-end">
@@ -68,7 +68,6 @@ export function Matching() {
                 transition={{ duration: 0.7, delay: i * 0.12, ease: EASE }}
               >
                 <div className="flex items-center gap-4">
-                  <span className="text-[12px] font-semibold tabular-nums tracking-[0.2em] opacity-60">0{i + 1}</span>
                   <div>
                     <div className="text-[18px] font-bold">{m.name}</div>
                     <div className="text-[13px] opacity-65">{m.role}</div>

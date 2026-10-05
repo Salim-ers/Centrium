@@ -11,8 +11,7 @@ const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayout
 
 const NAMES: Record<string, string> = {
   '/': 'Centrium',
-  '/plateforme': 'Plateforme',
-  '/solutions': 'Solutions',
+  '/plateforme': 'Fonctionnalités',
   '/tarifs': 'Tarifs',
   '/securite': 'Sécurité',
   '/demo': 'Démo',

@@ -20,9 +20,9 @@ type Form = { contact_name: string; company_name: string; contact_email: string;
 const EMPTY: Form = { contact_name: '', company_name: '', contact_email: '', consultants_count: '', need: '', message: '' };
 
 const STEPS = [
-  { n: '01', title: 'Vous', fields: ['contact_name', 'contact_email'] as const },
-  { n: '02', title: 'Votre ESN', fields: ['company_name', 'consultants_count'] as const },
-  { n: '03', title: 'Votre besoin', fields: ['need'] as const },
+  { title: 'Vous', fields: ['contact_name', 'contact_email'] as const },
+  { title: 'Votre ESN', fields: ['company_name', 'consultants_count'] as const },
+  { title: 'Votre besoin', fields: ['need'] as const },
 ];
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -150,12 +150,9 @@ export function DemoForm() {
     <form onSubmit={next} noValidate aria-describedby={error ? 'demo-error' : undefined}>
       <ol className="flex gap-2" aria-label="Étapes">
         {STEPS.map((s, i) => (
-          <li key={s.n} className="flex-1" aria-current={i === step ? 'step' : undefined}>
+          <li key={s.title} className="flex-1" aria-current={i === step ? 'step' : undefined}>
             <span className={cn('block h-[3px] rounded-full transition-colors duration-500', i <= step ? 'bg-terra' : 'bg-ink/10')} />
-            <span className={cn('mt-3 flex items-center gap-2 text-[11.5px] font-semibold uppercase tracking-[0.18em]', i === step ? 'text-ink' : 'text-ink/40')}>
-              <span className="tabular-nums">{s.n}</span>
-              <span className="hidden sm:inline">{s.title}</span>
-            </span>
+            <span className={cn('mt-3 block text-[11.5px] font-semibold uppercase tracking-[0.18em]', i === step ? 'text-ink' : 'text-ink/40')}>{s.title}</span>
           </li>
         ))}
       </ol>

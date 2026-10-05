@@ -22,7 +22,7 @@ export default function DemoPage() {
     <Section tone="ivory" aria-label="Demander une démo" className="pb-24 pt-32 md:pb-32 md:pt-40">
       <Wide className="grid gap-16 lg:grid-cols-[minmax(0,6fr)_minmax(0,6fr)] lg:gap-20">
         <div>
-          <Kicker n="01">Démo</Kicker>
+          <Kicker>Démo</Kicker>
           <Title as="h1" size="lg" immediate className="mt-6 text-[clamp(2.4rem,5.4vw,6rem)]" lines={[['Voyez Centrium'], ['avec vos propres'], ['', { em: 'enjeux.' }]]} />
           <Lead className="mt-6">Trois questions, puis nous revenons vers vous pour convenir d’un créneau.</Lead>
           <ul className="mt-10 border-t border-ink/15">

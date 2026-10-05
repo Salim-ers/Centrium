@@ -10,10 +10,9 @@ import { CentriumLogo, CentriumType } from '@/components/brand/CentriumLogo';
 import { EASE, useReducedMotion } from './kit';
 
 const ITEMS = [
-  { n: '01', href: '/plateforme', label: 'Produit' },
-  { n: '02', href: '/solutions', label: 'Solutions' },
-  { n: '03', href: '/tarifs', label: 'Tarifs' },
-  { n: '04', href: '/securite', label: 'Sécurité' },
+  { href: '/plateforme', label: 'Fonctionnalités' },
+  { href: '/tarifs', label: 'Tarifs' },
+  { href: '/securite', label: 'Sécurité' },
 ];
 
 /** Menu mobile plein écran, terracotta profond. */
@@ -84,8 +83,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
               {ITEMS.map((it, i) => (
                 <li key={it.href} className="overflow-hidden border-b border-ivory/15">
                   <motion.div initial={reduce ? false : { y: '100%' }} animate={{ y: '0%' }} transition={{ duration: 0.7, delay: 0.15 + i * 0.06, ease: EASE }}>
-                    <Link href={it.href} onClick={onClose} className="flex items-baseline gap-4 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ivory">
-                      <span className="text-[12px] font-semibold tabular-nums tracking-[0.2em] opacity-60">{it.n}</span>
+                    <Link href={it.href} onClick={onClose} className="flex items-baseline py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ivory">
                       <span className="text-[clamp(2.4rem,11vw,4.5rem)] font-extrabold uppercase leading-[0.95] tracking-[-0.04em]">{it.label}</span>
                     </Link>
                   </motion.div>

@@ -128,6 +128,8 @@ const nextConfig = {
       { source: '/trust', destination: '/securite', permanent: true },
       { source: '/pricing', destination: '/tarifs', permanent: true },
       { source: '/centrium-vs-boondmanager', destination: '/', permanent: true },
+      // Solutions (par fonction) et Fonctionnalités réunies sur une page.
+      { source: '/solutions', destination: '/plateforme#roles', permanent: true },
       // V2 : la liste des sociétés est la page Clients (clients, prospects,
       // ESN partenaires).
       {

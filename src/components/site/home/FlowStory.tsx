@@ -38,17 +38,14 @@ export function FlowStory() {
           <div className="sticky top-0 flex h-[100svh] items-center overflow-hidden">
             <Wide className="grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-center gap-14 xl:gap-24">
               <div>
-                <Kicker n="02">Le flux</Kicker>
+                <Kicker>Le flux</Kicker>
                 <Title size="md" className="mt-6 text-[clamp(2.2rem,3.6vw,4.4rem)]" lines={TITLE.map((l) => [...l])} />
                 <div className="mt-12 flex gap-8">
                   <FlowLine orientation="vertical" active={active} className="h-[250px] shrink-0" />
                   <div className="relative min-h-[250px] flex-1">
                     <AnimatePresence mode="wait" initial={false}>
                       <motion.div key={active} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.45, ease: EASE }}>
-                        <div className="text-[12px] font-semibold tabular-nums tracking-[0.2em] text-terra">
-                          0{active + 1} / 0{STEPS.length}
-                        </div>
-                        <h3 className="mt-3 text-[clamp(2rem,3vw,3.2rem)] font-extrabold uppercase leading-none tracking-[-0.04em]">{step.title}</h3>
+                        <h3 className="text-[clamp(2rem,3vw,3.2rem)] font-extrabold uppercase leading-none tracking-[-0.04em]">{step.title}</h3>
                         <p className="mt-4 max-w-sm text-[17px] leading-[1.55] text-ink-soft/80">{step.text}</p>
                       </motion.div>
                     </AnimatePresence>
@@ -76,17 +73,14 @@ export function FlowStory() {
 
       <div ref={reduce ? ref : undefined} className={cn('py-24 md:py-32', !reduce && 'lg:hidden')}>
         <Wide>
-          <Kicker n="02">Le flux</Kicker>
+          <Kicker>Le flux</Kicker>
           <Title size="md" className="mt-6" lines={TITLE.map((l) => [...l])} />
           <FlowLine className="mt-10" />
           <ol className="mt-14 space-y-16">
-            {STEPS.map(({ title, text, Scene }, i) => (
+            {STEPS.map(({ title, text, Scene }) => (
               <li key={title} className="grid gap-6 md:grid-cols-[minmax(0,4fr)_minmax(0,6fr)] md:items-center md:gap-10">
                 <div>
-                  <div className="text-[12px] font-semibold tabular-nums tracking-[0.2em] text-terra">
-                    0{i + 1} / 0{STEPS.length}
-                  </div>
-                  <h3 className="mt-2 text-[clamp(1.9rem,6vw,2.8rem)] font-extrabold uppercase leading-none tracking-[-0.04em]">{title}</h3>
+                  <h3 className="text-[clamp(1.9rem,6vw,2.8rem)] font-extrabold uppercase leading-none tracking-[-0.04em]">{title}</h3>
                   <p className="mt-3 max-w-md text-[16px] leading-[1.55] text-ink-soft/80">{text}</p>
                 </div>
                 <ScaleFrame width={SCENE_W} height={SCENE_H} label={`Illustration : ${title}`}>

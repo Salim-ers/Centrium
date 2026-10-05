@@ -63,10 +63,7 @@ export function HeroConverge() {
           {NODES.map((n, i) => (
             <li key={n.label} className="hero-fade relative" style={{ ['--d' as string]: `${420 + i * 70}ms` }}>
               <div className="relative rounded-2xl border border-line bg-warm/90 px-4 py-3 backdrop-blur-sm">
-                <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.2em] text-terra-deep">
-                  <span className="h-1.5 w-1.5 rounded-full bg-terra" aria-hidden />
-                  {n.label}
-                </div>
+                <div className="text-[10.5px] font-semibold uppercase tracking-[0.2em] text-terra-deep">{n.label}</div>
                 <div className="mt-1 truncate text-[14px] font-semibold text-ink">{n.value}</div>
               </div>
             </li>

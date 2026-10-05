@@ -10,9 +10,7 @@ import { cn } from '@/lib/utils';
 import { MobileMenu } from './MobileMenu';
 
 export const SITE_NAV = [
-  { href: '/plateforme', label: 'Produit' },
-  { href: '/solutions', label: 'Solutions' },
-  { href: '/plateforme#modules', label: 'Fonctionnalités' },
+  { href: '/plateforme', label: 'Fonctionnalités' },
   { href: '/tarifs', label: 'Tarifs' },
   { href: '/securite', label: 'Sécurité' },
 ] as const;
