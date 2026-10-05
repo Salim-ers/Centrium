@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { ChevronDown, ChevronUp, Sparkles, UserPlus } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileText, Sparkles, UserPlus } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,6 +36,7 @@ export function OpportunityMatching({
   organizationId: string;
 }) {
   const fr = lang === 'fr';
+  const dossierHref = (consultantId: string) => `/cv-optimizer?consultantId=${consultantId}${opp.job_offer_id ? `&offerId=${opp.job_offer_id}` : ''}`;
   const { consultants, skillsByConsultant, loading: poolLoading } = useMatchingPool();
   const [expanded, setExpanded] = useState<string | null>(null);
   const { data: proposals, setData: setProposals, loading } = useCachedQuery<Proposal[]>(
@@ -112,6 +113,12 @@ export function OpportunityMatching({
                       {p.sent_at && ` · ${fr ? 'proposé le' : 'sent on'} ${formatDate(p.sent_at, lang, 'short')}`}
                     </div>
                   </div>
+                  <Button asChild variant="ghost" size="sm" title={fr ? 'Générer le dossier de compétences' : 'Generate the skills dossier'}>
+                    <Link href={dossierHref(p.consultant_id)}>
+                      <FileText />
+                      {fr ? 'Dossier' : 'Dossier'}
+                    </Link>
+                  </Button>
                   {canEdit && (
                     <Button variant="ghost" size="sm" onClick={() => void withdraw(p.consultant_id)}>
                       {fr ? 'Retirer' : 'Withdraw'}
@@ -177,10 +184,16 @@ export function OpportunityMatching({
                               : ''}
                         </div>
                       </div>
+                      <Button asChild variant="ghost" size="sm" title={fr ? 'Générer le dossier de compétences' : 'Generate the skills dossier'}>
+                        <Link href={dossierHref(c.id)} aria-label={fr ? 'Générer le dossier de compétences' : 'Generate the skills dossier'}>
+                          <FileText />
+                          <span className="hidden sm:inline">{fr ? 'Dossier' : 'Dossier'}</span>
+                        </Link>
+                      </Button>
                       {canEdit && (
-                        <Button variant="secondary" size="sm" onClick={() => void propose(c.id)}>
+                        <Button variant="secondary" size="sm" onClick={() => void propose(c.id)} aria-label={fr ? 'Positionner' : 'Position'}>
                           <UserPlus />
-                          {fr ? 'Proposer' : 'Propose'}
+                          <span className="hidden sm:inline">{fr ? 'Positionner' : 'Position'}</span>
                         </Button>
                       )}
                     </div>

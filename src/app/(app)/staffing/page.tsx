@@ -1,21 +1,20 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { CalendarRange, ChevronLeft, ChevronRight, Search, Sparkles, Target } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { CalendarRange, ChevronLeft, ChevronRight, Gauge, Maximize2, Minimize2, Search, SlidersHorizontal, UserMinus, UserPlus } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { PageHeader, KPICard } from '@/components/app';
+import { PageHeader } from '@/components/app';
+import { StatStrip } from '@/components/app/StatStrip';
 import { EmptyState } from '@/components/app/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { Combobox } from '@/components/ui/Combobox';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Field } from '@/components/ui/label';
+import { Drawer, DrawerBody, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StaffingPlanning, PlanningLegend } from '@/components/staffing/StaffingPlanning';
-import { OpportunityMatching } from '@/components/matching/OpportunityMatching';
 import { useOrganization } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
@@ -25,14 +24,18 @@ import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { createClient } from '@/lib/supabase/client';
 import { loadStaffing, type StaffingData } from '@/lib/staffing/load-staffing';
 import { addDays, nextFreeDate, planningWindow, type PlanningScale } from '@/lib/staffing/planning';
-import { isOpenOpportunity } from '@/lib/pilotage/metrics';
 import { CONSULTANT_STATUS } from '@/lib/status';
 import { formatDate, formatPct } from '@/lib/format';
-import { RelatedLinks } from '@/components/app/RelatedLinks';
-import type { JobOffer, Opportunity } from '@/types';
+import { cn } from '@/lib/utils';
 import { SectionTabs } from '@/components/layout/SectionTabs';
 
+/**
+ * Staffing · Planning : un vrai planning plein écran. Trois indicateurs,
+ * une barre d'outils, le planning occupe le reste ; mode plein écran pour
+ * les responsables staffing.
+ */
 export default function StaffingPage() {
+  const router = useRouter();
   const params = useSearchParams();
   const { activeOrgId } = useOrganization();
   const { can, ready } = usePermissions();
@@ -44,7 +47,12 @@ export default function StaffingPage() {
   const { skillsByConsultant } = useMatchingPool();
 
   const view = params.get('view');
-  const [tab, setTab] = useState(params.get('tab') === 'matching' ? 'matching' : 'planning');
+  useEffect(() => {
+    if (params.get('tab') === 'matching') {
+      const opp = params.get('opportunity');
+      router.replace(opp ? `/matching?opportunity=${encodeURIComponent(opp)}` : '/matching');
+    }
+  }, [params, router]);
   const [scale, setScale] = useState<PlanningScale>('weeks');
   const [offset, setOffset] = useState(0);
   const [query, setQuery] = useState('');
@@ -124,241 +132,215 @@ export default function StaffingPage() {
     return [...ids].map((id) => ({ value: id, label: companies.get(id)?.name ?? '—' })).sort((a, b) => a.label.localeCompare(b.label));
   }, [data, companies]);
 
+  // Plein écran (API Fullscreen) : le planning occupe tout l'écran.
+  const boardRef = useRef<HTMLDivElement>(null);
+  const [full, setFull] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  useEffect(() => {
+    const onChange = () => setFull(document.fullscreenElement === boardRef.current);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+  function toggleFull() {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void boardRef.current?.requestFullscreen?.();
+  }
+  const advancedCount = (status !== 'all' ? 1 : 0) + (owner !== 'all' ? 1 : 0) + (availability !== 'any' ? 1 : 0) + (city.trim() ? 1 : 0);
+  // Sur mobile, compétence et client passent aussi dans le tiroir.
+  const mobileCount = advancedCount + (skill.trim() ? 1 : 0) + (client !== 'all' ? 1 : 0);
+
   return (
-    <AppShell wide>
-      <PageHeader tabs={<SectionTabs section="staffing" />}
-        eyebrow={fr ? 'Ressources' : 'Resources'}
+    <AppShell fill>
+      <PageHeader
         title="Staffing"
         description={fr ? 'Qui est en mission, qui se libère, qui positionner.' : 'Who is staffed, who is freeing up, who to propose.'}
-      >
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList variant="underline">
-            <TabsTrigger value="planning">
-              <CalendarRange />
-              Planning
-            </TabsTrigger>
-            <TabsTrigger value="matching">
-              <Sparkles />
-              Matching
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </PageHeader>
-      <RelatedLinks
-        links={[
-          { href: '/matching', label: { fr: 'Matching par offre', en: 'Matching by job offer' }, permission: 'staffing.view' },
-          { href: '/en-mission', label: { fr: 'Consultants en mission', en: 'Consultants on assignment' }, permission: 'missions.view' },
+        tabs={<SectionTabs section="staffing" />}
+      />
+
+      <StatStrip
+        className="mb-3"
+        items={[
+          {
+            label: fr ? `occupation · ${kpis?.capacity ?? '…'} consultants` : `utilisation · ${kpis?.capacity ?? '…'} consultants`,
+            value: kpis ? formatPct(kpis.rate, lang, 0) : '…',
+            tone: 'terra',
+            icon: Gauge,
+          },
+          { label: fr ? 'en intercontrat' : 'on bench', value: kpis?.bench ?? '…', tone: kpis && kpis.bench > 0 ? 'peach' : 'ivory', icon: UserMinus },
+          {
+            label: fr ? `libérés sous 30 j · ${kpis?.proposals ?? 0} positionnés` : `free within 30 d · ${kpis?.proposals ?? 0} positioned`,
+            value: kpis?.soon ?? '…',
+            tone: 'white',
+            icon: UserPlus,
+          },
         ]}
       />
 
-      {tab === 'planning' ? (
-        <>
-          <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
-            <KPICard accent="terra" label={fr ? 'Capacité' : 'Capacity'} value={kpis?.capacity} hint={fr ? 'Hors indisponibles' : 'Excluding unavailable'} loading={!kpis} />
-            <KPICard label={fr ? "Taux d'occupation" : 'Utilisation'} valueText={formatPct(kpis?.rate, lang)} loading={!kpis} />
-            <KPICard accent="peach" label={fr ? 'Intercontrat' : 'On bench'} value={kpis?.bench} tone={kpis && kpis.bench > 0 ? 'amber' : 'neutral'} loading={!kpis} />
-            <KPICard label={fr ? 'Libérés sous 30 j' : 'Free within 30 d'} value={kpis?.soon} loading={!kpis} />
-            <KPICard label={fr ? 'Positionnés' : 'Positioned'} value={kpis?.proposals} hint={fr ? 'Sur des opportunités ouvertes' : 'On open opportunities'} loading={!kpis} />
-          </section>
-
-          <div className="mb-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-            <div className="relative xl:col-span-2">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={fr ? 'Nom ou poste' : 'Name or title'} className="pl-9" aria-label={fr ? 'Rechercher' : 'Search'} />
-            </div>
-            <Input value={skill} onChange={(e) => setSkill(e.target.value)} placeholder={fr ? 'Compétence' : 'Skill'} aria-label={fr ? 'Compétence' : 'Skill'} />
-            <Select value={availability} onChange={(e) => setAvailability(e.target.value)} aria-label={fr ? 'Disponibilité' : 'Availability'}>
-              <option value="any">{fr ? 'Toute disponibilité' : 'Any availability'}</option>
-              <option value="bench">{fr ? 'En intercontrat' : 'On bench'}</option>
-              <option value="30">{fr ? 'Libres sous 30 j' : 'Free within 30 d'}</option>
-              <option value="60">{fr ? 'Libres sous 60 j' : 'Free within 60 d'}</option>
-            </Select>
-            <Select value={status} onChange={(e) => setStatus(e.target.value)} aria-label={fr ? 'Statut' : 'Status'}>
-              <option value="all">{fr ? 'Tous statuts' : 'All statuses'}</option>
-              {Object.entries(CONSULTANT_STATUS)
-                .filter(([k]) => k !== 'archived')
-                .map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v.label[lang]}
-                  </option>
-                ))}
-            </Select>
-            <Select value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Business Manager">
-              <option value="all">{fr ? 'Tous les BM' : 'All BMs'}</option>
-              {memberOptions.map((m) => (
-                <option key={m.value} value={m.value}>
-                  {m.label}
-                </option>
-              ))}
-            </Select>
-            <Select value={client} onChange={(e) => setClient(e.target.value)} aria-label={fr ? 'Client' : 'Client'}>
-              <option value="all">{fr ? 'Tous les clients' : 'All clients'}</option>
-              {clientOptions.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </Select>
-          </div>
-
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Tabs value={scale} onValueChange={(v) => { setScale(v as PlanningScale); setOffset(0); }}>
-                <TabsList>
-                  <TabsTrigger value="weeks">{fr ? 'Semaines' : 'Weeks'}</TabsTrigger>
-                  <TabsTrigger value="months">{fr ? 'Mois' : 'Months'}</TabsTrigger>
-                </TabsList>
-              </Tabs>
-              <div className="flex items-center">
-                <Button variant="ghost" size="icon-sm" onClick={() => setOffset((o) => o - (scale === 'weeks' ? 4 : 3))} aria-label={fr ? 'Période précédente' : 'Previous period'}>
-                  <ChevronLeft />
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setOffset(0)}>
-                  {fr ? "Aujourd'hui" : 'Today'}
-                </Button>
-                <Button variant="ghost" size="icon-sm" onClick={() => setOffset((o) => o + (scale === 'weeks' ? 4 : 3))} aria-label={fr ? 'Période suivante' : 'Next period'}>
-                  <ChevronRight />
-                </Button>
-              </div>
-              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder={fr ? 'Localisation / mobilité' : 'Location / mobility'} className="hidden h-8 w-48 md:flex" aria-label={fr ? 'Localisation' : 'Location'} />
-            </div>
-            <PlanningLegend lang={lang} />
-          </div>
-
-          {loading && !data ? (
-            <Skeleton className="h-96 w-full rounded-xl" />
-          ) : rows.length === 0 ? (
-            <EmptyState
-              icon={CalendarRange}
-              title={(data?.consultants.length ?? 0) === 0 ? (fr ? 'Aucun consultant dans l’effectif' : 'No consultants on staff') : fr ? 'Aucun consultant ne correspond' : 'No matching consultant'}
-              description={
-                (data?.consultants.length ?? 0) === 0
-                  ? fr
-                    ? 'Ajoutez vos consultants pour visualiser leurs missions et disponibilités.'
-                    : 'Add consultants to see their missions and availability.'
-                  : fr
-                    ? 'Élargissez les filtres.'
-                    : 'Broaden the filters.'
-              }
-            />
-          ) : (
-            <>
-              <StaffingPlanning rows={rows} win={win} lang={lang} today={todayIso} />
-              <p className="mt-2 text-xs text-muted-foreground">
-                {fr
-                  ? `${rows.length} consultant(s) · du ${formatDate(win.start, lang)} au ${formatDate(win.end, lang)} · triés par date de disponibilité`
-                  : `${rows.length} consultant(s) · ${formatDate(win.start, lang)} to ${formatDate(win.end, lang)} · sorted by availability date`}
-              </p>
-            </>
-          )}
-        </>
-      ) : (
-        <MatchingWorkspace lang={lang} />
-      )}
-    </AppShell>
-  );
-}
-
-/** Choisir une opportunité ouverte et obtenir les consultants les plus pertinents. */
-function MatchingWorkspace({ lang }: { lang: 'fr' | 'en' }) {
-  const fr = lang === 'fr';
-  const params = useSearchParams();
-  const { activeOrgId } = useOrganization();
-  const { can } = usePermissions();
-  const { byId: companies } = useCompaniesLite();
-  const [oppId, setOppId] = useState(params.get('opportunity') ?? '');
-
-  const { data } = useCachedQuery<{ opps: Opportunity[]; offers: Record<string, JobOffer> }>(
-    `staffing-opps:${activeOrgId ?? 'none'}`,
-    async () => {
-      const supabase = createClient();
-      const { data: opps } = await supabase
-        .from('opportunities')
-        .select('*')
-        .eq('organization_id', activeOrgId!)
-        .order('updated_at', { ascending: false })
-        .limit(1000);
-      const open = ((opps ?? []) as Opportunity[]).filter((o) => isOpenOpportunity(o));
-      const offerIds = open.map((o) => o.job_offer_id).filter(Boolean) as string[];
-      const offers: Record<string, JobOffer> = {};
-      if (offerIds.length) {
-        const { data: rows } = await supabase.from('job_offers').select('*').in('id', offerIds);
-        for (const r of (rows ?? []) as JobOffer[]) offers[r.id] = r;
-      }
-      return { opps: open, offers };
-    },
-    { enabled: !!activeOrgId },
-  );
-
-  const opps = data?.opps ?? [];
-  const selected = opps.find((o) => o.id === oppId) ?? null;
-  const options = opps.map((o) => ({
-    value: o.id,
-    label: o.title,
-    sublabel: o.company_id ? companies.get(o.company_id)?.name : undefined,
-  }));
-
-  return (
-    <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
-      <aside className="space-y-3">
-        <div>
-          <label className="mb-1.5 block text-[13px] font-medium" htmlFor="matching-opp">
-            {fr ? 'Opportunité à staffer' : 'Opportunity to staff'}
-          </label>
-          <Combobox id="matching-opp" options={options} value={oppId} onChange={setOppId} placeholder={fr ? 'Choisir une opportunité ouverte' : 'Choose an open opportunity'} />
-        </div>
-        <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
-          {opps.slice(0, 12).map((o) => (
-            <li key={o.id}>
+      <div ref={boardRef} className={cn('flex min-h-[36rem] flex-1 flex-col md:min-h-0', full && 'bg-background p-4')}>
+        {/* Barre d'outils unique ; les filtres secondaires vivent dans un tiroir. */}
+        <div className="mb-3 flex shrink-0 flex-wrap items-center gap-2">
+          <div className="inline-flex h-9 items-center gap-1 rounded-xl border border-app-terra/20 bg-card p-1">
+            {(['weeks', 'months'] as const).map((sc) => (
               <button
+                key={sc}
                 type="button"
-                onClick={() => setOppId(o.id)}
-                aria-pressed={o.id === oppId}
-                className="flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-muted/50 aria-pressed:bg-brand-50/60"
+                onClick={() => {
+                  setScale(sc);
+                  setOffset(0);
+                }}
+                aria-pressed={scale === sc}
+                className={cn('h-7 rounded-lg px-3 text-[13px] font-semibold transition-colors', scale === sc ? 'bg-app-terra text-white' : 'text-app-terra-dark hover:bg-app-peach-light')}
               >
-                <Target className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="min-w-0">
-                  <span className="block truncate text-[13px] font-medium">{o.title}</span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {o.company_id ? companies.get(o.company_id)?.name : '—'}
-                    {o.start_date ? ` · ${fr ? 'début' : 'start'} ${formatDate(o.start_date, lang, 'short')}` : ''}
-                  </span>
-                </span>
+                {sc === 'weeks' ? (fr ? 'Semaines' : 'Weeks') : fr ? 'Mois' : 'Months'}
               </button>
-            </li>
-          ))}
-          {opps.length === 0 && <li className="px-3 py-6 text-center text-[13px] text-muted-foreground">{fr ? 'Aucune opportunité ouverte.' : 'No open opportunity.'}</li>}
-        </ul>
-      </aside>
-      <div className="min-w-0">
-        {selected ? (
-          <>
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="truncate font-display text-base font-semibold">{selected.title}</h2>
-              <Button asChild variant="ghost" size="sm">
-                <Link href={`/opportunities/${selected.id}`}>{fr ? 'Ouvrir la fiche' : 'Open'}</Link>
-              </Button>
-            </div>
-            <OpportunityMatching
-              opp={selected}
-              offer={selected.job_offer_id ? (data?.offers[selected.job_offer_id] ?? null) : null}
-              lang={lang}
-              canEdit={can('opportunities.edit') || can('staffing.edit')}
-              organizationId={activeOrgId ?? ''}
-            />
-          </>
-        ) : (
+            ))}
+          </div>
+          <div className="flex items-center">
+            <Button variant="ghost" size="icon-sm" onClick={() => setOffset((o) => o - (scale === 'weeks' ? 4 : 3))} aria-label={fr ? 'Période précédente' : 'Previous period'}>
+              <ChevronLeft />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setOffset(0)}>
+              {fr ? "Aujourd'hui" : 'Today'}
+            </Button>
+            <Button variant="ghost" size="icon-sm" onClick={() => setOffset((o) => o + (scale === 'weeks' ? 4 : 3))} aria-label={fr ? 'Période suivante' : 'Next period'}>
+              <ChevronRight />
+            </Button>
+          </div>
+          <div className="relative w-full sm:w-48 2xl:w-60">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={fr ? 'Nom ou poste' : 'Name or title'} className="pl-9" aria-label={fr ? 'Rechercher' : 'Search'} />
+          </div>
+          <Input value={skill} onChange={(e) => setSkill(e.target.value)} placeholder={fr ? 'Compétence' : 'Skill'} className="hidden md:block md:w-36 2xl:w-44" aria-label={fr ? 'Compétence' : 'Skill'} />
+          <Select value={client} onChange={(e) => setClient(e.target.value)} className="hidden md:block md:w-40 2xl:w-48" aria-label={fr ? 'Client' : 'Client'}>
+            <option value="all">{fr ? 'Tous les clients' : 'All clients'}</option>
+            {clientOptions.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </Select>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              // Le tiroir s'affiche hors de l'élément plein écran : on en sort d'abord.
+              if (document.fullscreenElement) void document.exitFullscreen();
+              setFiltersOpen(true);
+            }}
+          >
+            <SlidersHorizontal />
+            {fr ? 'Plus de filtres' : 'More filters'}
+            {advancedCount > 0 && <span className="num hidden rounded-full bg-app-terra px-1.5 text-[11px] font-semibold text-white md:inline">{advancedCount}</span>}
+            {mobileCount > 0 && <span className="num rounded-full bg-app-terra px-1.5 text-[11px] font-semibold text-white md:hidden">{mobileCount}</span>}
+          </Button>
+          <Button variant="secondary" onClick={toggleFull} className="ml-auto hidden md:inline-flex" aria-pressed={full}>
+            {full ? <Minimize2 /> : <Maximize2 />}
+            {full ? (fr ? 'Quitter le plein écran' : 'Exit full screen') : fr ? 'Plein écran' : 'Full screen'}
+          </Button>
+        </div>
+
+        {loading && !data ? (
+          <Skeleton className="min-h-0 w-full flex-1 rounded-[22px]" />
+        ) : rows.length === 0 ? (
           <EmptyState
-            icon={Sparkles}
-            title={fr ? 'Choisissez une opportunité' : 'Choose an opportunity'}
+            icon={CalendarRange}
+            title={(data?.consultants.length ?? 0) === 0 ? (fr ? 'Aucun consultant dans l’effectif' : 'No consultants on staff') : fr ? 'Aucun consultant ne correspond' : 'No matching consultant'}
             description={
-              fr
-                ? 'Centrium classe les consultants selon les compétences, la séniorité, la disponibilité, le TJM, les langues et la localisation, et explique chaque score.'
-                : 'Centrium ranks consultants by skills, seniority, availability, day rate, languages and location, and explains every score.'
+              (data?.consultants.length ?? 0) === 0
+                ? fr
+                  ? 'Ajoutez vos consultants pour visualiser leurs missions et disponibilités.'
+                  : 'Add consultants to see their missions and availability.'
+                : fr
+                  ? 'Élargissez les filtres.'
+                  : 'Broaden the filters.'
             }
           />
+        ) : (
+          <StaffingPlanning rows={rows} win={win} lang={lang} today={todayIso} fill />
         )}
+
+        <div className="mt-2 flex shrink-0 flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            {fr
+              ? `${rows.length} consultant(s) · du ${formatDate(win.start, lang)} au ${formatDate(win.end, lang)} · les plus vite disponibles d’abord`
+              : `${rows.length} consultant(s) · ${formatDate(win.start, lang)} to ${formatDate(win.end, lang)} · soonest available first`}
+          </p>
+          <PlanningLegend lang={lang} />
+        </div>
       </div>
-    </div>
+
+      <Drawer open={filtersOpen} onOpenChange={setFiltersOpen}>
+        <DrawerContent side="right" className="sm:max-w-sm">
+          <DrawerHeader>
+            <DrawerTitle>{fr ? 'Plus de filtres' : 'More filters'}</DrawerTitle>
+          </DrawerHeader>
+          <DrawerBody className="space-y-4">
+            <div className="space-y-4 md:hidden">
+              <Field label={fr ? 'Compétence' : 'Skill'} htmlFor="st-skill">
+                <Input id="st-skill" value={skill} onChange={(e) => setSkill(e.target.value)} placeholder={fr ? 'ex. React' : 'e.g. React'} />
+              </Field>
+              <Field label={fr ? 'Client' : 'Client'} htmlFor="st-client">
+                <Select id="st-client" value={client} onChange={(e) => setClient(e.target.value)}>
+                  <option value="all">{fr ? 'Tous les clients' : 'All clients'}</option>
+                  {clientOptions.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+            <Field label={fr ? 'Disponibilité' : 'Availability'} htmlFor="st-availability">
+              <Select id="st-availability" value={availability} onChange={(e) => setAvailability(e.target.value)}>
+                <option value="any">{fr ? 'Toute disponibilité' : 'Any availability'}</option>
+                <option value="bench">{fr ? 'En intercontrat' : 'On bench'}</option>
+                <option value="30">{fr ? 'Libres sous 30 j' : 'Free within 30 d'}</option>
+                <option value="60">{fr ? 'Libres sous 60 j' : 'Free within 60 d'}</option>
+              </Select>
+            </Field>
+            <Field label={fr ? 'Statut' : 'Status'} htmlFor="st-status">
+              <Select id="st-status" value={status} onChange={(e) => setStatus(e.target.value)}>
+                <option value="all">{fr ? 'Tous statuts' : 'All statuses'}</option>
+                {Object.entries(CONSULTANT_STATUS)
+                  .filter(([k]) => k !== 'archived')
+                  .map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v.label[lang]}
+                    </option>
+                  ))}
+              </Select>
+            </Field>
+            <Field label={fr ? 'Business manager' : 'Business manager'} htmlFor="st-owner">
+              <Select id="st-owner" value={owner} onChange={(e) => setOwner(e.target.value)}>
+                <option value="all">{fr ? 'Tous les BM' : 'All BMs'}</option>
+                {memberOptions.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label={fr ? 'Localisation / mobilité' : 'Location / mobility'} htmlFor="st-city">
+              <Input id="st-city" value={city} onChange={(e) => setCity(e.target.value)} placeholder={fr ? 'ex. Paris' : 'e.g. Paris'} />
+            </Field>
+          </DrawerBody>
+          <DrawerFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setAvailability('any');
+                setStatus('all');
+                setOwner('all');
+                setCity('');
+                setSkill('');
+                setClient('all');
+              }}
+            >
+              {fr ? 'Réinitialiser' : 'Reset'}
+            </Button>
+            <Button onClick={() => setFiltersOpen(false)}>{fr ? 'Voir le planning' : 'Show planning'}</Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    </AppShell>
   );
 }

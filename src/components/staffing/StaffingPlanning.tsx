@@ -15,29 +15,49 @@ type Row = {
   proposals: StaffingProposal[];
 };
 
+// Couleurs V2 : mission en cours terracotta, à venir pêche, fin imminente
+// ambre, proposée en pointillés, terminée sable ; disponible sauge clair.
 const MISSION_STYLE: Record<string, string> = {
-  active: 'bg-primary text-primary-foreground border-primary',
-  proposed: 'bg-brand-50 text-primary-deep border-brand-200 border-dashed',
-  ended: 'bg-sand-200 text-sand-800 border-sand-300',
+  active: 'bg-app-terra text-white border-app-terra',
+  future: 'bg-app-peach text-app-terra-deep border-app-peach',
+  ending: 'bg-[#E3A23F] text-white border-[#E3A23F]',
+  proposed: 'bg-app-peach-light text-app-terra-dark border-app-terra/40 border-dashed',
+  ended: 'bg-app-sand text-app-muted border-black/[0.05]',
   suspended: 'bg-warning-soft text-warning border-warning/30',
 };
+const AVAILABLE = 'bg-[#E3EDE4]';
+const LEAVE = 'bg-[repeating-linear-gradient(135deg,#C9B8AC_0_3px,transparent_3px_6px)]';
+
+function addDaysIso(iso: string, n: number) {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Style d'une mission selon sa position dans le temps. */
+function missionStyle(m: StaffingMission, today: string) {
+  if (m.status !== 'active') return MISSION_STYLE[m.status] ?? MISSION_STYLE.ended;
+  if (m.start_date > today) return MISSION_STYLE.future;
+  if (m.end_date && m.end_date >= today && m.end_date <= addDaysIso(today, 30)) return MISSION_STYLE.ending;
+  return MISSION_STYLE.active;
+}
 
 /**
  * Planning de staffing : une ligne par consultant, la période en colonnes.
  * Missions (en cours, proposées, terminées, suspendues), congés saisis dans
  * les CRA, disponibilité à venir et positionnements en cours.
  */
-export function StaffingPlanning({ rows, win, lang, today }: { rows: Row[]; win: PlanningWindow; lang: 'fr' | 'en'; today: string }) {
+export function StaffingPlanning({ rows, win, lang, today, fill = false }: { rows: Row[]; win: PlanningWindow; lang: 'fr' | 'en'; today: string; fill?: boolean }) {
   const fr = lang === 'fr';
   const todaySeg = segmentIn(win, today, today);
 
   return (
-    <div className="tile-surface overflow-hidden">
-      <div className="overflow-x-auto">
+    <div className={cn('tile-surface overflow-hidden', fill && 'flex min-h-0 flex-1 flex-col')}>
+      <div className={cn('overflow-x-auto', fill && 'min-h-0 flex-1 overflow-y-auto')}>
         <div className="min-w-[960px]">
           {/* En-tête des colonnes */}
-          <div className="sticky top-0 z-[2] flex border-b border-border bg-muted/70 backdrop-blur-[2px]">
-            <div className="sticky left-0 z-[3] w-60 shrink-0 border-r border-border bg-muted/90 px-4 py-2 text-xs font-medium text-muted-foreground">
+          <div className="sticky top-0 z-[2] flex border-b border-border bg-card/95 backdrop-blur-[2px]">
+            <div className="sticky left-0 z-[3] w-60 shrink-0 border-r border-border bg-card px-4 py-2 text-xs font-medium text-muted-foreground">
               {fr ? 'Consultant' : 'Consultant'}
             </div>
             <div className="relative flex flex-1">
@@ -87,7 +107,7 @@ export function StaffingPlanning({ rows, win, lang, today }: { rows: Row[]; win:
                   </div>
                 </div>
 
-                <div className="relative h-12 flex-1">
+                <div className="relative h-11 flex-1">
                   {/* Grille */}
                   <div aria-hidden className="absolute inset-0 flex">
                     {win.columns.map((col) => (
@@ -98,7 +118,7 @@ export function StaffingPlanning({ rows, win, lang, today }: { rows: Row[]; win:
                   {freeSeg && c.status !== 'unavailable' && (
                     <div
                       aria-hidden
-                      className="absolute inset-y-2 rounded-sm bg-success-soft"
+                      className={cn('absolute inset-y-2 rounded-md', AVAILABLE)}
                       style={{ left: `${freeSeg.left}%`, width: `${freeSeg.width}%` }}
                       title={fr ? `Disponible à partir du ${formatDate(free!, lang)}` : `Available from ${formatDate(free!, lang)}`}
                     />
@@ -112,8 +132,8 @@ export function StaffingPlanning({ rows, win, lang, today }: { rows: Row[]; win:
                         key={m.id}
                         href={`/missions/${m.id}`}
                         className={cn(
-                          'absolute top-2.5 flex h-7 items-center overflow-hidden rounded-md border px-2 text-[11px] font-medium shadow-xs transition-transform hover:z-[1] hover:-translate-y-px',
-                          MISSION_STYLE[m.status] ?? MISSION_STYLE.ended,
+                          'absolute top-2 flex h-7 items-center overflow-hidden rounded-lg border px-2 text-[11px] font-semibold shadow-xs transition-transform hover:z-[1] hover:-translate-y-px',
+                          missionStyle(m, today),
                           seg.clippedStart && 'rounded-l-none',
                           seg.clippedEnd && 'rounded-r-none',
                         )}
@@ -131,7 +151,7 @@ export function StaffingPlanning({ rows, win, lang, today }: { rows: Row[]; win:
                     return (
                       <div
                         key={l.start}
-                        className="absolute bottom-0.5 h-1.5 rounded-full bg-[repeating-linear-gradient(135deg,#C4B0A1_0_3px,transparent_3px_6px)]"
+                        className={cn('absolute bottom-0.5 h-1.5 rounded-full', LEAVE)}
                         style={{ left: `${seg.left}%`, width: `${Math.max(seg.width, 0.8)}%` }}
                         title={`${fr ? 'Congés' : 'Leave'} : ${formatDate(l.start, lang, 'short')} → ${formatDate(l.end, lang, 'short')}`}
                       />
@@ -139,7 +159,7 @@ export function StaffingPlanning({ rows, win, lang, today }: { rows: Row[]; win:
                   })}
                   {/* Aujourd'hui */}
                   {todaySeg && (
-                    <div aria-hidden className="absolute inset-y-0 w-px bg-primary/60" style={{ left: `${todaySeg.left + todaySeg.width / 2}%` }} />
+                    <div aria-hidden className="absolute inset-y-0 w-px bg-app-terra" style={{ left: `${todaySeg.left + todaySeg.width / 2}%` }} />
                   )}
                 </div>
               </div>
@@ -154,11 +174,12 @@ export function StaffingPlanning({ rows, win, lang, today }: { rows: Row[]; win:
 export function PlanningLegend({ lang }: { lang: 'fr' | 'en' }) {
   const fr = lang === 'fr';
   const items = [
-    { cls: 'bg-primary', label: fr ? 'Mission en cours' : 'Active mission' },
-    { cls: 'border border-dashed border-brand-200 bg-brand-50', label: fr ? 'Mission proposée' : 'Proposed mission' },
-    { cls: 'bg-sand-200', label: fr ? 'Terminée' : 'Ended' },
-    { cls: 'bg-success-soft', label: fr ? 'Disponible' : 'Available' },
-    { cls: 'bg-[repeating-linear-gradient(135deg,#C4B0A1_0_3px,transparent_3px_6px)]', label: fr ? 'Congés (CRA)' : 'Leave (timesheets)' },
+    { cls: 'bg-app-terra', label: fr ? 'En mission' : 'On mission' },
+    { cls: 'bg-app-peach', label: fr ? 'Mission à venir' : 'Upcoming' },
+    { cls: 'bg-[#E3A23F]', label: fr ? 'Fin sous 30 j' : 'Ends within 30 d' },
+    { cls: 'border border-dashed border-app-terra/40 bg-app-peach-light', label: fr ? 'Proposée' : 'Proposed' },
+    { cls: AVAILABLE, label: fr ? 'Disponible' : 'Available' },
+    { cls: LEAVE, label: fr ? 'Congés' : 'Leave' },
   ];
   return (
     <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -169,7 +190,7 @@ export function PlanningLegend({ lang }: { lang: 'fr' | 'en' }) {
         </li>
       ))}
       <li className="inline-flex items-center gap-1.5">
-        <span aria-hidden className="inline-block h-3 w-px bg-primary/60" />
+        <span aria-hidden className="inline-block h-3 w-px bg-app-terra" />
         {fr ? "Aujourd'hui" : 'Today'}
       </li>
     </ul>

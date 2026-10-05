@@ -98,7 +98,7 @@ DetailDrawer, SegmentedControl / tabs, EmptyState, StatusBadge, Avatar.
 | 6 | CRM (onglets, kanban plein écran, tiroir d’aperçu, liste, clients, contacts, fiche client 4 onglets) | fait |
 | 7 | Talents (un écran, 3 indicateurs, barre unique, filtres en tiroir, 25 / page, aperçu) | fait |
 | 8 | Dossiers de compétences, modèles neutres | à faire |
-| 9 | Staffing, matching | à faire |
+| 9 | Staffing (planning plein écran, 3 indicateurs, mode plein écran, couleurs revues) et centre de matching (opportunité → profils expliqués → positionner ou générer le dossier) | fait |
 | 10 | Missions, cockpit | à faire |
 | 11 | CRA, validation rapide | à faire |
 | 12 | Documents, devis | à faire |
