@@ -9,15 +9,18 @@ export default function OccupancyChart({
   data,
   lang,
   height = 220,
+  fill = false,
 }: {
   data: Array<{ key: string; rate: number | null; bench: number }>;
   lang: 'fr' | 'en';
   height?: number;
+  /** Occupe toute la hauteur du parent, avec `height` pour minimum. */
+  fill?: boolean;
 }) {
   const fr = lang === 'fr';
   const rows = data.map((p) => ({ ...p, label: monthLabel(p.key, lang) }));
   return (
-    <div style={{ height }} role="img" aria-label={fr ? "Occupation et intercontrat" : 'Utilisation and bench'}>
+    <div style={fill ? { height: '100%', minHeight: height } : { height }} role="img" aria-label={fr ? "Occupation et intercontrat" : 'Utilisation and bench'}>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={rows} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
           <defs>

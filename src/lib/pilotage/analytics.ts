@@ -131,3 +131,126 @@ export function revenueByConsultant(
   }
   return out;
 }
+
+// ── Analytics V2 : cycle de vente, staffing, performance ─────────────────────
+
+const DAY_MS = 86_400_000;
+const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const dayDiff = (a: string, b: string) => Math.round((Date.parse(`${b.slice(0, 10)}T00:00:00Z`) - Date.parse(`${a.slice(0, 10)}T00:00:00Z`)) / DAY_MS);
+
+function median(values: number[]): number | null {
+  if (!values.length) return null;
+  const v = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(v.length / 2);
+  return v.length % 2 ? v[mid]! : (v[mid - 1]! + v[mid]!) / 2;
+}
+
+/** Durée du cycle de vente : jours entre création et gain, opportunités gagnées depuis `since` (médiane). */
+export function salesCycle(opps: OppAnalyticsRow[], since: Date): { medianDays: number | null; count: number } {
+  const days = opps
+    .filter((o) => o.status === 'won' && new Date(o.updated_at) >= since)
+    .map((o) => dayDiff(o.created_at, o.updated_at))
+    .filter((d) => d >= 0);
+  const m = median(days);
+  return { medianDays: m != null ? Math.round(m) : null, count: days.length };
+}
+
+type MissionRow = { consultant_id: string; status: string; start_date: string; end_date: string | null };
+type PoolRow = { id: string; status: string; archived?: boolean; is_prospect?: boolean };
+
+/**
+ * Disponibilités à venir de l'effectif (hors indisponibles) : en intercontrat
+ * aujourd'hui, puis libérés sous 30, 31 à 60 et 61 à 90 jours.
+ */
+export function futureAvailability(consultants: PoolRow[], missions: MissionRow[], today: Date): { now: number; d30: number; d60: number; d90: number } {
+  const t = isoDay(today);
+  const out = { now: 0, d30: 0, d60: 0, d90: 0 };
+  for (const c of consultants) {
+    if (c.archived || c.is_prospect || c.status === 'unavailable') continue;
+    const active = missions
+      .filter((m) => m.consultant_id === c.id && m.status === 'active' && m.start_date <= t && (!m.end_date || m.end_date >= t))
+      .sort((a, b) => (b.end_date ?? '9999').localeCompare(a.end_date ?? '9999'));
+    if (active.length === 0) {
+      out.now++;
+      continue;
+    }
+    const end = active[0]!.end_date;
+    if (!end) continue;
+    const inDays = dayDiff(t, end) + 1;
+    if (inDays <= 30) out.d30++;
+    else if (inDays <= 60) out.d60++;
+    else if (inDays <= 90) out.d90++;
+  }
+  return out;
+}
+
+/** Fins de mission prévues par mois, du mois courant aux `months` suivants. */
+export function missionEndingsByMonth(missions: MissionRow[], today: Date, months = 6): Array<{ key: string; year: number; month: number; count: number }> {
+  const t = isoDay(today);
+  const out: Array<{ key: string; year: number; month: number; count: number }> = [];
+  for (let i = 0; i < months; i++) {
+    const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const count = missions.filter((m) => m.status === 'active' && m.end_date && m.end_date >= t && m.end_date.startsWith(key)).length;
+    out.push({ key, year: d.getFullYear(), month: d.getMonth() + 1, count });
+  }
+  return out;
+}
+
+export type ProposalAnalyticsRow = { opportunity_id: string; sent_at: string | null; opportunity_status: string; opportunity_created_at: string };
+
+/** Positionnements envoyés depuis `since`, et part de ceux dont l'opportunité est gagnée. */
+export function positioningStats(proposals: ProposalAnalyticsRow[], since: Date): { total: number; won: number; rate: number | null } {
+  const rows = proposals.filter((p) => p.sent_at && new Date(p.sent_at) >= since);
+  const decided = rows.filter((p) => p.opportunity_status === 'won' || p.opportunity_status === 'lost');
+  const won = decided.filter((p) => p.opportunity_status === 'won').length;
+  return { total: rows.length, won, rate: decided.length ? (won / decided.length) * 100 : null };
+}
+
+/** Délai de staffing : jours entre la création d'une opportunité et son premier positionnement (médiane). */
+export function staffingLeadTime(proposals: ProposalAnalyticsRow[], since: Date): { medianDays: number | null; count: number } {
+  const first = new Map<string, ProposalAnalyticsRow>();
+  for (const p of proposals) {
+    if (!p.sent_at) continue;
+    const cur = first.get(p.opportunity_id);
+    if (!cur || p.sent_at < cur.sent_at!) first.set(p.opportunity_id, p);
+  }
+  const days = [...first.values()]
+    .filter((p) => new Date(p.sent_at!) >= since)
+    .map((p) => dayDiff(p.opportunity_created_at, p.sent_at!))
+    .filter((d) => d >= 0);
+  const m = median(days);
+  return { medianDays: m != null ? Math.round(m) : null, count: days.length };
+}
+
+/**
+ * Durée d'intercontrat : écart entre la fin d'une mission et le début de la
+ * suivante pour un même consultant, reprises depuis `since` (moyenne en jours).
+ */
+export function benchGaps(missions: MissionRow[], since: Date): { averageDays: number | null; count: number } {
+  const s = isoDay(since);
+  const byConsultant = new Map<string, MissionRow[]>();
+  for (const m of missions) {
+    if (m.status !== 'active' && m.status !== 'ended') continue;
+    (byConsultant.get(m.consultant_id) ?? byConsultant.set(m.consultant_id, []).get(m.consultant_id)!).push(m);
+  }
+  const gaps: number[] = [];
+  for (const list of byConsultant.values()) {
+    const sorted = [...list].sort((a, b) => a.start_date.localeCompare(b.start_date));
+    for (let i = 1; i < sorted.length; i++) {
+      const prevEnd = sorted[i - 1]!.end_date;
+      const next = sorted[i]!;
+      if (!prevEnd || next.start_date < s) continue;
+      const gap = dayDiff(prevEnd, next.start_date) - 1;
+      if (gap > 0) gaps.push(gap);
+    }
+  }
+  return { averageDays: gaps.length ? Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length) : null, count: gaps.length };
+}
+
+/** Renouvellements décidés : confirmés contre non renouvelés. */
+export function renewalStats(missions: Array<{ renewal_status?: string | null }>): { confirmed: number; notRenewed: number; rate: number | null } {
+  const confirmed = missions.filter((m) => m.renewal_status === 'confirmed').length;
+  const notRenewed = missions.filter((m) => m.renewal_status === 'not_renewed').length;
+  return { confirmed, notRenewed, rate: confirmed + notRenewed ? (confirmed / (confirmed + notRenewed)) * 100 : null };
+}

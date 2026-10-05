@@ -1,6 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
-import { lostReasons, quoteStats, revenueByConsultant, sourceBreakdown, timesheetPunctuality, winRate } from '@/lib/pilotage/analytics';
+import {
+  benchGaps,
+  futureAvailability,
+  lostReasons,
+  missionEndingsByMonth,
+  positioningStats,
+  quoteStats,
+  renewalStats,
+  revenueByConsultant,
+  salesCycle,
+  sourceBreakdown,
+  staffingLeadTime,
+  timesheetPunctuality,
+  winRate,
+} from '@/lib/pilotage/analytics';
 
 const SINCE = new Date('2025-10-04T00:00:00Z');
 const opp = (status: string, updated_at: string, extra: Record<string, unknown> = {}) => ({ status, created_at: updated_at, updated_at, ...extra });
@@ -74,5 +88,80 @@ describe('revenueByConsultant', () => {
       { mission_id: 'm1', period_year: 2026, period_month: 9, status: 'submitted', days_validated: null, days_worked: 21 },
     ];
     expect(revenueByConsultant(ts, missions, { year: 2026, month: 1 }).get('c1')).toBe(12000);
+  });
+});
+
+describe('analytics V2', () => {
+  const TODAY = new Date(2026, 9, 5); // 5 octobre 2026
+  const YEAR_AGO = new Date(2025, 9, 5);
+
+  it('measures the sales cycle on won deals (median days from creation to win)', () => {
+    const rows = [
+      { status: 'won', created_at: '2026-01-01T09:00:00Z', updated_at: '2026-01-21T09:00:00Z' },
+      { status: 'won', created_at: '2026-02-01T09:00:00Z', updated_at: '2026-03-03T09:00:00Z' },
+      { status: 'won', created_at: '2026-04-01T09:00:00Z', updated_at: '2026-04-11T09:00:00Z' },
+      { status: 'lost', created_at: '2026-04-01T09:00:00Z', updated_at: '2026-04-30T09:00:00Z' },
+      { status: 'won', created_at: '2024-01-01T09:00:00Z', updated_at: '2024-06-01T09:00:00Z' },
+    ];
+    expect(salesCycle(rows, YEAR_AGO)).toEqual({ medianDays: 20, count: 3 });
+    expect(salesCycle([], YEAR_AGO)).toEqual({ medianDays: null, count: 0 });
+  });
+
+  it('splits future availability into bench, 30, 60 and 90 days', () => {
+    const consultants = ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({ id, status: id === 'f' ? 'unavailable' : 'on_mission' }));
+    const missions = [
+      { consultant_id: 'b', status: 'active', start_date: '2026-01-01', end_date: '2026-10-20' }, // libre le 21/10
+      { consultant_id: 'c', status: 'active', start_date: '2026-01-01', end_date: '2026-11-20' },
+      { consultant_id: 'd', status: 'active', start_date: '2026-01-01', end_date: '2026-12-20' },
+      { consultant_id: 'e', status: 'active', start_date: '2026-01-01', end_date: null },
+    ];
+    expect(futureAvailability(consultants, missions, TODAY)).toEqual({ now: 1, d30: 1, d60: 1, d90: 1 });
+  });
+
+  it('counts mission endings per upcoming month', () => {
+    const missions = [
+      { consultant_id: 'a', status: 'active', start_date: '2026-01-01', end_date: '2026-10-31' },
+      { consultant_id: 'b', status: 'active', start_date: '2026-01-01', end_date: '2026-10-02' }, // déjà passée
+      { consultant_id: 'c', status: 'active', start_date: '2026-01-01', end_date: '2026-12-15' },
+      { consultant_id: 'd', status: 'ended', start_date: '2026-01-01', end_date: '2026-11-15' },
+    ];
+    expect(missionEndingsByMonth(missions, TODAY, 3).map((m) => [m.key, m.count])).toEqual([
+      ['2026-10', 1],
+      ['2026-11', 0],
+      ['2026-12', 1],
+    ]);
+  });
+
+  it('reports positionings, their win rate and the staffing lead time', () => {
+    const p = (opportunity_id: string, sent_at: string, opportunity_status: string, opportunity_created_at: string) => ({ opportunity_id, sent_at, opportunity_status, opportunity_created_at });
+    const rows = [
+      p('o1', '2026-03-05T09:00:00Z', 'won', '2026-03-01T09:00:00Z'),
+      p('o1', '2026-03-09T09:00:00Z', 'won', '2026-03-01T09:00:00Z'),
+      p('o2', '2026-05-11T09:00:00Z', 'lost', '2026-05-01T09:00:00Z'),
+      p('o3', '2026-06-03T09:00:00Z', 'cv_sent', '2026-06-01T09:00:00Z'),
+    ];
+    expect(positioningStats(rows, YEAR_AGO)).toEqual({ total: 4, won: 2, rate: (2 / 3) * 100 });
+    // Premiers positionnements : 4, 10 et 2 jours → médiane 4.
+    expect(staffingLeadTime(rows, YEAR_AGO)).toEqual({ medianDays: 4, count: 3 });
+  });
+
+  it('averages bench gaps between consecutive missions', () => {
+    const missions = [
+      { consultant_id: 'a', status: 'ended', start_date: '2025-11-01', end_date: '2026-01-31' },
+      { consultant_id: 'a', status: 'active', start_date: '2026-02-11', end_date: null }, // 10 jours
+      { consultant_id: 'b', status: 'ended', start_date: '2025-06-01', end_date: '2026-03-31' },
+      { consultant_id: 'b', status: 'active', start_date: '2026-05-01', end_date: null }, // 30 jours
+      { consultant_id: 'c', status: 'ended', start_date: '2025-06-01', end_date: '2026-03-31' },
+      { consultant_id: 'c', status: 'active', start_date: '2026-04-01', end_date: null }, // enchaînée
+    ];
+    expect(benchGaps(missions, YEAR_AGO)).toEqual({ averageDays: 20, count: 2 });
+  });
+
+  it('computes the renewal rate from decided renewals only', () => {
+    expect(renewalStats([{ renewal_status: 'confirmed' }, { renewal_status: 'confirmed' }, { renewal_status: 'not_renewed' }, { renewal_status: 'unknown' }, {}])).toEqual({
+      confirmed: 2,
+      notRenewed: 1,
+      rate: (2 / 3) * 100,
+    });
   });
 });
