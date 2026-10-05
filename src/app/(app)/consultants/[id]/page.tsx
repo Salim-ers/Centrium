@@ -28,6 +28,7 @@ import {
 
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader } from '@/components/app';
+import { FavoriteButton } from '@/components/app/FavoriteButton';
 import { FactList } from '@/components/app/FactList';
 import { NotesPanel } from '@/components/app/NotesPanel';
 import { EmptyState } from '@/components/app/EmptyState';
@@ -259,6 +260,7 @@ export default function Consultant360Page() {
         }
         actions={
           <>
+            <FavoriteButton kind="consultant" href={`/consultants/${c.id}`} label={`${c.first_name} ${c.last_name}`} />
             {canEdit && (
               <Button asChild>
                 <Link href={`/consultants/${c.id}/dossier`}>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { AUTOMATION_RULES, resolveAutomations } from '@/lib/automations/rules';
-import { notificationGroup } from '@/components/layout/NotificationCenter';
+import { notificationGroup, notificationLevel } from '@/components/layout/NotificationCenter';
 
 describe('resolveAutomations', () => {
   it('returns every rule with its default when nothing is stored', () => {
@@ -32,5 +32,18 @@ describe('notificationGroup', () => {
   it('files client requests and quote decisions under commercial', () => {
     expect(notificationGroup('client_request')).toBe('commercial');
     expect(notificationGroup('quote_decision')).toBe('commercial');
+  });
+});
+
+describe('notificationLevel', () => {
+  it('maps alert priorities to urgent, to-do and information', () => {
+    expect(notificationLevel('critical')).toBe('urgent');
+    expect(notificationLevel('high')).toBe('urgent');
+    expect(notificationLevel('medium')).toBe('todo');
+    expect(notificationLevel('low')).toBe('info');
+  });
+  it('treats a missing priority as a to-do', () => {
+    expect(notificationLevel(null)).toBe('todo');
+    expect(notificationLevel(undefined)).toBe('todo');
   });
 });

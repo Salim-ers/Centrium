@@ -17,6 +17,7 @@ import {
 
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader } from '@/components/app';
+import { FavoriteButton } from '@/components/app/FavoriteButton';
 import { FactList } from '@/components/app/FactList';
 import { NotesPanel } from '@/components/app/NotesPanel';
 import { ActivityTimeline } from '@/components/app/ActivityTimeline';
@@ -30,6 +31,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { OpportunityDrawer } from '@/components/crm/OpportunityDrawer';
 import { TaskList } from '@/components/crm/TaskList';
+import { MarginSimulator } from '@/components/crm/MarginSimulator';
 import { OpportunityMatching } from '@/components/matching/OpportunityMatching';
 import { useOrganization } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -163,25 +165,28 @@ export default function OpportunityDetailPage() {
           </span>
         }
         actions={
-          canEdit && (
-            <>
-              <Button variant="secondary" onClick={() => setEditing(true)}>
-                <Pencil />
-                {fr ? 'Modifier' : 'Edit'}
-              </Button>
-              {can('documents.edit') && (
-                <Button asChild variant="secondary">
-                  <Link href={`/documents/quotes/new?opportunity=${opp.id}`}>
-                    <Receipt />
-                    {fr ? 'Créer un devis' : 'Create a quote'}
-                  </Link>
+          <>
+            <FavoriteButton kind="opportunity" href={`/opportunities/${opp.id}`} label={opp.title} />
+            {canEdit && (
+              <>
+                <Button variant="secondary" onClick={() => setEditing(true)}>
+                  <Pencil />
+                  {fr ? 'Modifier' : 'Edit'}
                 </Button>
-              )}
-              <Button variant="ghost" size="icon" onClick={() => void remove()} aria-label={fr ? 'Supprimer' : 'Delete'}>
-                <Trash2 />
-              </Button>
-            </>
-          )
+                {can('documents.edit') && (
+                  <Button asChild variant="secondary">
+                    <Link href={`/documents/quotes/new?opportunity=${opp.id}`}>
+                      <Receipt />
+                      {fr ? 'Créer un devis' : 'Create a quote'}
+                    </Link>
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" onClick={() => void remove()} aria-label={fr ? 'Supprimer' : 'Delete'}>
+                  <Trash2 />
+                </Button>
+              </>
+            )}
+          </>
         }
       />
 
@@ -376,6 +381,7 @@ export default function OpportunityDetailPage() {
               />
             </CardContent>
           </Card>
+          {(can('consultants.financials') || can('finance.view')) && <MarginSimulator opportunityId={opp.id} rate={opp.daily_rate_eur ?? null} lang={lang} />}
           <Card>
             <CardHeader>
               <CardTitle>{fr ? 'Interlocuteurs' : 'People'}</CardTitle>

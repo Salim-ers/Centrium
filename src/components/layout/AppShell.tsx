@@ -8,6 +8,7 @@ import { useInShellFrame } from './shell-frame';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { CommandPalette } from './CommandPalette';
+import { KeyboardShortcuts } from './KeyboardShortcuts';
 import { BrandingStyles } from '@/components/brand/BrandingStyles';
 import { OrgActivityListener } from '@/components/realtime/OrgActivityListener';
 import { SessionPresenceGate } from '@/components/auth/SessionPresenceGate';
@@ -57,6 +58,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
           </main>
         </div>
         <CommandPalette />
+        <KeyboardShortcuts />
         <OrgActivityListener />
       </div>
     </ChromeContext.Provider>

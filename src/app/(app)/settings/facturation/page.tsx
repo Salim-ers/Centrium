@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { useOrganization } from '@/lib/auth/context';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { PageHeader, SectionHeader, AppCard, AppCardBody } from '@/components/app';
+import { MarginPolicySection } from '@/components/settings/MarginPolicySection';
 
 // =========================================================================
 // /settings/facturation — RIB + mentions légales de l'ESN.
@@ -356,6 +357,8 @@ export default function FacturationSettingsPage() {
           </div>
         </div>
       )}
+
+      {!loading && <MarginPolicySection canEdit={isAdmin} isEn={isEn} />}
     </AppShell>
   );
 }

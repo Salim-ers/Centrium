@@ -6,6 +6,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { businessDaysInMonth } from '@/lib/utils/business-days';
+import { DEFAULT_MARGIN_POLICY } from '@/lib/finance/margin-policy';
 import {
   bookedRevenue,
   forecastRevenue,
@@ -18,8 +19,8 @@ import {
 
 type Breakdown = { id: string; label: string; sub?: string | null; revenue: number; margin: number | null; marginPct: number | null; days: number };
 
-/** Objectif de marge appliqué quand le consultant n'en a pas. */
-export const DEFAULT_TARGET_MARGIN_PCT = 20;
+/** Objectif de marge par défaut (organisation sans réglage, consultant sans objectif propre). */
+export const DEFAULT_TARGET_MARGIN_PCT = DEFAULT_MARGIN_POLICY.target;
 
 export type LowMarginMission = { id: string; label: string; sub: string | null; marginPct: number; target: number; targetIsDefault: boolean };
 
@@ -55,7 +56,8 @@ export type FinanceSummary = {
   lowMargin: LowMarginMission[];
 };
 
-export async function loadFinance(supabase: SupabaseClient, orgId: string, withCosts: boolean, today = new Date()): Promise<FinanceSummary> {
+/** `defaultTarget` : objectif de marge de l'organisation, appliqué aux consultants sans objectif propre. */
+export async function loadFinance(supabase: SupabaseClient, orgId: string, withCosts: boolean, today = new Date(), defaultTarget = DEFAULT_TARGET_MARGIN_PCT): Promise<FinanceSummary> {
   const since = new Date(today.getFullYear(), today.getMonth() - 11, 1);
   const sinceKey = since.getFullYear() * 100 + since.getMonth() + 1;
   const tolerant = <T>(p: PromiseLike<{ data: unknown; error: unknown }>, fallback: T): Promise<T> =>
@@ -239,7 +241,7 @@ export async function loadFinance(supabase: SupabaseClient, orgId: string, withC
               label: m.title,
               sub: [consultantName, m.companies?.name].filter(Boolean).join(' · ') || null,
               marginPct,
-              target: own ?? DEFAULT_TARGET_MARGIN_PCT,
+              target: own ?? defaultTarget,
               targetIsDefault: own == null,
             };
           })

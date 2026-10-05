@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, CalendarClock, CheckCircle2, MoreHorizontal, Pencil, Trash2, XCircle } from 'lucide-react';
+import { ArrowRight, BellRing, CalendarClock, CheckCircle2, MoreHorizontal, Pencil, Target, Trash2, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar } from '@/components/ui/avatar';
 import {
@@ -157,6 +157,19 @@ export function OpportunityCard({
                   {fr ? 'Marquer perdue' : 'Mark as lost'}
                 </DropdownMenuItem>
               )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href={`/opportunities/${opp.id}?tab=matching`}>
+                  <Target />
+                  {fr ? 'Positionner un profil' : 'Position a profile'}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/opportunities/${opp.id}?tab=tasks`}>
+                  <BellRing />
+                  {fr ? 'Relancer' : 'Follow up'}
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={onEdit}>
                 <Pencil />

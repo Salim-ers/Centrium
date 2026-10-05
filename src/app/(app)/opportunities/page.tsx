@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { AlarmClock, Kanban, Plus, Target, Trophy, Wallet } from 'lucide-react';
+import { AlarmClock, BellRing, Kanban, Plus, Target, Trophy, Wallet } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader } from '@/components/app';
@@ -214,7 +214,11 @@ export default function OpportunitiesPage() {
         columns={columns}
         getRowId={(o) => o.id}
         rowHref={(o) => `/opportunities/${o.id}`}
-        rowActions={(o) => linkActions(`/opportunities/${o.id}`, fr)}
+        rowActions={(o) => [
+          { label: fr ? 'Positionner un profil' : 'Position a profile', icon: Target, href: `/opportunities/${o.id}?tab=matching` },
+          { label: fr ? 'Relancer' : 'Follow up', icon: BellRing, href: `/opportunities/${o.id}?tab=tasks` },
+          ...linkActions(`/opportunities/${o.id}`, fr).map((a, i) => (i === 0 ? { ...a, separatorBefore: true } : a)),
+        ]}
         tableId="opportunities"
         loading={loading && !data}
         initialSort={{ id: 'updated', dir: 'desc' }}

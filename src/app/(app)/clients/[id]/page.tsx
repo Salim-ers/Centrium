@@ -25,6 +25,7 @@ import {
 
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader, KPICard } from '@/components/app';
+import { FavoriteButton } from '@/components/app/FavoriteButton';
 import { FactList } from '@/components/app/FactList';
 import { NotesPanel } from '@/components/app/NotesPanel';
 import { ActivityTimeline } from '@/components/app/ActivityTimeline';
@@ -190,6 +191,7 @@ export default function Client360Page() {
         }
         actions={
           <>
+            <FavoriteButton kind="client" href={`/clients/${c.id}`} label={c.name} />
             {can('clients.edit') && (
               <Button variant="secondary" onClick={() => setEditing(true)}>
                 <Pencil />

@@ -10,7 +10,7 @@ import { notificationService } from '@/lib/services';
 import { useOrganizationSafe } from '@/lib/auth/context';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { ALERT_CATEGORY } from '@/lib/alerts/config';
-import type { AlertType, AppNotification } from '@/types';
+import type { AlertPriority, AlertType, AppNotification } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
   Drawer,
@@ -35,13 +35,27 @@ const GROUP_LABEL: Record<NotificationGroup | 'all', { fr: string; en: string }>
   system: { fr: 'Système', en: 'System' },
 };
 
-const GROUP_DOT: Record<NotificationGroup, string> = {
-  commercial: 'bg-primary',
-  staffing: 'bg-steel-500',
-  mission: 'bg-sand-600',
-  cra: 'bg-[#7D8B5A]',
-  finance: 'bg-[#C2913B]',
-  system: 'bg-muted-foreground',
+
+/** Niveau d'une notification : urgent, à faire ou simple information. */
+export type NotificationLevel = 'urgent' | 'todo' | 'info';
+
+export function notificationLevel(priority: AlertPriority | null | undefined): NotificationLevel {
+  if (priority === 'high' || priority === 'critical') return 'urgent';
+  if (priority === 'low') return 'info';
+  return 'todo';
+}
+
+const LEVEL_LABEL: Record<NotificationLevel | 'all', { fr: string; en: string }> = {
+  all: { fr: 'Toutes', en: 'All' },
+  urgent: { fr: 'Urgent', en: 'Urgent' },
+  todo: { fr: 'À faire', en: 'To do' },
+  info: { fr: 'Information', en: 'Info' },
+};
+
+const LEVEL_DOT: Record<NotificationLevel, string> = {
+  urgent: 'bg-destructive',
+  todo: 'bg-primary',
+  info: 'bg-muted-foreground',
 };
 
 /** Catégorie V2 d'une notification, à partir de son type d'alerte. */
@@ -80,7 +94,7 @@ export function NotificationCenter() {
   const [open, setOpen] = React.useState(false);
   const [items, setItems] = React.useState<AppNotification[] | null>(null);
   const [unread, setUnread] = React.useState(0);
-  const [filter, setFilter] = React.useState<NotificationGroup | 'all'>('all');
+  const [filter, setFilter] = React.useState<NotificationLevel | 'all'>('all');
   const userId = org?.user?.id;
 
   const refreshCount = React.useCallback(async () => {
@@ -121,13 +135,13 @@ export function NotificationCenter() {
     const c: Record<string, number> = {};
     for (const n of items ?? []) {
       if (n.read_at) continue;
-      const g = notificationGroup(n.kind);
-      c[g] = (c[g] ?? 0) + 1;
+      const l = notificationLevel(n.priority);
+      c[l] = (c[l] ?? 0) + 1;
     }
     return c;
   }, [items]);
 
-  const visible = (items ?? []).filter((n) => filter === 'all' || notificationGroup(n.kind) === filter);
+  const visible = (items ?? []).filter((n) => filter === 'all' || notificationLevel(n.priority) === filter);
 
   async function openNotification(n: AppNotification) {
     if (!n.read_at) {
@@ -147,7 +161,7 @@ export function NotificationCenter() {
     setUnread(0);
   }
 
-  const groups: Array<NotificationGroup | 'all'> = ['all', 'commercial', 'staffing', 'mission', 'cra', 'finance', 'system'];
+  const levels: Array<NotificationLevel | 'all'> = ['all', 'urgent', 'todo', 'info'];
 
   return (
     <>
@@ -182,7 +196,7 @@ export function NotificationCenter() {
           </DrawerHeader>
 
           <div className="no-scrollbar flex gap-1 overflow-x-auto border-b border-border px-4 py-2">
-            {groups.map((g) => {
+            {levels.map((g) => {
               const count = g === 'all' ? unread : (counts[g] ?? 0);
               return (
                 <button
@@ -197,7 +211,7 @@ export function NotificationCenter() {
                       : 'border-border bg-card text-muted-foreground hover:text-foreground',
                   )}
                 >
-                  {GROUP_LABEL[g][lang]}
+                  {LEVEL_LABEL[g][lang]}
                   {count > 0 && <span className="num opacity-80">{count}</span>}
                 </button>
               );
@@ -223,6 +237,7 @@ export function NotificationCenter() {
               <ul className="divide-y divide-border">
                 {visible.map((n) => {
                   const g = notificationGroup(n.kind);
+                  const level = notificationLevel(n.priority);
                   return (
                     <li key={n.id}>
                       <button
@@ -233,7 +248,7 @@ export function NotificationCenter() {
                           !n.read_at && 'bg-brand-50/40',
                         )}
                       >
-                        <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full', GROUP_DOT[g], n.read_at && 'opacity-30')} />
+                        <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full', LEVEL_DOT[level], n.read_at && 'opacity-30')} />
                         <span className="min-w-0 flex-1">
                           <span className="flex items-baseline justify-between gap-2">
                             <span className={cn('truncate text-[13px]', n.read_at ? 'text-muted-foreground' : 'font-medium text-foreground')}>
@@ -242,7 +257,11 @@ export function NotificationCenter() {
                             <span className="shrink-0 text-[11px] text-muted-foreground">{relativeDate(n.created_at)}</span>
                           </span>
                           {n.body && <span className="mt-0.5 line-clamp-2 block text-xs text-muted-foreground">{n.body}</span>}
-                          <span className="mt-1 block text-[11px] text-muted-foreground">{GROUP_LABEL[g][lang]}</span>
+                          <span className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                            {level === 'urgent' && <span className="font-semibold text-destructive">{LEVEL_LABEL.urgent[lang]}</span>}
+                            {level === 'urgent' && <span aria-hidden>·</span>}
+                            {GROUP_LABEL[g][lang]}
+                          </span>
                         </span>
                       </button>
                     </li>

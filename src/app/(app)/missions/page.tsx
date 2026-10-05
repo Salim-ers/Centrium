@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Briefcase, CalendarClock, Eye, Gauge, Plus, Search, TrendingUp } from 'lucide-react';
+import { Briefcase, CalendarClock, CalendarPlus, ClipboardCheck, Eye, FileText, Gauge, Plus, Search, TrendingUp } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader } from '@/components/app';
@@ -365,6 +365,9 @@ export default function MissionsPage() {
         onRowClick={(m) => setQuickId(m.id)}
         rowActions={(m) => [
           { label: fr ? 'Aperçu' : 'Quick view', icon: Eye, onSelect: () => setQuickId(m.id) },
+          { label: 'CRA', icon: ClipboardCheck, href: `/missions/${m.id}?tab=cra` },
+          ...(canEdit && m.status === 'active' ? [{ label: fr ? 'Prolonger' : 'Extend', icon: CalendarPlus, href: `/missions/${m.id}?edit=1` }] : []),
+          { label: 'Documents', icon: FileText, href: `/missions/${m.id}?tab=documents` },
           ...linkActions(`/missions/${m.id}`, fr).map((a, i) => (i === 0 ? { ...a, label: fr ? 'Ouvrir le cockpit' : 'Open the cockpit', separatorBefore: true } : a)),
         ]}
         tableId="missions"

@@ -19,6 +19,8 @@ import {
   Loader2,
   Clock,
   ClipboardCheck,
+  Keyboard,
+  Star,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -29,6 +31,8 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { HIDDEN_PAGES, NAV_ITEMS, SECONDARY_ITEMS, SECTION_TABS, SETTINGS_SECTIONS, canSeeNavItem } from '@/lib/navigation';
 import { useOrganizationSafe } from '@/lib/auth/context';
 import { pushRecent, readRecents, type Recent } from '@/lib/recents';
+import { readFavorites, type Favorite } from '@/lib/favorites';
+import { openShortcutsHelp } from './KeyboardShortcuts';
 import { globalSearch, type SearchKind, type SearchResult } from '@/lib/search/global-search';
 import type { Permission } from '@/lib/auth/permissions';
 import { AssistantAnswer } from '@/components/assistant/AssistantAnswer';
@@ -123,6 +127,7 @@ export function CommandPalette() {
   const org = useOrganizationSafe();
   const orgId = org?.activeOrgId;
   const [recents, setRecents] = React.useState<Recent[]>([]);
+  const [favorites, setFavorites] = React.useState<Favorite[]>([]);
   const supabase = React.useMemo(() => createClient(), []);
 
   // Raccourci clavier Ctrl/Cmd + K et ouverture programmatique.
@@ -146,7 +151,10 @@ export function CommandPalette() {
   }, []);
 
   React.useEffect(() => {
-    if (open) setRecents(readRecents(orgId));
+    if (open) {
+      setRecents(readRecents(orgId));
+      setFavorites(readFavorites(orgId));
+    }
     if (!open) {
       setQuery('');
       setResults([]);
@@ -187,8 +195,22 @@ export function CommandPalette() {
     const out: Entry[] = [];
     const isQuestion = query.trim().length > 3 && looksLikeQuestion(query);
 
+    // Favoris épinglés depuis les fiches : en tête, filtrés par la saisie.
+    for (const f of favorites) {
+      if (q && !normalize(f.label).includes(q)) continue;
+      out.push({
+        id: `fav:${f.href}`,
+        group: lang === 'fr' ? 'Favoris' : 'Favorites',
+        label: f.label,
+        hint: KIND_LABEL[f.kind]?.[lang],
+        icon: Star,
+        run: () => go(f.href),
+      });
+    }
+
     if (!q) {
       for (const r of recents) {
+        if (favorites.some((f) => f.href === r.href)) continue;
         out.push({
           id: `recent:${r.href}`,
           group: lang === 'fr' ? 'Récemment consulté' : 'Recently viewed',
@@ -240,6 +262,22 @@ export function CommandPalette() {
       });
     }
 
+    const shortcuts = lang === 'fr' ? 'Raccourcis clavier' : 'Keyboard shortcuts';
+    if (!q || normalize(`${shortcuts} aide clavier raccourcis keyboard shortcuts help`).includes(q)) {
+      out.push({
+        id: 'shortcuts',
+        group: lang === 'fr' ? 'Aide' : 'Help',
+        label: shortcuts,
+        hint: '?',
+        icon: Keyboard,
+        run: () => {
+          setOpen(false);
+          // Après la fermeture de la palette (une seule boîte de dialogue à la fois).
+          window.setTimeout(openShortcutsHelp, 0);
+        },
+      });
+    }
+
     const goTo = lang === 'fr' ? 'Aller à' : 'Go to';
     const pages = [
       ...NAV_ITEMS.map((i) => ({ id: i.id, label: i.label[lang], hint: undefined as string | undefined, href: i.href, icon: i.icon, item: i, keywords: i.keywords ?? [] })),
@@ -262,7 +300,7 @@ export function CommandPalette() {
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, results, lang, go, recents]);
+  }, [query, results, lang, go, recents, favorites]);
 
   React.useEffect(() => setActive(0), [query, results.length]);
 

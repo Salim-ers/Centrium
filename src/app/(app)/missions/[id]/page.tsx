@@ -24,6 +24,7 @@ import {
 
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader } from '@/components/app';
+import { FavoriteButton } from '@/components/app/FavoriteButton';
 import { StatStrip, type StatItem } from '@/components/app/StatStrip';
 import { FactList } from '@/components/app/FactList';
 import { NotesPanel } from '@/components/app/NotesPanel';
@@ -46,6 +47,7 @@ import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { createClient } from '@/lib/supabase/client';
 import { businessDaysBetween } from '@/lib/utils/business-days';
 import { daysUntil } from '@/lib/pilotage/metrics';
+import { useMarginPolicy } from '@/hooks/useMarginPolicy';
 import { renewalStage } from '@/lib/missions/renewal';
 import { REMOTE_POLICY_LABEL, type RemotePolicy } from '@/lib/validators/v2';
 import { DOCUMENT_KIND, INVOICE_STATUS, MISSION_STATUS, RENEWAL_STATUS, TIMESHEET_STATUS, periodLabel, statusOf } from '@/lib/status';
@@ -60,6 +62,8 @@ type Detail = {
   };
   cost: number | null;
   costSource: 'mission' | 'consultant' | null;
+  /** Objectif de marge propre au consultant (%), sinon null : objectif par défaut. */
+  marginTarget: number | null;
   timesheets: Timesheet[];
   documents: LibraryDocument[];
   contracts: Array<{ id: string; title: string | null; status: string; contract_number: string | null; created_at: string }>;
@@ -82,7 +86,10 @@ async function loadMission(id: string, financials: boolean, docs: boolean, finan
   const [mf, cf, timesheets, documents, contracts, invoices] = await Promise.all([
     financials ? tolerant(supabase.from('mission_financials').select('daily_cost_eur').eq('mission_id', id).maybeSingle(), null as { daily_cost_eur: number | null } | null) : null,
     financials
-      ? tolerant(supabase.from('consultant_financials').select('daily_cost_eur').eq('consultant_id', mission.consultant_id).maybeSingle(), null as { daily_cost_eur: number | null } | null)
+      ? tolerant(
+          supabase.from('consultant_financials').select('daily_cost_eur, target_margin_pct').eq('consultant_id', mission.consultant_id).maybeSingle(),
+          null as { daily_cost_eur: number | null; target_margin_pct: number | null } | null,
+        )
       : null,
     tolerant(
       supabase.from('timesheets').select('*').eq('mission_id', id).eq('archived', false).order('period_year', { ascending: false }).order('period_month', { ascending: false }),
@@ -105,6 +112,7 @@ async function loadMission(id: string, financials: boolean, docs: boolean, finan
     mission: mission as Detail['mission'],
     cost: missionCost ?? consultantCost,
     costSource: missionCost != null ? 'mission' : consultantCost != null ? 'consultant' : null,
+    marginTarget: cf?.target_margin_pct != null ? Number(cf.target_margin_pct) : null,
     timesheets,
     documents,
     contracts,
@@ -127,10 +135,12 @@ export default function MissionDetailPage() {
   const fr = lang === 'fr';
   const { byId: members } = useTeamMembers();
   const financials = can('consultants.financials');
+  const { policy } = useMarginPolicy();
   const showRates = financials || can('finance.view');
   const canEdit = can('missions.edit');
   const canDocs = can('documents.view');
-  const [editing, setEditing] = useState(false);
+  // ?edit=1 : « Prolonger » depuis la liste ouvre directement l'édition (dates).
+  const [editing, setEditing] = useState(params.get('edit') === '1');
   const [busy, setBusy] = useState(false);
   const initialTab = params.get('tab');
   const [tab, setTab] = useState<Tab>(initialTab === 'cra' || initialTab === 'documents' || initialTab === 'history' ? initialTab : 'timeline');
@@ -198,8 +208,13 @@ export default function MissionDetailPage() {
     if (m.status === 'active' && financials && data.cost == null) {
       out.push({ tone: 'warning', text: fr ? 'CJM non renseigné : la marge ne peut pas être calculée.' : 'Daily cost missing: margin cannot be computed.' });
     }
+    // Simple signal, jamais bloquant : objectif du consultant, sinon celui de l'organisation.
+    const target = data.marginTarget ?? policy.target;
+    if (m.status === 'active' && financials && stats.marginPct != null && stats.marginPct < target) {
+      out.push({ tone: 'warning', text: fr ? `Marge sous votre objectif de ${formatPct(target, lang, 0)}.` : `Margin below your ${formatPct(target, lang, 0)} target.` });
+    }
     return out;
-  }, [data, stats, stage, fr, lang, canDocs, financials]);
+  }, [data, stats, stage, fr, lang, canDocs, financials, policy.target]);
 
   async function patch(body: Record<string, unknown>, success: string) {
     setBusy(true);
@@ -330,38 +345,41 @@ export default function MissionDetailPage() {
           </span>
         }
         actions={
-          canEdit && (
-            <>
-              {m.status === 'proposed' && (
-                <Button onClick={() => void patch({ status: 'active' }, fr ? 'Mission démarrée' : 'Mission started')} loading={busy}>
-                  <Play />
-                  {fr ? 'Démarrer' : 'Start'}
-                </Button>
-              )}
-              {m.status === 'active' && (
-                <>
-                  <Button variant="secondary" onClick={() => void patch({ status: 'suspended' }, fr ? 'Mission suspendue' : 'Mission suspended')} disabled={busy}>
-                    <Pause />
-                    {fr ? 'Suspendre' : 'Suspend'}
+          <>
+            <FavoriteButton kind="mission" href={`/missions/${m.id}`} label={m.title} />
+            {canEdit && (
+              <>
+                {m.status === 'proposed' && (
+                  <Button onClick={() => void patch({ status: 'active' }, fr ? 'Mission démarrée' : 'Mission started')} loading={busy}>
+                    <Play />
+                    {fr ? 'Démarrer' : 'Start'}
                   </Button>
-                  <Button variant="secondary" onClick={() => void patch({ status: 'ended' }, fr ? 'Mission terminée' : 'Mission ended')} disabled={busy}>
-                    <Square />
-                    {fr ? 'Terminer' : 'End'}
+                )}
+                {m.status === 'active' && (
+                  <>
+                    <Button variant="secondary" onClick={() => void patch({ status: 'suspended' }, fr ? 'Mission suspendue' : 'Mission suspended')} disabled={busy}>
+                      <Pause />
+                      {fr ? 'Suspendre' : 'Suspend'}
+                    </Button>
+                    <Button variant="secondary" onClick={() => void patch({ status: 'ended' }, fr ? 'Mission terminée' : 'Mission ended')} disabled={busy}>
+                      <Square />
+                      {fr ? 'Terminer' : 'End'}
+                    </Button>
+                  </>
+                )}
+                {m.status === 'suspended' && (
+                  <Button onClick={() => void patch({ status: 'active' }, fr ? 'Mission reprise' : 'Mission resumed')} loading={busy}>
+                    <Play />
+                    {fr ? 'Reprendre' : 'Resume'}
                   </Button>
-                </>
-              )}
-              {m.status === 'suspended' && (
-                <Button onClick={() => void patch({ status: 'active' }, fr ? 'Mission reprise' : 'Mission resumed')} loading={busy}>
-                  <Play />
-                  {fr ? 'Reprendre' : 'Resume'}
+                )}
+                <Button variant="secondary" onClick={() => setEditing(true)}>
+                  <Pencil />
+                  {fr ? 'Modifier' : 'Edit'}
                 </Button>
-              )}
-              <Button variant="secondary" onClick={() => setEditing(true)}>
-                <Pencil />
-                {fr ? 'Modifier' : 'Edit'}
-              </Button>
-            </>
-          )
+              </>
+            )}
+          </>
         }
       />
 
@@ -617,7 +635,7 @@ export default function MissionDetailPage() {
       </div>
 
       <MissionDrawer
-        open={editing}
+        open={editing && canEdit}
         onOpenChange={setEditing}
         mission={{ ...m, daily_cost_eur: data.costSource === 'mission' ? data.cost : null }}
         onSaved={() => void reload()}

@@ -21,6 +21,7 @@ import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { createClient } from '@/lib/supabase/client';
 import { loadFinance, type FinanceSummary } from '@/lib/pilotage/load-finance';
+import { useMarginPolicy } from '@/hooks/useMarginPolicy';
 import { formatEur, formatEurCompact, formatPct } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -55,9 +56,11 @@ export default function FinancePage() {
     else if (viewParam === 'export' || viewParam === 'integrations') setView('export');
   }, [viewParam]);
 
+  // Objectif de marge de l'organisation (valeur par défaut tant qu'il n'est pas chargé).
+  const { policy } = useMarginPolicy();
   const { data, loading } = useCachedQuery<FinanceSummary>(
-    `finance:${activeOrgId ?? 'none'}:${withCosts ? 'c' : 'n'}`,
-    () => loadFinance(createClient(), activeOrgId!, withCosts),
+    `finance:${activeOrgId ?? 'none'}:${withCosts ? 'c' : 'n'}:t${policy.target}`,
+    () => loadFinance(createClient(), activeOrgId!, withCosts, undefined, policy.target),
     { enabled: !!activeOrgId && ready },
   );
   const k = data?.kpis;
