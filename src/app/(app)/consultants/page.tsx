@@ -453,6 +453,7 @@ export default function ConsultantsPage() {
             { href: '/cv-optimizer', label: { fr: 'Dossiers de compétences', en: 'Skills dossiers' }, permission: 'consultants.view' },
             { href: '/cv-pushed', label: { fr: 'CV envoyés aux clients', en: 'CVs sent to clients' }, permission: 'consultants.view' },
             { href: '/templates', label: { fr: 'Modèles de dossiers', en: 'Dossier templates' }, permission: 'consultants.view' },
+            { href: '/duplicates', label: { fr: 'Doublons', en: 'Duplicates' }, permission: 'consultants.edit' },
           ]}
         />
       </div>

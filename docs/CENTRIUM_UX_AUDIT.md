@@ -111,3 +111,31 @@ DetailDrawer, SegmentedControl / tabs, EmptyState, StatusBadge, Avatar.
 
 Chaque phase : TypeScript, lint, tests, build, vérification visuelle
 (1440, 1920, 2560, mobile), permissions, états vides / chargement / erreur.
+
+## 6. Fonctions complémentaires (brief, sections 65 à 81)
+
+| § | Fonction | État |
+|---|---|---|
+| 65 | Notifications classées Urgent / À faire / Information (d’après leur priorité) | fait |
+| 66 | Centre « À faire » (page /todos, tuile « À traiter » du dashboard) | existant |
+| 67 | Automatisations en recettes activables (Paramètres → Automatisations) | existant |
+| 68 | Prévision de capacité à 30 / 60 / 90 jours : disponibles, fins de mission, occupation prévue, risque d’intercontrat (Analytics → Staffing), d’après les missions signées | fait |
+| 69 | Simulateur de marge sur l’opportunité (TJM, CJM du consultant positionné ou saisi ; marge par jour, en %, par mois ; faible, correcte, bonne) ; objectifs réglables dans Paramètres → Organisation | fait |
+| 70 | Alerte de rentabilité : « Marge sous votre objectif de N % » au cockpit mission et dans le pilotage financier, jamais bloquante ; objectif du consultant, sinon celui de l’organisation | fait |
+| 71 | Concentration client (pilotage financier, analytics), présentée comme indicateur | existant |
+| 72 | Widget « Intercontrat en détail » : nombre, durée moyenne, coût estimé à partir des CJM connus, profils, opportunités compatibles | fait |
+| 73 | Doublons probables (contacts, clients, consultants) : fusion des contacts après confirmation (historique rattaché, fiche doublon archivée) ; clients et consultants : archivage du doublon après confirmation, rien n’est déplacé | fait (voir limite ci-dessous) |
+| 74 | Import CSV des consultants : correspondance des colonnes ajustable, aperçu, erreurs par ligne, compétences importées et classées | fait (CSV ; XLSX non pris en charge) |
+| 75 | Vues enregistrées (talents, missions), sur l’appareil | fait |
+| 76 | Activité de l’organisation : faits métier des 30 derniers jours (page /activity, lien depuis la tuile d’activité) | fait |
+| 77 | Notes et tâches sur les clients, consultants, opportunités et missions | existant |
+| 78 | Favoris : étoile sur les fiches, en tête de la recherche rapide | fait |
+| 79 | Récemment consulté dans la palette (recherches et fiches ouvertes) | fait |
+| 80 | Actions rapides : positionner et relancer (opportunités), CRA, prolonger et documents (missions), positionner et dossier (consultants) | fait |
+| 81 | Raccourcis : ⌘K / Ctrl K, C, G puis D / C / T / M, « ? » pour l’aide | fait |
+
+Limite : la fusion complète de deux clients ou de deux consultants
+(missions, CRA, factures, contrats) doit se faire dans une seule
+transaction en base. Elle demande une fonction SQL dédiée, donc une
+migration à valider explicitement ; en attendant, le doublon est archivé
+sans que rien ne soit déplacé.
