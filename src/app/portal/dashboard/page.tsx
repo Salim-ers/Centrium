@@ -309,7 +309,7 @@ function HomeCard({
           </span>
           {title}
         </h2>
-        <Link href={href} className="text-[12.5px] text-primary-deep hover:underline">
+        <Link href={href} className="-my-2 py-2 text-[12.5px] text-primary-deep hover:underline">
           {linkLabel}
         </Link>
       </div>

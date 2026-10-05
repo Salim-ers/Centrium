@@ -26,7 +26,7 @@ export function MobileNav() {
       <Button
         variant="ghost"
         size="icon"
-        className="md:hidden"
+        className="lg:hidden"
         onClick={() => setOpen(true)}
         aria-label={locale === 'en' ? 'Open navigation' : 'Ouvrir la navigation'}
         aria-expanded={open}

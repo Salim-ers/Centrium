@@ -37,7 +37,7 @@ export default async function ClientTimesheetPage({ params }: { params: { id: st
   return (
     <div className="space-y-5">
       <div>
-        <Link href="/client/timesheets" className="text-[13px] text-muted-foreground hover:text-foreground">
+        <Link href="/client/timesheets" className="-my-2 inline-block py-2 text-[13px] text-muted-foreground hover:text-foreground">
           ← Comptes rendus d’activité
         </Link>
         <h1 className="mt-1 text-[22px] font-semibold tracking-tight sm:text-2xl">CRA {periodLabel(ts.period_month, ts.period_year, 'fr')}</h1>

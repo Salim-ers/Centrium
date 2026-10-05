@@ -34,7 +34,7 @@ export function Header() {
   return (
     <header className="no-print relative z-20 flex h-14 shrink-0 items-center gap-2 border-b border-black/[0.05] bg-background/85 px-3 backdrop-blur-md sm:px-5">
       <MobileNav />
-      <Link href="/dashboard" className="md:hidden" aria-label={lang === 'fr' ? 'Accueil' : 'Home'}>
+      <Link href="/dashboard" className="lg:hidden" aria-label={lang === 'fr' ? 'Accueil' : 'Home'}>
         <CentriumLogo className="h-7 w-7" />
       </Link>
 
@@ -58,7 +58,7 @@ export function Header() {
       <button
         type="button"
         onClick={() => openCommandPalette()}
-        className="hidden h-9 w-full max-w-[420px] items-center gap-2.5 rounded-xl bg-card px-3.5 text-left text-[13px] text-muted-foreground ring-1 ring-black/[0.06] transition-shadow hover:ring-black/[0.12] md:ml-auto md:flex lg:absolute lg:left-1/2 lg:ml-0 lg:-translate-x-1/2"
+        className="hidden h-9 w-full max-w-[420px] items-center gap-2.5 rounded-xl bg-card px-3.5 text-left text-[13px] text-muted-foreground ring-1 ring-black/[0.06] transition-shadow hover:ring-black/[0.12] md:ml-auto md:flex md:w-[clamp(12rem,38%,26rem)] md:shrink-0 lg:absolute lg:left-1/2 lg:ml-0 lg:w-full lg:-translate-x-1/2"
       >
         <Search className="h-4 w-4 shrink-0" />
         <span className="flex-1 truncate">

@@ -44,7 +44,6 @@ import { CVPreviewBoundary } from '@/components/cv/CVPreviewBoundary';
 import { consultantService } from '@/lib/services/consultant.service';
 import { jobOfferService } from '@/lib/services';
 import { generateCVContent } from '@/lib/ai/cv-generator';
-import { generateCVDocx } from '@/lib/cv/export-docx';
 import { exportCVToPdf } from '@/lib/cv/export-pdf';
 import { applyOverrides, type CVOverrides } from '@/lib/cv/overrides';
 import { resolveBrand } from '@/lib/cv/branding';
@@ -581,6 +580,7 @@ function SkillsDossierStudioInner({ lockedConsultantId }: { lockedConsultantId?:
     }
     setExporting('docx');
     try {
+      const { generateCVDocx } = await import('@/lib/cv/export-docx');
       const blob = await generateCVDocx(displayed, { brand });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

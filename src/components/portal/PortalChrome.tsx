@@ -24,7 +24,7 @@ export type PortalBrand = { name: string; logoUrl?: string | null };
 function Brand({ brand, href }: { brand?: PortalBrand | null; href: string }) {
   if (brand?.logoUrl) {
     return (
-      <Link href={href} className="flex min-w-0 items-center gap-2">
+      <Link href={href} className="-my-2 flex min-w-0 items-center gap-2 py-2">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={brand.logoUrl} alt={brand.name} className="h-7 max-w-[140px] object-contain" />
       </Link>
@@ -32,7 +32,7 @@ function Brand({ brand, href }: { brand?: PortalBrand | null; href: string }) {
   }
   if (brand?.name) {
     return (
-      <Link href={href} className="truncate text-[15px] font-semibold tracking-tight">
+      <Link href={href} className="-my-2 truncate py-2 text-[15px] font-semibold tracking-tight">
         {brand.name}
       </Link>
     );

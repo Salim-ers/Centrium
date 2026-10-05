@@ -179,7 +179,7 @@ export default async function ClientHomePage() {
               <Briefcase className="h-4 w-4 text-primary" />
               Missions et consultants
             </h2>
-            <Link href="/client/missions" className="text-[13px] text-primary-deep hover:underline">
+            <Link href="/client/missions" className="-my-2 py-2 text-[13px] text-primary-deep hover:underline">
               Tout voir
             </Link>
           </div>
@@ -206,7 +206,7 @@ export default async function ClientHomePage() {
               <MessageSquarePlus className="h-4 w-4 text-primary" />
               Vos demandes
             </h2>
-            <Link href="/client/requests" className="text-[13px] text-primary-deep hover:underline">
+            <Link href="/client/requests" className="-my-2 py-2 text-[13px] text-primary-deep hover:underline">
               Tout voir
             </Link>
           </div>

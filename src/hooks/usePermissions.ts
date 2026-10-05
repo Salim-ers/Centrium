@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useOrganizationSafe } from '@/lib/auth/context';
+import { useIsoLayoutEffect } from '@/hooks/useIsoLayoutEffect';
 import {
   defaultPermissions,
   type EffectiveRole,
@@ -39,17 +40,16 @@ function readCache(key: string): Snapshot | null {
 export function usePermissions() {
   const org = useOrganizationSafe();
   const key = `${org?.user?.id ?? 'anon'}:${org?.activeOrgId ?? 'none'}`;
-  const [snap, setSnap] = useState<Snapshot | null>(() =>
-    typeof window === 'undefined' ? null : readCache(key),
-  );
+  // Premier rendu identique au serveur ; le cache s'applique avant la peinture.
+  const [snap, setSnap] = useState<Snapshot | null>(null);
+  useIsoLayoutEffect(() => {
+    const cached = readCache(key);
+    if (cached) setSnap(cached);
+  }, [key]);
 
   useEffect(() => {
     if (!org?.activeOrgId || !org.user) return;
-    const cached = readCache(key);
-    if (cached) {
-      setSnap(cached);
-      return;
-    }
+    if (readCache(key)) return;
     let cancelled = false;
     fetch('/api/me/permissions', { credentials: 'include', cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))

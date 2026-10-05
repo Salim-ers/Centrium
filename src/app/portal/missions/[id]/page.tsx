@@ -72,7 +72,7 @@ export default function PortalMissionDetailPage() {
   return (
     <div className="space-y-5">
       <div>
-        <Link href="/portal/missions" className="text-[13px] text-muted-foreground hover:text-foreground">
+        <Link href="/portal/missions" className="-my-2 inline-block py-2 text-[13px] text-muted-foreground hover:text-foreground">
           ← {fr ? 'Mes missions' : 'My missions'}
         </Link>
         <h1 className="mt-1 text-[22px] font-semibold tracking-tight sm:text-2xl">{m.title}</h1>

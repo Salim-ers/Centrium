@@ -36,7 +36,6 @@ import { createClient } from '@/lib/supabase/client';
 import { consultantService } from '@/lib/services/consultant.service';
 import { matchingService, type MatchResult } from '@/lib/services/matching.service';
 import { generateCVContent } from '@/lib/ai/cv-generator';
-import { generateCVDocx } from '@/lib/cv/export-docx';
 import type {
   Consultant,
   ConsultantSkill,
@@ -234,6 +233,7 @@ export default function ResponsesPage() {
     }
     setExporting('docx');
     try {
+      const { generateCVDocx } = await import('@/lib/cv/export-docx');
       const blob = await generateCVDocx(cvContent);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

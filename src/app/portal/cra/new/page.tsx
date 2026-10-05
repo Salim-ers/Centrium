@@ -99,7 +99,7 @@ export default function PortalCraNewPage() {
   return (
     <div className="mx-auto max-w-xl space-y-5">
       <div>
-        <Link href="/portal/cra" className="text-[13px] text-muted-foreground hover:text-foreground">
+        <Link href="/portal/cra" className="-my-2 inline-block py-2 text-[13px] text-muted-foreground hover:text-foreground">
           ← {fr ? 'Mes CRA' : 'My timesheets'}
         </Link>
         <h1 className="mt-1 text-[22px] font-semibold tracking-tight sm:text-2xl">{fr ? 'Nouveau CRA' : 'New timesheet'}</h1>

@@ -379,8 +379,8 @@ export default function MissionDetailPage() {
 
       <StatStrip className="mb-3" items={kpis} />
 
-      <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <section className="tile-surface flex min-h-[26rem] flex-col lg:min-h-0">
+      <div className="grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <section className="tile-surface flex min-h-[26rem] min-w-0 flex-col lg:min-h-0">
           <div role="tablist" aria-label={fr ? 'Sections de la mission' : 'Mission sections'} className="no-scrollbar flex shrink-0 gap-1 overflow-x-auto border-b border-border px-4 pt-2">
             {tabs.map((t) => (
               <button
@@ -521,7 +521,7 @@ export default function MissionDetailPage() {
           </div>
         </section>
 
-        <aside className="no-scrollbar flex flex-col gap-3 lg:min-h-0 lg:overflow-y-auto">
+        <aside className="no-scrollbar flex min-w-0 flex-col gap-3 lg:min-h-0 lg:overflow-y-auto">
           {alerts.length > 0 && (
             <ul className="space-y-1.5">
               {alerts.map((a, i) => (

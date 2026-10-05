@@ -1,11 +1,12 @@
-'use client';
-
-import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 /**
- * Entrée en cascade des sections d'une page (fondu + translation 12px).
- * Version PARTAGÉE du helper dupliqué dans les pages admin — à utiliser
- * pour tout nouveau bloc (KPIs, sections, cartes) :
+ * Entrée en cascade des sections d'une page (fondu + légère translation).
+ * Animation CSS : elle démarre dès le premier rendu, sans attendre
+ * l'hydratation ni charger de bibliothèque d'animation, et
+ * prefers-reduced-motion la neutralise (globals.css). Le remplissage
+ * « backwards » ne laisse aucune transformation une fois l'animation
+ * terminée (les enfants en position fixe restent ancrés à l'écran).
  *
  *   <Reveal className="grid …">…</Reveal>
  *   <Reveal delay={0.08}>…</Reveal>   // décalage pour l'effet cascade
@@ -20,13 +21,8 @@ export function Reveal({
   children: React.ReactNode;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay, ease: 'easeOut' }}
-      className={className}
-    >
+    <div className={cn('animate-fade-up [animation-fill-mode:backwards]', className)} style={delay ? { animationDelay: `${delay}s` } : undefined}>
       {children}
-    </motion.div>
+    </div>
   );
 }

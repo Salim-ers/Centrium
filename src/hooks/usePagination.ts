@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
+import { useIsoLayoutEffect } from '@/hooks/useIsoLayoutEffect';
+
 /**
  * Hook de pagination client-side.
  *
@@ -33,12 +35,18 @@ export function usePagination(
   const { storageKey, defaultPageSize = 20 } = options;
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState<number>(() => {
-    if (typeof window === 'undefined' || !storageKey) return defaultPageSize;
-    const stored = window.localStorage.getItem(storageKey);
-    const n = stored ? Number(stored) : NaN;
-    return Number.isFinite(n) && n > 0 ? n : defaultPageSize;
-  });
+  // Premier rendu identique au serveur ; la préférence s'applique avant la peinture.
+  const [pageSize, setPageSize] = useState<number>(defaultPageSize);
+  useIsoLayoutEffect(() => {
+    if (!storageKey) return;
+    try {
+      const stored = window.localStorage.getItem(storageKey);
+      const n = stored ? Number(stored) : NaN;
+      if (Number.isFinite(n) && n > 0) setPageSize(n);
+    } catch {
+      /* stockage indisponible : taille par défaut */
+    }
+  }, [storageKey]);
 
   const changePageSize = useCallback(
     (n: number) => {

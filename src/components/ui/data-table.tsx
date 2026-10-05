@@ -433,8 +433,23 @@ export function DataTable<T>({
           const body = (
             <div className="flex items-start gap-3 px-4 py-3">
               {selectable && (
-                <div onClick={(e) => e.stopPropagation()} className="pt-0.5">
-                  <Checkbox checked={selected?.has(id) ?? false} onCheckedChange={() => toggleRow(id)} />
+                <div className="pt-0.5">
+                  {/* Zone tactile élargie autour de la case, sans changer la mise en page. La carte
+                      est un lien : sans preventDefault, toucher la case ouvrait la fiche. */}
+                  <div
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (e.target === e.currentTarget) toggleRow(id);
+                    }}
+                    className="-m-2.5 flex cursor-pointer p-2.5"
+                  >
+                    <Checkbox
+                      checked={selected?.has(id) ?? false}
+                      onCheckedChange={() => toggleRow(id)}
+                      aria-label={locale === 'fr' ? 'Sélectionner la ligne' : 'Select row'}
+                    />
+                  </div>
                 </div>
               )}
               <div className="min-w-0 flex-1">

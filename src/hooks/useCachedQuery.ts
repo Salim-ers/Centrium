@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { useIsoLayoutEffect } from '@/hooks/useIsoLayoutEffect';
+
 type CacheEntry<T> = { data: T; ts: number };
 
 const STORAGE_PREFIX = 'qc_cache:';
@@ -52,7 +54,8 @@ export type UseCachedQueryResult<T> = {
 /**
  * Stale-while-revalidate client-side fetch with sessionStorage cache.
  *
- * - Hydrates instantly from cache if present → `loading` starts false, page never blank on return.
+ * - Applies the cache before the first paint (never during the first render,
+ *   which must match the server HTML) → page never blank on return.
  * - Refetches in background → `refreshing` toggles true during that.
  * - Enabled=false skips the fetch (useful while a dependency isn't ready yet).
  * - Stale-on-error : si le fetcher throw, on garde la donnée cachée
@@ -70,11 +73,23 @@ export function useCachedQuery<T>(
 ): UseCachedQueryResult<T> {
   const { enabled = true } = options;
 
-  const cached = enabled ? readCache<T>(key) : null;
-  const [data, setDataState] = useState<T | null>(cached?.data ?? null);
-  const [loading, setLoading] = useState<boolean>(enabled && !cached);
+  // Premier rendu identique au rendu serveur (qui n'a pas de cache) ; le
+  // cache est appliqué juste après, avant la première peinture.
+  const [data, setDataState] = useState<T | null>(null);
+  const [loading, setLoading] = useState<boolean>(enabled);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<unknown>(null);
+
+  useIsoLayoutEffect(() => {
+    if (!enabled) return;
+    const cached = readCache<T>(key);
+    if (cached) {
+      setDataState(cached.data);
+      setLoading(false);
+    }
+    // Montage seulement : les changements de clé sont traités pendant le rendu, plus bas.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Re-hydrate depuis sessionStorage quand la clé change (typiquement :
   // activeOrgId arrive après le 1er render, donc la clé passe de

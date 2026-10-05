@@ -49,7 +49,7 @@ export function StatStrip({ items, className }: { items: StatItem[]; className?:
             )}
             <span className="min-w-0">
               <span className={cn('block text-[18px] font-semibold leading-tight tracking-[-0.02em] tabular-nums', t.strong)}>{it.value}</span>
-              <span className={cn('block truncate text-[11.5px] font-medium', t.muted)}>{it.label}</span>
+              <span className={cn('line-clamp-2 text-[11.5px] font-medium sm:line-clamp-1', t.muted)}>{it.label}</span>
             </span>
           </>
         );

@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useIsoLayoutEffect } from '@/hooks/useIsoLayoutEffect';
 import type { UserRole } from '@/types';
 import { BRANDING_COLUMNS, buildBranding, type OrgBranding } from '@/lib/branding/org-branding';
 
@@ -66,15 +67,17 @@ const EMPTY_STATE: State = {
 };
 
 /**
- * Hydratation synchrone du contexte d'auth depuis sessionStorage.
+ * Contexte d'auth mis en cache dans sessionStorage.
  *
- * Sans ça, après un F5, `activeOrgId` reste null pendant le premier
- * render — toutes les pages déclenchent `enabled: !!activeOrgId === false`,
- * affichent un état "0 résultats" puis se mettent à jour après la
- * réhydratation. C'est ce que l'utilisateur voyait comme un "flash vide".
+ * Sans lui, après un F5, `activeOrgId` reste null le temps de recharger
+ * la session — toutes les pages déclenchent `enabled: !!activeOrgId === false`,
+ * affichent un état "0 résultats" puis se mettent à jour. C'est ce que
+ * l'utilisateur voyait comme un "flash vide".
  *
- * On lit sessionStorage AVANT le premier render. Au prochain mount le
- * state est déjà peuplé, les queries enabled tournent dès le tick 1.
+ * Il est appliqué AVANT la première peinture (effet de mise en page), mais
+ * pas pendant le premier rendu : celui-ci doit rester identique au HTML du
+ * serveur, qui ne connaît pas la session, sinon React jette ce HTML et
+ * re-rend tout le document à chaque rechargement.
  */
 function initialAuthState(): State {
   if (typeof window === 'undefined') return EMPTY_STATE;
@@ -92,9 +95,13 @@ function initialAuthState(): State {
 }
 
 export function OrganizationProvider({ children }: { children: React.ReactNode }) {
-  // initialAuthState() lit la sessionStorage de façon synchrone :
-  // le tout premier render a déjà activeOrgId, role, memberships, branding.
-  const [state, setState] = useState<State>(initialAuthState);
+  // Premier rendu identique au serveur ; l'état en cache (activeOrgId, role,
+  // memberships, branding) est appliqué avant la première peinture.
+  const [state, setState] = useState<State>(EMPTY_STATE);
+  useIsoLayoutEffect(() => {
+    const cached = initialAuthState();
+    if (cached !== EMPTY_STATE) setState(cached);
+  }, []);
 
   const supabase = useMemo(() => createClient(), []);
 

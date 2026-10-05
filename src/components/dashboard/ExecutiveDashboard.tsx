@@ -60,15 +60,25 @@ const VIEW_ACTIONS: Record<DashboardView, ActionKind[] | null> = {
   finance: ['timesheets_pending', 'prefacture_pending', 'quote_expiring'],
 };
 
-// Grille contrôlée (grand écran) : 12 colonnes × 6 rangées qui remplissent
-// l'espace de travail. Classes statiques pour Tailwind.
-const COLS: Record<number, string> = { 3: 'xl:col-span-3', 4: 'xl:col-span-4', 6: 'xl:col-span-6', 9: 'xl:col-span-9', 12: 'xl:col-span-12' };
+// Grille contrôlée : 12 colonnes dès que le tableau de bord lui-même mesure
+// 56rem (requête de conteneur : tablette paysage, petit portable, quelle que
+// soit la largeur de la barre latérale), à hauteur naturelle ; dès 1280 px,
+// 6 rangées qui remplissent l'espace de travail. Classes statiques pour Tailwind.
+const COLS: Record<number, string> = {
+  3: '[@container(min-width:56rem)]:col-span-3',
+  4: '[@container(min-width:56rem)]:col-span-4',
+  6: '[@container(min-width:56rem)]:col-span-6',
+  9: '[@container(min-width:56rem)]:col-span-9',
+  12: '[@container(min-width:56rem)]:col-span-12',
+};
 const ROWS: Record<number, string> = { 1: 'xl:row-span-1', 2: 'xl:row-span-2', 3: 'xl:row-span-3' };
-const GRID = 'grid grid-cols-2 gap-3 xl:min-h-0 xl:flex-1 xl:grid-cols-12 xl:grid-rows-[repeat(6,minmax(84px,1fr))] [grid-auto-flow:dense]';
+const GRID = 'grid grid-cols-2 gap-3 [@container(min-width:56rem)]:grid-cols-12 xl:min-h-0 xl:flex-1 xl:grid-rows-[repeat(6,minmax(84px,1fr))] [grid-auto-flow:dense]';
 
 function cellClass(view: DashboardView, id: WidgetId) {
   const span = widgetSpan(view, id);
-  // Sous 1280 px : deux colonnes à hauteur naturelle (indicateurs côte à côte).
+  // Conteneur étroit : deux colonnes à hauteur naturelle (indicateurs côte à
+  // côte). Au-delà de 56rem, les bandes de la disposition (indicateurs, bande
+  // principale, bande basse) gardent leurs colonnes ; leurs rangées, dès 1280 px.
   return cn(WIDGETS[id].kpi ? 'col-span-1 min-h-[112px]' : 'col-span-2 min-h-[300px]', 'xl:min-h-0', COLS[span.cols], ROWS[span.rows]);
 }
 
@@ -451,7 +461,7 @@ export function ExecutiveDashboard() {
     !!k && k.activeConsultants === 0 && k.openOpportunities === 0 && (data?.series ?? []).every((p) => !p.forecast && !p.realized);
 
   return (
-    <div className="flex min-h-full w-full flex-col xl:h-full">
+    <div className="flex min-h-full w-full flex-col [container-type:inline-size] xl:h-full">
       {/* En-tête compact : bonjour, date, vues, personnalisation */}
       <div className="mb-3 flex shrink-0 flex-wrap items-center gap-x-5 gap-y-2">
         <div className="min-w-0">

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowRight, CheckCircle2, Circle, Rocket } from 'lucide-react';
 
 import { useOrganization } from '@/lib/auth/context';
+import { useIsoLayoutEffect } from '@/hooks/useIsoLayoutEffect';
 import { useSetupSteps } from '@/hooks/useSetupSteps';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
@@ -25,14 +26,16 @@ export function SetupChecklist() {
   const { activeOrgId } = useOrganization();
   const { can } = usePermissions();
   const { steps, doneCount, total, complete, loading } = useSetupSteps();
-  const [dismissed, setDismissed] = useState<boolean>(() => {
-    if (typeof window === 'undefined' || !activeOrgId) return false;
+  // Relu à chaque organisation (connue après le premier rendu), avant la peinture.
+  const [dismissed, setDismissed] = useState(false);
+  useIsoLayoutEffect(() => {
+    if (!activeOrgId) return;
     try {
-      return window.localStorage.getItem(DISMISS_KEY(activeOrgId)) === '1';
+      setDismissed(window.localStorage.getItem(DISMISS_KEY(activeOrgId)) === '1');
     } catch {
-      return false;
+      /* stockage indisponible */
     }
-  });
+  }, [activeOrgId]);
 
   if (!can('settings.manage') || loading || complete || dismissed || total === 0) return null;
 

@@ -33,7 +33,7 @@ export default async function ClientQuotePage({ params }: { params: { id: string
   return (
     <div className="space-y-5">
       <div className="no-print">
-        <Link href="/client/quotes" className="text-[13px] text-muted-foreground hover:text-foreground">
+        <Link href="/client/quotes" className="-my-2 inline-block py-2 text-[13px] text-muted-foreground hover:text-foreground">
           ← Devis
         </Link>
         <h1 className="mt-1 text-[22px] font-semibold tracking-tight sm:text-2xl">
