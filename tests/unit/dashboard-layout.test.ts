@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_LAYOUTS, WIDGETS, WIDGET_IDS, resolveLayout, widgetAllowed } from '@/lib/dashboard/widgets';
+import { DASHBOARD_VIEWS, DEFAULT_LAYOUTS, WIDGETS, WIDGET_IDS, resolveLayout, widgetAllowed, widgetSpan } from '@/lib/dashboard/widgets';
 import type { Permission } from '@/lib/auth/permissions';
 
 describe('resolveLayout', () => {
@@ -10,7 +10,7 @@ describe('resolveLayout', () => {
 
     // Assert
     expect(layout.map((i) => i.id)).toEqual(DEFAULT_LAYOUTS.direction.map((i) => i.id));
-    expect(layout.filter((i) => !i.hidden).map((i) => i.id).slice(0, 3)).toEqual(['revenue', 'margin', 'todo']);
+    expect(layout.filter((i) => !i.hidden).map((i) => i.id).slice(0, 4)).toEqual(['revenue', 'margin', 'occupancy', 'pipeline-kpi']);
   });
 
   it('keeps the saved order and visibility, then appends missing widgets as hidden', () => {
@@ -59,5 +59,25 @@ describe('widgetAllowed', () => {
   it('requires every permission listed in allOf', () => {
     expect(widgetAllowed(WIDGETS.clients, can(['finance.view']))).toBe(false);
     expect(widgetAllowed(WIDGETS.clients, can(['finance.view', 'clients.view']))).toBe(true);
+  });
+});
+
+describe('grille contrôlée du tableau de bord', () => {
+  it('remplit exactement la grille 12 × 6 dans chaque vue par défaut', () => {
+    for (const view of DASHBOARD_VIEWS) {
+      // Arrange
+      const visible = DEFAULT_LAYOUTS[view].filter((i) => !i.hidden);
+      // Act : surface occupée en cellules
+      const cells = visible.reduce((sum, i) => sum + widgetSpan(view, i.id).cols * widgetSpan(view, i.id).rows, 0);
+      // Assert
+      expect(cells).toBe(12 * 6);
+    }
+  });
+
+  it('donne une rangée aux indicateurs et plusieurs aux widgets de détail', () => {
+    expect(widgetSpan('direction', 'revenue')).toEqual({ cols: 3, rows: 1 });
+    expect(widgetSpan('direction', 'activity').rows).toBe(3);
+    expect(widgetSpan('finance', 'activity').cols).toBe(9);
+    expect(WIDGET_IDS.filter((id) => WIDGETS[id].kpi).every((id) => WIDGETS[id].span.rows === 1)).toBe(true);
   });
 });

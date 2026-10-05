@@ -54,9 +54,32 @@ function MaybeLink({ href, className, children }: { href?: string; className?: s
 }
 
 // ── KPI ─────────────────────────────────────────────────────────────────
-export function KpiTile({ data, tone = 'white', index = 0, className }: { data: KpiData; tone?: TileTone; index?: number; className?: string }) {
+export function KpiTile({ data, tone = 'white', index = 0, className, compact = false }: { data: KpiData; tone?: TileTone; index?: number; className?: string; compact?: boolean }) {
   const t = TONE_CLASSES[tone];
   const onColor = tone === 'terra' || tone === 'deep' || tone === 'ink';
+  if (compact) {
+    // Tuile d'une rangée : libellé, valeur forte, une ligne de contexte, tendance à droite.
+    return (
+      <Tile tone={tone} index={index} className={cn('p-4', className)}>
+        <MaybeLink href={data.href} className="flex h-full min-h-0 flex-col justify-between gap-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className={cn('truncate text-[12.5px] font-medium', t.muted)}>{data.label}</span>
+            {data.href && <ArrowUpRight className={cn('h-3.5 w-3.5 shrink-0 opacity-60', t.muted)} />}
+          </div>
+          <div className="flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-baseline gap-2">
+                <span className={cn('text-[clamp(1.35rem,1.9vw,1.75rem)] font-semibold leading-none tracking-[-0.03em] tabular-nums', t.strong)}>{data.value}</span>
+                <Delta value={data.delta ?? null} tone={tone} positiveIsGood={data.deltaPositiveIsGood ?? true} suffix={data.deltaSuffix} />
+              </div>
+              {data.foot && <div className={cn('mt-1 truncate text-[11.5px]', t.muted)}>{data.foot}</div>}
+            </div>
+            {data.spark && data.spark.length > 1 && <Sparkline values={data.spark} className="mb-0.5 h-7 w-20 shrink-0" color={onColor ? '#FFFFFF' : '#C65F46'} />}
+          </div>
+        </MaybeLink>
+      </Tile>
+    );
+  }
   return (
     <Tile tone={tone} index={index} className={cn('min-h-[148px] justify-between', className)}>
       <MaybeLink href={data.href} className="flex h-full flex-col justify-between gap-3">
@@ -118,7 +141,7 @@ export function TodoTile({ title, items, tone = 'peach', index = 0, storageKey, 
       {items.length === 0 ? (
         <p className={cn('text-[13.5px]', t.muted)}>{emptyLabel}</p>
       ) : (
-        <ul className="-mx-1 space-y-0.5">
+        <ul className="no-scrollbar -mx-1 min-h-0 flex-1 space-y-0.5 overflow-y-auto">
           {items.map((it) => {
             const isDone = done.has(it.id);
             return (
@@ -228,7 +251,7 @@ export function StaffingTile({ title, rows, cta, tone = 'ivory', index = 0, clas
   const reduce = useReducedMotion();
   const t = TONE_CLASSES[tone];
   return (
-    <Tile tone={tone} index={index} className={className}>
+    <Tile tone={tone} index={index} className={cn('cq', className)}>
       <TileHeader
         tone={tone}
         title={title}
@@ -246,7 +269,7 @@ export function StaffingTile({ title, rows, cta, tone = 'ivory', index = 0, clas
       {rows.length === 0 ? (
         <p className={cn('text-[13.5px]', t.muted)}>{emptyLabel}</p>
       ) : (
-        <ul className="space-y-2.5">
+        <ul className="no-scrollbar min-h-0 flex-1 space-y-2.5 overflow-y-auto">
           {rows.map((r, i) => (
             <motion.li key={r.id} initial={reduce ? false : { opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: reduce ? 0 : 0.15 + i * 0.06 }}>
               <MaybeLink href={r.href} className="flex items-center gap-3">
@@ -259,7 +282,7 @@ export function StaffingTile({ title, rows, cta, tone = 'ivory', index = 0, clas
                   <span className={cn('block truncate text-[12px]', t.muted)}>{r.detail}</span>
                 </span>
                 {r.segments && (
-                  <span className="relative hidden h-2 w-24 shrink-0 overflow-hidden rounded-full bg-black/[0.05] sm:block" aria-hidden>
+                  <span className="cq-wide relative hidden h-2 w-24 shrink-0 overflow-hidden rounded-full bg-black/[0.05] sm:block" aria-hidden>
                     {r.segments.map((s, si) => (
                       <span
                         key={si}
@@ -299,7 +322,7 @@ export function MissionsTile({ title, rows, tone = 'white', index = 0, className
       {rows.length === 0 ? (
         <p className={cn('text-[13.5px]', t.muted)}>{emptyLabel}</p>
       ) : (
-        <ul className={cn('divide-y', tone === 'white' || tone === 'ivory' ? 'divide-black/[0.05]' : 'divide-white/10')}>
+        <ul className={cn('no-scrollbar min-h-0 flex-1 divide-y overflow-y-auto', tone === 'white' || tone === 'ivory' ? 'divide-black/[0.05]' : 'divide-white/10')}>
           {rows.map((m) => {
             const soon = m.daysLeft != null && m.daysLeft >= 0 && m.daysLeft < 30;
             return (
@@ -412,7 +435,7 @@ export function TopClientsTile({ title, rows, format, tone = 'white', index = 0,
       {rows.length === 0 ? (
         <p className={cn('text-[13.5px]', t.muted)}>{emptyLabel}</p>
       ) : (
-        <ul className="space-y-3">
+        <ul className="no-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto">
           {rows.map((c) => (
             <li key={c.id}>
               <MaybeLink href={c.href} className="block">
@@ -454,7 +477,7 @@ export function ActivityFeedTile({ title, rows, tone = 'white', index = 0, class
       {rows.length === 0 ? (
         <p className={cn('text-[13.5px]', t.muted)}>{emptyLabel}</p>
       ) : (
-        <ol className="relative space-y-3 pl-4">
+        <ol className="no-scrollbar relative min-h-0 flex-1 space-y-3 overflow-y-auto pl-4">
           <span className={cn('absolute bottom-1 left-[3px] top-1 w-px', t.line)} aria-hidden />
           {rows.map((r) => (
             <li key={r.id} className="relative">

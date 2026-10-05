@@ -2,21 +2,22 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, Circle, X, ArrowRight } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Circle, Rocket } from 'lucide-react';
 
 import { useOrganization } from '@/lib/auth/context';
 import { useSetupSteps } from '@/hooks/useSetupSteps';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { Progress } from '@/components/ui/progress';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
 const DISMISS_KEY = (org: string) => `centrium-setup-dismissed:${org}`;
 
 /**
- * Mise en route de l'organisation sur le dashboard : étapes RÉELLES
- * (identité, branding, équipe, consultants, clients). Se masque quand tout
- * est fait ou à la demande (mémorisé sur cet appareil).
+ * Mise en route de l'organisation (organisation, branding, équipe,
+ * consultants, premier client) : un bouton compact dans l'en-tête du
+ * dashboard, la liste des étapes RÉELLES s'ouvre au clic. Se masque quand
+ * tout est fait ou à la demande (mémorisé sur cet appareil).
  */
 export function SetupChecklist() {
   const { locale } = useLocale();
@@ -44,55 +45,50 @@ export function SetupChecklist() {
     setDismissed(true);
   }
 
+  const pct = Math.round((doneCount / total) * 100);
   return (
-    <section className="tile-surface relative mb-6 p-5">
-      <button
-        type="button"
-        onClick={dismiss}
-        aria-label={fr ? 'Masquer la mise en route' : 'Hide setup'}
-        className="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-      >
-        <X className="h-4 w-4" />
-      </button>
-      <div className="flex flex-col gap-1 pr-8 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="font-display text-[15px] font-semibold tracking-tight">
-            {fr ? 'Votre espace est presque prêt' : 'Your workspace is almost ready'}
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            {fr ? `${doneCount} étape${doneCount > 1 ? 's' : ''} sur ${total}` : `${doneCount} of ${total} steps`}
-          </p>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex h-9 items-center gap-2.5 rounded-xl bg-app-peach-light px-3 text-[12.5px] font-semibold text-app-terra-dark ring-1 ring-app-terra/15 transition-colors hover:bg-app-peach focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-terra/50"
+        >
+          <Rocket className="h-3.5 w-3.5" />
+          {fr ? 'Mise en route' : 'Setup'}
+          <span className="relative h-1.5 w-14 overflow-hidden rounded-full bg-white">
+            <span className="absolute inset-y-0 left-0 rounded-full bg-app-terra" style={{ width: `${pct}%` }} />
+          </span>
+          <span className="tabular-nums">
+            {doneCount}/{total}
+          </span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" sideOffset={8} className="w-[340px] rounded-2xl p-2">
+        <div className="px-2 pb-2 pt-1">
+          <div className="text-[13.5px] font-semibold">{fr ? 'Votre espace est presque prêt' : 'Your workspace is almost ready'}</div>
+          <div className="text-[12px] text-muted-foreground">{fr ? `${doneCount} étape${doneCount > 1 ? 's' : ''} sur ${total}` : `${doneCount} of ${total} steps`}</div>
         </div>
-      </div>
-      <Progress value={doneCount} max={total} className="mt-3" label={fr ? 'Progression' : 'Progress'} />
-      <ol className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-        {steps.map((s) => (
-          <li key={s.key}>
-            <Link
-              href={s.href}
-              className={cn(
-                'group flex h-full items-start gap-2.5 rounded-lg border p-3 transition-colors',
-                s.done ? 'border-border bg-muted/40' : 'border-border hover:border-sand-300 hover:bg-muted/40',
-              )}
-            >
-              {s.done ? (
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-              ) : (
-                <Circle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-              )}
-              <span className="min-w-0 flex-1">
-                <span className={cn('block text-[13px] font-medium', s.done && 'text-muted-foreground line-through')}>
-                  {s.label}
+        <ol className="space-y-0.5">
+          {steps.map((s) => (
+            <li key={s.key}>
+              <Link
+                href={s.href}
+                className={cn('group flex items-start gap-2.5 rounded-xl p-2.5 transition-colors', s.done ? 'opacity-60' : 'hover:bg-app-peach-light')}
+              >
+                {s.done ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" /> : <Circle className="mt-0.5 h-4 w-4 shrink-0 text-app-terra" />}
+                <span className="min-w-0 flex-1">
+                  <span className={cn('block text-[13px] font-medium', s.done && 'line-through')}>{s.label}</span>
+                  {!s.done && <span className="mt-0.5 block text-[12px] text-muted-foreground">{s.hint}</span>}
                 </span>
-                {!s.done && <span className="mt-0.5 block text-xs text-muted-foreground">{s.hint}</span>}
-              </span>
-              {!s.done && (
-                <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-              )}
-            </Link>
-          </li>
-        ))}
-      </ol>
-    </section>
+                {!s.done && <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />}
+              </Link>
+            </li>
+          ))}
+        </ol>
+        <button type="button" onClick={dismiss} className="mt-1 w-full rounded-lg px-2 py-1.5 text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground">
+          {fr ? 'Masquer la mise en route' : 'Hide setup'}
+        </button>
+      </PopoverContent>
+    </Popover>
   );
 }

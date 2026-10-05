@@ -2,6 +2,10 @@
 // Catalogue des widgets du tableau de bord — partagé navigateur / serveur.
 // Une disposition (par utilisateur, par organisation, par vue) est une
 // liste ordonnée de widgets, chacun visible ou masqué.
+//
+// Grille contrôlée (grand écran) : 12 colonnes × 6 rangées qui remplissent
+// exactement l'écran. Chaque widget a une empreinte fixe ; les dispositions
+// par défaut remplissent la grille sans trou (docs/CENTRIUM_UX_AUDIT.md).
 // =========================================================================
 
 import type { Permission } from '@/lib/auth/permissions';
@@ -15,6 +19,10 @@ export const WIDGET_IDS = [
   'occupancy',
   'pipeline-kpi',
   'ending',
+  'open-opps',
+  'bench',
+  'forecast',
+  'timesheets',
   'todo',
   'activity',
   'staffing',
@@ -25,16 +33,16 @@ export const WIDGET_IDS = [
 ] as const;
 export type WidgetId = (typeof WIDGET_IDS)[number];
 
-/** Largeur sur la grille de 12 colonnes (grand écran). */
-export type WidgetSize = 'sm' | 'md' | 'lg' | 'full';
+/** Empreinte sur la grille 12 × 6 (colonnes × rangées). */
+export type WidgetSpan = { cols: 3 | 4 | 6 | 9 | 12; rows: 1 | 2 | 3 };
 
 export type WidgetDef = {
   id: WidgetId;
   label: { fr: string; en: string };
   description: { fr: string; en: string };
-  size: WidgetSize;
-  /** Occupe deux rangées (les petits widgets se rangent à côté). */
-  tall?: boolean;
+  span: WidgetSpan;
+  /** Indicateur sur une rangée (tuile KPI compacte). */
+  kpi?: boolean;
   /** Le widget s'affiche si l'utilisateur a AU MOINS une de ces permissions. */
   anyOf?: Permission[];
   /** …et toutes celles-ci. */
@@ -42,83 +50,120 @@ export type WidgetDef = {
 };
 
 const REVENUE: Permission[] = ['finance.view', 'analytics.view'];
+const KPI: WidgetSpan = { cols: 3, rows: 1 };
 
 export const WIDGETS: Record<WidgetId, WidgetDef> = {
   revenue: {
     id: 'revenue',
     label: { fr: 'CA signé', en: 'Booked revenue' },
     description: { fr: 'Carnet de commandes des missions actives, et le CA validé des derniers mois.', en: 'Order book of active missions, and approved revenue of recent months.' },
-    size: 'sm',
+    span: KPI,
+    kpi: true,
     anyOf: REVENUE,
   },
   margin: {
     id: 'margin',
     label: { fr: 'Marge', en: 'Margin' },
     description: { fr: 'Marge moyenne des missions actives dont le coût est connu.', en: 'Average margin of active missions with a known cost.' },
-    size: 'sm',
+    span: KPI,
+    kpi: true,
     allOf: ['consultants.financials'],
   },
   occupancy: {
     id: 'occupancy',
     label: { fr: 'Taux d’occupation', en: 'Utilisation' },
     description: { fr: 'Consultants en mission sur l’effectif disponible.', en: 'Consultants on assignment over available headcount.' },
-    size: 'sm',
+    span: KPI,
+    kpi: true,
     anyOf: ['staffing.view', 'consultants.view'],
   },
   'pipeline-kpi': {
     id: 'pipeline-kpi',
-    label: { fr: 'Pipeline pondéré', en: 'Weighted pipeline' },
-    description: { fr: 'Montant des opportunités ouvertes × probabilité.', en: 'Open opportunities × probability.' },
-    size: 'sm',
+    label: { fr: 'Pipeline', en: 'Pipeline' },
+    description: { fr: 'Montant des opportunités ouvertes, pondéré par leur probabilité.', en: 'Open opportunities, weighted by probability.' },
+    span: KPI,
+    kpi: true,
     anyOf: ['opportunities.view'],
   },
   ending: {
     id: 'ending',
     label: { fr: 'Fins de mission', en: 'Missions ending' },
     description: { fr: 'Missions actives qui se terminent sous 15, 30, 60 et 90 jours.', en: 'Active missions ending within 15, 30, 60 and 90 days.' },
-    size: 'sm',
+    span: KPI,
+    kpi: true,
     anyOf: ['missions.view'],
+  },
+  'open-opps': {
+    id: 'open-opps',
+    label: { fr: 'Opportunités ouvertes', en: 'Open opportunities' },
+    description: { fr: 'Besoins clients en cours dans le CRM.', en: 'Client needs in progress in the CRM.' },
+    span: KPI,
+    kpi: true,
+    anyOf: ['opportunities.view'],
+  },
+  bench: {
+    id: 'bench',
+    label: { fr: 'Intercontrat', en: 'On bench' },
+    description: { fr: 'Consultants actifs sans mission en cours.', en: 'Active consultants without a current assignment.' },
+    span: KPI,
+    kpi: true,
+    anyOf: ['staffing.view', 'consultants.view'],
+  },
+  forecast: {
+    id: 'forecast',
+    label: { fr: 'CA prévisionnel', en: 'Forecast revenue' },
+    description: { fr: 'CA attendu ce mois-ci et le mois prochain, d’après les missions.', en: 'Revenue expected this month and next, from missions.' },
+    span: KPI,
+    kpi: true,
+    anyOf: REVENUE,
+  },
+  timesheets: {
+    id: 'timesheets',
+    label: { fr: 'CRA à valider', en: 'Timesheets to approve' },
+    description: { fr: 'Comptes rendus soumis qui attendent une validation.', en: 'Submitted timesheets waiting for approval.' },
+    span: KPI,
+    kpi: true,
+    anyOf: ['timesheets.view'],
   },
   todo: {
     id: 'todo',
     label: { fr: 'À traiter', en: 'To handle' },
     description: { fr: 'Ce qui demande une action aujourd’hui.', en: 'What needs action today.' },
-    size: 'sm',
+    span: { cols: 3, rows: 3 },
   },
   activity: {
     id: 'activity',
     label: { fr: 'Activité & marge', en: 'Activity & margin' },
     description: { fr: 'CA validé, marge et prévision sur 3, 6 ou 12 mois.', en: 'Approved revenue, margin and forecast over 3, 6 or 12 months.' },
-    size: 'lg',
-    tall: true,
+    span: { cols: 6, rows: 3 },
     anyOf: REVENUE,
   },
   staffing: {
     id: 'staffing',
     label: { fr: 'Staffing', en: 'Staffing' },
     description: { fr: 'Qui est en mission, qui se libère, qui est disponible.', en: 'Who is staffed, who frees up, who is available.' },
-    size: 'sm',
+    span: { cols: 3, rows: 3 },
     anyOf: ['staffing.view'],
   },
   missions: {
     id: 'missions',
-    label: { fr: 'Missions', en: 'Missions' },
+    label: { fr: 'Missions à échéance', en: 'Missions ending' },
     description: { fr: 'Missions actives, avancement, échéance et marge.', en: 'Active missions, progress, end date and margin.' },
-    size: 'sm',
+    span: { cols: 6, rows: 2 },
     anyOf: ['missions.view'],
   },
   pipeline: {
     id: 'pipeline',
-    label: { fr: 'Pipeline', en: 'Pipeline' },
+    label: { fr: 'Pipeline par étape', en: 'Pipeline by stage' },
     description: { fr: 'Opportunités ouvertes par étape.', en: 'Open opportunities by stage.' },
-    size: 'md',
+    span: { cols: 6, rows: 3 },
     anyOf: ['opportunities.view'],
   },
   clients: {
     id: 'clients',
     label: { fr: 'Top clients', en: 'Top clients' },
     description: { fr: 'Clients qui pèsent le plus dans le CA validé (12 mois).', en: 'Clients weighing most in approved revenue (12 months).' },
-    size: 'md',
+    span: { cols: 6, rows: 2 },
     allOf: ['clients.view'],
     anyOf: REVENUE,
   },
@@ -126,69 +171,75 @@ export const WIDGETS: Record<WidgetId, WidgetDef> = {
     id: 'feed',
     label: { fr: 'Activité récente', en: 'Recent activity' },
     description: { fr: 'Opportunités gagnées, missions créées, CRA validés, demandes clients.', en: 'Won opportunities, new missions, approved timesheets, client requests.' },
-    size: 'full',
+    span: { cols: 3, rows: 3 },
   },
 };
 
+/** Empreintes propres à une vue (le widget principal y prend plus de place). */
+export const VIEW_SPANS: Partial<Record<DashboardView, Partial<Record<WidgetId, WidgetSpan>>>> = {
+  staffing: { staffing: { cols: 6, rows: 3 }, missions: { cols: 12, rows: 2 } },
+  finance: { activity: { cols: 9, rows: 3 } },
+};
+
+export function widgetSpan(view: DashboardView, id: WidgetId): WidgetSpan {
+  return VIEW_SPANS[view]?.[id] ?? WIDGETS[id].span;
+}
+
 export type LayoutItem = { id: WidgetId; hidden?: boolean };
 
-/** Dispositions par défaut de chaque vue (ordre de lecture). */
+const hidden = (...ids: WidgetId[]): LayoutItem[] => ids.map((id) => ({ id, hidden: true }));
+
+/**
+ * Dispositions par défaut (ordre de lecture). Chacune remplit la grille
+ * 12 × 6 : quatre indicateurs, une bande principale de trois rangées, une
+ * bande basse de deux rangées.
+ */
 export const DEFAULT_LAYOUTS: Record<DashboardView, LayoutItem[]> = {
   direction: [
     { id: 'revenue' },
     { id: 'margin' },
-    { id: 'todo' },
+    { id: 'occupancy' },
+    { id: 'pipeline-kpi' },
     { id: 'activity' },
+    { id: 'todo' },
     { id: 'staffing' },
     { id: 'missions' },
-    { id: 'pipeline' },
     { id: 'clients' },
-    { id: 'feed' },
-    { id: 'occupancy', hidden: true },
-    { id: 'pipeline-kpi', hidden: true },
-    { id: 'ending', hidden: true },
+    ...hidden('ending', 'open-opps', 'bench', 'forecast', 'timesheets', 'pipeline', 'feed'),
   ],
   commercial: [
     { id: 'pipeline-kpi' },
+    { id: 'open-opps' },
     { id: 'revenue' },
-    { id: 'todo' },
+    { id: 'ending' },
     { id: 'pipeline' },
-    { id: 'clients' },
+    { id: 'todo' },
     { id: 'feed' },
-    { id: 'margin', hidden: true },
-    { id: 'occupancy', hidden: true },
-    { id: 'ending', hidden: true },
-    { id: 'activity', hidden: true },
-    { id: 'staffing', hidden: true },
-    { id: 'missions', hidden: true },
+    { id: 'clients' },
+    { id: 'missions' },
+    ...hidden('margin', 'occupancy', 'bench', 'forecast', 'timesheets', 'activity', 'staffing'),
   ],
   staffing: [
     { id: 'occupancy' },
+    { id: 'bench' },
     { id: 'ending' },
-    { id: 'todo' },
+    { id: 'open-opps' },
     { id: 'staffing' },
-    { id: 'missions' },
+    { id: 'todo' },
     { id: 'feed' },
-    { id: 'revenue', hidden: true },
-    { id: 'margin', hidden: true },
-    { id: 'pipeline-kpi', hidden: true },
-    { id: 'activity', hidden: true },
-    { id: 'pipeline', hidden: true },
-    { id: 'clients', hidden: true },
+    { id: 'missions' },
+    ...hidden('revenue', 'margin', 'pipeline-kpi', 'forecast', 'timesheets', 'activity', 'pipeline', 'clients'),
   ],
   finance: [
     { id: 'revenue' },
+    { id: 'forecast' },
     { id: 'margin' },
-    { id: 'todo' },
+    { id: 'timesheets' },
     { id: 'activity' },
+    { id: 'todo' },
     { id: 'clients' },
     { id: 'missions' },
-    { id: 'feed' },
-    { id: 'occupancy', hidden: true },
-    { id: 'pipeline-kpi', hidden: true },
-    { id: 'ending', hidden: true },
-    { id: 'staffing', hidden: true },
-    { id: 'pipeline', hidden: true },
+    ...hidden('occupancy', 'pipeline-kpi', 'ending', 'open-opps', 'bench', 'staffing', 'pipeline', 'feed'),
   ],
 };
 

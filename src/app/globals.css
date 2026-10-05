@@ -217,6 +217,17 @@ section[id] {
       0 14px 34px -20px rgba(25, 22, 20, 0.28);
   }
 
+  /* Tuiles étroites : les éléments secondaires disparaissent (requête de
+     conteneur, sans dépendre de la largeur de l'écran). */
+  .cq {
+    container-type: inline-size;
+  }
+  @container (max-width: 360px) {
+    .cq-wide {
+      display: none !important;
+    }
+  }
+
   /* Tableau de bord agrandi sur grand écran, jusqu'à +30 % : `zoom` agrandit
      textes, tuiles et graphiques ensemble au lieu d'étirer la grille.
      Paliers calculés pour 1 480 px de contenu + sidebar dépliée + marges. */

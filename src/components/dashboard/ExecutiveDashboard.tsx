@@ -36,8 +36,9 @@ import {
   type DashboardView,
   type LayoutItem,
   type WidgetId,
-  type WidgetSize,
+  widgetSpan,
 } from '@/lib/dashboard/widgets';
+import { SetupChecklist } from '@/components/dashboard/SetupChecklist';
 import type { ExecutiveDashboard as Exec } from '@/lib/dashboard/types';
 import type { ActionKind } from '@/lib/pilotage/load-dashboard';
 import { cn } from '@/lib/utils';
@@ -59,12 +60,17 @@ const VIEW_ACTIONS: Record<DashboardView, ActionKind[] | null> = {
   finance: ['timesheets_pending', 'prefacture_pending', 'quote_expiring'],
 };
 
-const SPAN: Record<WidgetSize, string> = {
-  sm: 'md:col-span-1 xl:col-span-4',
-  md: 'md:col-span-2 xl:col-span-6',
-  lg: 'md:col-span-2 xl:col-span-8',
-  full: 'md:col-span-2 xl:col-span-12',
-};
+// Grille contrôlée (grand écran) : 12 colonnes × 6 rangées qui remplissent
+// l'espace de travail. Classes statiques pour Tailwind.
+const COLS: Record<number, string> = { 3: 'xl:col-span-3', 4: 'xl:col-span-4', 6: 'xl:col-span-6', 9: 'xl:col-span-9', 12: 'xl:col-span-12' };
+const ROWS: Record<number, string> = { 1: 'xl:row-span-1', 2: 'xl:row-span-2', 3: 'xl:row-span-3' };
+const GRID = 'grid grid-cols-2 gap-3 xl:min-h-0 xl:flex-1 xl:grid-cols-12 xl:grid-rows-[repeat(6,minmax(84px,1fr))] [grid-auto-flow:dense]';
+
+function cellClass(view: DashboardView, id: WidgetId) {
+  const span = widgetSpan(view, id);
+  // Sous 1280 px : deux colonnes à hauteur naturelle (indicateurs côte à côte).
+  return cn(WIDGETS[id].kpi ? 'col-span-1 min-h-[112px]' : 'col-span-2 min-h-[300px]', 'xl:min-h-0', COLS[span.cols], ROWS[span.rows]);
+}
 
 const VIEW_KEY = 'centrium-dashboard-view:';
 
@@ -259,10 +265,38 @@ export function ExecutiveDashboard() {
       }
       case 'pipeline-kpi':
         return {
-          label: fr ? 'Pipeline pondéré' : 'Weighted pipeline',
+          label: fr ? 'Pipeline' : 'Pipeline',
           value: formatEurCompact(k.weightedPipeline, lang),
-          foot: fr ? `${k.openOpportunities} opportunité${k.openOpportunities > 1 ? 's' : ''} ouverte${k.openOpportunities > 1 ? 's' : ''}` : `${k.openOpportunities} open opportunities`,
+          foot: fr ? `Pondéré · ${k.openOpportunities} opportunité${k.openOpportunities > 1 ? 's' : ''} ouverte${k.openOpportunities > 1 ? 's' : ''}` : `Weighted · ${k.openOpportunities} open opportunities`,
           href: '/crm',
+        };
+      case 'open-opps':
+        return {
+          label: fr ? 'Opportunités ouvertes' : 'Open opportunities',
+          value: String(k.openOpportunities),
+          foot: fr ? `${formatEurCompact(k.weightedPipeline, lang)} de pipeline pondéré` : `${formatEurCompact(k.weightedPipeline, lang)} weighted pipeline`,
+          href: '/crm',
+        };
+      case 'bench':
+        return {
+          label: fr ? 'Intercontrat' : 'On bench',
+          value: String(k.bench),
+          foot: fr ? `sur ${k.capacity} consultant${k.capacity > 1 ? 's' : ''} disponibles à staffer` : `of ${k.capacity} staffable consultants`,
+          href: '/staffing',
+        };
+      case 'forecast':
+        return {
+          label: fr ? 'CA prévisionnel du mois' : 'Forecast this month',
+          value: formatEurCompact(k.forecastMonth, lang),
+          foot: fr ? `Mois prochain : ${formatEurCompact(k.forecastNextMonth, lang)}` : `Next month: ${formatEurCompact(k.forecastNextMonth, lang)}`,
+          href: '/finance',
+        };
+      case 'timesheets':
+        return {
+          label: fr ? 'CRA à valider' : 'Timesheets to approve',
+          value: String(k.pendingTimesheets),
+          foot: k.pendingTimesheets ? (fr ? 'En attente de votre validation' : 'Waiting for your approval') : fr ? 'Tout est validé' : 'All approved',
+          href: '/timesheets?status=submitted',
         };
       case 'ending': {
         const b = data.summary.endingBuckets;
@@ -278,18 +312,24 @@ export function ExecutiveDashboard() {
     }
   }
 
-  const TONE: Partial<Record<WidgetId, 'white' | 'terra' | 'ivory' | 'soft' | 'peach' | 'deep'>> = {
+  // Rythme de couleurs : CA blanc, marge terracotta, staffing ivoire,
+  // pipeline terracotta clair, alertes pêche, objectif charbon.
+  const TONE: Partial<Record<WidgetId, 'white' | 'terra' | 'ivory' | 'soft' | 'peach' | 'deep' | 'ink'>> = {
     revenue: 'white',
     margin: 'terra',
     occupancy: 'ivory',
     'pipeline-kpi': 'soft',
     ending: 'deep',
+    'open-opps': 'ink',
+    bench: 'peach',
+    forecast: 'ivory',
+    timesheets: 'peach',
   };
 
   function renderWidget(id: WidgetId, index: number): React.ReactNode {
     if (!data) return null;
     const kd = kpi(id);
-    if (kd) return <KpiTile data={kd} tone={TONE[id] ?? 'white'} index={index} className="h-full" />;
+    if (kd) return <KpiTile compact data={kd} tone={TONE[id] ?? 'white'} index={index} className="h-full" />;
     switch (id) {
       case 'todo': {
         const kinds = VIEW_ACTIONS[view];
@@ -319,7 +359,7 @@ export function ExecutiveDashboard() {
             format={eur}
             labels={{ revenue: fr ? 'CA validé' : 'Approved revenue', margin: fr ? 'Marge' : 'Margin', forecast: fr ? 'Prévision' : 'Forecast' }}
             index={index}
-            height={260}
+            height={140}
             fill
             className="h-full"
             summary={
@@ -405,16 +445,24 @@ export function ExecutiveDashboard() {
   }
 
   const today = new Date();
+  const hour = today.getHours();
+  const hello = fr ? (hour < 18 ? 'Bonjour' : 'Bonsoir') : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const nothingYet =
     !!k && k.activeConsultants === 0 && k.openOpportunities === 0 && (data?.series ?? []).every((p) => !p.forecast && !p.realized);
 
   return (
-    <div className="mx-auto w-full max-w-[1480px]">
-      {/* Barre de vue : Direction / Commercial / Staffing / Finance */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+    <div className="flex min-h-full w-full flex-col xl:h-full">
+      {/* En-tête compact : bonjour, date, vues, personnalisation */}
+      <div className="mb-3 flex shrink-0 flex-wrap items-center gap-x-5 gap-y-2">
+        <div className="min-w-0">
+          <h1 className="font-display text-[22px] font-semibold leading-tight tracking-[-0.025em]">
+            {hello}
+            {user?.firstName ? ` ${user.firstName}` : ''}
+          </h1>
+          <p className="text-[12.5px] capitalize text-muted-foreground">{formatDate(today.toISOString().slice(0, 10), lang, 'long')}</p>
+        </div>
         <div className="min-w-0 max-w-full">
-          <p className="text-[13px] text-muted-foreground">{formatDate(today.toISOString().slice(0, 10), lang, 'long')}</p>
-          <div role="tablist" aria-label={fr ? 'Vue du tableau de bord' : 'Dashboard view'} className="no-scrollbar mt-2 inline-flex max-w-full overflow-x-auto rounded-xl bg-black/[0.04] p-1">
+          <div role="tablist" aria-label={fr ? 'Vue du tableau de bord' : 'Dashboard view'} className="no-scrollbar inline-flex max-w-full overflow-x-auto rounded-xl bg-black/[0.04] p-1">
             {DASHBOARD_VIEWS.map((v) => (
               <button
                 key={v}
@@ -432,7 +480,8 @@ export function ExecutiveDashboard() {
             ))}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {!editing && <SetupChecklist />}
           {editing ? (
             <>
               <Button variant="secondary" size="sm" onClick={() => setAdding(true)} disabled={addable.length === 0}>
@@ -485,8 +534,8 @@ export function ExecutiveDashboard() {
       ) : (
         <>
           {nothingYet && (
-            <Tile tone="ivory" className="mb-4">
-              <p className="text-[15px] font-semibold">{fr ? 'Votre cockpit se remplira avec vos données.' : 'Your cockpit fills up with your data.'}</p>
+            <Tile tone="ivory" className="mb-3 shrink-0 py-3.5">
+              <p className="text-[14px] font-semibold">{fr ? 'Votre cockpit se remplira avec vos données.' : 'Your cockpit fills up with your data.'}</p>
               <p className="mt-1 text-[13.5px] text-muted-foreground">
                 {fr
                   ? 'Ajoutez vos consultants, vos clients et vos premières opportunités : chaque indicateur est calculé à partir de ce que vous saisissez.'
@@ -494,13 +543,13 @@ export function ExecutiveDashboard() {
               </p>
             </Tile>
           )}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12 [grid-auto-flow:dense]">
+          <div className={GRID}>
             {visible.map((item, i) => {
               const node = renderWidget(item.id, i);
               if (!node) return null;
               const def = WIDGETS[item.id];
               return (
-                <div key={item.id} className={cn('relative min-w-0', SPAN[def.size], def.tall && 'xl:row-span-2', editing && 'rounded-card outline-dashed outline-2 outline-offset-4 outline-terra/40')}>
+                <div key={item.id} className={cn('relative flex min-w-0 flex-col [&>*]:min-h-0 [&>*]:flex-1', cellClass(view, item.id), editing && 'rounded-[22px] outline-dashed outline-2 outline-offset-2 outline-terra/40')}>
                   {node}
                   {editing && (
                     <div className="absolute -top-4 right-4 z-10 flex items-center gap-1 rounded-xl bg-white p-1 shadow-md ring-1 ring-black/[0.06]">
@@ -568,15 +617,12 @@ export function ExecutiveDashboard() {
 function DashboardSkeleton({ view }: { view: DashboardView }) {
   const items = DEFAULT_LAYOUTS[view].filter((i) => !i.hidden);
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12 [grid-auto-flow:dense]" aria-busy="true">
-      {items.map((item) => {
-        const def = WIDGETS[item.id];
-        return (
-          <div key={item.id} className={cn(SPAN[def.size], def.tall && 'xl:row-span-2')}>
-            <Skeleton className={cn('w-full rounded-card', def.tall ? 'h-[420px]' : def.size === 'full' ? 'h-48' : 'h-[200px]')} />
-          </div>
-        );
-      })}
+    <div className={GRID} aria-busy="true">
+      {items.map((item) => (
+        <div key={item.id} className={cn('flex', cellClass(view, item.id))}>
+          <Skeleton className="h-full min-h-[inherit] w-full rounded-[22px]" />
+        </div>
+      ))}
     </div>
   );
 }
