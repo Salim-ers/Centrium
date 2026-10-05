@@ -7,6 +7,7 @@ import { Archive, ArchiveRestore, Briefcase, DoorOpen, Eye, FileText, FileUp, Pl
 
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader } from '@/components/app';
+import { SavedViews } from '@/components/app/SavedViews';
 import { StatStrip } from '@/components/app/StatStrip';
 import { ConsultantQuickView } from '@/components/consultants/ConsultantQuickView';
 import { Drawer, DrawerBody, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
@@ -35,6 +36,8 @@ import { RelatedLinks } from '@/components/app/RelatedLinks';
 import { cn } from '@/lib/utils';
 
 type Scope = 'staff' | 'pool' | 'positioned' | 'archived';
+const SCOPES: Scope[] = ['staff', 'pool', 'positioned', 'archived'];
+const DEFAULT_FILTERS = { scope: 'staff', query: '', skill: '', status: 'all', availability: 'any', owner: 'all' };
 
 export default function ConsultantsPage() {
   const params = useSearchParams();
@@ -338,11 +341,26 @@ export default function ConsultantsPage() {
           <option value="30">{fr ? 'Sous 30 jours' : 'Within 30 days'}</option>
           <option value="60">{fr ? 'Sous 60 jours' : 'Within 60 days'}</option>
         </Select>
-        <Button variant="secondary" onClick={() => setFiltersOpen(true)} className="sm:ml-auto">
-          <SlidersHorizontal />
-          {fr ? 'Plus de filtres' : 'More filters'}
-          {advancedCount > 0 && <span className="num rounded-full bg-app-terra px-1.5 text-[11px] font-semibold text-white">{advancedCount}</span>}
-        </Button>
+        <div className="flex gap-2 sm:ml-auto">
+          <SavedViews
+            page="consultants"
+            current={{ scope, query, skill, status, availability, owner }}
+            defaults={DEFAULT_FILTERS}
+            onApply={(f) => {
+              setScope(SCOPES.includes(f.scope as Scope) ? (f.scope as Scope) : 'staff');
+              setQuery(f.query ?? '');
+              setSkill(f.skill ?? '');
+              setStatus(f.status || 'all');
+              setAvailability(f.availability || 'any');
+              setOwner(f.owner || 'all');
+            }}
+          />
+          <Button variant="secondary" onClick={() => setFiltersOpen(true)}>
+            <SlidersHorizontal />
+            {fr ? 'Plus de filtres' : 'More filters'}
+            {advancedCount > 0 && <span className="num rounded-full bg-app-terra px-1.5 text-[11px] font-semibold text-white">{advancedCount}</span>}
+          </Button>
+        </div>
       </div>
 
       {selected.size > 0 && canEdit && (

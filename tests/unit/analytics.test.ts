@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   benchGaps,
+  capacityForecast,
   futureAvailability,
   lostReasons,
   missionEndingsByMonth,
@@ -163,5 +164,38 @@ describe('analytics V2', () => {
       notRenewed: 1,
       rate: (2 / 3) * 100,
     });
+  });
+});
+
+describe('capacityForecast', () => {
+  const today = new Date(2026, 9, 5); // 5 octobre 2026
+  const consultant = (id: string, extra: Record<string, unknown> = {}) => ({ id, status: 'on_mission', first_name: id.toUpperCase(), last_name: 'X', ...extra });
+  const mission = (consultant_id: string, start: string, end: string | null, extra: Record<string, unknown> = {}) => ({ consultant_id, status: 'active', start_date: start, end_date: end, ...extra });
+
+  it('should forecast occupancy, endings and bench risk per horizon', () => {
+    // Arrange
+    const consultants = [consultant('a'), consultant('b'), consultant('c'), consultant('d', { status: 'available' }), consultant('e', { status: 'unavailable' })];
+    const missions = [
+      mission('a', '2026-01-01', '2026-10-20'), // fin sous 30 j, sans suite → risque
+      mission('b', '2026-01-01', '2026-10-25', { renewal_status: 'confirmed' }), // renouvellement confirmé
+      mission('c', '2026-01-01', '2026-10-31'), // fin sous 30 j…
+      mission('c', '2026-11-02', '2027-06-30'), // …mais suite déjà signée
+      mission('d', '2026-11-16', null), // démarre dans 42 jours
+    ];
+
+    // Act
+    const [d30, d60] = capacityForecast(consultants, missions, today);
+
+    // Assert
+    // Au 4 novembre, la suite de c (démarrée le 2) est en cours.
+    expect(d30).toMatchObject({ days: 30, capacity: 4, staffed: 1, available: 3, endings: 3, risk: 1, riskNames: ['A X'] });
+    expect(d30!.occupancy).toBe(25);
+    expect(d60).toMatchObject({ days: 60, staffed: 2, available: 2, endings: 3, risk: 1 });
+    expect(d60!.occupancy).toBe(50);
+  });
+
+  it('should ignore proposed missions', () => {
+    const [d30] = capacityForecast([consultant('a', { status: 'available' })], [mission('a', '2026-10-10', null, { status: 'proposed' })], today, [30]);
+    expect(d30).toMatchObject({ staffed: 0, available: 1 });
   });
 });

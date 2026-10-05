@@ -21,6 +21,7 @@ export const WIDGET_IDS = [
   'ending',
   'open-opps',
   'bench',
+  'bench-detail',
   'forecast',
   'timesheets',
   'todo',
@@ -76,6 +77,16 @@ export const WIDGETS: Record<WidgetId, WidgetDef> = {
     span: KPI,
     kpi: true,
     anyOf: ['staffing.view', 'consultants.view'],
+  },
+  'bench-detail': {
+    id: 'bench-detail',
+    label: { fr: 'Intercontrat en détail', en: 'Bench in detail' },
+    description: {
+      fr: 'Depuis quand, coût estimé quand le CJM est connu, profils concernés et opportunités compatibles.',
+      en: 'For how long, estimated cost when the daily cost is known, profiles and compatible opportunities.',
+    },
+    span: { cols: 3, rows: 3 },
+    anyOf: ['staffing.view'],
   },
   'pipeline-kpi': {
     id: 'pipeline-kpi',
@@ -205,7 +216,7 @@ export const DEFAULT_LAYOUTS: Record<DashboardView, LayoutItem[]> = {
     { id: 'staffing' },
     { id: 'missions' },
     { id: 'clients' },
-    ...hidden('ending', 'open-opps', 'bench', 'forecast', 'timesheets', 'pipeline', 'feed'),
+    ...hidden('ending', 'open-opps', 'bench', 'bench-detail', 'forecast', 'timesheets', 'pipeline', 'feed'),
   ],
   commercial: [
     { id: 'pipeline-kpi' },
@@ -217,7 +228,7 @@ export const DEFAULT_LAYOUTS: Record<DashboardView, LayoutItem[]> = {
     { id: 'feed' },
     { id: 'clients' },
     { id: 'missions' },
-    ...hidden('margin', 'occupancy', 'bench', 'forecast', 'timesheets', 'activity', 'staffing'),
+    ...hidden('margin', 'occupancy', 'bench', 'bench-detail', 'forecast', 'timesheets', 'activity', 'staffing'),
   ],
   staffing: [
     { id: 'occupancy' },
@@ -226,9 +237,9 @@ export const DEFAULT_LAYOUTS: Record<DashboardView, LayoutItem[]> = {
     { id: 'open-opps' },
     { id: 'staffing' },
     { id: 'todo' },
-    { id: 'feed' },
+    { id: 'bench-detail' },
     { id: 'missions' },
-    ...hidden('revenue', 'margin', 'pipeline-kpi', 'forecast', 'timesheets', 'activity', 'pipeline', 'clients'),
+    ...hidden('revenue', 'margin', 'pipeline-kpi', 'forecast', 'timesheets', 'activity', 'pipeline', 'clients', 'feed'),
   ],
   finance: [
     { id: 'revenue' },
@@ -239,7 +250,7 @@ export const DEFAULT_LAYOUTS: Record<DashboardView, LayoutItem[]> = {
     { id: 'todo' },
     { id: 'clients' },
     { id: 'missions' },
-    ...hidden('occupancy', 'pipeline-kpi', 'ending', 'open-opps', 'bench', 'staffing', 'pipeline', 'feed'),
+    ...hidden('occupancy', 'pipeline-kpi', 'ending', 'open-opps', 'bench', 'bench-detail', 'staffing', 'pipeline', 'feed'),
   ],
 };
 

@@ -5,11 +5,13 @@
 // - guillemets doubles avec escaping ""
 // - lignes multilignes dans un champ entre guillemets
 
+import { skillCategoryFor } from '@/lib/cv/parse-cv';
+
 export type CsvRow = Record<string, string>;
 
-export function parseCsv(text: string): { headers: string[]; rows: CsvRow[] } {
+export function parseCsv(text: string): { headers: string[]; labels: string[]; rows: CsvRow[] } {
   const stripped = text.replace(/^﻿/, '').replace(/\r\n?/g, '\n');
-  if (!stripped.trim()) return { headers: [], rows: [] };
+  if (!stripped.trim()) return { headers: [], labels: [], rows: [] };
 
   // Détection du séparateur sur la 1ère ligne
   const firstLine = stripped.split('\n', 1)[0];
@@ -62,7 +64,8 @@ export function parseCsv(text: string): { headers: string[]; rows: CsvRow[] } {
     records.push(row);
   }
 
-  if (records.length === 0) return { headers: [], rows: [] };
+  if (records.length === 0) return { headers: [], labels: [], rows: [] };
+  const labels = records[0].map((h) => h.trim());
   const headers = records[0].map((h) => normalizeHeader(h));
   const rows: CsvRow[] = [];
   for (let i = 1; i < records.length; i++) {
@@ -74,7 +77,7 @@ export function parseCsv(text: string): { headers: string[]; rows: CsvRow[] } {
     }
     rows.push(obj);
   }
-  return { headers, rows };
+  return { headers, labels, rows };
 }
 
 function normalizeHeader(h: string): string {
@@ -132,10 +135,18 @@ const HEADER_ALIASES: Record<string, string> = {
   mobility: 'mobility',
   statut: 'status',
   status: 'status',
+  disponibilite: 'status',
   resume: 'summary',
   summary: 'summary',
   contract_type: 'contract_type',
   type_contrat: 'contract_type',
+  competences: 'skills',
+  competence: 'skills',
+  skills: 'skills',
+  skill: 'skills',
+  stack: 'skills',
+  technologies: 'skills',
+  technos: 'skills',
 };
 
 const SENIORITY_FR: Record<string, string> = {
@@ -182,12 +193,62 @@ export type ConsultantImportRow = {
   summary: string | null;
 };
 
+export type ImportSkill = { category: string; name: string };
+
 export type ImportRowDraft = {
   index: number;
   raw: CsvRow;
   parsed: ConsultantImportRow | null;
   errors: string[];
+  /** Compétences lues dans la colonne « compétences » (séparées par , ; |). */
+  skills: ImportSkill[];
 };
+
+/** Champs proposés dans l'écran de correspondance ; les autres restent reconnus par leur en-tête. */
+export const MAPPED_FIELDS = ['first_name', 'last_name', 'email', 'job_title', 'seniority', 'years_experience', 'skills', 'daily_rate_eur', 'status', 'city'] as const;
+export type MappedField = (typeof MAPPED_FIELDS)[number];
+export type ColumnMapping = Record<MappedField, string | null>;
+
+const targetOf = (header: string): string => HEADER_ALIASES[header] ?? header;
+
+/** Correspondance proposée d'après les en-têtes (normalisés) du fichier. */
+export function detectMapping(headers: string[]): ColumnMapping {
+  const mapping = Object.fromEntries(MAPPED_FIELDS.map((f) => [f, null])) as ColumnMapping;
+  for (const h of headers) {
+    const target = targetOf(h);
+    if ((MAPPED_FIELDS as readonly string[]).includes(target) && mapping[target as MappedField] == null) mapping[target as MappedField] = h;
+  }
+  return mapping;
+}
+
+/**
+ * Applique la correspondance choisie : chaque champ prend la colonne
+ * indiquée (vide si ignoré), sans que la détection automatique ne la
+ * contredise. Les autres colonnes passent telles quelles.
+ */
+export function applyMapping(rows: CsvRow[], mapping: ColumnMapping): CsvRow[] {
+  const managed = new Set<string>(MAPPED_FIELDS);
+  return rows.map((raw) => {
+    const out: CsvRow = {};
+    for (const [k, v] of Object.entries(raw)) if (!managed.has(targetOf(k))) out[k] = v;
+    for (const f of MAPPED_FIELDS) out[f] = mapping[f] ? (raw[mapping[f]!] ?? '') : '';
+    return out;
+  });
+}
+
+/** « React, TypeScript ; AWS | SQL » → compétences dédoublonnées (30 au plus). */
+export function parseSkillList(value: string): ImportSkill[] {
+  const seen = new Set<string>();
+  const out: ImportSkill[] = [];
+  for (const part of value.split(/[,;|•\n]/)) {
+    const name = part.trim().replace(/\s+/g, ' ');
+    if (name.length < 2 || name.length > 60 || seen.has(name.toLowerCase())) continue;
+    seen.add(name.toLowerCase());
+    out.push({ category: skillCategoryFor(name), name });
+    if (out.length >= 30) break;
+  }
+  return out;
+}
 
 export function csvRowsToConsultants(rows: CsvRow[]): ImportRowDraft[] {
   return rows.map((raw, i) => {
@@ -243,8 +304,9 @@ export function csvRowsToConsultants(rows: CsvRow[]): ImportRowDraft[] {
       errors.push('email invalide');
     }
 
+    const skills = parseSkillList(get('skills'));
     if (errors.length > 0) {
-      return { index: i, raw, parsed: null, errors };
+      return { index: i, raw, parsed: null, errors, skills };
     }
 
     const parsed: ConsultantImportRow = {
@@ -265,6 +327,6 @@ export function csvRowsToConsultants(rows: CsvRow[]): ImportRowDraft[] {
       status,
       summary: get('summary').trim() || null,
     };
-    return { index: i, raw, parsed, errors: [] };
+    return { index: i, raw, parsed, errors: [], skills };
   });
 }

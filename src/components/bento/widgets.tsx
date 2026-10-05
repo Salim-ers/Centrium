@@ -302,6 +302,84 @@ export function StaffingTile({ title, rows, cta, tone = 'ivory', index = 0, clas
   );
 }
 
+// ── Intercontrat ───────────────────────────────────────────────────────
+export type BenchRow = { id: string; name: string; initials: string; title: string | null; days: string | null; matches: number; href?: string };
+
+export function BenchTile({
+  title,
+  stats,
+  rows,
+  footer,
+  cta,
+  matchesLabel,
+  tone = 'white',
+  index = 0,
+  className,
+  emptyLabel,
+}: {
+  title: string;
+  stats: Array<{ value: string; label: string }>;
+  rows: BenchRow[];
+  footer?: { label: string; href: string } | null;
+  cta?: { label: string; href: string };
+  matchesLabel: (n: number) => string;
+  tone?: TileTone;
+  index?: number;
+  className?: string;
+  emptyLabel: string;
+}) {
+  const t = TONE_CLASSES[tone];
+  return (
+    <Tile tone={tone} index={index} className={className}>
+      <TileHeader
+        tone={tone}
+        title={title}
+        action={
+          cta ? (
+            <Link href={cta.href} className="inline-flex items-center gap-1 text-[12.5px] font-medium text-terra-deep hover:underline">
+              {cta.label}
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          ) : undefined
+        }
+      />
+      <dl className="mb-3 flex flex-wrap gap-x-5 gap-y-1">
+        {stats.map((s) => (
+          <div key={s.label} className="min-w-0">
+            <dd className={cn('text-[20px] font-semibold leading-tight tabular-nums', t.strong)}>{s.value}</dd>
+            <dt className={cn('truncate text-[11.5px]', t.muted)}>{s.label}</dt>
+          </div>
+        ))}
+      </dl>
+      {rows.length === 0 ? (
+        <p className={cn('text-[13.5px]', t.muted)}>{emptyLabel}</p>
+      ) : (
+        <ul className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto">
+          {rows.map((r) => (
+            <li key={r.id}>
+              <MaybeLink href={r.href} className="flex items-center gap-2.5">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[10.5px] font-semibold text-terra-deep ring-1 ring-black/[0.06]">{r.initials}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-medium">{r.name}</span>
+                  {r.title && <span className={cn('block truncate text-[11.5px]', t.muted)}>{r.title}</span>}
+                </span>
+                {r.matches > 0 && <span className="shrink-0 rounded-full bg-terra/10 px-1.5 py-0.5 text-[11px] font-medium text-terra-deep">{matchesLabel(r.matches)}</span>}
+                {r.days && <span className="w-10 shrink-0 text-right text-[12px] font-semibold tabular-nums">{r.days}</span>}
+              </MaybeLink>
+            </li>
+          ))}
+        </ul>
+      )}
+      {footer && (
+        <Link href={footer.href} className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-medium text-terra-deep hover:underline">
+          {footer.label}
+          <ArrowUpRight className="h-3.5 w-3.5" />
+        </Link>
+      )}
+    </Tile>
+  );
+}
+
 // ── Missions ────────────────────────────────────────────────────────────
 export function MissionsTile({ title, rows, tone = 'white', index = 0, className, emptyLabel, cta }: { title: string; rows: MissionRow[]; tone?: TileTone; index?: number; className?: string; emptyLabel: string; cta?: { label: string; href: string } }) {
   const t = TONE_CLASSES[tone];
@@ -469,11 +547,22 @@ export function TopClientsTile({ title, rows, format, tone = 'white', index = 0,
 }
 
 // ── Activité récente ────────────────────────────────────────────────────
-export function ActivityFeedTile({ title, rows, tone = 'white', index = 0, className, emptyLabel }: { title: string; rows: ActivityRow[]; tone?: TileTone; index?: number; className?: string; emptyLabel: string }) {
+export function ActivityFeedTile({ title, rows, cta, tone = 'white', index = 0, className, emptyLabel }: { title: string; rows: ActivityRow[]; cta?: { label: string; href: string }; tone?: TileTone; index?: number; className?: string; emptyLabel: string }) {
   const t = TONE_CLASSES[tone];
   return (
     <Tile tone={tone} index={index} className={className}>
-      <TileHeader tone={tone} title={title} />
+      <TileHeader
+        tone={tone}
+        title={title}
+        action={
+          cta ? (
+            <Link href={cta.href} className="inline-flex items-center gap-1 text-[12.5px] font-medium text-terra-deep hover:underline">
+              {cta.label}
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          ) : undefined
+        }
+      />
       {rows.length === 0 ? (
         <p className={cn('text-[13.5px]', t.muted)}>{emptyLabel}</p>
       ) : (

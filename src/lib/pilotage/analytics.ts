@@ -184,6 +184,61 @@ export function futureAvailability(consultants: PoolRow[], missions: MissionRow[
   return out;
 }
 
+export type CapacityHorizon = {
+  days: number;
+  /** Effectif staffé / effectif disponible à la date de l'horizon (missions actives connues). */
+  occupancy: number | null;
+  staffed: number;
+  capacity: number;
+  /** Consultants sans mission à la date de l'horizon. */
+  available: number;
+  /** Missions actives qui se terminent d'ici l'horizon. */
+  endings: number;
+  /** Fins de mission d'ici l'horizon sans suite connue ni renouvellement confirmé. */
+  risk: number;
+  riskNames: string[];
+};
+
+/**
+ * Prévision de capacité à 30 / 60 / 90 jours, d'après les missions actives
+ * connues (dates de fin, renouvellements confirmés, missions suivantes déjà
+ * signées). Une mission proposée n'est pas comptée : rien n'est inventé.
+ */
+export function capacityForecast(
+  consultants: Array<PoolRow & { first_name?: string; last_name?: string }>,
+  missions: Array<MissionRow & { renewal_status?: string | null }>,
+  today: Date,
+  horizons: number[] = [30, 60, 90],
+): CapacityHorizon[] {
+  const t = isoDay(today);
+  const pool = consultants.filter((c) => !c.archived && !c.is_prospect && c.status !== 'unavailable' && c.status !== 'archived');
+  const active = missions.filter((m) => m.status === 'active');
+  return horizons.map((days) => {
+    const date = isoDay(new Date(today.getFullYear(), today.getMonth(), today.getDate() + days));
+    const covering = new Set(active.filter((m) => m.start_date <= date && (!m.end_date || m.end_date >= date)).map((m) => m.consultant_id));
+    const staffed = pool.filter((c) => covering.has(c.id)).length;
+    const ending = active.filter((m) => m.end_date && m.end_date >= t && m.end_date <= date);
+    const riskIds = new Set<string>();
+    for (const m of ending) {
+      if (m.renewal_status === 'confirmed') continue;
+      // Suite déjà signée : une autre mission active démarre après cette fin.
+      const followUp = active.some((n) => n !== m && n.consultant_id === m.consultant_id && (!n.end_date || n.end_date > m.end_date!));
+      if (!followUp && pool.some((c) => c.id === m.consultant_id)) riskIds.add(m.consultant_id);
+    }
+    const names = pool.filter((c) => riskIds.has(c.id)).map((c) => `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim()).filter(Boolean);
+    return {
+      days,
+      occupancy: pool.length > 0 ? Math.round((staffed / pool.length) * 1000) / 10 : null,
+      staffed,
+      capacity: pool.length,
+      available: pool.length - staffed,
+      endings: ending.length,
+      risk: riskIds.size,
+      riskNames: names.slice(0, 5),
+    };
+  });
+}
+
 /** Fins de mission prévues par mois, du mois courant aux `months` suivants. */
 export function missionEndingsByMonth(missions: MissionRow[], today: Date, months = 6): Array<{ key: string; year: number; month: number; count: number }> {
   const t = isoDay(today);

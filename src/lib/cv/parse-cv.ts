@@ -283,6 +283,13 @@ const COMMON_TECHS: Array<[string, string]> = [
   ['wordpress', 'platforms'],
 ];
 
+const TECH_CATEGORY = new Map<string, string>(COMMON_TECHS);
+
+/** Catégorie d'une compétence connue (« react » → frameworks), sinon « Outils ». */
+export function skillCategoryFor(name: string): string {
+  return TECH_CATEGORY.get(name.trim().toLowerCase()) ?? 'tools';
+}
+
 function parseSkillsFromBlock(
   block: string | undefined,
 ): Array<{ category: string; name: string; is_highlighted: boolean }> {

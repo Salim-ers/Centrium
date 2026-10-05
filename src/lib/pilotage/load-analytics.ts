@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import {
   benchGaps,
+  capacityForecast,
   futureAvailability,
   lostReasons,
   missionEndingsByMonth,
@@ -47,6 +48,7 @@ export type AnalyticsSummary = {
   staffing: {
     now: ReturnType<typeof occupancyAt>;
     availability: ReturnType<typeof futureAvailability>;
+    capacity: ReturnType<typeof capacityForecast>;
     endings: ReturnType<typeof missionEndingsByMonth>;
     positioning: ReturnType<typeof positioningStats>;
   };
@@ -136,6 +138,7 @@ export async function loadAnalytics(supabase: SupabaseClient, orgId: string, tod
     staffing: {
       now: occupancyAt(consultants, missions, today),
       availability: futureAvailability(consultants, missions, today),
+      capacity: capacityForecast(consultants, missions, today),
       endings: missionEndingsByMonth(missions, today, 6),
       positioning: positioningStats(proposalRows, since),
     },

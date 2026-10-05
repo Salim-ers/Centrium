@@ -4,6 +4,7 @@
 // =========================================================================
 
 import type { DashboardSummary } from '@/lib/pilotage/load-dashboard';
+import type { BenchSummary } from '@/lib/pilotage/bench';
 
 type L = { fr: string; en: string };
 
@@ -47,5 +48,7 @@ export type ExecutiveDashboard = {
   missions: ExecMissionRow[];
   clients: ExecClientRow[];
   activity: ExecActivity[];
+  /** Intercontrat détaillé ; null sans accès au staffing. Coûts seulement avec les droits financiers. */
+  bench: BenchSummary | null;
   visibility: { revenue: boolean; margin: boolean; pipeline: boolean; staffing: boolean; missions: boolean; clients: boolean };
 };

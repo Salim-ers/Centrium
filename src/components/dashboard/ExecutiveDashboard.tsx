@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 
 import {
   ActivityFeedTile,
+  BenchTile,
   ActivityTile,
   KpiTile,
   MissionsTile,
@@ -440,10 +441,69 @@ export function ExecutiveDashboard() {
             className="h-full"
           />
         );
+      case 'bench-detail': {
+        const b = data.bench;
+        if (!b) return null;
+        const plural = (n: number) => (n > 1 ? 's' : '');
+        return (
+          <BenchTile
+            title={fr ? 'Intercontrat' : 'Bench'}
+            stats={[
+              { value: String(b.count), label: fr ? `consultant${plural(b.count)}` : `consultant${plural(b.count)}` },
+              { value: b.avgDays != null ? `${b.avgDays} j` : '—', label: fr ? 'durée moyenne' : 'average length' },
+              ...(b.estimatedCost != null
+                ? [
+                    {
+                      value: formatEurCompact(b.estimatedCost, lang),
+                      label:
+                        b.costKnown < b.count
+                          ? fr
+                            ? `coût estimé · ${b.costKnown} CJM connu${plural(b.costKnown)}`
+                            : `estimated cost · ${b.costKnown} known`
+                          : fr
+                            ? 'coût estimé'
+                            : 'estimated cost',
+                    },
+                  ]
+                : []),
+            ]}
+            rows={b.people.map((p) => ({
+              id: p.id,
+              name: p.name,
+              initials: p.name
+                .split(/\s+/)
+                .map((w) => w.charAt(0))
+                .join('')
+                .slice(0, 2)
+                .toUpperCase(),
+              title: p.title,
+              days: p.days != null ? `${p.days} j` : null,
+              matches: p.matches,
+              href: `/consultants/${p.id}?tab=opportunities`,
+            }))}
+            matchesLabel={(n) => (fr ? `${n} opp.` : `${n} opp.`)}
+            footer={
+              b.compatibleOpportunities > 0
+                ? {
+                    label: fr
+                      ? `${b.compatibleOpportunities} opportunité${plural(b.compatibleOpportunities)} ouverte${plural(b.compatibleOpportunities)} compatible${plural(b.compatibleOpportunities)}`
+                      : `${b.compatibleOpportunities} compatible open opportunit${b.compatibleOpportunities > 1 ? 'ies' : 'y'}`,
+                    href: '/matching',
+                  }
+                : null
+            }
+            cta={{ label: 'Staffing', href: '/staffing' }}
+            index={index}
+            emptyLabel={fr ? 'Personne en intercontrat : tout l’effectif est staffé.' : 'Nobody on the bench: everyone is staffed.'}
+            className="h-full"
+          />
+        );
+      }
       case 'feed':
         return (
           <ActivityFeedTile
             title={fr ? 'Activité récente' : 'Recent activity'}
+            cta={{ label: fr ? 'Tout voir' : 'See all', href: '/activity' }}
             rows={data.activity.map((a) => ({ id: a.id, label: a.label[lang], detail: a.detail ?? undefined, when: ago(a.at, lang), href: a.href }))}
             index={index}
             emptyLabel={fr ? 'Aucune activité ces dernières semaines.' : 'No activity in recent weeks.'}

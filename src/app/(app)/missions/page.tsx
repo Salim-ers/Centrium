@@ -7,6 +7,7 @@ import { Briefcase, CalendarClock, CalendarPlus, ClipboardCheck, Eye, FileText, 
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader } from '@/components/app';
 import { StatStrip } from '@/components/app/StatStrip';
+import { SavedViews } from '@/components/app/SavedViews';
 import { Segmented } from '@/components/app/Segmented';
 import { EmptyState } from '@/components/app/EmptyState';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,7 @@ import { cn } from '@/lib/utils';
 const BUCKETS = [15, 30, 60, 90] as const;
 type Scope = 'active' | 'proposed' | 'ended' | 'all';
 type Ending = 'all' | '15' | '30' | '60' | '90';
+const DEFAULT_FILTERS = { scope: 'active', ending: 'all', client: 'all', query: '' };
 
 /** Prépare le formulaire de mission à partir d'une opportunité gagnée. */
 async function draftFromOpportunity(oppId: string): Promise<MissionDraft | null> {
@@ -353,6 +355,20 @@ export default function MissionsPage() {
             ]}
           />
         )}
+        <div className="sm:ml-auto">
+          <SavedViews
+            page="missions"
+            current={{ scope, ending, client, query }}
+            defaults={DEFAULT_FILTERS}
+            onApply={(f) => {
+              setScope((['active', 'proposed', 'ended', 'all'] as string[]).includes(f.scope) ? (f.scope as Scope) : 'active');
+              setEnding(f.scope === 'active' && BUCKETS.some((b) => String(b) === f.ending) ? (f.ending as Ending) : 'all');
+              setClient(f.client || 'all');
+              setQuery(f.query ?? '');
+              if (params.get('ending') || params.get('endingWithin')) router.replace('/missions');
+            }}
+          />
+        </div>
       </div>
 
       <DataTable

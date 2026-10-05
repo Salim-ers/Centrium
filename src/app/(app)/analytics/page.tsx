@@ -36,6 +36,7 @@ import { useOrganization } from '@/lib/auth/context';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { createClient } from '@/lib/supabase/client';
 import { loadAnalytics, type AnalyticsSummary } from '@/lib/pilotage/load-analytics';
+import type { CapacityHorizon } from '@/lib/pilotage/analytics';
 import { loadFinance, type FinanceSummary } from '@/lib/pilotage/load-finance';
 import { STAGE_BY_ID } from '@/lib/crm/pipeline';
 import { formatDate, formatEurCompact, formatPct } from '@/lib/format';
@@ -270,21 +271,8 @@ function StaffingView({ data, busy, lang }: { data: AnalyticsSummary | null; bus
         <Panel title={fr ? 'Occupation et intercontrat' : 'Utilisation and bench'} subtitle={fr ? 'Fin de mois, 12 mois' : 'Month end, 12 months'} className="lg:col-span-8 lg:row-span-2">
           {data ? <OccupancyChart data={data.occupancy} lang={lang} height={200} fill /> : chartFallback}
         </Panel>
-        <Panel title={fr ? 'Disponibilités à venir' : 'Upcoming availability'} subtitle={fr ? 'D’après les dates de fin de mission' : 'From mission end dates'} className="lg:col-span-4">
-          {busy || !a ? (
-            <Skeleton className="h-32 w-full" />
-          ) : (
-            <Bars
-              rows={[
-                { label: fr ? 'En intercontrat' : 'On bench', value: a.now },
-                { label: fr ? 'Sous 30 jours' : 'Within 30 days', value: a.d30 },
-                { label: fr ? '31 à 60 jours' : '31 to 60 days', value: a.d60 },
-                { label: fr ? '61 à 90 jours' : '61 to 90 days', value: a.d90 },
-              ]}
-              format={(n) => String(n)}
-              emptyText=""
-            />
-          )}
+        <Panel title={fr ? 'Prévision de capacité' : 'Capacity forecast'} subtitle={fr ? 'D’après les missions signées et leurs dates de fin' : 'From signed missions and their end dates'} className="lg:col-span-4">
+          {busy || !s ? <Skeleton className="h-32 w-full" /> : <CapacityForecast horizons={s.capacity} lang={lang} />}
         </Panel>
         <Panel title={fr ? 'Fins de mission' : 'Mission endings'} subtitle={fr ? 'Missions en cours, 6 prochains mois' : 'Active missions, next 6 months'} className="lg:col-span-4">
           {busy || !s ? (
@@ -434,6 +422,35 @@ function PerformanceView({ data, busy, lang }: { data: AnalyticsSummary | null; 
         </Panel>
       </div>
     </>
+  );
+}
+
+/** Prévision à 30 / 60 / 90 jours : disponibles, fins de mission, occupation prévue, risque d'intercontrat. */
+function CapacityForecast({ horizons, lang }: { horizons: CapacityHorizon[]; lang: L }) {
+  const fr = lang === 'fr';
+  const [days, setDays] = useState<'30' | '60' | '90'>('30');
+  const h = horizons.find((x) => String(x.days) === days) ?? horizons[0];
+  if (!h) return null;
+  const more = h.risk - Math.min(3, h.riskNames.length);
+  return (
+    <div className="space-y-3">
+      <Segmented<'30' | '60' | '90'>
+        label={fr ? 'Horizon' : 'Horizon'}
+        value={days}
+        onChange={setDays}
+        options={horizons.map((x) => ({ value: String(x.days) as '30' | '60' | '90', label: `${x.days} ${fr ? 'j' : 'd'}` }))}
+      />
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-[12.5px]">
+        <Fact label={fr ? 'Disponibles' : 'Available'} value={String(h.available)} hint={fr ? `sur ${h.capacity} consultants` : `of ${h.capacity} consultants`} />
+        <Fact label={fr ? 'Fins de mission' : 'Mission endings'} value={String(h.endings)} />
+        <Fact label={fr ? 'Occupation prévue' : 'Forecast utilisation'} value={pct(h.occupancy, lang)} />
+        <Fact
+          label={fr ? 'Risque d’intercontrat' : 'Bench risk'}
+          value={String(h.risk)}
+          hint={h.riskNames.length ? `${h.riskNames.slice(0, 3).join(', ')}${more > 0 ? (fr ? ` et ${more} autre${more > 1 ? 's' : ''}` : ` and ${more} more`) : ''}` : undefined}
+        />
+      </dl>
+    </div>
   );
 }
 

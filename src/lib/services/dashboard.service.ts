@@ -18,12 +18,47 @@ import {
   tolerant,
   type DashboardRaw,
 } from '@/lib/pilotage/load-dashboard';
-import { activeConsultants, daysUntil, iso, monthlySeries, type MissionLite } from '@/lib/pilotage/metrics';
+import { activeConsultants, daysUntil, iso, isOpenOpportunity, monthlySeries, type MissionLite } from '@/lib/pilotage/metrics';
+import { benchRows, summarizeBench, type BenchSummary } from '@/lib/pilotage/bench';
+import { MATCHING_CONSULTANT_COLUMNS, groupSkills, rankConsultants, type MatchingConsultant } from '@/lib/matching/rank';
+import { hasSkills, opportunityToOffer, type OppLike } from '@/lib/matching/opportunity-offer';
+import type { ConsultantSkill, OpportunityStatus } from '@/types';
 import { businessDaysBetween } from '@/lib/utils/business-days';
 import type { ExecActivity, ExecClientRow, ExecMissionRow, ExecMonth, ExecStaffRow, ExecutiveDashboard } from '@/lib/dashboard/types';
 
 type Can = (p: Permission) => boolean;
 type L = { fr: string; en: string };
+
+/**
+ * Profils et opportunités compatibles de l'intercontrat : fiches des
+ * consultants concernés (poste, critères de matching) et, si le pipeline
+ * est visible, nombre d'opportunités ouvertes où chacun ressort (même
+ * moteur et même seuil que les alertes « consultant disponible »).
+ */
+async function benchMatching(supabase: SupabaseClient, ids: string[], opps: Array<Record<string, unknown>>, withPipeline: boolean) {
+  const titles = new Map<string, string | null>();
+  const matches = new Map<string, number>();
+  let compatible = 0;
+  if (ids.length === 0) return { titles, matches, compatible };
+  const batch = ids.slice(0, 200);
+  const [consultants, skills] = await Promise.all([
+    tolerant(supabase.from('consultants').select(MATCHING_CONSULTANT_COLUMNS).in('id', batch), [] as MatchingConsultant[]),
+    withPipeline
+      ? tolerant(supabase.from('consultant_skills').select('id, consultant_id, category, name, level, years, is_highlighted, created_at').in('consultant_id', batch), [] as ConsultantSkill[])
+      : Promise.resolve([] as ConsultantSkill[]),
+  ]);
+  for (const c of consultants) titles.set(c.id, c.job_title ?? null);
+  if (!withPipeline) return { titles, matches, compatible };
+  const byConsultant = groupSkills(skills);
+  for (const raw of opps) {
+    const o = raw as unknown as OppLike & { status: OpportunityStatus; archived?: boolean };
+    if (!isOpenOpportunity(o) || !hasSkills(o)) continue;
+    const ranked = rankConsultants(opportunityToOffer(o), consultants, byConsultant, { limit: consultants.length, minScore: 60 });
+    if (ranked.length > 0) compatible++;
+    for (const r of ranked) matches.set(r.consultant.id, (matches.get(r.consultant.id) ?? 0) + 1);
+  }
+  return { titles, matches, compatible };
+}
 
 const WINDOW_DAYS = 84;
 const MONTHS_FR = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
@@ -283,6 +318,29 @@ export async function getExecutiveDashboard(
   activity.sort((a, b) => b.at.localeCompare(a.at));
   activity.splice(8);
 
+  // ── Intercontrat détaillé ─────────────────────────────────────────────
+  let bench: BenchSummary | null = null;
+  if (visibility.staffing) {
+    const rows = benchRows(raw.consultants, raw.missions, today);
+    const { titles, matches, compatible } = await benchMatching(
+      supabase,
+      rows.map((r) => r.consultant.id),
+      raw.opps,
+      visibility.pipeline,
+    );
+    const consultantCost = new Map(raw.consultantFin.filter((f) => f.daily_cost_eur != null).map((f) => [f.consultant_id, Number(f.daily_cost_eur)]));
+    bench = summarizeBench(
+      rows.map((r) => ({ ...r, consultant: { ...r.consultant, job_title: titles.get(r.consultant.id) ?? null } })),
+      {
+        today,
+        // Coûts uniquement avec les droits financiers (sinon la table n'est pas lue).
+        costOf: visibility.margin ? (id) => consultantCost.get(id) ?? null : undefined,
+        matches,
+        compatibleOpportunities: compatible,
+      },
+    );
+  }
+
   // ── Ce que le rôle ne doit pas voir n'est pas renvoyé ─────────────────
   const kpis = visibility.revenue
     ? summary.kpis
@@ -296,6 +354,7 @@ export async function getExecutiveDashboard(
     missions,
     clients,
     activity,
+    bench,
     visibility,
   };
 }

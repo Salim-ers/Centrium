@@ -21,6 +21,7 @@ import {
   FileText,
   Workflow,
   ListChecks,
+  History,
   ClipboardList,
   Building2,
   Palette,
@@ -203,6 +204,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
 /** Pages sans entrée de menu, trouvables par la palette (⌘K). */
 export const HIDDEN_PAGES: NavItem[] = [
   { id: 'todos', label: { fr: 'À faire', en: 'To do' }, href: '/todos', icon: ListChecks, permission: 'dashboard.view', keywords: ['tâches', 'relances', 'inbox', 'alertes'] },
+  { id: 'activity', label: { fr: 'Activité', en: 'Activity' }, href: '/activity', icon: History, permission: 'dashboard.view', keywords: ['historique', 'journal', 'timeline', 'fil'] },
   { id: 'dossier', label: { fr: 'Dossier de compétences', en: 'Skills dossier' }, href: '/cv-optimizer', icon: FileText, permission: 'consultants.view', keywords: ['cv', 'cv optimizer', 'dossier', 'export pdf', 'word'] },
   { id: 'offers', label: { fr: 'Fiches de poste', en: 'Job descriptions' }, href: '/offers', icon: ClipboardList, permission: 'opportunities.view', keywords: ['offres', 'besoins'] },
   { id: 'responses', label: { fr: 'Réponses aux appels d’offres', en: 'Tender responses' }, href: '/responses', icon: FileText, permission: 'opportunities.view', keywords: ['ao', 'appel d’offres'] },
