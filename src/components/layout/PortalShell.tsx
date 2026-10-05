@@ -1,6 +1,6 @@
 'use client';
 
-import { Briefcase, ClipboardCheck, FileSignature, FileText, Home, Receipt, UserCircle } from 'lucide-react';
+import { Briefcase, ClipboardCheck, FileSignature, FileText, Home, UserCircle } from 'lucide-react';
 
 import { BrandingStyles } from '@/components/brand/BrandingStyles';
 import { SessionPresenceGate } from '@/components/auth/SessionPresenceGate';
@@ -13,7 +13,6 @@ const ITEMS: PortalNavEntry[] = [
   { href: '/portal/missions', label: { fr: 'Missions', en: 'Missions' }, icon: Briefcase, tab: true },
   { href: '/portal/documents', label: { fr: 'Documents', en: 'Documents' }, icon: FileText, tab: true },
   { href: '/portal/contracts', label: { fr: 'Contrats', en: 'Contracts' }, icon: FileSignature },
-  { href: '/portal/invoices', label: { fr: 'Factures', en: 'Invoices' }, icon: Receipt },
   { href: '/portal/profile', label: { fr: 'Mon profil', en: 'My profile' }, icon: UserCircle, tab: true },
 ];
 
