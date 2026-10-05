@@ -4,22 +4,27 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { BellRing, Check, ClipboardCheck, Plus, Send, X } from 'lucide-react';
+import { BellRing, Check, CheckCheck, ClipboardCheck, ClipboardX, Eye, Plus, Search, Send, X } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { PageHeader, KPICard } from '@/components/app';
+import { PageHeader } from '@/components/app';
+import { StatStrip } from '@/components/app/StatStrip';
+import { Segmented } from '@/components/app/Segmented';
 import { EmptyState } from '@/components/app/EmptyState';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip } from '@/components/ui/tooltip';
+import { showBrandToast } from '@/components/ui/BrandToast';
 import { DataTable, type Column, linkActions } from '@/components/ui/data-table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TimesheetFormDialog } from '@/components/timesheets/TimesheetFormDialog';
+import { TimesheetQuickView } from '@/components/timesheets/TimesheetQuickView';
+import { SectionTabs } from '@/components/layout/SectionTabs';
 import { useOrganization } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
@@ -27,87 +32,24 @@ import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { createClient } from '@/lib/supabase/client';
 import { timesheetService } from '@/lib/services';
-import { TIMESHEET_STATUS, periodLabel, statusOf } from '@/lib/status';
+import { consultantName, loadTimesheets, previousPeriod, summarizeTimesheets, type MissingTimesheet, type TimesheetRow, type TimesheetsData } from '@/lib/timesheets/approvals';
+import { TIMESHEET_STATUS, periodLabel, periodLabelShort, statusOf } from '@/lib/status';
 import { formatDate } from '@/lib/format';
-import { SectionTabs } from '@/components/layout/SectionTabs';
+import { cn } from '@/lib/utils';
 
-type Row = {
-  id: string;
-  mission_id: string;
-  consultant_id: string;
-  period_month: number;
-  period_year: number;
-  days_worked: number;
-  days_validated: number;
-  status: string;
-  submitted_at: string | null;
-  client_approval_status?: string;
-  rejection_reason: string | null;
-  consultant: { first_name: string; last_name: string } | null;
-  mission: { title: string; company_id: string | null; companies: { name: string } | null } | null;
-};
-
-type Missing = {
-  mission_id: string;
-  title: string;
-  consultant: string;
-  client: string | null;
-  month: number;
-  year: number;
-};
-
-type Data = { rows: Row[]; missing: Missing[] };
+type View = 'pending' | 'missing' | 'all';
 
 const APPROVAL: Record<string, { fr: string; en: string; variant: 'info' | 'success' | 'destructive' }> = {
-  pending: { fr: 'Approbation client en attente', en: 'Client approval pending', variant: 'info' },
+  pending: { fr: 'Chez le client', en: 'With client', variant: 'info' },
   approved: { fr: 'Approuvé par le client', en: 'Approved by client', variant: 'success' },
   rejected: { fr: 'Refusé par le client', en: 'Rejected by client', variant: 'destructive' },
 };
 
-async function loadTimesheets(orgId: string, today = new Date()): Promise<Data> {
-  const supabase = createClient();
-  const prev = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-  const prevEnd = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().slice(0, 10);
-  const [ts, missions] = await Promise.all([
-    supabase
-      .from('timesheets')
-      .select('*, consultant:consultants(first_name, last_name), mission:missions(title, company_id, companies(name))')
-      .eq('organization_id', orgId)
-      .eq('archived', false)
-      .order('period_year', { ascending: false })
-      .order('period_month', { ascending: false })
-      .limit(3000),
-    supabase
-      .from('missions')
-      .select('id, title, start_date, end_date, consultants(first_name, last_name), companies(name)')
-      .eq('organization_id', orgId)
-      .eq('status', 'active')
-      .lte('start_date', prevEnd),
-  ]);
-  const rows = (ts.data ?? []) as unknown as Row[];
-  const prevMonth = prev.getMonth() + 1;
-  const prevYear = prev.getFullYear();
-  const prevStart = `${prevYear}-${String(prevMonth).padStart(2, '0')}-01`;
-  const missing: Missing[] = ((missions.data ?? []) as unknown as Array<{
-    id: string;
-    title: string;
-    end_date: string | null;
-    consultants: { first_name: string; last_name: string } | null;
-    companies: { name: string } | null;
-  }>)
-    .filter((m) => !m.end_date || m.end_date >= prevStart)
-    .filter((m) => !rows.some((r) => r.mission_id === m.id && r.period_month === prevMonth && r.period_year === prevYear && r.status !== 'draft'))
-    .map((m) => ({
-      mission_id: m.id,
-      title: m.title,
-      consultant: m.consultants ? `${m.consultants.first_name} ${m.consultants.last_name}` : '—',
-      client: m.companies?.name ?? null,
-      month: prevMonth,
-      year: prevYear,
-    }));
-  return { rows, missing };
-}
-
+/**
+ * CRA : trois indicateurs (à valider, manquants, validés ce mois) puis le
+ * centre de validation rapide — valider, renvoyer, ouvrir en ligne, ou
+ * valider plusieurs CRA d'un coup. Chaque CRA validé prépare la préfacture.
+ */
 export default function TimesheetsPage() {
   const params = useSearchParams();
   const { activeOrgId } = useOrganization();
@@ -116,49 +58,66 @@ export default function TimesheetsPage() {
   const lang = locale === 'en' ? 'en' : 'fr';
   const fr = lang === 'fr';
   const canValidate = can('timesheets.validate');
-  const [tab, setTab] = useState<'pending' | 'all' | 'missing'>(params.get('status') === 'submitted' ? 'pending' : 'pending');
+  const initialView = params.get('view');
+  const [view, setView] = useState<View>(initialView === 'missing' || initialView === 'all' ? initialView : 'pending');
   const [period, setPeriod] = useState('all');
+  const [query, setQuery] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
-  const [rejecting, setRejecting] = useState<Row | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [quickId, setQuickId] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState<TimesheetRow | null>(null);
   const [reason, setReason] = useState('');
   // « + Créer → CRA » ouvre directement la saisie (?new=1).
   const [createOpen, setCreateOpen] = useState(params.get('new') === '1');
 
-  const { data, loading, reload } = useCachedQuery<Data>(
+  const { data, loading, reload } = useCachedQuery<TimesheetsData>(
     `timesheets-v2:${activeOrgId ?? 'none'}`,
-    () => loadTimesheets(activeOrgId!),
+    () => loadTimesheets(createClient(), activeOrgId!),
     { enabled: !!activeOrgId },
   );
   useRealtimeReload(['timesheets'], () => void reload(), { enabled: !!activeOrgId, debounceMs: 800 });
+
+  const kpis = useMemo(() => (data ? summarizeTimesheets(data) : null), [data]);
+  const prev = previousPeriod(new Date());
+  const prevLabel = periodLabel(prev.month, prev.year, lang);
 
   const periods = useMemo(() => {
     const keys = new Set((data?.rows ?? []).map((r) => `${r.period_year}-${String(r.period_month).padStart(2, '0')}`));
     return [...keys].sort().reverse();
   }, [data]);
 
+  const matches = (text: string) => {
+    const q = query.trim().toLowerCase();
+    return !q || text.toLowerCase().includes(q);
+  };
+
   const rows = useMemo(() => {
     let list = data?.rows ?? [];
-    if (tab === 'pending') list = list.filter((r) => r.status === 'submitted');
-    if (period !== 'all') list = list.filter((r) => `${r.period_year}-${String(r.period_month).padStart(2, '0')}` === period);
-    return list;
-  }, [data, tab, period]);
+    if (view === 'pending') list = list.filter((r) => r.status === 'submitted');
+    if (view === 'all' && period !== 'all') list = list.filter((r) => `${r.period_year}-${String(r.period_month).padStart(2, '0')}` === period);
+    return list.filter((r) => matches(`${consultantName(r)} ${r.mission?.title ?? ''} ${r.mission?.companies?.name ?? ''}`));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, view, period, query]);
 
-  const kpis = useMemo(() => {
-    const all = data?.rows ?? [];
-    const now = new Date();
-    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const prevValidated = all.filter((r) => r.status === 'client_validated' && r.period_month === prev.getMonth() + 1 && r.period_year === prev.getFullYear());
-    return {
-      pending: all.filter((r) => r.status === 'submitted').length,
-      clientPending: all.filter((r) => r.client_approval_status === 'pending').length,
-      prevValidated: prevValidated.length,
-      prevDays: prevValidated.reduce((s, r) => s + Number(r.days_validated || 0), 0),
-      missing: data?.missing.length ?? 0,
-      prevLabel: periodLabel(prev.getMonth() + 1, prev.getFullYear(), lang),
-    };
-  }, [data, lang]);
+  const missing = useMemo(
+    () => (data?.missing ?? []).filter((m) => matches(`${m.consultant} ${m.title} ${m.client ?? ''}`)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data, query],
+  );
 
-  async function validate(r: Row) {
+  const selectedRows = rows.filter((r) => selected.has(r.id) && r.status === 'submitted');
+  const selectedDays = selectedRows.reduce((s, r) => s + Number(r.days_worked || 0), 0);
+
+  function notifyValidated(id: string) {
+    void fetch(`/api/timesheets/${id}/transition`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'notify_validated' }),
+    }).catch(() => {});
+  }
+
+  async function validate(r: TimesheetRow) {
     if (!activeOrgId) return;
     setBusy(r.id);
     const res = await timesheetService.validateAndInvoice(r.id, activeOrgId);
@@ -167,20 +126,56 @@ export default function TimesheetsPage() {
       toast.error(res.error?.message ?? (fr ? 'Validation impossible' : 'Could not approve'));
       return;
     }
-    void fetch(`/api/timesheets/${r.id}/transition`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'notify_validated' }),
-    }).catch(() => {});
-    toast.success(
-      res.data.alreadyInvoiced
-        ? fr ? 'CRA validé' : 'Timesheet approved'
-        : fr ? `CRA validé · préfacture ${res.data.invoice.invoice_number} préparée` : `Approved · pre-invoice ${res.data.invoice.invoice_number} prepared`,
-    );
+    notifyValidated(r.id);
+    showBrandToast('success', fr ? `CRA de ${consultantName(r)} validé` : `${consultantName(r)}’s timesheet approved`, {
+      description: res.data.alreadyInvoiced
+        ? undefined
+        : fr
+          ? `Préfacture ${res.data.invoice.invoice_number} préparée`
+          : `Pre-invoice ${res.data.invoice.invoice_number} prepared`,
+    });
+    setQuickId(null);
+    setSelected((s) => {
+      const next = new Set(s);
+      next.delete(r.id);
+      return next;
+    });
     void reload();
   }
 
-  async function transition(r: Row, action: 'reject' | 'request_client_approval', why?: string) {
+  /** Validation par lot : un CRA après l'autre, bilan à la fin. */
+  async function validateMany(list: TimesheetRow[]) {
+    if (!activeOrgId || list.length === 0) return;
+    setBulkBusy(true);
+    const progress = showBrandToast('loading', fr ? `Validation de ${list.length} CRA…` : `Approving ${list.length} timesheets…`);
+    let ok = 0;
+    let prepared = 0;
+    const failed = new Set<string>();
+    for (const r of list) {
+      const res = await timesheetService.validateAndInvoice(r.id, activeOrgId);
+      if (res.error || !res.data) {
+        failed.add(r.id);
+        continue;
+      }
+      ok++;
+      if (!res.data.alreadyInvoiced) prepared++;
+      notifyValidated(r.id);
+    }
+    toast.dismiss(progress);
+    setBulkBusy(false);
+    setSelected(failed);
+    showBrandToast(failed.size ? 'warning' : 'success', fr ? `${ok} CRA validé${ok > 1 ? 's' : ''}` : `${ok} timesheet${ok > 1 ? 's' : ''} approved`, {
+      description: [
+        prepared ? (fr ? `${prepared} préfacture${prepared > 1 ? 's' : ''} préparée${prepared > 1 ? 's' : ''}` : `${prepared} pre-invoice${prepared > 1 ? 's' : ''} prepared`) : null,
+        failed.size ? (fr ? `${failed.size} en échec, toujours sélectionné${failed.size > 1 ? 's' : ''}` : `${failed.size} failed, still selected`) : null,
+      ]
+        .filter(Boolean)
+        .join(' · ') || undefined,
+    });
+    void reload();
+  }
+
+  async function transition(r: TimesheetRow, action: 'reject' | 'request_client_approval', why?: string) {
     setBusy(r.id);
     const res = await fetch(`/api/timesheets/${r.id}/transition`, {
       method: 'POST',
@@ -190,35 +185,51 @@ export default function TimesheetsPage() {
     setBusy(null);
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error(json.message ?? json.error ?? (fr ? 'Action impossible' : 'Action failed'));
+      toast.error(json.message ?? (typeof json.error === 'string' ? json.error : fr ? 'Action impossible' : 'Action failed'));
       return false;
     }
-    toast.success(
+    showBrandToast(
+      'update',
       action === 'reject'
-        ? fr ? 'CRA renvoyé au consultant' : 'Timesheet sent back to the consultant'
-        : fr ? 'CRA envoyé au client pour approbation' : 'Timesheet sent to the client for approval',
+        ? fr
+          ? 'CRA renvoyé au consultant'
+          : 'Timesheet sent back to the consultant'
+        : fr
+          ? 'CRA envoyé au client pour approbation'
+          : 'Timesheet sent to the client for approval',
     );
     void reload();
     return true;
   }
 
-  async function remind(m: Missing) {
+  async function remind(m: MissingTimesheet, quiet = false) {
     setBusy(m.mission_id);
     const res = await fetch('/api/timesheets/remind', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mission_id: m.mission_id, period_month: m.month, period_year: m.year }),
-    });
+    }).catch(() => null);
     setBusy(null);
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      toast.error(json.message ?? (fr ? 'Relance impossible' : 'Reminder failed'));
-      return;
+    if (!res?.ok) {
+      const json = res ? await res.json().catch(() => ({})) : {};
+      if (!quiet) toast.error((json as { message?: string }).message ?? (fr ? 'Relance impossible' : 'Reminder failed'));
+      return false;
     }
-    toast.success(fr ? 'Consultant relancé' : 'Consultant reminded');
+    if (!quiet) showBrandToast('success', fr ? `${m.consultant} relancé` : `${m.consultant} reminded`);
+    return true;
   }
 
-  const columns: Column<Row>[] = [
+  async function remindAll() {
+    setBulkBusy(true);
+    let ok = 0;
+    for (const m of missing) if (await remind(m, true)) ok++;
+    setBulkBusy(false);
+    showBrandToast(ok === missing.length ? 'success' : 'warning', fr ? `${ok} consultant${ok > 1 ? 's' : ''} relancé${ok > 1 ? 's' : ''}` : `${ok} consultant${ok > 1 ? 's' : ''} reminded`, {
+      description: ok < missing.length ? (fr ? `${missing.length - ok} relance(s) impossible(s)` : `${missing.length - ok} reminder(s) failed`) : undefined,
+    });
+  }
+
+  const columns: Column<TimesheetRow>[] = [
     {
       id: 'consultant',
       header: 'Consultant',
@@ -226,23 +237,29 @@ export default function TimesheetsPage() {
       sortValue: (r) => (r.consultant ? `${r.consultant.last_name} ${r.consultant.first_name}` : ''),
       cell: (r) => (
         <span className="flex min-w-0 items-center gap-2.5">
-          <Avatar name={r.consultant ? `${r.consultant.first_name} ${r.consultant.last_name}` : '?'} size="sm" />
-          <span className="min-w-0">
-            <span className="block truncate font-medium text-foreground">{r.consultant ? `${r.consultant.first_name} ${r.consultant.last_name}` : '—'}</span>
-            <span className="block truncate text-xs text-muted-foreground">
-              {r.mission?.title}
-              {r.mission?.companies?.name ? ` · ${r.mission.companies.name}` : ''}
-            </span>
-          </span>
+          <Avatar name={consultantName(r)} size="sm" />
+          <span className="truncate font-medium text-foreground">{consultantName(r)}</span>
+        </span>
+      ),
+    },
+    {
+      id: 'mission',
+      header: 'Mission',
+      mobile: 'subtitle',
+      sortValue: (r) => r.mission?.title ?? '',
+      cell: (r) => (
+        <span className="block min-w-0 max-w-[15rem] truncate text-[13px] text-muted-foreground xl:max-w-[20rem] 2xl:max-w-[28rem]">
+          {r.mission?.title ?? '—'}
+          {r.mission?.companies?.name ? ` · ${r.mission.companies.name}` : ''}
         </span>
       ),
     },
     {
       id: 'period',
-      header: fr ? 'Période' : 'Period',
-      mobile: 'subtitle',
+      header: fr ? 'Mois' : 'Month',
+      mobile: 'meta',
       sortValue: (r) => r.period_year * 100 + r.period_month,
-      cell: (r) => <span className="text-[13px]">{periodLabel(r.period_month, r.period_year, lang)}</span>,
+      cell: (r) => <span className="whitespace-nowrap text-[13px]">{periodLabelShort(r.period_month, r.period_year, lang)}</span>,
     },
     {
       id: 'days',
@@ -250,7 +267,7 @@ export default function TimesheetsPage() {
       align: 'right',
       mobile: 'meta',
       sortValue: (r) => Number(r.days_worked),
-      cell: (r) => <span className="num">{r.status === 'client_validated' ? r.days_validated : r.days_worked}</span>,
+      cell: (r) => <span className="num font-medium">{r.status === 'client_validated' ? r.days_validated : r.days_worked}</span>,
     },
     {
       id: 'status',
@@ -277,6 +294,7 @@ export default function TimesheetsPage() {
       id: 'submitted',
       header: fr ? 'Soumis le' : 'Submitted',
       hideOnMobile: true,
+      defaultHidden: view !== 'pending',
       sortValue: (r) => r.submitted_at ?? '',
       cell: (r) => <span className="text-[13px] text-muted-foreground">{formatDate(r.submitted_at, lang, 'short')}</span>,
     },
@@ -289,41 +307,53 @@ export default function TimesheetsPage() {
             hideOnMobile: true,
             cell: (r) =>
               r.status === 'submitted' ? (
-                <span className="flex justify-end gap-1">
+                <span className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                   {r.client_approval_status !== 'pending' && r.client_approval_status !== 'approved' && (
                     <Tooltip label={fr ? 'Demander l’approbation du client' : 'Request client approval'}>
-                      <Button variant="ghost" size="icon-sm" disabled={busy === r.id} onClick={() => void transition(r, 'request_client_approval')} aria-label={fr ? 'Demander l’approbation du client' : 'Request client approval'}>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        disabled={busy === r.id || bulkBusy}
+                        onClick={() => void transition(r, 'request_client_approval')}
+                        aria-label={fr ? 'Demander l’approbation du client' : 'Request client approval'}
+                      >
                         <Send />
                       </Button>
                     </Tooltip>
                   )}
-                  <Button variant="secondary" size="sm" disabled={busy === r.id} onClick={() => { setRejecting(r); setReason(''); }}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={busy === r.id || bulkBusy}
+                    onClick={() => {
+                      setRejecting(r);
+                      setReason('');
+                    }}
+                  >
                     <X />
-                    {fr ? 'Refuser' : 'Reject'}
+                    {fr ? 'Rejeter' : 'Reject'}
                   </Button>
-                  <Button size="sm" loading={busy === r.id} onClick={() => void validate(r)}>
+                  <Button size="sm" loading={busy === r.id} disabled={bulkBusy} onClick={() => void validate(r)}>
                     <Check />
                     {fr ? 'Valider' : 'Approve'}
                   </Button>
                 </span>
               ) : null,
           },
-        ] as Column<Row>[])
+        ] as Column<TimesheetRow>[])
       : []),
   ];
 
+  const quick = quickId ? ((data?.rows ?? []).find((r) => r.id === quickId) ?? null) : null;
+
   return (
-    <AppShell>
-      <PageHeader tabs={<SectionTabs section="operations" />}
-        eyebrow={fr ? 'Opérations' : 'Operations'}
+    <AppShell fill>
+      <PageHeader
         title={fr ? 'CRA' : 'Timesheets'}
-        description={
-          fr
-            ? 'Validation des comptes rendus d’activité. Chaque CRA validé prépare la préfacture et met à jour le CA de la mission.'
-            : 'Timesheet approval. Each approved timesheet prepares the pre-invoice and updates mission revenue.'
-        }
+        description={fr ? 'Chaque CRA validé prépare la préfacture de la mission.' : 'Each approved timesheet prepares the mission’s pre-invoice.'}
+        tabs={<SectionTabs section="operations" />}
         actions={
-          can('timesheets.validate') && (
+          canValidate && (
             <Button variant="secondary" onClick={() => setCreateOpen(true)}>
               <Plus />
               {fr ? 'Saisir un CRA' : 'Enter a timesheet'}
@@ -332,28 +362,56 @@ export default function TimesheetsPage() {
         }
       />
 
-      <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <KPICard accent="peach" label={fr ? 'À valider' : 'To approve'} value={kpis.pending} tone={kpis.pending ? 'amber' : 'neutral'} loading={loading && !data} />
-        <KPICard label={fr ? 'Chez le client' : 'With client'} value={kpis.clientPending} hint={fr ? 'Approbation demandée' : 'Approval requested'} loading={loading && !data} />
-        <KPICard accent="terra" label={fr ? 'Validés' : 'Approved'} value={kpis.prevValidated} hint={kpis.prevLabel} loading={loading && !data} />
-        <KPICard label={fr ? 'Jours validés' : 'Approved days'} value={kpis.prevDays} hint={kpis.prevLabel} loading={loading && !data} />
-        <KPICard accent="soft" label={fr ? 'CRA manquants' : 'Missing timesheets'} value={kpis.missing} hint={kpis.prevLabel} tone={kpis.missing ? 'rose' : 'neutral'} loading={loading && !data} />
-      </section>
+      <StatStrip
+        className="mb-3"
+        items={[
+          {
+            label: kpis?.pendingDays ? (fr ? `à valider · ${kpis.pendingDays} jours` : `to approve · ${kpis.pendingDays} days`) : fr ? 'à valider' : 'to approve',
+            value: kpis ? kpis.pending : '…',
+            tone: 'terra',
+            icon: ClipboardCheck,
+          },
+          {
+            label: fr ? `manquants · ${prevLabel}` : `missing · ${prevLabel}`,
+            value: kpis ? kpis.missing : '…',
+            tone: kpis?.missing ? 'peach' : 'ivory',
+            icon: ClipboardX,
+          },
+          {
+            label: kpis?.validatedDaysThisMonth
+              ? fr
+                ? `validés ce mois · ${kpis.validatedDaysThisMonth} jours`
+                : `approved this month · ${kpis.validatedDaysThisMonth} days`
+              : fr
+                ? 'validés ce mois'
+                : 'approved this month',
+            value: kpis ? kpis.validatedThisMonth : '…',
+            tone: 'white',
+            icon: CheckCheck,
+          },
+        ]}
+      />
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
-          <TabsList>
-            <TabsTrigger value="pending">
-              {fr ? 'À valider' : 'To approve'} <span className="num text-xs text-muted-foreground">{kpis.pending}</span>
-            </TabsTrigger>
-            <TabsTrigger value="all">{fr ? 'Tous' : 'All'}</TabsTrigger>
-            <TabsTrigger value="missing">
-              {fr ? 'Manquants' : 'Missing'} <span className="num text-xs text-muted-foreground">{kpis.missing}</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-        {tab === 'all' && (
-          <Select value={period} onChange={(e) => setPeriod(e.target.value)} className="w-48" aria-label={fr ? 'Période' : 'Period'}>
+      <div className="mb-3 flex shrink-0 flex-wrap items-center gap-2">
+        <Segmented<View>
+          label={fr ? 'Vue' : 'View'}
+          value={view}
+          onChange={(v) => {
+            setView(v);
+            setSelected(new Set());
+          }}
+          options={[
+            { value: 'pending', label: fr ? 'Validation rapide' : 'Quick approval', count: kpis?.pending },
+            { value: 'missing', label: fr ? 'Manquants' : 'Missing', count: kpis?.missing },
+            { value: 'all', label: fr ? 'Tous' : 'All' },
+          ]}
+        />
+        <div className="relative w-full sm:w-64">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={fr ? 'Consultant, mission, client' : 'Consultant, mission, client'} className="pl-9" aria-label={fr ? 'Rechercher' : 'Search'} />
+        </div>
+        {view === 'all' && (
+          <Select value={period} onChange={(e) => setPeriod(e.target.value)} className="sm:w-48" aria-label={fr ? 'Période' : 'Period'}>
             <option value="all">{fr ? 'Toutes les périodes' : 'All periods'}</option>
             {periods.map((p) => {
               const [y, m] = p.split('-').map(Number);
@@ -365,27 +423,64 @@ export default function TimesheetsPage() {
             })}
           </Select>
         )}
+        {view === 'pending' && canValidate && rows.length > 1 && selected.size === 0 && (
+          <Button variant="secondary" className="sm:ml-auto" onClick={() => setSelected(new Set(rows.map((r) => r.id)))}>
+            <CheckCheck />
+            {fr ? 'Tout sélectionner' : 'Select all'}
+          </Button>
+        )}
+        {view === 'missing' && canValidate && missing.length > 1 && (
+          <Button variant="secondary" className="sm:ml-auto" onClick={() => void remindAll()} loading={bulkBusy}>
+            <BellRing />
+            {fr ? `Relancer les ${missing.length}` : `Remind all ${missing.length}`}
+          </Button>
+        )}
       </div>
 
-      {tab === 'missing' ? (
-        (data?.missing ?? []).length === 0 ? (
-          <EmptyState icon={ClipboardCheck} title={fr ? 'Aucun CRA manquant' : 'No missing timesheet'} description={fr ? 'Toutes les missions actives ont transmis leur CRA du mois dernier.' : 'All active missions have submitted last month’s timesheet.'} />
+      {view === 'pending' && selectedRows.length > 0 && canValidate && (
+        <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-app-terra/20 bg-app-peach-light px-4 py-2">
+          <span className="num text-[13px] font-medium text-app-terra-deep">
+            {fr
+              ? `${selectedRows.length} CRA sélectionné${selectedRows.length > 1 ? 's' : ''} · ${selectedDays} jours`
+              : `${selectedRows.length} timesheet${selectedRows.length > 1 ? 's' : ''} selected · ${selectedDays} days`}
+          </span>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => void validateMany(selectedRows)} loading={bulkBusy}>
+              <CheckCheck />
+              {fr ? 'Valider la sélection' : 'Approve selection'}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())} disabled={bulkBusy}>
+              {fr ? 'Annuler' : 'Cancel'}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {view === 'missing' ? (
+        missing.length === 0 ? (
+          <EmptyState
+            icon={ClipboardCheck}
+            title={fr ? 'Aucun CRA manquant' : 'No missing timesheet'}
+            description={fr ? `Toutes les missions actives ont transmis leur CRA de ${prevLabel}.` : `All active missions have submitted their ${prevLabel} timesheet.`}
+          />
         ) : (
-          <div className="tile-surface overflow-hidden">
-            <ul className="divide-y divide-border">
-              {(data?.missing ?? []).map((m) => (
+          <div className="tile-surface flex min-h-0 flex-1 flex-col overflow-hidden">
+            <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto">
+              {missing.map((m) => (
                 <li key={m.mission_id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center">
+                  <Avatar name={m.consultant} size="sm" />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13.5px] font-medium">{m.consultant}</div>
                     <div className="truncate text-xs text-muted-foreground">
                       <Link href={`/missions/${m.mission_id}`} className="hover:text-foreground">
                         {m.title}
                       </Link>
-                      {m.client ? ` · ${m.client}` : ''} · {periodLabel(m.month, m.year, lang)}
+                      {m.client ? ` · ${m.client}` : ''}
                     </div>
                   </div>
+                  <span className="text-[13px] capitalize text-muted-foreground">{periodLabel(m.month, m.year, lang)}</span>
                   {canValidate && (
-                    <Button variant="secondary" size="sm" loading={busy === m.mission_id} onClick={() => void remind(m)}>
+                    <Button variant="secondary" size="sm" loading={busy === m.mission_id} disabled={bulkBusy} onClick={() => void remind(m)}>
                       <BellRing />
                       {fr ? 'Relancer' : 'Remind'}
                     </Button>
@@ -397,30 +492,77 @@ export default function TimesheetsPage() {
         )
       ) : (
         <DataTable
+          fill
           aria-label={fr ? 'Comptes rendus d’activité' : 'Timesheets'}
           rows={rows}
           columns={columns}
           getRowId={(r) => r.id}
           rowHref={(r) => `/timesheets/${r.id}`}
-          rowActions={(r) => linkActions(`/timesheets/${r.id}`, fr)}
-          tableId="timesheets"
+          onRowClick={(r) => setQuickId(r.id)}
+          rowActions={(r) => [
+            { label: fr ? 'Aperçu du mois' : 'Month preview', icon: Eye, onSelect: () => setQuickId(r.id) },
+            ...linkActions(`/timesheets/${r.id}`, fr).map((a, i) => (i === 0 ? { ...a, separatorBefore: true } : a)),
+          ]}
+          tableId={view === 'pending' ? 'timesheets-approval' : 'timesheets'}
           loading={loading && !data}
-          initialSort={{ id: 'period', dir: 'desc' }}
+          selectable={view === 'pending' && canValidate}
+          selected={selected}
+          onSelectedChange={setSelected}
+          initialSort={view === 'pending' ? { id: 'submitted', dir: 'asc' } : { id: 'period', dir: 'desc' }}
           empty={
             <EmptyState
               icon={ClipboardCheck}
-              title={tab === 'pending' ? (fr ? 'Aucun CRA à valider' : 'Nothing to approve') : fr ? 'Aucun CRA' : 'No timesheet'}
-              description={
-                tab === 'pending'
+              title={
+                query.trim()
                   ? fr
-                    ? 'Les CRA soumis par vos consultants apparaîtront ici.'
-                    : 'Timesheets submitted by consultants will show up here.'
+                    ? 'Aucun résultat'
+                    : 'No results'
+                  : view === 'pending'
+                    ? fr
+                      ? 'Aucun CRA à valider'
+                      : 'Nothing to approve'
+                    : fr
+                      ? 'Aucun CRA'
+                      : 'No timesheet'
+              }
+              description={
+                !query.trim() && view === 'pending'
+                  ? kpis?.missing
+                    ? fr
+                      ? `Tout est validé. ${kpis.missing} CRA de ${prevLabel} manque${kpis.missing > 1 ? 'nt' : ''} encore.`
+                      : `All approved. ${kpis.missing} ${prevLabel} timesheet(s) still missing.`
+                    : fr
+                      ? 'Les CRA soumis par vos consultants apparaîtront ici.'
+                      : 'Timesheets submitted by consultants will show up here.'
                   : undefined
+              }
+              action={
+                !query.trim() && view === 'pending' && kpis?.missing ? (
+                  <Button variant="secondary" onClick={() => setView('missing')}>
+                    <BellRing />
+                    {fr ? 'Voir les manquants' : 'See missing'}
+                  </Button>
+                ) : undefined
               }
             />
           }
+          className={cn(selectedRows.length > 0 && 'ring-1 ring-app-terra/20')}
         />
       )}
+
+      <TimesheetQuickView
+        row={quick}
+        open={!!quick}
+        onOpenChange={(v) => !v && setQuickId(null)}
+        lang={lang}
+        canValidate={canValidate}
+        busy={!!quick && busy === quick.id}
+        onValidate={(r) => void validate(r)}
+        onReject={(r) => {
+          setRejecting(r);
+          setReason('');
+        }}
+      />
 
       <Dialog open={!!rejecting} onOpenChange={(v) => !v && setRejecting(null)}>
         <DialogContent>
@@ -430,7 +572,14 @@ export default function TimesheetsPage() {
               {fr ? 'Le motif est visible par le consultant, qui pourra corriger et soumettre à nouveau.' : 'The reason is shown to the consultant, who can fix and resubmit.'}
             </DialogDescription>
           </DialogHeader>
-          <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={4} maxLength={1000} placeholder={fr ? 'ex. Le 14 était un jour férié chez le client.' : 'e.g. The 14th was a holiday at the client.'} aria-label={fr ? 'Motif' : 'Reason'} />
+          <Textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={4}
+            maxLength={1000}
+            placeholder={fr ? 'ex. Le 14 était un jour férié chez le client.' : 'e.g. The 14th was a holiday at the client.'}
+            aria-label={fr ? 'Motif' : 'Reason'}
+          />
           <DialogFooter>
             <Button variant="ghost" onClick={() => setRejecting(null)}>
               {fr ? 'Annuler' : 'Cancel'}
@@ -440,7 +589,10 @@ export default function TimesheetsPage() {
               disabled={!reason.trim()}
               loading={!!rejecting && busy === rejecting.id}
               onClick={async () => {
-                if (rejecting && (await transition(rejecting, 'reject', reason))) setRejecting(null);
+                if (rejecting && (await transition(rejecting, 'reject', reason))) {
+                  setRejecting(null);
+                  setQuickId(null);
+                }
               }}
             >
               {fr ? 'Renvoyer' : 'Send back'}

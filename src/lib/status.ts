@@ -96,6 +96,11 @@ export function statusOf(map: Record<string, StatusDef>, key: string | null | un
   return { label: def?.label[lang] ?? key ?? '—', tone: def?.tone ?? ('neutral' as StatusTone) };
 }
 
+/** Période courte pour les tableaux : « sept. 2026 ». */
+export function periodLabelShort(month: number, year: number, lang: 'fr' | 'en'): string {
+  return new Date(year, month - 1, 1).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB', { month: 'short', year: 'numeric' });
+}
+
 export function periodLabel(month: number, year: number, lang: 'fr' | 'en'): string {
   const s = new Date(year, month - 1, 1).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB', { month: 'long', year: 'numeric' });
   return s.charAt(0).toUpperCase() + s.slice(1);

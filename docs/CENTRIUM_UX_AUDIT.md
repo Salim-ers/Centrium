@@ -100,7 +100,7 @@ DetailDrawer, SegmentedControl / tabs, EmptyState, StatusBadge, Avatar.
 | 8 | Dossiers de compétences, modèles neutres | à faire |
 | 9 | Staffing (planning plein écran, 3 indicateurs, mode plein écran, couleurs revues) et centre de matching (opportunité → profils expliqués → positionner ou générer le dossier) | fait |
 | 10 | Missions (liste compacte, périmètres et échéances segmentés, aperçu en tiroir, état vide utile, transformation d’une opportunité gagnée), cockpit mission (TJM, CJM, marge, jours, fin ; frise mois par mois, CRA, documents, historique) et question du renouvellement à J-30 (oui → prolongation, non → libération, à confirmer → rappel BM) | fait |
-| 11 | CRA, validation rapide | à faire |
+| 11 | CRA : 3 indicateurs (à valider, manquants, validés ce mois), centre de validation rapide (valider, rejeter, ouvrir en ligne ; sélection et validation par lot ; aperçu du mois en tiroir), relance groupée des manquants | fait |
 | 12 | Documents, devis | à faire |
 | 13 | Pilotage financier, préfacturation, export | à faire |
 | 14 | Analytics 4 vues | à faire |
