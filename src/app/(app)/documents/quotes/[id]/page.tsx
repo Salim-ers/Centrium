@@ -9,6 +9,7 @@ import { Check, CopyPlus, FileText, Pencil, Printer, RotateCcw, Send, TimerOff, 
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader } from '@/components/app';
 import { EmptyState } from '@/components/app/EmptyState';
+import { DocumentCanvas } from '@/components/app/DocumentCanvas';
 import { FactList } from '@/components/app/FactList';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -130,7 +131,7 @@ export default function QuoteDetailPage() {
 
   if (editing && q.status === 'draft') {
     return (
-      <AppShell>
+      <AppShell fill>
         <PageHeader backHref={`/documents/quotes/${q.id}`} title={fr ? `Modifier ${q.number ?? 'le devis'}` : `Edit ${q.number ?? 'quote'}`} />
         <QuoteEditor
           quoteId={q.id}
@@ -159,7 +160,7 @@ export default function QuoteDetailPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell fill>
       <div className="no-print">
         <PageHeader
           backHref="/documents?tab=quotes"
@@ -227,8 +228,18 @@ export default function QuoteDetailPage() {
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="print-only overflow-x-auto">
+      <div className="print-only hidden print:block">
+        <QuoteDocument
+          quote={q}
+          items={data.items}
+          branding={branding}
+          client={data.company ? { name: data.company.name, address: data.company.address, city: data.company.city } : null}
+          contact={contactName ? { name: contactName, email: data.contact?.email } : null}
+        />
+      </div>
+
+      <div className="grid gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_19rem]">
+        <DocumentCanvas title={<h2 className="text-[13.5px] font-semibold">{q.number ?? (fr ? 'Brouillon' : 'Draft')}</h2>}>
           <QuoteDocument
             quote={q}
             items={data.items}
@@ -236,9 +247,9 @@ export default function QuoteDetailPage() {
             client={data.company ? { name: data.company.name, address: data.company.address, city: data.company.city } : null}
             contact={contactName ? { name: contactName, email: data.contact?.email } : null}
           />
-        </div>
+        </DocumentCanvas>
 
-        <aside className="no-print space-y-4">
+        <aside className="no-print no-scrollbar space-y-4 lg:min-h-0 lg:overflow-y-auto">
           <Card>
             <CardHeader>
               <CardTitle>{fr ? 'Synthèse' : 'Summary'}</CardTitle>

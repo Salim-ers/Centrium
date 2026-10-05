@@ -63,8 +63,8 @@ export function ContractDocument({ contract, issuer }: Props) {
   const c = contract;
   const iss = issuer ?? FALLBACK_ISSUER;
   const isSigned = !!c.signed_at;
-  const primary = iss.primaryColor || '#C65F46';
-  const accent = iss.accentColor || '#9D4432';
+  const primary = iss.primaryColor || '#23201d';
+  const accent = iss.accentColor || '#8a7a66';
   // Contrat CLIENT : l'ESN est le PRESTATAIRE et l'entreprise cliente la
   // contrepartie. Contrat CONSULTANT (historique) : l'ESN est le DONNEUR
   // D'ORDRE et la société du freelance le prestataire.

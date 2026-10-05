@@ -29,12 +29,7 @@ export async function exportJobOfferPoster(
   ]);
 
   const resolved = brand ?? resolvePosterBrand(null);
-  const effectiveLogo =
-    logoSrc ??
-    resolved.logoUrl ??
-    (typeof window !== 'undefined'
-      ? `${window.location.origin}/brand/quadcore-logo-dark.png`
-      : undefined);
+  const effectiveLogo = logoSrc ?? resolved.logoUrl ?? undefined;
 
   const doc = (
     <mod.JobOfferPosterPDF

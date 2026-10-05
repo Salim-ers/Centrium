@@ -34,8 +34,8 @@ const DEFAULT_ISSUER: TimesheetIssuer = {
   logoUrl: null,
   footerTagline: 'IT Services & Consulting',
   signatureUrl: null,
-  primaryColor: '#C65F46',
-  accentColor: '#9D4432',
+  primaryColor: '#23201d',
+  accentColor: '#8a7a66',
   representativeName: 'QuadCore SAS',
   representativeTitle: 'Direction commerciale',
 };
@@ -81,8 +81,8 @@ export function TimesheetDocument({
   issuer,
 }: Props) {
   const iss = issuer ?? DEFAULT_ISSUER;
-  const primary = iss.primaryColor || '#C65F46';
-  const accent = iss.accentColor || '#9D4432';
+  const primary = iss.primaryColor || '#23201d';
+  const accent = iss.accentColor || '#8a7a66';
   const monthName = MONTH_NAMES_FR[timesheet.period_month - 1];
   const periodLabel = `${monthName} ${timesheet.period_year}`;
 
@@ -100,7 +100,7 @@ export function TimesheetDocument({
     >
       <header className="px-12 pt-10 pb-6">
         <div className="flex items-start justify-between gap-6">
-          <QuadCoreLogo size="md" src={iss.logoUrl} alt={iss.brandName} />
+          <QuadCoreLogo size="md" src={iss.logoUrl} alt={iss.brandName} brandName={iss.brandName} primaryColor={iss.primaryColor} />
           <div className="text-right">
             <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
               Compte rendu d&apos;activité

@@ -32,7 +32,7 @@ export function Header() {
   }, []);
 
   return (
-    <header className="relative z-20 flex h-14 shrink-0 items-center gap-2 border-b border-black/[0.05] bg-background/85 px-3 backdrop-blur-md sm:px-5">
+    <header className="no-print relative z-20 flex h-14 shrink-0 items-center gap-2 border-b border-black/[0.05] bg-background/85 px-3 backdrop-blur-md sm:px-5">
       <MobileNav />
       <Link href="/dashboard" className="md:hidden" aria-label={lang === 'fr' ? 'Accueil' : 'Home'}>
         <CentriumLogo className="h-7 w-7" />

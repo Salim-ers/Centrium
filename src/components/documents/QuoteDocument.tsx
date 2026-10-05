@@ -29,7 +29,7 @@ export function QuoteDocument({
   client: { name: string; address?: string | null; city?: string | null } | null;
   contact: { name: string; email?: string | null } | null;
 }) {
-  const accent = branding?.primaryColor && HEX.test(branding.primaryColor) ? branding.primaryColor : '#C65F46';
+  const accent = branding?.primaryColor && HEX.test(branding.primaryColor) ? branding.primaryColor : '#23201d';
   const ht = items.reduce((s, i) => s + Math.round(Number(i.quantity) * Number(i.unit_price) * 100) / 100, 0);
   const vat = Math.round(ht * (Number(quote.vat_rate) / 100) * 100) / 100;
   const ttc = ht + vat;

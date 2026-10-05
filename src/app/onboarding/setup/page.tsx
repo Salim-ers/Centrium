@@ -22,7 +22,6 @@ import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/Combobox';
 import { useOrganization } from '@/lib/auth/context';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { CentriumMark } from '@/components/brand/CentriumMark';
 
 const DEFAULT_PRIMARY = '#C65F46';
@@ -505,7 +504,7 @@ export default function OnboardingSetupPage() {
                       className="max-h-full max-w-full object-contain"
                     />
                   ) : (
-                    <QuadCoreLogo size="sm" variant="light" />
+                    <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{isEn ? 'No logo' : 'Aucun logo'}</span>
                   )}
                 </div>
                 <div className="space-y-2">

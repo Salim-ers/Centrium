@@ -3,18 +3,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Download, FileSignature, FileText, Lock, Plus, Search, Upload } from 'lucide-react';
+import { CheckCircle2, Download, FileSignature, FileText, Gauge, Lock, PencilLine, Plus, Search, Send, Upload } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { PageHeader, KPICard } from '@/components/app';
+import { PageHeader } from '@/components/app';
+import { StatStrip } from '@/components/app/StatStrip';
+import { Segmented } from '@/components/app/Segmented';
 import { EmptyState } from '@/components/app/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent } from '@/components/ui/card';
 import { StatusPill } from '@/components/ui/status-pill';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DataTable, type Column, linkActions } from '@/components/ui/data-table';
 import { DocumentUploadDrawer } from '@/components/documents/DocumentUploadDrawer';
 import { DocumentDetailDrawer, VISIBILITY_LABEL, fileSize } from '@/components/documents/DocumentDetailDrawer';
@@ -267,15 +267,11 @@ export default function DocumentsPage() {
   ];
 
   return (
-    <AppShell>
-      <PageHeader tabs={<SectionTabs section="operations" />}
-        eyebrow={fr ? 'Opérations' : 'Operations'}
-        title={fr ? 'Devis & documents' : 'Quotes & documents'}
-        description={
-          fr
-            ? 'Devis numérotés et versionnés, documents de mission et contrats, partagés au client ou au consultant quand vous le décidez.'
-            : 'Numbered, versioned quotes, mission documents and contracts, shared with clients or consultants when you decide.'
-        }
+    <AppShell fill>
+      <PageHeader
+        title="Documents"
+        description={fr ? 'Devis, documents de mission, contrats et modèles, aux couleurs de votre organisation.' : 'Quotes, mission documents, contracts and templates, in your organization’s colors.'}
+        tabs={<SectionTabs section="operations" />}
         actions={
           canEdit && (
             <>
@@ -287,7 +283,7 @@ export default function DocumentsPage() {
                 }}
               >
                 <Upload />
-                {fr ? 'Déposer un document' : 'Upload'}
+                {fr ? 'Déposer' : 'Upload'}
               </Button>
               <Button asChild>
                 <Link href="/documents/quotes/new">
@@ -298,79 +294,57 @@ export default function DocumentsPage() {
             </>
           )
         }
-      >
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList variant="underline">
-            <TabsTrigger value="quotes">{fr ? 'Devis' : 'Quotes'}</TabsTrigger>
-            <TabsTrigger value="library">{fr ? 'Bibliothèque' : 'Library'}</TabsTrigger>
-            <TabsTrigger value="contracts">{fr ? 'Contrats' : 'Contracts'}</TabsTrigger>
-            <TabsTrigger value="templates">{fr ? 'Modèles' : 'Templates'}</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </PageHeader>
+      />
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsContent value="quotes" className="mt-0 space-y-5">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KPICard accent="peach" label={fr ? 'Devis en attente' : 'Pending quotes'} value={quoteKpis.pendingCount} loading={loading && !data} hint={formatEurCompact(quoteKpis.pendingAmount, lang)} />
-            <KPICard accent="terra" label={fr ? 'Acceptés (12 mois)' : 'Accepted (12 months)'} value={quoteKpis.acceptedAmount} format={(n) => formatEurCompact(n, lang)} loading={loading && !data} />
-            <KPICard
-              label={fr ? 'Taux d’acceptation' : 'Acceptance rate'}
-              valueText={quoteKpis.rate != null ? formatPct(quoteKpis.rate, lang, 0) : '—'}
-              hint={fr ? 'Devis décidés sur 12 mois' : 'Decided quotes, 12 months'}
-              loading={loading && !data}
+      {tab === 'quotes' && (
+        <StatStrip
+          className="mb-3"
+          items={[
+            { label: fr ? `devis en attente · ${formatEurCompact(quoteKpis.pendingAmount, lang)}` : `pending quotes · ${formatEurCompact(quoteKpis.pendingAmount, lang)}`, value: loading && !data ? '…' : quoteKpis.pendingCount, tone: 'terra', icon: Send },
+            { label: fr ? 'acceptés sur 12 mois' : 'accepted, 12 months', value: loading && !data ? '…' : formatEurCompact(quoteKpis.acceptedAmount, lang), tone: 'peach', icon: CheckCircle2 },
+            { label: fr ? 'taux d’acceptation · 12 mois' : 'acceptance rate · 12 months', value: quoteKpis.rate != null ? formatPct(quoteKpis.rate, lang, 0) : '—', tone: 'ivory', icon: Gauge },
+            { label: fr ? 'brouillons' : 'drafts', value: loading && !data ? '…' : quoteKpis.drafts, tone: 'white', icon: PencilLine },
+          ]}
+        />
+      )}
+
+      <div className="mb-3 flex shrink-0 flex-wrap items-center gap-2">
+        <Segmented<string>
+          label={fr ? 'Rubrique' : 'Section'}
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: 'quotes', label: fr ? 'Devis' : 'Quotes', count: quotes.length },
+            { value: 'library', label: fr ? 'Bibliothèque' : 'Library', count: docs.latest.filter((d) => !d.archived).length },
+            { value: 'contracts', label: fr ? 'Contrats' : 'Contracts', count: data?.contracts.length },
+            { value: 'templates', label: fr ? 'Modèles' : 'Templates' },
+          ]}
+        />
+        {(tab === 'quotes' || tab === 'library') && (
+          <div className="relative w-full sm:w-64">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={tab === 'quotes' ? (fr ? 'Numéro, objet, client…' : 'Number, subject, client…') : fr ? 'Titre, fichier…' : 'Title, file…'}
+              className="pl-9"
+              aria-label={fr ? 'Rechercher' : 'Search'}
             />
-            <KPICard label={fr ? 'Brouillons' : 'Drafts'} value={quoteKpis.drafts} loading={loading && !data} />
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <div className="relative sm:max-w-xs sm:flex-1">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={fr ? 'Numéro, objet, client…' : 'Number, subject, client…'} className="pl-8" aria-label={fr ? 'Rechercher' : 'Search'} />
-            </div>
-            <Select value={quoteStatus} onChange={(e) => setQuoteStatus(e.target.value)} className="sm:w-48" aria-label={fr ? 'Statut' : 'Status'}>
-              <option value="">{fr ? 'Tous les statuts' : 'All statuses'}</option>
-              {Object.keys(QUOTE_STATUS).map((s) => (
-                <option key={s} value={s}>
-                  {statusOf(QUOTE_STATUS, s, lang).label}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <DataTable
-            rows={filteredQuotes}
-            columns={quoteColumns}
-            getRowId={(r) => r.id}
-            rowHref={(r) => `/documents/quotes/${r.id}`}
-            rowActions={(r) => linkActions(`/documents/quotes/${r.id}`, fr)}
-            tableId="quotes"
-            loading={loading && !data}
-            initialSort={{ id: 'date', dir: 'desc' }}
-            aria-label={fr ? 'Devis' : 'Quotes'}
-            empty={
-              <EmptyState
-                size="compact"
-                icon={FileText}
-                title={quotes.length ? (fr ? 'Aucun devis ne correspond' : 'No matching quote') : fr ? 'Aucun devis' : 'No quotes yet'}
-                description={quotes.length ? undefined : fr ? 'Créez un devis depuis une opportunité ou une fiche client.' : 'Create a quote from an opportunity or a client.'}
-                action={
-                  canEdit && !quotes.length ? (
-                    <Button asChild size="sm">
-                      <Link href="/documents/quotes/new">{fr ? 'Nouveau devis' : 'New quote'}</Link>
-                    </Button>
-                  ) : undefined
-                }
-              />
-            }
-          />
-        </TabsContent>
-
-        <TabsContent value="library" className="mt-0 space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="relative sm:max-w-xs sm:flex-1">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={fr ? 'Titre, fichier…' : 'Title, file…'} className="pl-8" aria-label={fr ? 'Rechercher' : 'Search'} />
-            </div>
-            <Select value={kind} onChange={(e) => setKind(e.target.value)} className="sm:w-56" aria-label="Type">
+        )}
+        {tab === 'quotes' && (
+          <Select value={quoteStatus} onChange={(e) => setQuoteStatus(e.target.value)} className="sm:w-44" aria-label={fr ? 'Statut' : 'Status'}>
+            <option value="">{fr ? 'Tous les statuts' : 'All statuses'}</option>
+            {Object.keys(QUOTE_STATUS).map((s) => (
+              <option key={s} value={s}>
+                {statusOf(QUOTE_STATUS, s, lang).label}
+              </option>
+            ))}
+          </Select>
+        )}
+        {tab === 'library' && (
+          <>
+            <Select value={kind} onChange={(e) => setKind(e.target.value)} className="sm:w-52" aria-label="Type">
               <option value="">{fr ? 'Tous les types' : 'All types'}</option>
               {Object.entries(DOCUMENT_KIND)
                 .filter(([k]) => k !== 'quote')
@@ -384,76 +358,115 @@ export default function DocumentsPage() {
               <Checkbox checked={showArchived} onCheckedChange={(c) => setShowArchived(c === true)} />
               {fr ? 'Afficher les archivés' : 'Show archived'}
             </label>
+          </>
+        )}
+      </div>
+
+      {tab === 'quotes' && (
+        <DataTable
+          fill
+          rows={filteredQuotes}
+          columns={quoteColumns}
+          getRowId={(r) => r.id}
+          rowHref={(r) => `/documents/quotes/${r.id}`}
+          rowActions={(r) => linkActions(`/documents/quotes/${r.id}`, fr)}
+          tableId="quotes"
+          loading={loading && !data}
+          initialSort={{ id: 'date', dir: 'desc' }}
+          aria-label={fr ? 'Devis' : 'Quotes'}
+          empty={
+            <EmptyState
+              icon={FileText}
+              title={quotes.length ? (fr ? 'Aucun devis ne correspond' : 'No matching quote') : fr ? 'Aucun devis' : 'No quotes yet'}
+              description={quotes.length ? undefined : fr ? 'Créez un devis depuis une opportunité, une fiche client ou ici.' : 'Create a quote from an opportunity, a client record or here.'}
+              action={
+                canEdit && !quotes.length ? (
+                  <Button asChild>
+                    <Link href="/documents/quotes/new">
+                      <Plus />
+                      {fr ? 'Nouveau devis' : 'New quote'}
+                    </Link>
+                  </Button>
+                ) : undefined
+              }
+            />
+          }
+        />
+      )}
+
+      {tab === 'library' && (
+        <DataTable
+          fill
+          rows={filteredDocs}
+          columns={docColumns}
+          getRowId={(d) => d.id}
+          onRowClick={(d) => setOpenDocId(d.id)}
+          rowActions={(d) => [{ label: fr ? 'Ouvrir' : 'Open', onSelect: () => setOpenDocId(d.id) }]}
+          tableId="documents"
+          loading={loading && !data}
+          initialSort={{ id: 'date', dir: 'desc' }}
+          aria-label="Documents"
+          empty={
+            <EmptyState
+              icon={FileText}
+              title={docs.latest.length ? (fr ? 'Aucun document ne correspond' : 'No matching document') : fr ? 'Aucun document' : 'No documents yet'}
+              description={docs.latest.length ? undefined : fr ? 'Propositions, bons de commande, documents de mission…' : 'Proposals, purchase orders, mission documents…'}
+              action={
+                canEdit && !docs.latest.length ? (
+                  <Button onClick={() => setUploadOpen(true)}>
+                    <Upload />
+                    {fr ? 'Déposer un document' : 'Upload'}
+                  </Button>
+                ) : undefined
+              }
+            />
+          }
+        />
+      )}
+
+      {tab === 'contracts' && (
+        <section className="tile-surface flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+            <p className="text-[13px] text-muted-foreground">
+              {fr ? 'Contrats de prestation et de sous-traitance générés depuis vos missions.' : 'Service and subcontracting agreements generated from your missions.'}
+            </p>
+            <Button asChild variant="secondary" size="sm">
+              <Link href="/contracts">
+                <FileSignature />
+                {fr ? 'Ouvrir les contrats' : 'Open contracts'}
+              </Link>
+            </Button>
           </div>
-          <DataTable
-            rows={filteredDocs}
-            columns={docColumns}
-            getRowId={(d) => d.id}
-            onRowClick={(d) => setOpenDocId(d.id)}
-            rowActions={(d) => [{ label: fr ? 'Ouvrir' : 'Open', onSelect: () => setOpenDocId(d.id) }]}
-            tableId="documents"
-            loading={loading && !data}
-            initialSort={{ id: 'date', dir: 'desc' }}
-            aria-label={fr ? 'Documents' : 'Documents'}
-            empty={
-              <EmptyState
-                size="compact"
-                icon={FileText}
-                title={docs.latest.length ? (fr ? 'Aucun document ne correspond' : 'No matching document') : fr ? 'Aucun document' : 'No documents yet'}
-                description={docs.latest.length ? undefined : fr ? 'Propositions, bons de commande, documents de mission…' : 'Proposals, purchase orders, mission documents…'}
-                action={
-                  canEdit && !docs.latest.length ? (
-                    <Button size="sm" onClick={() => setUploadOpen(true)}>
-                      {fr ? 'Déposer un document' : 'Upload'}
-                    </Button>
-                  ) : undefined
-                }
-              />
-            }
-          />
-        </TabsContent>
-
-        <TabsContent value="contracts" className="mt-0">
-          <Card>
-            <CardContent className="space-y-4 p-5">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="font-medium">{fr ? 'Contrats' : 'Contracts'}</h2>
-                  <p className="text-[13px] text-muted-foreground">
-                    {fr ? 'Contrats de prestation et de sous-traitance générés depuis vos missions.' : 'Service and subcontracting agreements generated from your missions.'}
-                  </p>
-                </div>
-                <Button asChild variant="secondary">
-                  <Link href="/contracts">
-                    <FileSignature />
-                    {fr ? 'Ouvrir les contrats' : 'Open contracts'}
+          {(data?.contracts ?? []).length > 0 ? (
+            <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto">
+              {data!.contracts.map((c) => (
+                <li key={c.id}>
+                  <Link href={`/contracts/${c.id}`} className="flex items-center gap-3 px-4 py-2.5 text-[13px] hover:bg-app-peach-light/40">
+                    <FileSignature className="h-4 w-4 text-muted-foreground" />
+                    <span className="min-w-0 flex-1 truncate font-medium">{c.title ?? c.contract_number ?? (fr ? 'Contrat' : 'Contract')}</span>
+                    <span className="hidden text-muted-foreground sm:inline">{c.contract_number}</span>
+                    <span className="text-muted-foreground">{formatDate(c.created_at, lang)}</span>
                   </Link>
-                </Button>
-              </div>
-              {(data?.contracts ?? []).length > 0 ? (
-                <ul className="divide-y divide-border rounded-lg border border-border">
-                  {data!.contracts.map((c) => (
-                    <li key={c.id}>
-                      <Link href={`/contracts/${c.id}`} className="flex items-center gap-3 px-4 py-2.5 text-[13px] hover:bg-muted/50">
-                        <FileSignature className="h-4 w-4 text-muted-foreground" />
-                        <span className="min-w-0 flex-1 truncate font-medium">{c.title ?? c.contract_number ?? (fr ? 'Contrat' : 'Contract')}</span>
-                        <span className="hidden text-muted-foreground sm:inline">{c.contract_number}</span>
-                        <span className="text-muted-foreground">{formatDate(c.created_at, lang)}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                !loading && <p className="text-[13px] text-muted-foreground">{fr ? 'Aucun contrat pour l’instant.' : 'No contracts yet.'}</p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            !loading && (
+              <EmptyState
+                icon={FileSignature}
+                title={fr ? 'Aucun contrat pour l’instant' : 'No contracts yet'}
+                description={fr ? 'Générez un contrat depuis une mission.' : 'Generate a contract from a mission.'}
+              />
+            )
+          )}
+        </section>
+      )}
 
-        <TabsContent value="templates" className="mt-0">
+      {tab === 'templates' && (
+        <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
           <TemplatesPanel canEdit={canEdit} />
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
       <DocumentDetailDrawer
         doc={openDoc}

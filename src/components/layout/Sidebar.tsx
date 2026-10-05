@@ -252,7 +252,7 @@ export function Sidebar() {
     <aside
       data-app-sidebar
       style={{ width: collapsed ? SIDEBAR_COMPACT : SIDEBAR_EXPANDED }}
-      className="relative z-30 hidden h-dvh shrink-0 transition-[width] duration-[240ms] ease-out-soft md:block"
+      className="no-print relative z-30 hidden h-dvh shrink-0 transition-[width] duration-[240ms] ease-out-soft md:block"
     >
       <SidebarBody collapsed={collapsed} />
       {/* Encoche : congés concaves au-dessus et au-dessous de la bosse. */}

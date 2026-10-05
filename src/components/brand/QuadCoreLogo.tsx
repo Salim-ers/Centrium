@@ -90,13 +90,15 @@ export function QuadCoreLogo({
   // Si aucun overrideSrc ET un brandName est fourni → on rend une initiale
   // colorée SVG. C'est le path "tenant qui n'a pas uploadé de logo".
   // Sans brandName, on retombe sur la cascade QuadCore (marque éditrice).
-  const useInitialFallback = !overrideSrc && !!brandName;
   const [idx, setIdx] = useState(0);
+  // Logo d'organisation illisible (URL cassée) : initiale, jamais la marque éditrice.
+  const [broken, setBroken] = useState(false);
+  const useInitialFallback = (!overrideSrc || broken) && !!brandName;
 
   if (useInitialFallback) {
     const px = PX_HEIGHT[size];
     const initial = brandInitial(brandName);
-    const bg = primaryColor || '#6d28d9';
+    const bg = primaryColor || '#23201d';
     return (
       <div
         role="img"
@@ -119,19 +121,19 @@ export function QuadCoreLogo({
   }
 
   // Mode classique : image (override ou cascade QuadCore).
-  const cascade = overrideSrc
-    ? [overrideSrc, ...CASCADES[variant ?? 'default']]
-    : CASCADES[variant ?? 'default'];
+  if (overrideSrc && broken) return null;
+  const cascade = overrideSrc ? [overrideSrc] : CASCADES[variant ?? 'default'];
   const src = withCacheBuster(cascade[idx], cacheKey);
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
-      alt={alt ?? brandName ?? 'QuadCore — IT Services & Consulting'}
+      alt={alt ?? brandName ?? ''}
       className={cn(HEIGHT[size], 'w-auto object-contain select-none', className)}
       onError={() => {
         if (idx < cascade.length - 1) setIdx(idx + 1);
+        else if (overrideSrc) setBroken(true);
       }}
       draggable={false}
     />

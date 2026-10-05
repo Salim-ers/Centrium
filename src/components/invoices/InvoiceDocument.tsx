@@ -34,8 +34,8 @@ const DEFAULT_ISSUER: InvoiceIssuer = {
   footerTagline: 'IT Services & Consulting',
   logoUrl: null,
   signatureUrl: null,
-  primaryColor: '#C65F46',
-  accentColor: '#9D4432',
+  primaryColor: '#23201d',
+  accentColor: '#8a7a66',
   representativeName: 'QuadCore SAS',
   representativeTitle: 'Direction commerciale',
   iban: null,
@@ -71,8 +71,8 @@ export function InvoiceDocument({
   issuer,
 }: Props) {
   const iss = issuer ?? DEFAULT_ISSUER;
-  const primary = iss.primaryColor || '#C65F46';
-  const accent = iss.accentColor || '#9D4432';
+  const primary = iss.primaryColor || '#23201d';
+  const accent = iss.accentColor || '#8a7a66';
   const cityLine = [iss.postalCode, iss.city].filter(Boolean).join(' ');
   const ht = Number(invoice.amount_ht);
   const vat = Number(invoice.amount_vat);
@@ -97,7 +97,7 @@ export function InvoiceDocument({
     >
       <header className="px-12 pt-6 pb-3">
         <div className="flex items-start justify-between gap-6">
-          <QuadCoreLogo size="md" src={iss.logoUrl} alt={iss.brandName} />
+          <QuadCoreLogo size="md" src={iss.logoUrl} alt={iss.brandName} brandName={iss.brandName} primaryColor={iss.primaryColor} />
           <div className="text-right">
             <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
               {isSub ? 'Facture de sous-traitance' : 'Facture'}

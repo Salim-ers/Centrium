@@ -89,7 +89,7 @@ export function QuadCoreContractAT({ contract, issuer }: Props) {
     >
       {/* Logo émetteur en haut à gauche */}
       <div className="mb-8 flex items-start justify-between">
-        <QuadCoreLogo size="lg" variant="light" src={iss.logoUrl} alt={iss.brandName} />
+        <QuadCoreLogo size="lg" variant="light" src={iss.logoUrl} alt={iss.brandName} brandName={iss.brandName} />
       </div>
 
       {/* Titre */}

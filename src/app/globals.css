@@ -361,6 +361,15 @@ html.site-cursor input, html.site-cursor textarea, html.site-cursor [contentedit
     color: black !important;
   }
   body * { visibility: hidden !important; }
+  /* La coque « un écran » (100dvh, zones qui défilent) ne doit pas
+     rogner l'impression : on rend la hauteur et le débordement au flux. */
+  .app-bg, .app-main {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    position: static !important;
+  }
   .print-only, .print-only * { visibility: visible !important; }
   .print-only {
     position: absolute !important;

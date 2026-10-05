@@ -101,7 +101,7 @@ DetailDrawer, SegmentedControl / tabs, EmptyState, StatusBadge, Avatar.
 | 9 | Staffing (planning plein écran, 3 indicateurs, mode plein écran, couleurs revues) et centre de matching (opportunité → profils expliqués → positionner ou générer le dossier) | fait |
 | 10 | Missions (liste compacte, périmètres et échéances segmentés, aperçu en tiroir, état vide utile, transformation d’une opportunité gagnée), cockpit mission (TJM, CJM, marge, jours, fin ; frise mois par mois, CRA, documents, historique) et question du renouvellement à J-30 (oui → prolongation, non → libération, à confirmer → rappel BM) | fait |
 | 11 | CRA : 3 indicateurs (à valider, manquants, validés ce mois), centre de validation rapide (valider, rejeter, ouvrir en ligne ; sélection et validation par lot ; aperçu du mois en tiroir), relance groupée des manquants | fait |
-| 12 | Documents, devis | à faire |
+| 12 | Documents sur un écran (devis, bibliothèque, contrats, modèles) ; configurateur de devis (éditeur compact à sections repliables, lignes en mini-tableau réordonnables, aperçu A4 zoomable toujours visible) ; impression propre (sans la coque) ; documents (contrats, factures, CRA, affiche) sans logo ni couleurs d’un autre éditeur en repli | fait |
 | 13 | Pilotage financier : 4 indicateurs, grand graphique, signaux à droite (concentration, intercontrat, marges sous l’objectif, encours), répartition commutable clients / consultants / missions ; préfacturation en 4 étapes (à préparer, à contrôler, prêtes à exporter, exportées) ; export CSV au format configurable, journaux, webhook ; connecteurs simulés retirés | fait |
 | 14 | Analytics 4 vues | à faire |
 | 15 | Portails | à faire |

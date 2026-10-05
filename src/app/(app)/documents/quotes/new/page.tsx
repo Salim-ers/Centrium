@@ -82,19 +82,19 @@ export default function NewQuotePage() {
   }
 
   return (
-    <AppShell>
+    <AppShell fill>
       <PageHeader
         backHref="/documents?tab=quotes"
-        backLabel={fr ? 'Devis & documents' : 'Quotes & documents'}
+        backLabel="Documents"
         title={fr ? 'Nouveau devis' : 'New quote'}
         description={fr ? 'Le numéro est attribué à l’enregistrement (DEV-AAAA-NNNN).' : 'The number is assigned on save (DEV-YYYY-NNNN).'}
       />
       {initial ? (
         <QuoteEditor initial={initial} onSaved={(q) => router.replace(`/documents/quotes/${q.id}`)} onCancel={() => router.back()} />
       ) : (
-        <div className="space-y-4">
-          <Skeleton className="h-56 w-full" />
-          <Skeleton className="h-40 w-full" />
+        <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,38rem)_minmax(0,1fr)]">
+          <Skeleton className="h-full min-h-[300px] w-full rounded-2xl" />
+          <Skeleton className="h-full min-h-[300px] w-full rounded-[22px]" />
         </div>
       )}
     </AppShell>
