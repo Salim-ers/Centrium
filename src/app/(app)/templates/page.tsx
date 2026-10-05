@@ -1,225 +1,110 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { toast } from 'sonner';
-import { FileSignature, Download, FileDown, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import Link from 'next/link';
+import { FilePlus2 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/app';
+import { Segmented } from '@/components/app/Segmented';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-
 import { CVRenderer } from '@/components/cv/CVRenderer';
-import { generateCVDocx } from '@/lib/cv/export-docx';
-import { downloadElementAsPdf } from '@/lib/pdf/download-document';
-import type { CVContent, CVTemplateId } from '@/types';
+import { DOSSIER_TEMPLATES, dossierTemplate, type DossierTemplateId } from '@/lib/cv/templates';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import type { CVContent } from '@/types';
 
-const SAMPLE_CONTENT: CVContent = {
+/**
+ * Contenu d'exemple volontairement générique (aucun nom réel) : il ne sert
+ * qu'à montrer la mise en page de chaque modèle.
+ */
+const EXAMPLE: CVContent = {
   header: {
-    displayName: 'A. S.',
-    jobTitle: 'QA Automation Confirmé',
-    subTitle: 'Playwright / TypeScript / SQL — Web & Mobile',
-    yearsExperience: 7,
-    location: 'Paris',
-    mobility: 'IDF, remote 2-3j/semaine',
-    availability: 'Disponible dès 01/07/2026',
+    displayName: 'Prénom Nom',
+    jobTitle: 'Intitulé du poste',
+    subTitle: 'Spécialité principale',
+    yearsExperience: 8,
+    location: 'Ville',
+    mobility: 'Zone de mobilité',
+    availability: 'Date de disponibilité',
   },
   summary:
-    "QA Automation Confirmé avec 7 ans d'expérience. Expertise Playwright, TypeScript, Postman. Expériences significatives : LVMH – Dior, Agorapulse, FuturMaster. Intervention récente chez LVMH – Dior.",
+    'Résumé du profil : quelques lignes sur le parcours, les domaines d’intervention et la valeur apportée aux clients. Le dossier reprend uniquement les éléments réels de la fiche consultant.',
   skillCategories: [
-    {
-      name: 'Automatisation',
-      items: ['Playwright', 'Cypress', 'Selenium'],
-      highlighted: ['Playwright'],
-    },
-    {
-      name: 'Langages',
-      items: ['TypeScript', 'Python', 'SQL'],
-      highlighted: ['TypeScript', 'SQL'],
-    },
-    { name: 'Tests / QA', items: ['Postman (API)', 'Gherkin / BDD'], highlighted: ['Postman (API)'] },
-    { name: 'CI/CD', items: ['GitHub Actions'] },
-    { name: 'Méthodologies', items: ['Agile (Scrum, SAFe)'] },
-    { name: 'Plateformes', items: ['Salesforce Commerce Cloud', 'SAP SD'] },
+    { name: 'Catégorie A', items: ['Compétence 1', 'Compétence 2', 'Compétence 3'] },
+    { name: 'Catégorie B', items: ['Compétence 4', 'Compétence 5'] },
+    { name: 'Catégorie C', items: ['Compétence 6', 'Compétence 7', 'Compétence 8'] },
   ],
   experiences: [
     {
-      id: '1',
-      consultant_id: 'x',
-      client_name: 'LVMH – Dior',
-      role: 'QA Automation Confirmé Playwright',
+      id: 'x1',
+      consultant_id: 'example',
+      client_name: 'Client A',
+      role: 'Rôle occupé',
       start_date: '2023-01-01',
       end_date: null,
-      context:
-        "Projet e-Commerce Dior. Migration SFCC headless → SFRA. Refonte des sites marchés internationaux.",
-      tasks: [
-        "Pilotage des releases côté QA",
-        "Rédaction de la stratégie de test transverse",
-        "Automatisation des tests E2E critiques (Playwright/TypeScript)",
-        "Tests API via Postman et analyse des logs d'erreurs",
-        "Collaboration avec équipes internationales",
-      ],
-      environment: ['Salesforce Commerce Cloud', 'Playwright', 'TypeScript', 'Postman', 'SAP SD'],
+      context: 'Contexte de la mission : enjeu, périmètre, équipe.',
+      tasks: ['Réalisation principale', 'Deuxième réalisation', 'Troisième réalisation'],
+      environment: ['Outil 1', 'Outil 2', 'Outil 3'],
       order_index: 1,
       created_at: '',
     },
     {
-      id: '2',
-      consultant_id: 'x',
-      client_name: 'Agorapulse',
-      role: 'QA Automatisation',
-      start_date: '2022-01-01',
-      end_date: '2023-01-01',
-      context: "Éditeur SaaS gestion réseaux sociaux. Équipe agile.",
-      tasks: [
-        "Contribution aux cérémonies scrum",
-        "Rédaction des critères d'acceptation en Gherkin",
-        "Automatisation des TNR avec Cypress",
-        "Mise en place CI/CD via GitHub Actions",
-      ],
-      environment: ['Jira', 'Postman', 'Cypress', 'GitHub Actions'],
+      id: 'x2',
+      consultant_id: 'example',
+      client_name: 'Client B',
+      role: 'Rôle occupé',
+      start_date: '2020-03-01',
+      end_date: '2022-12-01',
+      context: 'Contexte de la mission.',
+      tasks: ['Réalisation principale', 'Deuxième réalisation'],
+      environment: ['Outil 1', 'Outil 4'],
       order_index: 2,
       created_at: '',
     },
   ],
-  educations: [
-    {
-      id: 'e1',
-      consultant_id: 'x',
-      year: 2020,
-      degree: 'Mastère Management et Conseil en SI',
-      institution: null,
-      created_at: '',
-    },
-    {
-      id: 'e2',
-      consultant_id: 'x',
-      year: 2018,
-      degree: 'Licence Ingénierie du Web',
-      institution: null,
-      created_at: '',
-    },
-  ],
+  educations: [{ id: 'e1', consultant_id: 'example', year: 2016, degree: 'Diplôme', institution: 'École', created_at: '' }],
   languages: [
     { code: 'fr', level: 'Natif' },
     { code: 'en', level: 'Professionnel' },
   ],
 };
 
-const TEMPLATE_DESCRIPTIONS: Record<CVTemplateId, { title: string; body: string }> = {
-  standard: {
-    title: 'Standard — Profils confirmés (2-7 ans)',
-    body: 'Équilibré, toutes sections visibles. Idéal pour la plupart des consultants.',
-  },
-  dense: {
-    title: 'Dense — Profils seniors avec >4 expériences',
-    body: "Deux colonnes avec sidebar sombre. Tient sur 2 pages même avec beaucoup d'expériences.",
-  },
-  executive: {
-    title: 'Executive — Directeurs, leads, architectes',
-    body: 'Résumé exécutif proéminent, moins de technique, plus de pilotage. Impact visuel maximal.',
-  },
-};
-
+/** Modèles de dossier : les quatre mises en page, aux couleurs de l'organisation. */
 export default function TemplatesPage() {
-  const [template, setTemplate] = useState<CVTemplateId>('standard');
-  const [exporting, setExporting] = useState<'pdf' | 'docx' | null>(null);
-  const docRef = useRef<HTMLDivElement | null>(null);
-
-  async function exportPDF() {
-    setExporting('pdf');
-    try {
-      await downloadElementAsPdf(docRef.current, {
-        fileName: `CV_Centrium_${template}_demo`,
-      });
-    } finally {
-      setExporting(null);
-    }
-  }
-
-  async function exportDOCX() {
-    setExporting('docx');
-    try {
-      const blob = await generateCVDocx(SAMPLE_CONTENT);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `CV_Centrium_${template}_demo.docx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success('DOCX téléchargé');
-    } catch (e) {
-      console.error(e);
-      toast.error('Erreur export DOCX');
-    } finally {
-      setExporting(null);
-    }
-  }
-
-  const desc = TEMPLATE_DESCRIPTIONS[template];
+  const { locale } = useLocale();
+  const fr = locale !== 'en';
+  const [template, setTemplate] = useState<DossierTemplateId>('standard');
+  const t = dossierTemplate(template);
 
   return (
     <AppShell>
-      <div className="no-print mb-8">
-        <h1 className="font-display text-3xl font-bold tracking-tight flex items-center gap-3">
-          <FileSignature className="h-7 w-7 text-primary" />
-          Templates CV Centrium
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Trois variantes propriétaires pour couvrir tous les profils consultants.
-        </p>
+      <PageHeader
+        title={fr ? 'Modèles de dossier' : 'Dossier templates'}
+        description={
+          fr
+            ? 'Quatre mises en page neutres, habillées par votre logo et vos couleurs (Paramètres › Branding).'
+            : 'Four neutral layouts, dressed with your logo and colors (Settings › Branding).'
+        }
+        actions={
+          <Button asChild>
+            <Link href="/cv-optimizer">
+              <FilePlus2 />
+              {fr ? 'Créer un dossier' : 'Create a dossier'}
+            </Link>
+          </Button>
+        }
+      />
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <Segmented<DossierTemplateId>
+          label={fr ? 'Modèle' : 'Template'}
+          value={template}
+          onChange={setTemplate}
+          options={DOSSIER_TEMPLATES.map((d) => ({ value: d.id, label: `${d.number} ${d.name}` }))}
+        />
+        <p className="text-[13px] text-muted-foreground">{t.description[fr ? 'fr' : 'en']}</p>
       </div>
-
-      <div className="no-print">
-        <Tabs value={template} onValueChange={(v) => setTemplate(v as CVTemplateId)}>
-          <TabsList>
-            <TabsTrigger value="standard">Centrium Standard</TabsTrigger>
-            <TabsTrigger value="dense">Centrium Dense</TabsTrigger>
-            <TabsTrigger value="executive">Centrium Executive</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value={template}>
-            <div className="mb-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">{desc.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{desc.body}</p>
-                  <div className="mt-4 flex items-center gap-2 flex-wrap">
-                    <Button onClick={exportPDF} disabled={exporting !== null}>
-                      {exporting === 'pdf' ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4" />
-                      )}
-                      Télécharger PDF
-                    </Button>
-                    <Button variant="outline" onClick={exportDOCX} disabled={exporting !== null}>
-                      {exporting === 'docx' ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <FileDown className="h-4 w-4" />
-                      )}
-                      Télécharger Word (.docx)
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div ref={docRef} className="overflow-auto bg-muted p-6 rounded-xl">
-              <CVRenderer content={SAMPLE_CONTENT} templateId={template} />
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      {/* Version imprimable plein écran */}
-      <div className="print-only hidden print:block">
-        <CVRenderer content={SAMPLE_CONTENT} templateId={template} />
+      <div className="overflow-auto rounded-2xl bg-app-sand/50 p-6">
+        <CVRenderer content={EXAMPLE} templateId={template} />
       </div>
     </AppShell>
   );

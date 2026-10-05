@@ -97,7 +97,7 @@ DetailDrawer, SegmentedControl / tabs, EmptyState, StatusBadge, Avatar.
 | 5 | Dashboard un écran (grille 12 × 6, 4 vues, mise en route compacte) | fait |
 | 6 | CRM (onglets, kanban plein écran, tiroir d’aperçu, liste, clients, contacts, fiche client 4 onglets) | fait |
 | 7 | Talents (un écran, 3 indicateurs, barre unique, filtres en tiroir, 25 / page, aperçu) | fait |
-| 8 | Dossiers de compétences, modèles neutres | à faire |
+| 8 | Dossiers de compétences : quatre modèles neutres (Minimal, Consulting, Executive, Compact) en aperçu et en PDF, habillés par le branding de l’organisation (repli neutre, plus aucun logo ni nom d’un autre éditeur) ; atelier réglages à gauche, aperçu zoomable (50 / 75 / 100 %, largeur, page) à droite | fait |
 | 9 | Staffing (planning plein écran, 3 indicateurs, mode plein écran, couleurs revues) et centre de matching (opportunité → profils expliqués → positionner ou générer le dossier) | fait |
 | 10 | Missions (liste compacte, périmètres et échéances segmentés, aperçu en tiroir, état vide utile, transformation d’une opportunité gagnée), cockpit mission (TJM, CJM, marge, jours, fin ; frise mois par mois, CRA, documents, historique) et question du renouvellement à J-30 (oui → prolongation, non → libération, à confirmer → rappel BM) | fait |
 | 11 | CRA : 3 indicateurs (à valider, manquants, validés ce mois), centre de validation rapide (valider, rejeter, ouvrir en ligne ; sélection et validation par lot ; aperçu du mois en tiroir), relance groupée des manquants | fait |

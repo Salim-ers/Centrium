@@ -9,50 +9,26 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { useOrganization } from '@/lib/auth/context';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { PageHeader } from '@/components/app';
 import { Segmented } from '@/components/app/Segmented';
 import { DossierPreview, PortalPreview, QuotePreview } from '@/components/settings/BrandPreview';
 import { cn } from '@/lib/utils';
+import { DOSSIER_TEMPLATES } from '@/lib/cv/templates';
 
 const DEFAULT_PRIMARY = '#C65F46';
 const DEFAULT_ACCENT = '#9D4432';
 
 type TemplateId = 'standard' | 'dense' | 'executive';
 
-const TEMPLATE_OPTIONS: Array<{
-  id: TemplateId;
-  name: string;
-  description: string;
-  description_en: string;
-}> = [
-  {
-    id: 'standard',
-    name: 'Standard',
-    description:
-      'Équilibré, lisible. Bon défaut pour la majorité des profils. Édition inline supportée.',
-    description_en:
-      'Balanced and readable. A solid default for most profiles. Inline editing supported.',
-  },
-  {
-    id: 'dense',
-    name: 'Dense',
-    description:
-      'Typographie serrée, header sombre. Idéal pour les profils seniors avec 8+ missions.',
-    description_en:
-      'Tight typography, dark header. Ideal for senior profiles with 8+ assignments.',
-  },
-  {
-    id: 'executive',
-    name: 'Executive',
-    description:
-      'Très aéré, typo large. Conseillé pour les profils lead, architectes, direction.',
-    description_en:
-      'Very airy, large typography. Recommended for lead, architect and management profiles.',
-  },
-];
+// Modèles enregistrables comme défaut (Minimal se choisit dossier par dossier).
+const TEMPLATE_OPTIONS = DOSSIER_TEMPLATES.filter((t) => t.persistable).map((t) => ({
+  id: t.id as TemplateId,
+  name: `${t.number} — ${t.name}`,
+  description: t.description.fr,
+  description_en: t.description.en,
+}));
 
 type Branding = {
   id: string;
@@ -351,7 +327,7 @@ export default function BrandingSettingsPage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" />
                   ) : (
-                    <QuadCoreLogo size="sm" variant="light" />
+                    <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{isEn ? 'No logo' : 'Aucun logo'}</span>
                   )}
                 </div>
                 <div className="min-w-0 space-y-1.5">

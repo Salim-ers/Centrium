@@ -1,6 +1,5 @@
 'use client';
 
-import { QuadCoreLogo } from '@/components/brand/QuadCoreLogo';
 import { cn } from '@/lib/utils';
 
 export type BrandPreviewProps = {
@@ -18,12 +17,15 @@ function Bar({ w, className }: { w: string; className?: string }) {
   return <span className={cn('block h-[5px] rounded-full bg-black/10', className)} style={{ width: w }} />;
 }
 
-function Logo({ logoUrl, className }: { logoUrl: string | null; className?: string }) {
+/** Logo de l'organisation ; sans logo, son nom (comme sur les vrais documents). */
+function Logo({ logoUrl, name, color, className }: { logoUrl: string | null; name: string; color: string; className?: string }) {
   return logoUrl ? (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={logoUrl} alt="" className={cn('w-auto object-contain', className)} />
   ) : (
-    <QuadCoreLogo size="sm" variant="light" />
+    <span className="text-[11px] font-bold" style={{ color }}>
+      {name}
+    </span>
   );
 }
 
@@ -37,7 +39,7 @@ export function DossierPreview(p: BrandPreviewProps) {
   return (
     <div className="mx-auto flex aspect-[210/297] w-full max-w-[440px] flex-col bg-white p-[7%] text-[#1f1b18] shadow-[0_18px_40px_-24px_rgba(25,22,20,.45)]">
       <div className="flex items-center justify-between">
-        <Logo logoUrl={p.logoUrl} className="h-7" />
+        <Logo logoUrl={p.logoUrl} name={p.brandName} color={p.primary} className="h-7" />
         <span className="text-[8px] font-semibold uppercase tracking-[0.16em]" style={{ color: p.accent }}>
           {fr ? 'Dossier de compétences' : 'Skills dossier'}
         </span>
@@ -97,7 +99,7 @@ export function QuotePreview(p: BrandPreviewProps) {
     <div className="mx-auto flex aspect-[210/297] w-full max-w-[440px] flex-col bg-white p-[7%] text-[#1f1b18] shadow-[0_18px_40px_-24px_rgba(25,22,20,.45)]">
       <div className="flex items-start justify-between">
         <div className="space-y-1">
-          <Logo logoUrl={p.logoUrl} className="h-7" />
+          <Logo logoUrl={p.logoUrl} name={p.brandName} color={p.primary} className="h-7" />
           <p className="pt-1 text-[8px] font-semibold">{p.brandName}</p>
           <p className="max-w-[160px] text-[7.5px] leading-snug text-black/55">{address || (fr ? 'Adresse de l’organisation' : 'Organization address')}</p>
         </div>
@@ -166,7 +168,7 @@ export function PortalPreview(p: BrandPreviewProps & { dark: boolean }) {
         <div className={cn('space-y-1.5 p-3', p.dark ? 'bg-[#1b1817]' : 'bg-white')}>
           <div className="mb-3 flex h-8 items-center">
             {p.logoUrl ? (
-              <Logo logoUrl={p.logoUrl} className="h-6" />
+              <Logo logoUrl={p.logoUrl} name={p.brandName} color={p.primary} className="h-6" />
             ) : (
               // Sans logo, le portail affiche le nom de l'organisation.
               <span className={cn('truncate text-[11px] font-bold', p.dark ? 'text-white' : 'text-[#1f1b18]')}>{p.brandName}</span>

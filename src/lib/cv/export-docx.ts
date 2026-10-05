@@ -79,12 +79,16 @@ export async function generateCVDocx(
       alignment: AlignmentType.LEFT,
       children: [
         new TextRun({ text: b.brandName, bold: true, size: 28, color: NEUTRAL_DARK }),
-        new TextRun({
-          text: `   ${b.footerTagline}`,
-          size: 14,
-          color: NEUTRAL_MUTED,
-          characterSpacing: 40,
-        }),
+        ...(b.footerTagline
+          ? [
+              new TextRun({
+                text: `   ${b.footerTagline}`,
+                size: 14,
+                color: NEUTRAL_MUTED,
+                characterSpacing: 40,
+              }),
+            ]
+          : []),
       ],
     }),
   );
@@ -325,7 +329,7 @@ export async function generateCVDocx(
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
-          text: `DOCUMENT CONFIDENTIEL — ${b.brandName} ${b.footerTagline}`,
+          text: ['DOCUMENT CONFIDENTIEL', [b.brandName, b.footerTagline].filter(Boolean).join(' ')].filter(Boolean).join(' — '),
           size: 14,
           color: NEUTRAL_MUTED,
           characterSpacing: 40,
@@ -335,7 +339,7 @@ export async function generateCVDocx(
   );
 
   const doc = new Document({
-    creator: `${b.brandName} Platform`,
+    creator: b.brandName || 'Dossier de compétences',
     title: `CV ${content.header.displayName}`,
     styles: {
       default: {

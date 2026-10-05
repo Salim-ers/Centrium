@@ -26,9 +26,11 @@ import {
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Segmented } from '@/components/app/Segmented';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PageHeader, AppCard } from '@/components/app';
+import { PageHeader } from '@/components/app';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -46,6 +48,8 @@ import { generateCVDocx } from '@/lib/cv/export-docx';
 import { exportCVToPdf } from '@/lib/cv/export-pdf';
 import { applyOverrides, type CVOverrides } from '@/lib/cv/overrides';
 import { resolveBrand } from '@/lib/cv/branding';
+import { DOSSIER_TEMPLATES, isDossierTemplateId, type DossierTemplateId } from '@/lib/cv/templates';
+import { cn } from '@/lib/utils';
 import { useOrganization } from '@/lib/auth/context';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import type {
@@ -54,10 +58,14 @@ import type {
   ConsultantExperience,
   ConsultantEducation,
   CVContent,
-  CVTemplateId,
   JobOffer,
 } from '@/types';
-import { CV_TEMPLATE_LABEL } from '@/constants';
+
+type Zoom = '50' | '75' | '100' | 'width' | 'page';
+
+/** Page A4 à 96 ppp (210 × 297 mm). */
+const PAGE_W = 793.7;
+const PAGE_H = 1122.5;
 
 type LoadedConsultant = {
   consultant: Consultant;
@@ -117,7 +125,7 @@ function SkillsDossierStudioInner({ lockedConsultantId }: { lockedConsultantId?:
   const [offerDescription, setOfferDescription] = useState('');
   const [offerSkills, setOfferSkills] = useState('');
 
-  const [templateId, setTemplateId] = useState<CVTemplateId>('standard');
+  const [templateId, setTemplateId] = useState<DossierTemplateId>('standard');
   // Tant que l'utilisateur n'a pas explicitement changé le template, on suit le
   // défaut configuré par l'organisation dans /settings/branding.
   // Choix manuel persisté en localStorage pour survivre aux F5.
@@ -125,8 +133,8 @@ function SkillsDossierStudioInner({ lockedConsultantId }: { lockedConsultantId?:
   const templateTouchedRef = useRef(false);
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const stored = window.localStorage.getItem(TEMPLATE_LS_KEY) as CVTemplateId | null;
-    if (stored && ['standard', 'dense', 'executive'].includes(stored)) {
+    const stored = window.localStorage.getItem(TEMPLATE_LS_KEY);
+    if (isDossierTemplateId(stored)) {
       templateTouchedRef.current = true;
       setTemplateId(stored);
     }
@@ -137,7 +145,7 @@ function SkillsDossierStudioInner({ lockedConsultantId }: { lockedConsultantId?:
     if (pref && pref !== templateId) setTemplateId(pref);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [branding?.defaultCvTemplate]);
-  const handleTemplateChange = (value: CVTemplateId) => {
+  const handleTemplateChange = (value: DossierTemplateId) => {
     templateTouchedRef.current = true;
     setTemplateId(value);
     if (typeof window !== 'undefined') {
@@ -281,6 +289,17 @@ function SkillsDossierStudioInner({ lockedConsultantId }: { lockedConsultantId?:
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  const [zoom, setZoom] = useState<Zoom>('width');
+  const canvasRef = useRef<HTMLDivElement | null>(null);
+  const [canvas, setCanvas] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(([entry]) => setCanvas({ w: entry.contentRect.width, h: entry.contentRect.height }));
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
   const [qrSrc, setQrSrc] = useState<string | null>(null);
@@ -506,7 +525,8 @@ function SkillsDossierStudioInner({ lockedConsultantId }: { lockedConsultantId?:
           experiences: loaded.experiences,
           educations: loaded.educations,
           jobOffer: parsedOffer,
-          templateId,
+          // Le contenu ne dépend pas de la mise en page ; Minimal partage celui de Consulting.
+          templateId: templateId === 'minimal' ? 'standard' : templateId,
         });
         if (cancelled) return;
         setGenerated(result.content);
@@ -534,8 +554,8 @@ function SkillsDossierStudioInner({ lockedConsultantId }: { lockedConsultantId?:
       const fn = loaded.consultant.first_name ?? '';
       const ln = loaded.consultant.last_name ?? '';
       const safeName = `${fn}_${ln}`.replace(/[^a-zA-Z0-9_-]/g, '') || 'consultant';
-      const logoSrc = brand?.logoUrl ?? `${window.location.origin}/brand/quadcore-logo-dark.png`;
-      const brandSlug = (brand?.brandName ?? 'CV').replace(/[^a-zA-Z0-9_-]/g, '') || 'CV';
+      const logoSrc = brand.logoUrl ?? undefined;
+      const brandSlug = (brand.brandName || 'Dossier').replace(/[^a-zA-Z0-9_-]/g, '') || 'Dossier';
       await exportCVToPdf(displayed, {
         filename: `CV_${brandSlug}_${safeName}`,
         templateId,
@@ -589,594 +609,506 @@ function SkillsDossierStudioInner({ lockedConsultantId }: { lockedConsultantId?:
       loaded.experiences.length === 0 ||
       !loaded.consultant.summary);
 
+  const zoomScale =
+    zoom === 'width'
+      ? Math.max(0.3, Math.min(1.5, (canvas.w - 48) / PAGE_W))
+      : zoom === 'page'
+        ? Math.max(0.2, Math.min((canvas.w - 48) / PAGE_W, (canvas.h - 48) / PAGE_H))
+        : Number(zoom) / 100;
+  const doc = displayed ?? generated;
+
   return (
-    <AppShell>
-      <div className="no-print">
-        {/* Depuis la fiche consultant : « Dossier de compétences » avec retour
-            vers la fiche. Depuis le menu : « CV Optimizer », page de premier niveau. */}
+    <AppShell fill>
+      <div className="no-print flex min-h-0 flex-1 flex-col">
         <PageHeader
-          eyebrow={lockedConsultantId ? undefined : isEn ? 'Resources' : 'Ressources'}
           backHref={lockedConsultantId ? `/consultants/${lockedConsultantId}` : undefined}
           backLabel={lockedConsultantId && loaded ? `${loaded.consultant.first_name} ${loaded.consultant.last_name}` : undefined}
-          title={lockedConsultantId ? (isEn ? 'Skills dossier' : 'Dossier de compétences') : 'CV Optimizer'}
+          title={isEn ? 'Skills dossier' : 'Dossier de compétences'}
           description={
-            lockedConsultantId
-              ? isEn
-                ? 'Standard, dense, executive or tailored to an opportunity. Built only from the profile: nothing is invented.'
-                : 'Standard, dense, executive ou adapté à une opportunité. Construit uniquement à partir du profil : rien n’est inventé.'
-              : isEn
-                ? 'Pick a consultant, optionally an opportunity, then export the dossier as PDF or Word. Built only from the profile: nothing is invented.'
-                : 'Choisissez un consultant, une opportunité si besoin, puis exportez le dossier en PDF ou Word. Construit uniquement à partir du profil : rien n’est inventé.'
+            isEn
+              ? 'Consultant, template, optional client need, preview, export. Built only from the profile: nothing is invented.'
+              : 'Consultant, modèle, besoin client si besoin, aperçu, export. Construit uniquement à partir du profil : rien n’est inventé.'
           }
           actions={
             <>
-              <Button
-                onClick={() => setEditMode((v) => !v)}
-                disabled={!generated}
-                title={editMode ? t.pages.cv_optimizer.stop_editing : t.pages.cv_optimizer.edit_cv}
-                variant={editMode ? 'primary' : 'secondary'}
-              >
+              <Button onClick={() => setEditMode((v) => !v)} disabled={!generated} variant={editMode ? 'primary' : 'secondary'}>
                 <Pencil className="h-4 w-4" />
-                {editMode ? `✓ ${t.pages.cv_optimizer.stop_editing}` : t.pages.cv_optimizer.edit_cv}
+                {editMode ? (isEn ? 'Done' : 'Terminer') : isEn ? 'Edit text' : 'Retoucher'}
               </Button>
               {hasOverrides && (
-                <Button variant="outline" onClick={resetOverrides} title={t.actions.cancel}>
+                <Button variant="ghost" onClick={resetOverrides} title={t.actions.cancel}>
                   <RotateCcw className="h-4 w-4" />
-                  {t.actions.cancel}
+                  {isEn ? 'Undo edits' : 'Annuler les retouches'}
                 </Button>
               )}
-              <Button
-                variant="outline"
-                onClick={handleDownloadDOCX}
-                disabled={!generated || exporting !== null}
-              >
-                {exporting === 'docx' ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <FileDown className="h-4 w-4" />
-                )}
-                {t.pages.cv_optimizer.export_word}
+              <span className="hidden h-6 w-px bg-border sm:block" aria-hidden />
+              <Button variant="secondary" onClick={handleDownloadDOCX} disabled={!generated || exporting !== null}>
+                {exporting === 'docx' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                Word
               </Button>
               <Button onClick={handleDownloadPDF} disabled={!generated || exporting !== null}>
-                {exporting === 'pdf' ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-                {t.pages.cv_optimizer.export_pdf}
+                {exporting === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                {isEn ? 'Export PDF' : 'Exporter en PDF'}
               </Button>
             </>
           }
         />
-      </div>
 
-      {editMode && hasOverrides && (() => {
-        const n = Object.keys(overrides).length;
-        const plural = n > 1;
-        return (
-          <div className="no-print mb-3 text-[11px] text-primary ">
-            {isEn
-              ? `${n} manual edit${plural ? 's' : ''} applied — ${plural ? 'they' : 'it'} will be included in the export.`
-              : `${n} modification${plural ? 's' : ''} manuelle${plural ? 's' : ''} appliquée${plural ? 's' : ''} — elle${plural ? 's' : ''} ser${plural ? 'ont' : 'a'} incluse${plural ? 's' : ''} dans l'export.`}
-          </div>
-        );
-      })()}
+        <div className="grid gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[22rem_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)]">
+          {/* Réglages : consultant, modèle, besoin client, contrôles. */}
+          <aside className="no-scrollbar space-y-3 lg:min-h-0 lg:overflow-y-auto lg:pb-2">
+            {!lockedConsultantId && (
+              <section className="tile-surface space-y-3 p-4">
+                <StepTitle n={1}>{t.pages.cv_optimizer.consultant_label}</StepTitle>
+                <ConsultantCombobox consultants={consultants} value={selectedId} onChange={setSelectedId} placeholder="— —" ariaLabel={t.pages.cv_optimizer.consultant_label} minPanelWidth={480} />
+                {loadingData && (
+                  <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" /> {t.actions.loading}
+                  </p>
+                )}
+                {loaded && !loadingData && (
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <Stat label={isEn ? 'Skills' : 'Compétences'} value={loaded.skills.length} />
+                    <Stat label={isEn ? 'Missions' : 'Missions'} value={loaded.experiences.length} />
+                    <Stat label={isEn ? 'Education' : 'Formation'} value={loaded.educations.length} />
+                  </div>
+                )}
+              </section>
+            )}
 
-      <div className="no-print grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-6">
-        {/* Sidebar config */}
-        <motion.aside
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
-          className="space-y-4"
-        >
-          <AppCard className={lockedConsultantId ? 'hidden' : undefined}>
-            <div className="p-5 space-y-3">
-              <div className="text-base font-display tracking-tight flex items-center gap-2">
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-bold">
-                  1
-                </span>
-                {t.pages.cv_optimizer.consultant_label}
+            <section className="tile-surface p-4">
+              <StepTitle n={lockedConsultantId ? 1 : 2}>{isEn ? 'Template' : 'Modèle'}</StepTitle>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {DOSSIER_TEMPLATES.map((tpl) => {
+                  const on = tpl.id === templateId;
+                  return (
+                    <button
+                      key={tpl.id}
+                      type="button"
+                      onClick={() => handleTemplateChange(tpl.id)}
+                      aria-pressed={on}
+                      className={cn(
+                        'rounded-xl border p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-terra/50',
+                        on ? 'border-app-terra bg-app-peach-light' : 'border-border hover:bg-muted/40',
+                      )}
+                    >
+                      <TemplateThumb id={tpl.id} color={brand.primary} />
+                      <span className="mt-2 flex items-baseline gap-1.5">
+                        <span className="num text-[10.5px] font-semibold text-muted-foreground">{tpl.number}</span>
+                        <span className="text-[13px] font-semibold">{tpl.name}</span>
+                      </span>
+                      <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">{tpl.description[isEn ? 'en' : 'fr']}</span>
+                    </button>
+                  );
+                })}
               </div>
-              <ConsultantCombobox
-                consultants={consultants}
-                value={selectedId}
-                onChange={setSelectedId}
-                placeholder="— —"
-                ariaLabel={t.pages.cv_optimizer.consultant_label}
-                minPanelWidth={560}
-              />
+            </section>
 
-              {loadingData && (
-                <p className="text-xs text-muted-foreground flex items-center gap-2">
-                  <Loader2 className="h-3 w-3 animate-spin" /> {t.actions.loading}
-                </p>
-              )}
-
-              {loaded && !loadingData && (
-                <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                  <Stat label="Skills" value={loaded.skills.length} />
-                  <Stat label="XP" value={loaded.experiences.length} />
-                  <Stat label="Education" value={loaded.educations.length} />
-                </div>
-              )}
-            </div>
-          </AppCard>
-
-          <Card className="qc-premium rounded-2xl">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-primary/30 bg-primary/15 text-primary text-xs font-bold">
-                  2
-                </span>
-                {t.pages.cv_optimizer.template_label}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+            <section className="tile-surface space-y-3 p-4">
+              <div>
+                <StepTitle n={lockedConsultantId ? 2 : 3}>{isEn ? 'Client need (optional)' : 'Besoin client (optionnel)'}</StepTitle>
+                <p className="mt-1 text-xs text-muted-foreground">{t.pages.cv_optimizer.offer_hint}</p>
+              </div>
               <Combobox
-                ariaLabel={isEn ? 'CV template' : 'Modèle de CV'}
-                value={templateId}
-                onChange={(v) => handleTemplateChange(v as CVTemplateId)}
+                ariaLabel={t.pages.cv_optimizer.pick_existing}
+                value={selectedOfferId}
+                onChange={(v) => pickOffer(v)}
+                placeholder={t.pages.cv_optimizer.manual_entry}
+                minPanelWidth={480}
                 options={[
-                  { value: 'standard', label: CV_TEMPLATE_LABEL.standard },
-                  { value: 'dense', label: CV_TEMPLATE_LABEL.dense },
-                  { value: 'executive', label: CV_TEMPLATE_LABEL.executive },
+                  { value: '', label: t.pages.cv_optimizer.manual_entry },
+                  ...offers.map((o) => ({
+                    value: o.id,
+                    label: o.title,
+                    sublabel: o.required_skills?.length > 0 ? `${o.required_skills.slice(0, 3).join(', ')}${o.required_skills.length > 3 ? '…' : ''}` : undefined,
+                  })),
                 ]}
               />
-            </CardContent>
-          </Card>
-
-          <Card className="qc-premium rounded-2xl">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-primary/30 bg-primary/15 text-primary text-xs font-bold">
-                  3
-                </span>
-                {t.pages.cv_optimizer.offer_label}
-              </CardTitle>
-              <CardDescription className="text-xs">
-                {t.pages.cv_optimizer.offer_hint}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <Label className="text-xs">{t.pages.cv_optimizer.pick_existing}</Label>
-                <Combobox
-                  ariaLabel={t.pages.cv_optimizer.pick_existing}
-                  value={selectedOfferId}
-                  onChange={(v) => pickOffer(v)}
-                  className="mt-1"
-                  placeholder={t.pages.cv_optimizer.manual_entry}
-                  minPanelWidth={560}
-                  options={[
-                    { value: '', label: t.pages.cv_optimizer.manual_entry },
-                    ...offers.map((o) => ({
-                      value: o.id,
-                      label: o.title,
-                      sublabel:
-                        o.required_skills?.length > 0
-                          ? `${o.required_skills.slice(0, 3).join(', ')}${o.required_skills.length > 3 ? '…' : ''}`
-                          : undefined,
-                    })),
-                  ]}
-                />
-              </div>
-
               <div>
                 <Label className="text-xs">{t.pages.cv_optimizer.job_title}</Label>
-                <input
-                  className="flex h-9 w-full rounded-md border border-hairline surface-1 px-3 py-2 text-sm mt-1"
-                  value={offerTitle}
-                  onChange={(e) => setOfferTitle(e.target.value)}
-                  placeholder={isEn ? 'e.g. QA Automation Senior' : 'ex: QA Automation Senior'}
-                />
+                <Input className="mt-1" value={offerTitle} onChange={(e) => setOfferTitle(e.target.value)} placeholder={isEn ? 'e.g. Senior QA Automation' : 'ex. QA Automation senior'} />
               </div>
               <div>
                 <Label className="text-xs">{t.pages.cv_optimizer.required_skills}</Label>
-                <Textarea
-                  className="mt-1 min-h-[70px] text-xs"
-                  value={offerSkills}
-                  onChange={(e) => setOfferSkills(e.target.value)}
-                  placeholder="Playwright, TypeScript, Postman, SQL"
-                />
+                <Textarea className="mt-1 min-h-[64px] text-xs" value={offerSkills} onChange={(e) => setOfferSkills(e.target.value)} placeholder="Playwright, TypeScript, Postman, SQL" />
               </div>
               <details className="text-xs">
-                <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                  + {t.pages.cv_optimizer.full_description}
-                </summary>
-                <Textarea
-                  className="mt-2 min-h-[90px] text-xs"
-                  value={offerDescription}
-                  onChange={(e) => setOfferDescription(e.target.value)}
-                  placeholder="…"
-                />
+                <summary className="cursor-pointer text-muted-foreground hover:text-foreground">+ {t.pages.cv_optimizer.full_description}</summary>
+                <Textarea className="mt-2 min-h-[90px] text-xs" value={offerDescription} onChange={(e) => setOfferDescription(e.target.value)} placeholder="…" />
               </details>
-            </CardContent>
-          </Card>
+            </section>
 
-          {matching && parsedOffer && (
-            <Card className="qc-premium rounded-2xl">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary">
-                    <Target className="h-3.5 w-3.5" />
-                  </span>
-                  Matching
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold font-display text-primary">
-                    <AnimatedNumber value={matching.score} />
-                  </span>
-                  <span className="text-muted-foreground">/ 100</span>
-                </div>
-                {/* Jauge de score animée — lecture immédiate du niveau de match. */}
-                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-foreground/[0.07]">
-                  <motion.div
-                    className="h-full rounded-full bg-primary "
-                    initial={false}
-                    animate={{ width: `${matching.score}%` }}
-                    transition={{ type: 'spring', stiffness: 90, damping: 20 }}
-                  />
-                </div>
-                {matching.matchedSkills.length > 0 && (
-                  <div className="mt-3">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
-                      {isEn ? 'Matched' : 'Matchées'} ({matching.matchedSkills.length})
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {matching.matchedSkills.map((s) => (
-                        <Badge key={s} variant="success" className="text-[10px]">
-                          {s}
-                        </Badge>
-                      ))}
-                    </div>
+            {matching && parsedOffer && (
+              <Card className="tile-surface rounded-[20px] border-0">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary">
+                      <Target className="h-3.5 w-3.5" />
+                    </span>
+                    Matching
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-bold font-display text-primary">
+                      <AnimatedNumber value={matching.score} />
+                    </span>
+                    <span className="text-muted-foreground">/ 100</span>
                   </div>
-                )}
-                {matching.missingSkills.length > 0 && (
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        {isEn ? 'Missing' : 'Manquantes'} ({matching.missingSkills.length})
+                  {/* Jauge de score animée — lecture immédiate du niveau de match. */}
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-foreground/[0.07]">
+                    <motion.div
+                      className="h-full rounded-full bg-primary "
+                      initial={false}
+                      animate={{ width: `${matching.score}%` }}
+                      transition={{ type: 'spring', stiffness: 90, damping: 20 }}
+                    />
+                  </div>
+                  {matching.matchedSkills.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+                        {isEn ? 'Matched' : 'Matchées'} ({matching.matchedSkills.length})
                       </p>
-                      {!suggestions && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-6 text-[10px] px-2"
-                          onClick={analyzeMissingSkills}
-                          disabled={analyzing || !loaded}
-                          title={isEn ? 'The AI examines the profile to see if these skills are plausibly held' : "L'IA examine le profil pour voir si ces compétences sont plausiblement détenues"}
-                        >
-                          {analyzing ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Sparkles className="h-3 w-3" />
-                          )}
-                          {analyzing ? (isEn ? 'Analyzing…' : 'Analyse…') : isEn ? 'Analyze with AI' : 'Analyser avec l\'IA'}
-                        </Button>
-                      )}
-                    </div>
-
-                    {!suggestions ? (
                       <div className="flex flex-wrap gap-1">
-                        {matching.missingSkills.map((s) => (
-                          <Badge key={s} variant="warning" className="text-[10px]">
+                        {matching.matchedSkills.map((s) => (
+                          <Badge key={s} variant="success" className="text-[10px]">
                             {s}
                           </Badge>
                         ))}
                       </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {suggestions
-                          .filter((s) => !ignoredSkills.has(s.skill))
-                          .map((s) => {
-                            const verdictStyle =
-                              s.verdict === 'strong'
-                                ? 'border-success/30 bg-success/5'
-                                : s.verdict === 'plausible'
-                                  ? 'border-warning/30 bg-warning/5'
-                                  : 'border-border bg-muted';
-                            const VerdictIcon =
-                              s.verdict === 'strong'
-                                ? CheckCircle2
-                                : s.verdict === 'plausible'
-                                  ? HelpCircle
-                                  : MinusCircle;
-                            const verdictColor =
-                              s.verdict === 'strong'
-                                ? 'text-success'
-                                : s.verdict === 'plausible'
-                                  ? 'text-warning'
-                                  : 'text-muted-foreground';
-                            const verdictLabel =
-                              s.verdict === 'strong'
-                                ? isEn ? 'Strong' : 'Fort'
-                                : s.verdict === 'plausible'
-                                  ? 'Plausible'
-                                  : isEn ? 'Unsupported' : 'Non étayé';
-                            return (
-                              <div
-                                key={s.skill}
-                                className={`rounded-md border p-2 text-xs ${verdictStyle}`}
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    <VerdictIcon className={`h-3.5 w-3.5 shrink-0 ${verdictColor}`} />
-                                    <span className="font-semibold truncate">{s.skill}</span>
-                                    <span
-                                      className={`text-[9px] uppercase tracking-wider ${verdictColor}`}
+                    </div>
+                  )}
+                  {matching.missingSkills.length > 0 && (
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                          {isEn ? 'Missing' : 'Manquantes'} ({matching.missingSkills.length})
+                        </p>
+                        {!suggestions && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 text-[10px] px-2"
+                            onClick={analyzeMissingSkills}
+                            disabled={analyzing || !loaded}
+                            title={isEn ? 'The AI examines the profile to see if these skills are plausibly held' : "L'IA examine le profil pour voir si ces compétences sont plausiblement détenues"}
+                          >
+                            {analyzing ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-3 w-3" />
+                            )}
+                            {analyzing ? (isEn ? 'Analyzing…' : 'Analyse…') : isEn ? 'Analyze with AI' : 'Analyser avec l\'IA'}
+                          </Button>
+                        )}
+                      </div>
+
+                      {!suggestions ? (
+                        <div className="flex flex-wrap gap-1">
+                          {matching.missingSkills.map((s) => (
+                            <Badge key={s} variant="warning" className="text-[10px]">
+                              {s}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {suggestions
+                            .filter((s) => !ignoredSkills.has(s.skill))
+                            .map((s) => {
+                              const verdictStyle =
+                                s.verdict === 'strong'
+                                  ? 'border-success/30 bg-success/5'
+                                  : s.verdict === 'plausible'
+                                    ? 'border-warning/30 bg-warning/5'
+                                    : 'border-border bg-muted';
+                              const VerdictIcon =
+                                s.verdict === 'strong'
+                                  ? CheckCircle2
+                                  : s.verdict === 'plausible'
+                                    ? HelpCircle
+                                    : MinusCircle;
+                              const verdictColor =
+                                s.verdict === 'strong'
+                                  ? 'text-success'
+                                  : s.verdict === 'plausible'
+                                    ? 'text-warning'
+                                    : 'text-muted-foreground';
+                              const verdictLabel =
+                                s.verdict === 'strong'
+                                  ? isEn ? 'Strong' : 'Fort'
+                                  : s.verdict === 'plausible'
+                                    ? 'Plausible'
+                                    : isEn ? 'Unsupported' : 'Non étayé';
+                              return (
+                                <div
+                                  key={s.skill}
+                                  className={`rounded-md border p-2 text-xs ${verdictStyle}`}
+                                >
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <VerdictIcon className={`h-3.5 w-3.5 shrink-0 ${verdictColor}`} />
+                                      <span className="font-semibold truncate">{s.skill}</span>
+                                      <span
+                                        className={`text-[9px] uppercase tracking-wider ${verdictColor}`}
+                                      >
+                                        {verdictLabel}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <p className="mt-1 text-[11px] text-muted-foreground leading-snug">
+                                    {s.reasoning}
+                                  </p>
+                                  {s.evidence.length > 0 && (
+                                    <ul className="mt-1 text-[10px] text-muted-foreground/80 space-y-0.5">
+                                      {s.evidence.slice(0, 3).map((ev, i) => (
+                                        <li key={i} className="pl-2 border-l border-hairline">
+                                          {ev}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                  <div className="mt-2 flex gap-1 flex-wrap">
+                                    {profileSkillNames.has(s.skill.trim().toLowerCase()) ? (
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 text-[10px] px-2 border-destructive/40 text-destructive hover:bg-destructive/10"
+                                        onClick={() => removeSuggestedSkill(s)}
+                                        disabled={removingSkill === s.skill}
+                                        title={isEn ? 'Remove this skill from the consultant profile' : 'Retirer cette compétence du profil consultant'}
+                                      >
+                                        {removingSkill === s.skill ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <Trash2 className="h-3 w-3" />
+                                        )}
+                                        {isEn ? 'Remove from profile' : 'Retirer du profil'}
+                                      </Button>
+                                    ) : s.verdict !== 'unsupported' ? (
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 text-[10px] px-2"
+                                        onClick={() => addSuggestedSkill(s)}
+                                        disabled={addingSkill === s.skill}
+                                      >
+                                        {addingSkill === s.skill ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <Plus className="h-3 w-3" />
+                                        )}
+                                        {isEn ? 'Add to profile' : 'Ajouter au profil'}
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 text-[10px] px-2 border-warning/40 text-warning hover:bg-warning/10"
+                                        onClick={() => addSuggestedSkill(s, true)}
+                                        disabled={addingSkill === s.skill}
+                                        title={isEn ? 'Add despite the lack of evidence in the profile' : "Ajouter malgré l'absence d'évidence dans le profil"}
+                                      >
+                                        {addingSkill === s.skill ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <Plus className="h-3 w-3" />
+                                        )}
+                                        {isEn ? 'Force add' : 'Forcer l\'ajout'}
+                                      </Button>
+                                    )}
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 text-[10px] px-2 text-muted-foreground"
+                                      onClick={() => ignoreSuggestion(s.skill)}
                                     >
-                                      {verdictLabel}
-                                    </span>
+                                      <X className="h-3 w-3" />
+                                      {isEn ? 'Ignore' : 'Ignorer'}
+                                    </Button>
                                   </div>
                                 </div>
-                                <p className="mt-1 text-[11px] text-muted-foreground leading-snug">
-                                  {s.reasoning}
-                                </p>
-                                {s.evidence.length > 0 && (
-                                  <ul className="mt-1 text-[10px] text-muted-foreground/80 space-y-0.5">
-                                    {s.evidence.slice(0, 3).map((ev, i) => (
-                                      <li key={i} className="pl-2 border-l border-hairline">
-                                        {ev}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                                <div className="mt-2 flex gap-1 flex-wrap">
-                                  {profileSkillNames.has(s.skill.trim().toLowerCase()) ? (
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-6 text-[10px] px-2 border-destructive/40 text-destructive hover:bg-destructive/10"
-                                      onClick={() => removeSuggestedSkill(s)}
-                                      disabled={removingSkill === s.skill}
-                                      title={isEn ? 'Remove this skill from the consultant profile' : 'Retirer cette compétence du profil consultant'}
-                                    >
-                                      {removingSkill === s.skill ? (
-                                        <Loader2 className="h-3 w-3 animate-spin" />
-                                      ) : (
-                                        <Trash2 className="h-3 w-3" />
-                                      )}
-                                      {isEn ? 'Remove from profile' : 'Retirer du profil'}
-                                    </Button>
-                                  ) : s.verdict !== 'unsupported' ? (
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-6 text-[10px] px-2"
-                                      onClick={() => addSuggestedSkill(s)}
-                                      disabled={addingSkill === s.skill}
-                                    >
-                                      {addingSkill === s.skill ? (
-                                        <Loader2 className="h-3 w-3 animate-spin" />
-                                      ) : (
-                                        <Plus className="h-3 w-3" />
-                                      )}
-                                      {isEn ? 'Add to profile' : 'Ajouter au profil'}
-                                    </Button>
-                                  ) : (
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-6 text-[10px] px-2 border-warning/40 text-warning hover:bg-warning/10"
-                                      onClick={() => addSuggestedSkill(s, true)}
-                                      disabled={addingSkill === s.skill}
-                                      title={isEn ? 'Add despite the lack of evidence in the profile' : "Ajouter malgré l'absence d'évidence dans le profil"}
-                                    >
-                                      {addingSkill === s.skill ? (
-                                        <Loader2 className="h-3 w-3 animate-spin" />
-                                      ) : (
-                                        <Plus className="h-3 w-3" />
-                                      )}
-                                      {isEn ? 'Force add' : 'Forcer l\'ajout'}
-                                    </Button>
-                                  )}
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-6 text-[10px] px-2 text-muted-foreground"
-                                    onClick={() => ignoreSuggestion(s.skill)}
-                                  >
-                                    <X className="h-3 w-3" />
-                                    {isEn ? 'Ignore' : 'Ignorer'}
-                                  </Button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        {suggestions.filter((s) => !ignoredSkills.has(s.skill)).length === 0 && (
-                          <p className="text-[11px] text-muted-foreground italic">
-                            {isEn ? 'All suggestions have been handled.' : 'Toutes les suggestions ont été traitées.'}
-                          </p>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 text-[10px] px-2 w-full text-muted-foreground"
-                          onClick={() => {
-                            setSuggestions(null);
-                            setIgnoredSkills(new Set());
-                          }}
-                        >
-                          {isEn ? 'Reset' : 'Réinitialiser'}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {confidence && generated && (
-            <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-primary/5">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-widest text-primary font-semibold">
-                      {isEn ? 'AI confidence level' : 'Niveau de confiance IA'}
+                              );
+                            })}
+                          {suggestions.filter((s) => !ignoredSkills.has(s.skill)).length === 0 && (
+                            <p className="text-[11px] text-muted-foreground italic">
+                              {isEn ? 'All suggestions have been handled.' : 'Toutes les suggestions ont été traitées.'}
+                            </p>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 text-[10px] px-2 w-full text-muted-foreground"
+                            onClick={() => {
+                              setSuggestions(null);
+                              setIgnoredSkills(new Set());
+                            }}
+                          >
+                            {isEn ? 'Reset' : 'Réinitialiser'}
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                    <div className="font-display text-3xl font-bold text-primary">
-                      {confidence.overall}%
-                    </div>
-                  </div>
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-warning/30 bg-warning/10 text-[10px] uppercase tracking-wider text-warning font-semibold">
-                    {isEn ? 'Draft' : 'Brouillon'}
-                  </span>
-                </div>
-                <div className="space-y-2 mb-3">
-                  {[
-                    { label: isEn ? 'Source quality' : 'Qualité de la source', value: confidence.perDimension.sourceQuality },
-                    { label: isEn ? 'Match with the offer' : 'Match avec l’offre', value: confidence.perDimension.offerMatch },
-                    { label: isEn ? 'No fabrication' : 'Aucune invention', value: confidence.perDimension.noInvention },
-                  ].map((d) => (
-                    <div key={d.label}>
-                      <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-0.5">
-                        <span>{d.label}</span>
-                        <span className="font-mono">{d.value}%</span>
-                      </div>
-                      <div className="h-1 rounded-full bg-foreground/[0.07] overflow-hidden">
-                        <motion.div
-                          className="h-full bg-gradient-to-r from-primary to-primary"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${d.value}%` }}
-                          transition={{ duration: 0.7, ease: 'easeOut' }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-                  {confidence.reasoning}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {guardrails && generated && (
-            <Card className={guardrails.noInvention ? '' : 'border-destructive/30'}>
-              <CardContent className="p-3 flex items-start gap-2">
-                {guardrails.noInvention ? (
-                  <ShieldCheck className="h-4 w-4 text-success shrink-0 mt-0.5" />
-                ) : (
-                  <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-                )}
-                <div className="flex-1 text-xs">
-                  <p className="font-semibold">
-                    {guardrails.noInvention
-                      ? isEn ? 'No fabrication detected' : 'Aucune invention détectée'
-                      : isEn ? 'Fabrication detected' : 'Invention détectée'}
-                  </p>
-                  {!guardrails.noInvention && (
-                    <ul className="mt-1 space-y-0.5 text-destructive">
-                      {guardrails.flaggedClaims.map((c, i) => (
-                        <li key={i}>• {c}</li>
-                      ))}
-                    </ul>
                   )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                </CardContent>
+              </Card>
+            )}
 
-          {warnings.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs flex items-center gap-2">
-                  <AlertTriangle className="h-3 w-3 text-warning" /> {isEn ? 'Warnings' : 'Avertissements'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1 text-xs text-muted-foreground">
-                {warnings.map((w, i) => (
-                  <p key={i}>• {w}</p>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-        </motion.aside>
+            {confidence && generated && (
+              <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-primary/5">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-widest text-primary font-semibold">
+                        {isEn ? 'AI confidence level' : 'Niveau de confiance IA'}
+                      </div>
+                      <div className="font-display text-3xl font-bold text-primary">
+                        {confidence.overall}%
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-warning/30 bg-warning/10 text-[10px] uppercase tracking-wider text-warning font-semibold">
+                      {isEn ? 'Draft' : 'Brouillon'}
+                    </span>
+                  </div>
+                  <div className="space-y-2 mb-3">
+                    {[
+                      { label: isEn ? 'Source quality' : 'Qualité de la source', value: confidence.perDimension.sourceQuality },
+                      { label: isEn ? 'Match with the offer' : 'Match avec l’offre', value: confidence.perDimension.offerMatch },
+                      { label: isEn ? 'No fabrication' : 'Aucune invention', value: confidence.perDimension.noInvention },
+                    ].map((d) => (
+                      <div key={d.label}>
+                        <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-0.5">
+                          <span>{d.label}</span>
+                          <span className="font-mono">{d.value}%</span>
+                        </div>
+                        <div className="h-1 rounded-full bg-foreground/[0.07] overflow-hidden">
+                          <motion.div
+                            className="h-full bg-gradient-to-r from-primary to-primary"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${d.value}%` }}
+                            transition={{ duration: 0.7, ease: 'easeOut' }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+                    {confidence.reasoning}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
-        {/* Preview CV */}
-        <motion.section
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.08, ease: 'easeOut' }}
-        >
-          {!loaded ? (
-            <Card>
-              <CardContent className="py-24 text-center text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                <p className="font-medium">{t.pages.cv_optimizer.empty_title}</p>
-                <p className="text-xs mt-1">{t.pages.cv_optimizer.empty_description}</p>
-              </CardContent>
-            </Card>
-          ) : hasIncompleteData && generated ? (
-            <>
-              <Card className="mb-4 border-warning/30">
-                <CardContent className="p-4 flex items-start gap-3">
-                  <Info className="h-5 w-5 text-warning shrink-0 mt-0.5" />
-                  <div className="text-sm">
-                    <p className="font-semibold">{isEn ? 'Incomplete data for this consultant' : 'Données incomplètes pour ce consultant'}</p>
-                    <p className="text-muted-foreground text-xs mt-1">
-                      {loaded.skills.length === 0 && (isEn ? '• No skill filled in. ' : '• Aucune compétence renseignée. ')}
-                      {loaded.experiences.length === 0 && (isEn ? '• No experience filled in. ' : '• Aucune expérience renseignée. ')}
-                      {!loaded.consultant.summary && (isEn ? '• No executive summary. ' : '• Aucun résumé exécutif. ')}
-                      {isEn
-                        ? 'The CV will look minimal. Complete the consultant record for a full rendering.'
-                        : 'Le CV apparaîtra minimal. Complète la fiche consultant pour un rendu complet.'}
+            {guardrails && generated && (
+              <Card className={guardrails.noInvention ? '' : 'border-destructive/30'}>
+                <CardContent className="p-3 flex items-start gap-2">
+                  {guardrails.noInvention ? (
+                    <ShieldCheck className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                  )}
+                  <div className="flex-1 text-xs">
+                    <p className="font-semibold">
+                      {guardrails.noInvention
+                        ? isEn ? 'No fabrication detected' : 'Aucune invention détectée'
+                        : isEn ? 'Fabrication detected' : 'Invention détectée'}
                     </p>
+                    {!guardrails.noInvention && (
+                      <ul className="mt-1 space-y-0.5 text-destructive">
+                        {guardrails.flaggedClaims.map((c, i) => (
+                          <li key={i}>• {c}</li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </CardContent>
               </Card>
-              <EditModeBanner editMode={editMode} setEditMode={setEditMode} />
-              <div className="overflow-auto bg-muted p-6 rounded-2xl border border-hairline">
-                <CVPreviewBoundary onReset={resetOverrides}>
-                  <CVRenderer
-                    content={displayed ?? generated}
-                    templateId={templateId}
-                    editable={editMode}
-                    onEdit={handleInlineEdit}
-                    qrSrc={qrSrc}
-                  />
-                </CVPreviewBoundary>
+            )}
+
+            {warnings.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs flex items-center gap-2">
+                    <AlertTriangle className="h-3 w-3 text-warning" /> {isEn ? 'Warnings' : 'Avertissements'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1 text-xs text-muted-foreground">
+                  {warnings.map((w, i) => (
+                    <p key={i}>• {w}</p>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </aside>
+
+          {/* Aperçu zoomable : le document tient dans l'écran. */}
+          <section className="tile-surface flex min-h-[70vh] flex-col overflow-hidden lg:min-h-0">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+              <StepTitle n={lockedConsultantId ? 3 : 4}>{isEn ? 'Preview' : 'Aperçu'}</StepTitle>
+              <div className="flex flex-wrap items-center gap-2">
+                {editMode && (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-app-peach-light px-2.5 py-1 text-[12px] font-medium text-app-terra-dark">
+                    <MousePointerClick className="h-3.5 w-3.5" />
+                    {isEn ? 'Click a text to edit it' : 'Cliquez un texte pour le retoucher'}
+                    {hasOverrides ? ` · ${Object.keys(overrides).length}` : ''}
+                  </span>
+                )}
+                <Segmented<Zoom>
+                  label={isEn ? 'Zoom' : 'Zoom'}
+                  value={zoom}
+                  onChange={setZoom}
+                  options={[
+                    { value: '50', label: '50 %' },
+                    { value: '75', label: '75 %' },
+                    { value: '100', label: '100 %' },
+                    { value: 'width', label: isEn ? 'Fit width' : 'Largeur', title: isEn ? 'Fit to width' : 'Ajuster à la largeur' },
+                    { value: 'page', label: isEn ? 'Fit page' : 'Page', title: isEn ? 'Whole page' : 'Page entière' },
+                  ]}
+                />
               </div>
-            </>
-          ) : generated ? (
-            <>
-              <EditModeBanner editMode={editMode} setEditMode={setEditMode} />
-              <div className="overflow-auto bg-muted p-6 rounded-2xl border border-hairline">
-                <CVPreviewBoundary onReset={resetOverrides}>
-                  <CVRenderer
-                    content={displayed ?? generated}
-                    templateId={templateId}
-                    editable={editMode}
-                    onEdit={handleInlineEdit}
-                    qrSrc={qrSrc}
-                  />
-                </CVPreviewBoundary>
-              </div>
-            </>
-          ) : (
-            <Card>
-              <CardContent className="py-16 text-center text-muted-foreground">
-                <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-              </CardContent>
-            </Card>
-          )}
-        </motion.section>
+            </div>
+            <div ref={canvasRef} className="min-h-0 flex-1 overflow-auto bg-app-sand/50">
+              {!loaded ? (
+                <div className="flex h-full min-h-[320px] flex-col items-center justify-center px-6 text-center text-muted-foreground">
+                  <FileText className="mb-3 h-10 w-10 opacity-30" />
+                  <p className="font-medium text-foreground">{t.pages.cv_optimizer.empty_title}</p>
+                  <p className="mt-1 max-w-sm text-xs">{t.pages.cv_optimizer.empty_description}</p>
+                </div>
+              ) : !doc ? (
+                <div className="flex h-full min-h-[320px] items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="p-6">
+                  {hasIncompleteData && (
+                    <p className="mx-auto mb-4 flex max-w-[700px] items-start gap-2 rounded-xl bg-warning-soft px-3.5 py-2.5 text-[12.5px] text-warning">
+                      <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>
+                        {loaded.skills.length === 0 && (isEn ? 'No skill filled in. ' : 'Aucune compétence renseignée. ')}
+                        {loaded.experiences.length === 0 && (isEn ? 'No experience filled in. ' : 'Aucune expérience renseignée. ')}
+                        {!loaded.consultant.summary && (isEn ? 'No summary. ' : 'Aucun résumé. ')}
+                        {isEn ? 'Complete the consultant record for a full dossier.' : 'Complétez la fiche consultant pour un dossier complet.'}
+                      </span>
+                    </p>
+                  )}
+                  <div className="mx-auto w-fit" style={{ zoom: zoomScale }}>
+                    <CVPreviewBoundary onReset={resetOverrides}>
+                      <CVRenderer content={doc} templateId={templateId} editable={editMode} onEdit={handleInlineEdit} qrSrc={qrSrc} brand={brand} />
+                    </CVPreviewBoundary>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
       </div>
 
-      {/* Version imprimable plein écran (Ctrl+P natif, export via React-PDF). */}
-      <div className="print-only hidden print:block">
-        {displayed && (
-          <CVRenderer content={displayed} templateId={templateId} qrSrc={qrSrc} />
-        )}
-      </div>
+      {/* Version imprimable plein écran (Ctrl+P natif ; l'export PDF passe par React-PDF). */}
+      <div className="print-only hidden print:block">{displayed && <CVRenderer content={displayed} templateId={templateId} qrSrc={qrSrc} brand={brand} />}</div>
     </AppShell>
   );
 }
@@ -1196,57 +1128,60 @@ function Stat({ label, value }: { label: string; value: number }) {
   );
 }
 
-function EditModeBanner({
-  editMode,
-  setEditMode,
-}: {
-  editMode: boolean;
-  setEditMode: (v: boolean) => void;
-}) {
-  const { locale } = useLocale();
-  const isEn = locale === 'en';
-  if (editMode) {
-    return (
-      <div className="mb-3 flex items-start gap-3 rounded-lg border border-success/40 bg-success/[0.06] px-4 py-3">
-        <MousePointerClick className="h-4 w-4 text-success shrink-0 mt-0.5" />
-        <div className="flex-1 text-sm">
-          <div className="font-semibold text-success">{isEn ? 'Edit mode enabled' : 'Mode édition activé'}</div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {isEn
-              ? 'Click any text in the CV to edit it directly (title, summary, experiences, skills). Press Enter to confirm, or click elsewhere. Your changes are saved automatically.'
-              : "Clique sur n'importe quel texte du CV pour le modifier directement (titre, résumé, expériences, compétences). Tape Entrée pour valider, ou clique ailleurs. Tes modifications sont sauvegardées automatiquement."}
-          </p>
-        </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setEditMode(false)}
-          className="shrink-0"
-        >
-          {isEn ? 'Exit' : 'Sortir'}
-        </Button>
-      </div>
-    );
-  }
+function StepTitle({ n, children }: { n: number; children: React.ReactNode }) {
   return (
-    <div className="mb-3 flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/[0.06] px-4 py-3">
-      <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-      <div className="flex-1 text-sm">
-        <div className="font-semibold">{isEn ? 'Edit your CV like in Canva' : 'Modifie ton CV comme dans Canva'}</div>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          {isEn
-            ? 'Enable edit mode to click directly on the CV text and edit it inline. Ideal to tweak a title, reword a mission or rework a summary without going back to the consultant record.'
-            : 'Active le mode édition pour cliquer directement sur le texte du CV et le modifier inline. Idéal pour ajuster un titre, reformuler une mission ou retravailler un résumé sans repasser par la fiche consultant.'}
-        </p>
-      </div>
-      <Button
-        size="sm"
-        onClick={() => setEditMode(true)}
-        className="shrink-0 bg-gradient-to-r from-primary to-primary text-white shadow-[0_0_18px_-6px_rgba(225,29,116,0.55)] hover:brightness-110"
-      >
-        <Pencil className="h-3.5 w-3.5" />
-        {isEn ? 'Enable' : 'Activer'}
-      </Button>
-    </div>
+    <h2 className="flex items-center gap-2 text-[13.5px] font-semibold">
+      <span className="num inline-flex h-5 w-5 items-center justify-center rounded-full bg-app-terra text-[11px] font-bold text-white">{n}</span>
+      {children}
+    </h2>
+  );
+}
+
+/** Vignette schématique d'un modèle (structure seulement). */
+function TemplateThumb({ id, color }: { id: DossierTemplateId; color: string }) {
+  const line = (w: string, strong = false) => <span className={cn('block h-[3px] rounded-full', strong ? 'bg-foreground/40' : 'bg-foreground/15')} style={{ width: w }} />;
+  return (
+    <span className="flex h-14 overflow-hidden rounded-md border border-border bg-white p-1.5" aria-hidden>
+      {id === 'standard' ? (
+        <>
+          <span className="mr-1.5 w-[34%] space-y-1 rounded-sm p-1" style={{ background: `${color}14` }}>
+            {line('80%', true)}
+            {line('60%')}
+            {line('70%')}
+          </span>
+          <span className="flex-1 space-y-1 pt-1">
+            {line('90%')}
+            {line('75%')}
+            {line('85%')}
+            {line('60%')}
+          </span>
+        </>
+      ) : id === 'executive' ? (
+        <span className="flex-1 space-y-1">
+          <span className="block h-[5px] w-[60%] rounded-full bg-foreground/45" />
+          <span className="block h-[2px] w-[22%] rounded-full" style={{ background: color }} />
+          {line('92%')}
+          {line('85%')}
+          {line('70%')}
+        </span>
+      ) : id === 'dense' ? (
+        <span className="flex-1 space-y-[3px]">
+          <span className="block h-[2px] w-full rounded-full" style={{ background: color }} />
+          {line('95%', true)}
+          {line('90%')}
+          {line('92%')}
+          {line('88%')}
+          {line('94%')}
+          {line('80%')}
+        </span>
+      ) : (
+        <span className="flex-1 space-y-1.5 px-1">
+          {line('45%', true)}
+          {line('30%')}
+          {line('80%')}
+          {line('65%')}
+        </span>
+      )}
+    </span>
   );
 }

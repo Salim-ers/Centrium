@@ -329,7 +329,7 @@ export default function OffersPage() {
     setExportingOfferId(o.id);
     try {
       // Fiche de poste : fallback couleur NEUTRE si l'org n'a pas de branding
-      // (les CV gardent resolveBrand / fallback QuadCore).
+      // (fallback neutre, comme les dossiers).
       const brand = resolvePosterBrand(branding);
       const safeTitle = o.title.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 60);
       const brandSlug = brand.brandName.replace(/[^a-zA-Z0-9]/g, '') || 'Centrium';

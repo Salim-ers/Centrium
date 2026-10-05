@@ -12,20 +12,21 @@
 // Chargement en dynamic import pour ne pas grossir le bundle initial.
 // =========================================================================
 
-import type { CVContent, CVTemplateId } from '@/types';
+import type { CVContent } from '@/types';
 import type { CVBrand } from './branding';
 import { resolveBrand } from './branding';
+import type { DossierTemplateId } from './templates';
 
 type ExportOptions = {
   /** Nom du fichier (sans extension) */
   filename: string;
-  /** Variante de template */
-  templateId: CVTemplateId;
+  /** Modèle de dossier */
+  templateId: DossierTemplateId;
   /** URL du logo affiché en entête (laisse vide si indisponible) */
   logoSrc?: string;
-  /** Bandeau "Document confidentiel" (défaut true) */
+  /** Mention « Document confidentiel » (défaut true) */
   showConfidential?: boolean;
-  /** Branding résolu de l'organisation. Fallback = QuadCore. */
+  /** Branding résolu de l'organisation (fallback neutre). */
   brand?: CVBrand;
   /** Data URL du QR code à afficher à côté du logo (optionnel). */
   qrSrc?: string;
@@ -35,32 +36,12 @@ export async function exportCVToPdf(
   content: CVContent,
   { filename, templateId, logoSrc, showConfidential = true, brand, qrSrc }: ExportOptions,
 ): Promise<void> {
-  const [{ pdf }, standard, dense, executive] = await Promise.all([
-    import('@react-pdf/renderer'),
-    import('@/components/cv/pdf/QuadCoreCVStandardPDF'),
-    import('@/components/cv/pdf/QuadCoreCVDensePDF'),
-    import('@/components/cv/pdf/QuadCoreCVExecutivePDF'),
-  ]);
-
-  const DocForTemplate =
-    templateId === 'dense'
-      ? dense.QuadCoreCVDensePDF
-      : templateId === 'executive'
-        ? executive.QuadCoreCVExecutivePDF
-        : standard.QuadCoreCVStandardPDF;
+  const [{ pdf }, { DossierPDF }] = await Promise.all([import('@react-pdf/renderer'), import('@/components/cv/pdf/DossierPDF')]);
 
   const resolved = brand ?? resolveBrand(null);
   const effectiveLogo = logoSrc ?? resolved.logoUrl ?? undefined;
 
-  const doc = (
-    <DocForTemplate
-      content={content}
-      logoSrc={effectiveLogo}
-      showConfidential={showConfidential}
-      brand={resolved}
-      qrSrc={qrSrc}
-    />
-  );
+  const doc = <DossierPDF content={content} template={templateId} brand={resolved} logoSrc={effectiveLogo} showConfidential={showConfidential} qrSrc={qrSrc} />;
 
   const blob = await pdf(doc).toBlob();
   const url = URL.createObjectURL(blob);

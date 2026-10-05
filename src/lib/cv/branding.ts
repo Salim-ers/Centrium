@@ -17,10 +17,13 @@ export type CVBrand = {
   qrCodeUrl: string | null;
 };
 
-const DEFAULT_PRIMARY = '#C65F46';
-const DEFAULT_ACCENT = '#9D4432';
-const DEFAULT_BRAND = 'QuadCore';
-const DEFAULT_TAGLINE = 'IT Services & Consulting';
+// Fallback NEUTRE : sans couleurs configurées, les dossiers sont en
+// charbon / taupe ; sans nom de marque, on affiche la raison sociale.
+// Jamais d'identité d'un autre éditeur.
+const DEFAULT_PRIMARY = '#23201d';
+const DEFAULT_ACCENT = '#8a7a66';
+const DEFAULT_BRAND = '';
+const DEFAULT_TAGLINE = '';
 
 // Bump le `v=` quand tu remplaces le PNG → force navigateurs et CDN
 // à recharger immédiatement la nouvelle image. Sinon ils servent
@@ -28,38 +31,23 @@ const DEFAULT_TAGLINE = 'IT Services & Consulting';
 const QUADCORE_VCARD_QR = '/brand/quadcore-vcard-qr.png?v=3';
 
 export function resolveBrand(b: OrgBranding | null | undefined): CVBrand {
-  const brandName = (b?.brandName?.trim() || b?.name?.trim()) ?? DEFAULT_BRAND;
+  const brandName = b?.brandName?.trim() || b?.name?.trim() || DEFAULT_BRAND;
   return {
     logoUrl: b?.logoUrl ?? null,
     brandName,
     footerTagline: b?.footerTagline?.trim() || DEFAULT_TAGLINE,
     primary: b?.primaryColor?.trim() || DEFAULT_PRIMARY,
     accent: b?.accentColor?.trim() || DEFAULT_ACCENT,
-    // Le QR statique est utilisé pour TOUS les CV générés par la plateforme,
-    // peu importe le nom de l'org. C'est le QR vCard de l'ESN éditeur.
+    // QR vCard statique de l'éditeur : affiché uniquement pour le compte
+    // fondateur (voir l'atelier), jamais sur les dossiers des autres ESN.
     qrCodeUrl: QUADCORE_VCARD_QR,
   };
 }
 
-// Fallback NEUTRE pour la fiche de poste : quand l'organisation n'a PAS
-// configuré ses couleurs, on n'impose aucune teinte QuadCore — on tombe sur
-// un charbon/taupe éditorial. (Les CV, eux, gardent le fallback QuadCore via
-// resolveBrand, comportement inchangé.)
-const POSTER_FALLBACK_PRIMARY = '#23201d'; // charbon profond
-const POSTER_FALLBACK_ACCENT = '#8a7a66'; // taupe neutre chaleureux
-
 /**
- * Comme {@link resolveBrand} mais avec un fallback couleur NEUTRE (charbon /
- * taupe) au lieu des couleurs QuadCore, pour la fiche de poste. Le nom de
- * marque et le logo restent ceux de l'organisation (ou son nom).
+ * Branding de la fiche de poste : même fallback neutre que les dossiers
+ * (conservé pour les appels existants).
  */
 export function resolvePosterBrand(b: OrgBranding | null | undefined): CVBrand {
-  const base = resolveBrand(b);
-  const hasPrimary = Boolean(b?.primaryColor?.trim());
-  const hasAccent = Boolean(b?.accentColor?.trim());
-  return {
-    ...base,
-    primary: hasPrimary ? base.primary : POSTER_FALLBACK_PRIMARY,
-    accent: hasAccent ? base.accent : POSTER_FALLBACK_ACCENT,
-  };
+  return resolveBrand(b);
 }
