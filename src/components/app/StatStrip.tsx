@@ -26,7 +26,13 @@ export function StatStrip({ items, className }: { items: StatItem[]; className?:
     <div
       className={cn(
         'grid shrink-0 grid-cols-2 gap-2.5',
-        items.length >= 4 ? 'lg:grid-cols-4' : items.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2',
+        items.length >= 5
+          ? 'sm:grid-cols-3 lg:grid-cols-5'
+          : items.length === 4
+            ? 'lg:grid-cols-4'
+            : items.length === 3
+              ? 'sm:grid-cols-3'
+              : 'sm:grid-cols-2',
         className,
       )}
     >

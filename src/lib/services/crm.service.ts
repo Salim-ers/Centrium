@@ -241,6 +241,29 @@ export const taskService = {
     return { data: data as Task, error: null };
   },
 
+  /**
+   * Crée une tâche au plus une fois tant qu'elle reste ouverte (index unique
+   * sur la clé de dédoublonnage) : `existing` si elle existait déjà.
+   */
+  async createOnce(input: TaskInput, organizationId: string, dedupeKey: string): Promise<ServiceResult<{ task: Task | null; existing: boolean }>> {
+    const parsed = taskSchema.safeParse(input);
+    if (!parsed.success) return fail(new Error(parsed.error.issues[0]?.message ?? 'Données invalides'));
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert({ ...parsed.data, organization_id: organizationId, created_by: user?.id ?? null, dedupe_key: dedupeKey })
+      .select()
+      .single();
+    if (error) {
+      if ((error as { code?: string }).code === '23505') return { data: { task: null, existing: true }, error: null };
+      return fail(error);
+    }
+    return { data: { task: data as Task, existing: false }, error: null };
+  },
+
   async update(id: string, patch: Partial<Pick<Task, 'status' | 'title' | 'due_date' | 'assignee_id' | 'priority' | 'description'>>): Promise<ServiceResult<Task>> {
     const { data, error } = await createClient().from('tasks').update(patch).eq('id', id).select().single();
     if (error) return fail(error);

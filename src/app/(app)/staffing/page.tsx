@@ -7,6 +7,7 @@ import { CalendarRange, ChevronLeft, ChevronRight, Gauge, Maximize2, Minimize2, 
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader } from '@/components/app';
 import { StatStrip } from '@/components/app/StatStrip';
+import { Segmented } from '@/components/app/Segmented';
 import { EmptyState } from '@/components/app/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -179,22 +180,18 @@ export default function StaffingPage() {
       <div ref={boardRef} className={cn('flex min-h-[36rem] flex-1 flex-col md:min-h-0', full && 'bg-background p-4')}>
         {/* Barre d'outils unique ; les filtres secondaires vivent dans un tiroir. */}
         <div className="mb-3 flex shrink-0 flex-wrap items-center gap-2">
-          <div className="inline-flex h-9 items-center gap-1 rounded-xl border border-app-terra/20 bg-card p-1">
-            {(['weeks', 'months'] as const).map((sc) => (
-              <button
-                key={sc}
-                type="button"
-                onClick={() => {
-                  setScale(sc);
-                  setOffset(0);
-                }}
-                aria-pressed={scale === sc}
-                className={cn('h-7 rounded-lg px-3 text-[13px] font-semibold transition-colors', scale === sc ? 'bg-app-terra text-white' : 'text-app-terra-dark hover:bg-app-peach-light')}
-              >
-                {sc === 'weeks' ? (fr ? 'Semaines' : 'Weeks') : fr ? 'Mois' : 'Months'}
-              </button>
-            ))}
-          </div>
+          <Segmented<PlanningScale>
+            label={fr ? 'Échelle' : 'Scale'}
+            value={scale}
+            onChange={(v) => {
+              setScale(v);
+              setOffset(0);
+            }}
+            options={[
+              { value: 'weeks', label: fr ? 'Semaines' : 'Weeks' },
+              { value: 'months', label: fr ? 'Mois' : 'Months' },
+            ]}
+          />
           <div className="flex items-center">
             <Button variant="ghost" size="icon-sm" onClick={() => setOffset((o) => o - (scale === 'weeks' ? 4 : 3))} aria-label={fr ? 'Période précédente' : 'Previous period'}>
               <ChevronLeft />

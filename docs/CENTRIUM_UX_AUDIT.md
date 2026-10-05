@@ -99,7 +99,7 @@ DetailDrawer, SegmentedControl / tabs, EmptyState, StatusBadge, Avatar.
 | 7 | Talents (un écran, 3 indicateurs, barre unique, filtres en tiroir, 25 / page, aperçu) | fait |
 | 8 | Dossiers de compétences, modèles neutres | à faire |
 | 9 | Staffing (planning plein écran, 3 indicateurs, mode plein écran, couleurs revues) et centre de matching (opportunité → profils expliqués → positionner ou générer le dossier) | fait |
-| 10 | Missions, cockpit | à faire |
+| 10 | Missions (liste compacte, périmètres et échéances segmentés, aperçu en tiroir, état vide utile, transformation d’une opportunité gagnée), cockpit mission (TJM, CJM, marge, jours, fin ; frise mois par mois, CRA, documents, historique) et question du renouvellement à J-30 (oui → prolongation, non → libération, à confirmer → rappel BM) | fait |
 | 11 | CRA, validation rapide | à faire |
 | 12 | Documents, devis | à faire |
 | 13 | Pilotage financier, préfacturation, export | à faire |
