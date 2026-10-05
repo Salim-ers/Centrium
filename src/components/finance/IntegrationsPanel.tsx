@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Copy, KeyRound, Plug, RefreshCw, Send, ShieldCheck, Unplug, Webhook } from 'lucide-react';
+import { Copy, KeyRound, RefreshCw, Send, ShieldCheck, Unplug, Webhook } from 'lucide-react';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -13,14 +13,7 @@ import { StatusPill } from '@/components/ui/status-pill';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useOrganization } from '@/lib/auth/context';
 import { formatDate } from '@/lib/format';
-import type { Integration, IntegrationProvider } from '@/types';
-
-const CONNECTORS: Array<{ provider: Exclude<IntegrationProvider, 'webhook'>; name: string; fr: string; en: string }> = [
-  { provider: 'pennylane', name: 'Pennylane', fr: 'Comptabilité et facturation', en: 'Accounting and invoicing' },
-  { provider: 'sage', name: 'Sage', fr: 'Comptabilité', en: 'Accounting' },
-  { provider: 'sellsy', name: 'Sellsy', fr: 'CRM et facturation', en: 'CRM and invoicing' },
-  { provider: 'approved_platform', name: 'Plateforme agréée', fr: 'Facturation électronique réglementaire (PA)', en: 'Regulated e-invoicing platform' },
-];
+import type { Integration } from '@/types';
 
 const EVENTS: Array<{ id: string; fr: string; en: string }> = [
   { id: 'prefacture.validated', fr: 'Préfacture validée', en: 'Pre-invoice approved' },
@@ -103,51 +96,9 @@ export function IntegrationsPanel({ lang, canManage }: { lang: 'fr' | 'en'; canM
           {fr ? 'Ce que fait Centrium, et ce qu’il ne fait pas' : 'What Centrium does, and does not do'}
         </div>
         {fr
-          ? 'Centrium prépare les éléments facturables à partir des CRA validés, vous permet de les contrôler, puis de les exporter ou de les transmettre à votre outil comptable ou à votre plateforme agréée. Centrium n’est pas une plateforme agréée : il n’émet pas et ne transmet pas lui-même de facture électronique à l’administration ou à vos clients.'
-          : 'Centrium prepares billable items from approved timesheets, lets you review them, then export or send them to your accounting tool or approved platform. Centrium is not an approved e-invoicing platform: it does not issue or transmit regulated e-invoices to the tax authority or your clients.'}
+          ? 'Centrium prépare les éléments facturables à partir des CRA validés, vous permet de les contrôler, puis de les exporter (CSV) ou de les envoyer par webhook à votre outil comptable ou à votre plateforme agréée. Centrium n’est pas une plateforme agréée : il n’émet pas et ne transmet pas lui-même de facture électronique à l’administration ou à vos clients. Aucun connecteur natif n’est proposé à ce jour.'
+          : 'Centrium prepares billable items from approved timesheets, lets you review them, then export them (CSV) or send them by webhook to your accounting tool or approved platform. Centrium is not an approved e-invoicing platform: it does not issue or transmit regulated e-invoices to the tax authority or your clients. No native connector is offered at this time.'}
       </div>
-
-      <section>
-        <h2 className="mb-3 font-display text-[15px] font-semibold">{fr ? 'Connecteurs' : 'Connectors'}</h2>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {CONNECTORS.map((c) => {
-            const row = byProvider.get(c.provider);
-            const st = STATUS[row?.status ?? 'not_connected'];
-            return (
-              <Card key={c.provider} className="flex flex-col">
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-2">
-                    <CardTitle>{c.name}</CardTitle>
-                    <StatusPill tone={st.tone}>{st[lang]}</StatusPill>
-                  </div>
-                  <CardDescription>{c[lang]}</CardDescription>
-                </CardHeader>
-                <CardContent className="mt-auto space-y-2">
-                  <p className="text-xs text-muted-foreground">
-                    {fr
-                      ? 'Connecteur natif en préparation. En attendant : export CSV ou webhook.'
-                      : 'Native connector in preparation. Meanwhile: CSV export or webhook.'}
-                  </p>
-                  {canManage && row?.status !== 'requested' && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="w-full"
-                      loading={busy === c.provider}
-                      onClick={() =>
-                        void run(c.provider, { action: 'request', provider: c.provider }, fr ? 'Votre intérêt est enregistré' : 'Interest recorded')
-                      }
-                    >
-                      <Plug />
-                      {fr ? 'Être prévenu' : 'Notify me'}
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </section>
 
       <section>
         <h2 className="mb-3 flex items-center gap-2 font-display text-[15px] font-semibold">

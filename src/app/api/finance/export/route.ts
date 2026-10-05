@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { apiPermission } from '@/lib/auth/rbac';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { toCsv } from '@/lib/rgpd/org-export';
+import { exportFormatSchema, toDelimited } from '@/lib/finance/export-format';
 import { logAudit } from '@/lib/audit/log';
 import { deliverWebhook } from '@/lib/integrations/webhook';
 import { checkExportThrottle } from '@/lib/security/export-throttle';
@@ -11,7 +11,7 @@ import { checkExportThrottle } from '@/lib/security/export-throttle';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const schema = z.object({ ids: z.array(z.string().uuid()).min(1).max(500) });
+const schema = z.object({ ids: z.array(z.string().uuid()).min(1).max(500), format: exportFormatSchema.optional() });
 
 /**
  * POST /api/finance/export — export CSV des préfactures VALIDÉES
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
   void deliverWebhook(auth.organizationId, 'prefactures.exported', { exported_at: now, count: rows.length, items: rows });
 
   const header = '# Préfactures Centrium — à importer dans votre outil comptable ou votre plateforme agréée (document non fiscal)\n';
-  const body = '﻿' + header + toCsv(rows as unknown as Array<Record<string, unknown>>);
+  const body = '﻿' + header + toDelimited(rows as unknown as Array<Record<string, unknown>>, parsed.data.format);
   return new NextResponse(body, {
     status: 200,
     headers: {

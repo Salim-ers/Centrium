@@ -18,6 +18,11 @@ import {
 
 type Breakdown = { id: string; label: string; sub?: string | null; revenue: number; margin: number | null; marginPct: number | null; days: number };
 
+/** Objectif de marge appliqué quand le consultant n'en a pas. */
+export const DEFAULT_TARGET_MARGIN_PCT = 20;
+
+export type LowMarginMission = { id: string; label: string; sub: string | null; marginPct: number; target: number; targetIsDefault: boolean };
+
 export type FinanceSummary = {
   kpis: {
     booked: number;
@@ -29,6 +34,9 @@ export type FinanceSummary = {
     marginCoverage: number;
     draftCount: number;
     draftAmount: number;
+    /** Préfactures à contrôler (brouillons non validés). */
+    toReviewCount: number;
+    toReviewAmount: number;
     toExportCount: number;
     toExportAmount: number;
     receivable: number;
@@ -43,6 +51,8 @@ export type FinanceSummary = {
   byMission: Breakdown[];
   byClient: Breakdown[];
   concentration: { top1: number | null; top3: number | null; top1Name: string | null };
+  /** Missions actives dont la marge (TJM − CJM) est sous l'objectif. */
+  lowMargin: LowMarginMission[];
 };
 
 export async function loadFinance(supabase: SupabaseClient, orgId: string, withCosts: boolean, today = new Date()): Promise<FinanceSummary> {
@@ -95,12 +105,15 @@ export async function loadFinance(supabase: SupabaseClient, orgId: string, withC
       [] as Array<{ id: string; status: string; archived: boolean; is_prospect: boolean }>,
     ),
     withCosts ? tolerant(supabase.from('mission_financials').select('mission_id, daily_cost_eur'), [] as Array<{ mission_id: string; daily_cost_eur: number | null }>) : [],
-    withCosts ? tolerant(supabase.from('consultant_financials').select('consultant_id, daily_cost_eur'), [] as Array<{ consultant_id: string; daily_cost_eur: number | null }>) : [],
+    withCosts
+      ? tolerant(supabase.from('consultant_financials').select('consultant_id, daily_cost_eur, target_margin_pct'), [] as Array<{ consultant_id: string; daily_cost_eur: number | null; target_margin_pct?: number | null }>)
+      : [],
   ]);
 
   const mCost = new Map(mf.filter((r) => r.daily_cost_eur != null).map((r) => [r.mission_id, Number(r.daily_cost_eur)]));
   const cCost = new Map(cf.filter((r) => r.daily_cost_eur != null).map((r) => [r.consultant_id, Number(r.daily_cost_eur)]));
   const cost = (m: MissionLite) => mCost.get(m.id) ?? cCost.get(m.consultant_id) ?? null;
+  const cTarget = new Map(cf.filter((r) => r.target_margin_pct != null).map((r) => [r.consultant_id, Number(r.target_margin_pct)]));
   const byId = new Map(missions.map((m) => [m.id, m]));
 
   // Agrégats sur 12 mois glissants (CRA validés).
@@ -154,6 +167,7 @@ export async function loadFinance(supabase: SupabaseClient, orgId: string, withC
 
   // Préfacturation et encaissements (factures de vente).
   const drafts = invoices.filter((i) => i.status === 'draft');
+  const toReview = drafts.filter((i) => !i.validated_at);
   const toExport = invoices.filter((i) => i.status !== 'cancelled' && !!i.validated_at && (i.export_status ?? 'not_exported') !== 'exported');
   const todayIso = today.toISOString().slice(0, 10);
   const sinceIso = since.toISOString().slice(0, 10);
@@ -188,6 +202,8 @@ export async function loadFinance(supabase: SupabaseClient, orgId: string, withC
       marginCoverage: realized12m > 0 ? Math.round((revenueWithCost / realized12m) * 100) : 0,
       draftCount: drafts.length,
       draftAmount: Math.round(drafts.reduce((s, i) => s + Number(i.amount_ht), 0)),
+      toReviewCount: toReview.length,
+      toReviewAmount: Math.round(toReview.reduce((s, i) => s + Number(i.amount_ht), 0)),
       toExportCount: toExport.length,
       toExportAmount: Math.round(toExport.reduce((s, i) => s + Number(i.amount_ht), 0)),
       receivable: Math.round(invoices.filter((i) => i.status === 'sent' || i.status === 'overdue').reduce((s, i) => s + Number(i.amount_ht), 0)),
@@ -210,5 +226,25 @@ export async function loadFinance(supabase: SupabaseClient, orgId: string, withC
       top3: totalClients > 0 ? Math.round((byClient.slice(0, 3).reduce((s, c) => s + c.revenue, 0) / totalClients) * 1000) / 10 : null,
       top1Name: byClient[0]?.label ?? null,
     },
+    lowMargin: withCosts
+      ? missions
+          .filter((m) => m.status === 'active' && Number(m.daily_rate_eur) > 0 && cost(m) != null)
+          .map((m) => {
+            const rate = Number(m.daily_rate_eur);
+            const marginPct = Math.round(((rate - cost(m)!) / rate) * 1000) / 10;
+            const own = cTarget.get(m.consultant_id);
+            const consultantName = m.consultants ? `${m.consultants.first_name} ${m.consultants.last_name}` : null;
+            return {
+              id: m.id,
+              label: m.title,
+              sub: [consultantName, m.companies?.name].filter(Boolean).join(' · ') || null,
+              marginPct,
+              target: own ?? DEFAULT_TARGET_MARGIN_PCT,
+              targetIsDefault: own == null,
+            };
+          })
+          .filter((r) => r.marginPct < r.target)
+          .sort((a, b) => a.marginPct - b.marginPct)
+      : [],
   };
 }

@@ -23,11 +23,14 @@ export default function RevenueMarginChart({
   lang,
   showMargin,
   height = 260,
+  fill = false,
 }: {
   data: MonthPoint[];
   lang: 'fr' | 'en';
   showMargin: boolean;
   height?: number;
+  /** Occupe toute la hauteur du parent (écrans « un écran »), avec `height` pour minimum. */
+  fill?: boolean;
 }) {
   const rows = data.map((p) => ({
     ...p,
@@ -35,7 +38,7 @@ export default function RevenueMarginChart({
   }));
   const fr = lang === 'fr';
   return (
-    <div style={{ height }} role="img" aria-label={fr ? 'CA et marge mensuels' : 'Monthly revenue and margin'}>
+    <div style={fill ? { height: '100%', minHeight: height } : { height }} role="img" aria-label={fr ? 'CA et marge mensuels' : 'Monthly revenue and margin'}>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={rows} margin={{ top: 8, right: 4, left: 0, bottom: 0 }} barGap={2} barCategoryGap="28%">
           <CartesianGrid {...gridProps} />

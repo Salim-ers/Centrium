@@ -84,19 +84,19 @@ export default function AidePage() {
     },
     {
       icon: Receipt,
-      title: isEn ? 'Billing' : 'Facturation',
+      title: isEn ? 'Pre-invoicing' : 'Préfacturation',
       steps: [
         isEn
-          ? 'Leave the invoice number empty: it is assigned sequentially and in a compliant way.'
-          : 'Laisse le numéro de facture vide : il est attribué séquentiellement et de façon conforme.',
+          ? 'Each approved timesheet prepares a pre-invoice (approved days × day rate) to review.'
+          : 'Chaque CRA validé prépare une préfacture (jours validés × TJM), à contrôler.',
         isEn
-          ? 'An issued invoice cannot be deleted (legal document) — use cancellation or a credit note.'
-          : 'Une facture émise ne se supprime pas (document légal) — utilise l’annulation ou l’avoir.',
+          ? 'Export reviewed pre-invoices as CSV (separator, decimals and dates to suit your tool): your accounting tool issues the invoice.'
+          : 'Exporte les préfactures contrôlées en CSV (séparateur, décimales et dates selon ton outil) : c’est ton outil comptable qui émet la facture.',
         isEn
-          ? 'Export the sales/purchase journal as CSV from the Invoices page (« Export compta » button).'
-          : 'Exporte le journal des ventes/achats en CSV depuis la page Factures (bouton « Export compta »).',
+          ? 'Centrium is not an approved e-invoicing platform: it does not transmit regulated invoices.'
+          : 'Centrium n’est pas une plateforme agréée : il ne transmet pas de facture réglementaire.',
       ],
-      cta: { label: isEn ? 'Open invoices' : 'Ouvrir les factures', href: '/invoices' },
+      cta: { label: isEn ? 'Open pre-invoicing' : 'Ouvrir la préfacturation', href: '/finance?view=prefacturation' },
     },
     {
       icon: FileSignature,

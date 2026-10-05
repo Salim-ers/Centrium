@@ -362,7 +362,7 @@ export function InvoiceFormDialog({
               <p className="text-[10px] text-muted-foreground mt-1">
                 {isEn
                   ? 'Leave empty for an automatic sequential number.'
-                  : 'Laisser vide = numéro séquentiel automatique et conforme.'}
+                  : 'Laisser vide = numéro séquentiel automatique.'}
               </p>
               {errors.invoice_number && (
                 <p className="text-xs text-destructive mt-1">{errors.invoice_number.message}</p>

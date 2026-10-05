@@ -1,20 +1,20 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Download, Info } from 'lucide-react';
+import { ArrowRight, Banknote, CalendarRange, FileClock, Gauge, Info, PieChart, TrendingDown, UserMinus, Wallet } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { PageHeader, KPICard } from '@/components/app';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageHeader } from '@/components/app';
+import { StatStrip, type StatItem } from '@/components/app/StatStrip';
+import { Segmented } from '@/components/app/Segmented';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChartCard } from '@/components/charts/ChartCard';
 import { CHART } from '@/components/charts/theme';
 import { PrefacturationPanel } from '@/components/finance/PrefacturationPanel';
-import { IntegrationsPanel } from '@/components/finance/IntegrationsPanel';
+import { ExportPanel } from '@/components/finance/ExportPanel';
+import { SectionTabs } from '@/components/layout/SectionTabs';
 import { useOrganization } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
@@ -22,71 +22,23 @@ import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { createClient } from '@/lib/supabase/client';
 import { loadFinance, type FinanceSummary } from '@/lib/pilotage/load-finance';
 import { formatEur, formatEurCompact, formatPct } from '@/lib/format';
-import { RelatedLinks } from '@/components/app/RelatedLinks';
 import { cn } from '@/lib/utils';
-import { SectionTabs } from '@/components/layout/SectionTabs';
 
 const RevenueMarginChart = dynamic(() => import('@/components/charts/RevenueMarginChart'), {
   ssr: false,
-  loading: () => <Skeleton className="h-[260px] w-full" />,
+  loading: () => <Skeleton className="h-full min-h-[200px] w-full" />,
 });
 
-type BreakdownRow = FinanceSummary['byClient'][number];
+type View = 'overview' | 'prefacturation' | 'export';
+type Breakdown = 'clients' | 'consultants' | 'missions';
 
-function BreakdownTable({
-  title,
-  rows,
-  hrefBase,
-  lang,
-  showMargin,
-}: {
-  title: string;
-  rows: BreakdownRow[];
-  hrefBase: string;
-  lang: 'fr' | 'en';
-  showMargin: boolean;
-}) {
-  const fr = lang === 'fr';
-  const total = rows.reduce((s, r) => s + r.revenue, 0);
-  return (
-    <ChartCard title={title} subtitle={fr ? '12 derniers mois · CRA validés' : 'Last 12 months · approved timesheets'}>
-      {rows.length === 0 ? (
-        <p className="text-[13px] text-muted-foreground">{fr ? 'Aucune donnée sur la période.' : 'No data for the period.'}</p>
-      ) : (
-        <table className="w-full text-[13px]">
-          <thead>
-            <tr className="text-left text-xs text-muted-foreground">
-              <th className="pb-2 font-medium">{fr ? 'Nom' : 'Name'}</th>
-              <th className="pb-2 text-right font-medium">{fr ? 'CA' : 'Revenue'}</th>
-              {showMargin && <th className="pb-2 text-right font-medium">{fr ? 'Marge' : 'Margin'}</th>}
-              <th className="hidden pb-2 text-right font-medium sm:table-cell">{fr ? 'Part' : 'Share'}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {rows.slice(0, 8).map((r) => (
-              <tr key={r.id}>
-                <td className="max-w-0 py-2 pr-2">
-                  <Link href={`${hrefBase}/${r.id}`} className="block truncate font-medium hover:text-primary-deep">
-                    {r.label}
-                  </Link>
-                  {r.sub && <span className="block truncate text-xs text-muted-foreground">{r.sub}</span>}
-                </td>
-                <td className="num py-2 text-right">{formatEurCompact(r.revenue, lang)}</td>
-                {showMargin && (
-                  <td className={cn('num py-2 text-right', r.marginPct != null && r.marginPct < 15 ? 'text-warning' : '')}>
-                    {r.marginPct != null ? formatPct(r.marginPct, lang) : <span className="text-muted-foreground">—</span>}
-                  </td>
-                )}
-                <td className="num hidden py-2 text-right text-muted-foreground sm:table-cell">{total ? formatPct((r.revenue / total) * 100, lang, 0) : '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </ChartCard>
-  );
-}
-
+/**
+ * Pilotage financier, un écran : quatre indicateurs, le grand graphique
+ * CA / marge, les signaux à droite (concentration, intercontrat, marges
+ * sous l'objectif, encours) et un tableau commutable clients / consultants
+ * / missions. Préfacturation et export dans leurs vues. Centrium pilote ;
+ * la comptabilité et l'émission des factures restent dans l'outil comptable.
+ */
 export default function FinancePage() {
   const params = useSearchParams();
   const { activeOrgId } = useOrganization();
@@ -95,7 +47,13 @@ export default function FinancePage() {
   const lang = locale === 'en' ? 'en' : 'fr';
   const fr = lang === 'fr';
   const withCosts = can('consultants.financials');
-  const [tab, setTab] = useState(params.get('tab') ?? 'overview');
+  const viewParam = params.get('view') ?? params.get('tab');
+  const [view, setView] = useState<View>(viewParam === 'prefacturation' ? 'prefacturation' : viewParam === 'export' || viewParam === 'integrations' ? 'export' : 'overview');
+  const [breakdown, setBreakdown] = useState<Breakdown>('clients');
+  useEffect(() => {
+    if (viewParam === 'prefacturation') setView('prefacturation');
+    else if (viewParam === 'export' || viewParam === 'integrations') setView('export');
+  }, [viewParam]);
 
   const { data, loading } = useCachedQuery<FinanceSummary>(
     `finance:${activeOrgId ?? 'none'}:${withCosts ? 'c' : 'n'}`,
@@ -103,171 +61,298 @@ export default function FinancePage() {
     { enabled: !!activeOrgId && ready },
   );
   const k = data?.kpis;
-  const isLoading = loading && !data;
   const year = new Date().getFullYear();
+  const dash = '…';
 
-  const forecastNext = useMemo(() => (data?.series ?? []).filter((p) => p.realized === null && p.forecast !== null), [data]);
+  const toTreat = k ? k.toReviewCount + k.toExportCount : 0;
+  const kpis: StatItem[] = [
+    {
+      label: k ? (fr ? `CA réalisé · 12 mois · ${formatEurCompact(k.realizedYtd, lang)} en ${year}` : `actual revenue · 12 months · ${formatEurCompact(k.realizedYtd, lang)} in ${year}`) : fr ? 'CA réalisé · 12 mois' : 'actual revenue · 12 months',
+      value: k ? formatEurCompact(k.realized12m, lang) : dash,
+      tone: 'terra',
+      icon: Banknote,
+      title: fr ? 'Jours validés × TJM, montants HT' : 'Approved days × day rate, excl. VAT',
+    },
+    {
+      label: fr ? 'CA prévisionnel · 3 prochains mois' : 'forecast · next 3 months',
+      value: k ? formatEurCompact(k.forecast3m, lang) : dash,
+      tone: 'peach',
+      icon: CalendarRange,
+      title: fr ? 'Missions actives × jours ouvrés × TJM' : 'Active missions × business days × rate',
+    },
+    withCosts
+      ? {
+          label: k?.margin12m != null ? (fr ? `marge brute · ${formatEurCompact(k.margin12m, lang)} sur 12 mois` : `gross margin · ${formatEurCompact(k.margin12m, lang)} over 12 months`) : fr ? 'marge brute · renseignez les CJM' : 'gross margin · add daily costs',
+          value: k ? formatPct(k.marginPct12m, lang) : dash,
+          tone: 'ivory',
+          icon: Gauge,
+          title: k ? (fr ? `${k.marginCoverage} % du CA est chiffré (CJM connus)` : `${k.marginCoverage}% of revenue is costed`) : undefined,
+        }
+      : {
+          label: fr ? 'carnet signé · missions en cours' : 'booked · active missions',
+          value: k ? formatEurCompact(k.booked, lang) : dash,
+          tone: 'ivory',
+          icon: Wallet,
+        },
+    {
+      label: k ? (fr ? `préfacturation à traiter · ${formatEurCompact(k.toReviewAmount + k.toExportAmount, lang)}` : `pre-invoicing to handle · ${formatEurCompact(k.toReviewAmount + k.toExportAmount, lang)}`) : fr ? 'préfacturation à traiter' : 'pre-invoicing to handle',
+      value: k ? toTreat : dash,
+      tone: 'white',
+      icon: FileClock,
+      href: '/finance?view=prefacturation',
+    },
+  ];
+
+  const rows = useMemo(() => (breakdown === 'clients' ? data?.byClient : breakdown === 'consultants' ? data?.byConsultant : data?.byMission) ?? [], [data, breakdown]);
+  const total = rows.reduce((s, r) => s + r.revenue, 0);
+  const hrefBase = breakdown === 'clients' ? '/clients' : breakdown === 'consultants' ? '/consultants' : '/missions';
 
   return (
-    <AppShell>
-      <PageHeader tabs={<SectionTabs section="operations" />}
-        eyebrow={fr ? 'Opérations' : 'Operations'}
-        title={fr ? 'Finance & préfacturation' : 'Finance & pre-invoicing'}
-        description={
-          fr
-            ? 'Pilotage du chiffre d’affaires et des marges, préparation des éléments facturables. Votre comptabilité reste dans votre outil comptable.'
-            : 'Revenue and margin monitoring, billable items preparation. Your accounting stays in your accounting tool.'
-        }
+    <AppShell fill>
+      <PageHeader
+        title={fr ? 'Pilotage financier' : 'Financial overview'}
+        description={fr ? 'Centrium pilote, votre outil comptable facture.' : 'Centrium steers, your accounting tool invoices.'}
+        tabs={<SectionTabs section="operations" />}
         actions={
-          can('finance.view') && (
-            <Button asChild variant="secondary">
-              <a href={`/api/accounting/export?year=${year}&party=client`}>
-                <Download />
-                {fr ? `Journal des ventes ${year}` : `${year} sales journal`}
-              </a>
-            </Button>
-          )
+          <Segmented<View>
+            label={fr ? 'Vue' : 'View'}
+            value={view}
+            onChange={setView}
+            options={[
+              { value: 'overview', label: fr ? 'Vue d’ensemble' : 'Overview' },
+              { value: 'prefacturation', label: fr ? 'Préfacturation' : 'Pre-invoicing', count: k ? toTreat : undefined },
+              { value: 'export', label: 'Export' },
+            ]}
+          />
         }
-      >
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList variant="underline">
-            <TabsTrigger value="overview">{fr ? 'Pilotage' : 'Overview'}</TabsTrigger>
-            <TabsTrigger value="prefacturation">
-              {fr ? 'Préfacturation' : 'Pre-invoicing'}
-              {k && k.draftCount > 0 && <span className="num rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">{k.draftCount}</span>}
-            </TabsTrigger>
-            <TabsTrigger value="integrations">{fr ? 'Intégrations' : 'Integrations'}</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </PageHeader>
-      <RelatedLinks
-        links={[
-          { href: '/invoices', label: { fr: 'Factures', en: 'Invoices' }, permission: 'finance.view' },
-          { href: '/accounting', label: { fr: 'Journal comptable', en: 'Accounting journal' }, permission: 'finance.view' },
-        ]}
       />
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsContent value="overview" className="mt-0 space-y-5">
-          <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KPICard accent="terra" label={fr ? 'CA signé' : 'Booked revenue'} valueText={k ? formatEurCompact(k.booked, lang) : undefined} hint={fr ? 'Carnet des missions en cours' : 'Active missions backlog'} loading={isLoading} />
-            <KPICard label={fr ? `CA réalisé ${year}` : `Actual revenue ${year}`} valueText={k ? formatEurCompact(k.realizedYtd, lang) : undefined} hint={k ? `${fr ? '12 mois' : '12 months'} : ${formatEurCompact(k.realized12m, lang)}` : undefined} loading={isLoading} />
-            <KPICard label={fr ? 'CA prévisionnel · 3 mois' : 'Forecast · 3 months'} valueText={k ? formatEurCompact(k.forecast3m, lang) : undefined} hint={fr ? 'Missions actives, jours ouvrés' : 'Active missions, business days'} loading={isLoading} />
-            {withCosts ? (
-              <KPICard
-                label={fr ? 'Marge brute · 12 mois' : 'Gross margin · 12 months'}
-                valueText={k?.margin12m != null ? formatEurCompact(k.margin12m, lang) : '—'}
-                hint={
-                  k
-                    ? k.margin12m != null
-                      ? `${formatPct(k.marginPct12m, lang)} · ${fr ? `${k.marginCoverage} % du CA chiffré` : `${k.marginCoverage}% of revenue costed`}`
-                      : fr ? 'Renseignez les CJM' : 'Add daily costs'
-                    : undefined
-                }
-                tone="emerald"
-                loading={isLoading}
-              />
-            ) : (
-              <KPICard label={fr ? 'Encaissé · 12 mois' : 'Collected · 12 months'} valueText={k ? formatEurCompact(k.paid12m, lang) : undefined} loading={isLoading} />
-            )}
-          </section>
+      <StatStrip className="mb-3" items={kpis} />
 
-          <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KPICard accent="peach" label={fr ? 'Préfactures à contrôler' : 'Pre-invoices to review'} valueText={k ? formatEurCompact(k.draftAmount, lang) : undefined} hint={k ? `${k.draftCount} ${fr ? 'préfacture(s)' : 'pre-invoice(s)'}` : undefined} href="/finance?tab=prefacturation" tone={k && k.draftCount > 0 ? 'amber' : 'neutral'} loading={isLoading} />
-            <KPICard label={fr ? 'À exporter' : 'To export'} valueText={k ? formatEurCompact(k.toExportAmount, lang) : undefined} hint={k ? `${k.toExportCount} ${fr ? 'validée(s)' : 'approved'}` : undefined} loading={isLoading} />
-            <KPICard accent="soft" label={fr ? 'À encaisser' : 'Receivables'} valueText={k ? formatEurCompact(k.receivable, lang) : undefined} hint={k && k.overdue > 0 ? `${formatEurCompact(k.overdue, lang)} ${fr ? 'en retard' : 'overdue'}` : fr ? 'Factures émises' : 'Issued invoices'} tone={k && k.overdue > 0 ? 'rose' : 'neutral'} loading={isLoading} />
-            <KPICard
-              label={fr ? 'Coût de l’intercontrat · mois' : 'Bench cost · month'}
-              valueText={k?.benchCostMonth != null ? formatEurCompact(k.benchCostMonth, lang) : '—'}
-              hint={
-                k
-                  ? k.benchCostMonth != null
-                    ? fr
-                      ? `Estimation : ${k.benchCovered}/${k.benchCount} consultant(s) avec CJM`
-                      : `Estimate: ${k.benchCovered}/${k.benchCount} consultant(s) with cost`
-                    : fr
-                      ? `${k.benchCount} en intercontrat · CJM requis`
-                      : `${k.benchCount} on bench · cost required`
-                  : undefined
-              }
-              loading={isLoading}
-            />
-          </section>
+      {view === 'prefacturation' && <PrefacturationPanel lang={lang} canEdit={can('finance.edit')} />}
+      {view === 'export' && <ExportPanel lang={lang} canEdit={can('finance.edit')} canManage={can('settings.manage')} />}
 
-          <ChartCard
-            title={fr ? 'CA et marge mensuels' : 'Monthly revenue and margin'}
-            subtitle={fr ? '12 derniers mois réalisés et 6 mois de prévision' : 'Last 12 months actual and 6 months forecast'}
-            legend={[
-              { label: fr ? 'Réalisé' : 'Actual', color: CHART.primary },
-              { label: fr ? 'Prévisionnel' : 'Forecast', color: CHART.primarySoft },
-              ...(withCosts ? [{ label: fr ? 'Marge' : 'Margin', color: CHART.deep }] : []),
-            ]}
-            footer={
-              forecastNext.length > 0 ? (
-                <span>
-                  {fr ? 'Prévision des prochains mois' : 'Next months forecast'} :{' '}
-                  {forecastNext.slice(0, 3).map((p, i) => (
-                    <span key={p.key} className="num">
-                      {i > 0 && ' · '}
-                      {new Date(p.year, p.month - 1, 1).toLocaleDateString(fr ? 'fr-FR' : 'en-GB', { month: 'short' })} {formatEurCompact(p.forecast, lang)}
+      {view === 'overview' && (
+        <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_19rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
+          <div className="flex flex-col gap-3 lg:min-h-0">
+            <section className="tile-surface flex min-h-[300px] flex-col p-4 lg:min-h-0 lg:flex-[3]">
+              <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="font-display text-[15px] font-semibold">{fr ? 'CA et marge mensuels' : 'Monthly revenue and margin'}</h2>
+                  <p className="text-xs text-muted-foreground">{fr ? '12 mois réalisés (CRA validés) et 6 mois de prévision · HT' : '12 months actual (approved timesheets) and 6 months forecast · excl. VAT'}</p>
+                </div>
+                <div className="flex flex-wrap gap-3 text-[11.5px] text-muted-foreground">
+                  {[
+                    { label: fr ? 'Réalisé' : 'Actual', color: CHART.primary },
+                    { label: fr ? 'Prévisionnel' : 'Forecast', color: CHART.primarySoft },
+                    ...(withCosts ? [{ label: fr ? 'Marge' : 'Margin', color: CHART.deep }] : []),
+                  ].map((l) => (
+                    <span key={l.label} className="inline-flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 rounded-[4px]" style={{ background: l.color }} />
+                      {l.label}
                     </span>
                   ))}
-                </span>
-              ) : undefined
-            }
-          >
-            {data ? <RevenueMarginChart data={data.series} lang={lang} showMargin={withCosts} height={280} /> : <Skeleton className="h-[280px] w-full" />}
-          </ChartCard>
+                </div>
+              </div>
+              <div className="min-h-0 flex-1">{data ? <RevenueMarginChart data={data.series} lang={lang} showMargin={withCosts} height={200} fill /> : <Skeleton className="h-full min-h-[200px] w-full" />}</div>
+            </section>
 
-          {data && (
-            <div className="tile-surface p-4 text-[13px]">
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                <span className="font-medium">{fr ? 'Concentration du CA' : 'Revenue concentration'}</span>
-                <span>
-                  {fr ? 'Premier client' : 'Top client'}
-                  {data.concentration.top1Name ? ` (${data.concentration.top1Name})` : ''} :{' '}
-                  <span className={cn('num font-semibold', (data.concentration.top1 ?? 0) > 40 && 'text-warning')}>{formatPct(data.concentration.top1, lang)}</span>
-                </span>
-                <span>
-                  {fr ? '3 premiers clients' : 'Top 3 clients'} : <span className="num font-semibold">{formatPct(data.concentration.top3, lang)}</span>
-                </span>
-                {(data.concentration.top1 ?? 0) > 40 && (
-                  <span className="inline-flex items-center gap-1 text-xs text-warning">
-                    <Info className="h-3.5 w-3.5" />
-                    {fr ? 'Dépendance élevée à un client' : 'High dependency on one client'}
-                  </span>
+            <section className="tile-surface flex min-h-[260px] flex-col overflow-hidden lg:min-h-0 lg:flex-[2]">
+              <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+                <h2 className="font-display text-[15px] font-semibold">{fr ? 'Répartition · 12 mois' : 'Breakdown · 12 months'}</h2>
+                <Segmented<Breakdown>
+                  label={fr ? 'Répartition' : 'Breakdown'}
+                  value={breakdown}
+                  onChange={setBreakdown}
+                  options={[
+                    { value: 'clients', label: fr ? 'Clients' : 'Clients' },
+                    { value: 'consultants', label: 'Consultants' },
+                    { value: 'missions', label: 'Missions' },
+                  ]}
+                />
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                {loading && !data ? (
+                  <div className="space-y-2 p-4">
+                    <Skeleton className="h-6 w-full" />
+                    <Skeleton className="h-6 w-full" />
+                    <Skeleton className="h-6 w-2/3" />
+                  </div>
+                ) : rows.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-[13px] text-muted-foreground">
+                    {fr ? 'Aucun CRA validé sur les 12 derniers mois.' : 'No approved timesheet over the last 12 months.'}
+                  </p>
+                ) : (
+                  <table className="w-full text-[13px]">
+                    <thead className="sticky top-0 z-[1] bg-card/95 backdrop-blur">
+                      <tr className="text-left text-xs text-muted-foreground">
+                        <th className="px-4 py-2 font-medium">{fr ? 'Nom' : 'Name'}</th>
+                        <th className="px-2 py-2 text-right font-medium">{fr ? 'Jours' : 'Days'}</th>
+                        <th className="px-2 py-2 text-right font-medium">{fr ? 'CA' : 'Revenue'}</th>
+                        {withCosts && <th className="px-2 py-2 text-right font-medium">{fr ? 'Marge' : 'Margin'}</th>}
+                        <th className="hidden px-4 py-2 font-medium sm:table-cell">{fr ? 'Part du CA' : 'Share'}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {rows.map((r) => {
+                        const share = total ? (r.revenue / total) * 100 : 0;
+                        return (
+                          <tr key={r.id} className="hover:bg-app-peach-light/40">
+                            <td className="max-w-0 px-4 py-2">
+                              <Link href={`${hrefBase}/${r.id}`} className="block truncate font-medium hover:text-app-terra-dark">
+                                {r.label}
+                              </Link>
+                              {r.sub && <span className="block truncate text-xs text-muted-foreground">{r.sub}</span>}
+                            </td>
+                            <td className="num px-2 py-2 text-right text-muted-foreground">{Math.round(r.days)}</td>
+                            <td className="num px-2 py-2 text-right font-medium">{formatEurCompact(r.revenue, lang)}</td>
+                            {withCosts && (
+                              <td className={cn('num px-2 py-2 text-right', r.marginPct != null && r.marginPct < 15 ? 'text-warning' : '')}>
+                                {r.marginPct != null ? formatPct(r.marginPct, lang) : <span className="text-muted-foreground">—</span>}
+                              </td>
+                            )}
+                            <td className="hidden w-40 px-4 py-2 sm:table-cell">
+                              <span className="flex items-center gap-2">
+                                <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-app-sand">
+                                  <span className="block h-full rounded-full bg-app-terra" style={{ width: `${Math.max(2, share)}%` }} />
+                                </span>
+                                <span className="num w-10 text-right text-xs text-muted-foreground">{formatPct(share, lang, 0)}</span>
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 )}
               </div>
-            </div>
-          )}
-
-          <div className="grid gap-4 xl:grid-cols-3">
-            <BreakdownTable title={fr ? 'Par client' : 'By client'} rows={data?.byClient ?? []} hrefBase="/clients" lang={lang} showMargin={withCosts} />
-            <BreakdownTable title={fr ? 'Par consultant' : 'By consultant'} rows={data?.byConsultant ?? []} hrefBase="/consultants" lang={lang} showMargin={withCosts} />
-            <BreakdownTable title={fr ? 'Par mission' : 'By mission'} rows={data?.byMission ?? []} hrefBase="/missions" lang={lang} showMargin={withCosts} />
+            </section>
           </div>
-          {!withCosts && (
-            <p className="text-xs text-muted-foreground">
-              {fr ? 'Les marges ne sont visibles qu’avec la permission « Voir TJM, CJM et marges ».' : 'Margins require the “View rates, costs and margins” permission.'}
-            </p>
-          )}
-          {k && (
-            <p className="text-xs text-muted-foreground">
-              {fr
-                ? `Montants HT. CA réalisé = jours validés × TJM. ${formatEur(k.paid12m, lang)} encaissés sur 12 mois d’après les statuts saisis.`
-                : `Amounts excl. VAT. Actual revenue = approved days × day rate. ${formatEur(k.paid12m, lang)} collected over 12 months based on recorded statuses.`}
-            </p>
-          )}
-        </TabsContent>
 
-        <TabsContent value="prefacturation" className="mt-0">
-          <PrefacturationPanel lang={lang} canEdit={can('finance.edit')} />
-        </TabsContent>
+          <aside className="no-scrollbar flex flex-col gap-3 lg:min-h-0 lg:overflow-y-auto">
+            <Signal icon={PieChart} title={fr ? 'Concentration du CA' : 'Revenue concentration'} tone={(data?.concentration.top1 ?? 0) > 40 ? 'warn' : 'calm'}>
+              {data?.concentration.top1 != null ? (
+                <>
+                  <p className="text-[13px]">
+                    {fr ? (
+                      <>
+                        <strong className="font-semibold">{data.concentration.top1Name}</strong> représente <strong className="num font-semibold">{formatPct(data.concentration.top1, lang)}</strong> du CA.
+                      </>
+                    ) : (
+                      <>
+                        <strong className="font-semibold">{data.concentration.top1Name}</strong> accounts for <strong className="num font-semibold">{formatPct(data.concentration.top1, lang)}</strong> of revenue.
+                      </>
+                    )}
+                  </p>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-app-sand">
+                    <span className="block h-full rounded-full bg-app-terra" style={{ width: `${data.concentration.top1}%` }} />
+                  </div>
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    {fr ? `3 premiers clients : ${formatPct(data.concentration.top3, lang)} · indicateur de pilotage` : `Top 3 clients: ${formatPct(data.concentration.top3, lang)} · steering indicator`}
+                  </p>
+                </>
+              ) : (
+                <p className="text-[13px] text-muted-foreground">{fr ? 'Pas encore de CA réalisé.' : 'No actual revenue yet.'}</p>
+              )}
+            </Signal>
 
-        <TabsContent value="integrations" className="mt-0">
-          <IntegrationsPanel lang={lang} canManage={can('settings.manage')} />
-        </TabsContent>
-      </Tabs>
+            <Signal icon={UserMinus} title={fr ? 'Coût de l’intercontrat · ce mois' : 'Bench cost · this month'} tone={k && k.benchCount > 0 ? 'warn' : 'calm'} href="/staffing?view=bench" cta={fr ? 'Voir le staffing' : 'Open staffing'}>
+              <p className="num text-[20px] font-semibold leading-tight">{k?.benchCostMonth != null ? formatEurCompact(k.benchCostMonth, lang) : '—'}</p>
+              <p className="text-xs text-muted-foreground">
+                {k
+                  ? k.benchCostMonth != null
+                    ? fr
+                      ? `${k.benchCount} en intercontrat · estimation sur ${k.benchCovered} CJM connu${k.benchCovered > 1 ? 's' : ''}`
+                      : `${k.benchCount} on bench · estimate from ${k.benchCovered} known cost(s)`
+                    : fr
+                      ? `${k.benchCount} en intercontrat · CJM requis pour estimer`
+                      : `${k.benchCount} on bench · costs needed to estimate`
+                  : dash}
+              </p>
+            </Signal>
+
+            {withCosts && (
+              <Signal icon={TrendingDown} title={fr ? 'Marges sous l’objectif' : 'Margins below target'} tone={(data?.lowMargin.length ?? 0) > 0 ? 'warn' : 'calm'}>
+                {!data || data.lowMargin.length === 0 ? (
+                  <p className="text-[13px] text-muted-foreground">{fr ? 'Toutes les missions chiffrées atteignent leur objectif.' : 'Every costed mission meets its target.'}</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {data.lowMargin.slice(0, 4).map((m) => (
+                      <li key={m.id}>
+                        <Link href={`/missions/${m.id}`} className="group block">
+                          <span className="flex items-baseline justify-between gap-2">
+                            <span className="truncate text-[13px] font-medium group-hover:text-app-terra-dark">{m.label}</span>
+                            <span className="num shrink-0 text-[13px] font-semibold text-warning">{formatPct(m.marginPct, lang)}</span>
+                          </span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {fr ? `Marge sous votre objectif de ${formatPct(m.target, lang, 0)}` : `Margin below your ${formatPct(m.target, lang, 0)} target`}
+                            {m.targetIsDefault ? (fr ? ' (par défaut)' : ' (default)') : ''}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                    {data.lowMargin.length > 4 && (
+                      <li className="text-xs text-muted-foreground">{fr ? `et ${data.lowMargin.length - 4} autre(s)` : `and ${data.lowMargin.length - 4} more`}</li>
+                    )}
+                  </ul>
+                )}
+              </Signal>
+            )}
+
+            <Signal icon={Wallet} title={fr ? 'Encours client (suivi)' : 'Client receivables (tracking)'} tone={k && k.overdue > 0 ? 'warn' : 'calm'}>
+              <p className="num text-[20px] font-semibold leading-tight">{k ? formatEurCompact(k.receivable, lang) : dash}</p>
+              <p className="text-xs text-muted-foreground">
+                {k && k.overdue > 0
+                  ? fr
+                    ? `dont ${formatEur(k.overdue, lang)} échus · d’après le suivi saisi`
+                    : `incl. ${formatEur(k.overdue, lang)} overdue · from recorded tracking`
+                  : fr
+                    ? 'Préfactures marquées émises, non payées'
+                    : 'Pre-invoices marked issued, unpaid'}
+              </p>
+            </Signal>
+
+            {withCosts && k && k.marginCoverage < 100 && k.realized12m > 0 && (
+              <p className="flex items-start gap-2 rounded-xl bg-app-sand/60 px-3.5 py-2.5 text-xs text-app-terra-dark">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                {fr ? `${k.marginCoverage} % du CA est chiffré : renseignez les CJM manquants pour une marge complète.` : `${k.marginCoverage}% of revenue is costed: add missing daily costs for a complete margin.`}
+              </p>
+            )}
+          </aside>
+        </div>
+      )}
     </AppShell>
+  );
+}
+
+function Signal({
+  icon: Icon,
+  title,
+  tone,
+  href,
+  cta,
+  children,
+}: {
+  icon: typeof Info;
+  title: string;
+  tone: 'warn' | 'calm';
+  href?: string;
+  cta?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className={cn('rounded-[20px] p-4', tone === 'warn' ? 'bg-app-peach-light' : 'tile-surface')}>
+      <h3 className="mb-2 flex items-center gap-2 text-[12.5px] font-semibold text-app-terra-deep">
+        <Icon className="h-4 w-4 text-app-terra" />
+        {title}
+      </h3>
+      {children}
+      {href && cta && (
+        <Link href={href} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-app-terra-dark hover:underline">
+          {cta}
+          <ArrowRight className="h-3 w-3" />
+        </Link>
+      )}
+    </section>
   );
 }

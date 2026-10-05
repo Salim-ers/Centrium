@@ -102,7 +102,7 @@ DetailDrawer, SegmentedControl / tabs, EmptyState, StatusBadge, Avatar.
 | 10 | Missions (liste compacte, périmètres et échéances segmentés, aperçu en tiroir, état vide utile, transformation d’une opportunité gagnée), cockpit mission (TJM, CJM, marge, jours, fin ; frise mois par mois, CRA, documents, historique) et question du renouvellement à J-30 (oui → prolongation, non → libération, à confirmer → rappel BM) | fait |
 | 11 | CRA : 3 indicateurs (à valider, manquants, validés ce mois), centre de validation rapide (valider, rejeter, ouvrir en ligne ; sélection et validation par lot ; aperçu du mois en tiroir), relance groupée des manquants | fait |
 | 12 | Documents, devis | à faire |
-| 13 | Pilotage financier, préfacturation, export | à faire |
+| 13 | Pilotage financier : 4 indicateurs, grand graphique, signaux à droite (concentration, intercontrat, marges sous l’objectif, encours), répartition commutable clients / consultants / missions ; préfacturation en 4 étapes (à préparer, à contrôler, prêtes à exporter, exportées) ; export CSV au format configurable, journaux, webhook ; connecteurs simulés retirés | fait |
 | 14 | Analytics 4 vues | à faire |
 | 15 | Portails | à faire |
 | 16 | Paramètres | à faire |

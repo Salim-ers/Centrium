@@ -3,85 +3,65 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { CheckCircle2, Download, FileCheck2, MoreHorizontal, Receipt, Undo2, Ban, BadgeEuro, Send } from 'lucide-react';
+import { Ban, BadgeEuro, CheckCircle2, Download, FileCheck2, FilePlus2, MoreHorizontal, Receipt, Send, Undo2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StatusPill } from '@/components/ui/status-pill';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { showBrandToast } from '@/components/ui/BrandToast';
 import { DataTable, type Column, linkActions } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/app/EmptyState';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Segmented } from '@/components/app/Segmented';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
+import { downloadPrefactures, useExportFormat } from '@/hooks/useExportFormat';
 import { useOrganization } from '@/lib/auth/context';
 import { createClient } from '@/lib/supabase/client';
-import { INVOICE_STATUS, statusOf } from '@/lib/status';
+import { timesheetService } from '@/lib/services';
+import { loadPrefacturation, prefacturationKey, stageOf, PREPARE_WINDOW_MONTHS, type PrefactureRow, type PrefactureStage, type PrefacturationData, type ToPrepareRow } from '@/lib/finance/prefactures';
+import { INVOICE_STATUS, periodLabelShort, statusOf } from '@/lib/status';
 import { formatDate, formatEur } from '@/lib/format';
-import type { Invoice } from '@/types';
+import { cn } from '@/lib/utils';
 
-type Row = Invoice & {
-  validated_at?: string | null;
-  export_status?: string;
-  exported_at?: string | null;
-  companies: { name: string } | null;
-  consultants: { first_name: string; last_name: string } | null;
-  missions: { title: string } | null;
-};
+type Party = 'client' | 'consultant';
 
-type Stage = 'review' | 'ready' | 'issued' | 'closed';
 
-const STEPS: Array<{ id: Stage; fr: string; en: string; hint: { fr: string; en: string } }> = [
-  { id: 'review', fr: 'À contrôler', en: 'To review', hint: { fr: 'Préfactures issues des CRA validés', en: 'Pre-invoices from approved timesheets' } },
-  { id: 'ready', fr: 'Validées', en: 'Approved', hint: { fr: 'Prêtes à exporter vers votre outil', en: 'Ready to export to your tool' } },
-  { id: 'issued', fr: 'Émises', en: 'Issued', hint: { fr: 'En attente de paiement', en: 'Awaiting payment' } },
-  { id: 'closed', fr: 'Payées et annulées', en: 'Paid and cancelled', hint: { fr: 'Historique', en: 'History' } },
-];
-
-function stageOfInvoice(i: Row): Stage {
-  if (i.status === 'paid' || i.status === 'cancelled') return 'closed';
-  if (i.status === 'sent' || i.status === 'overdue') return 'issued';
-  return i.validated_at ? 'ready' : 'review';
-}
-
+/**
+ * Préfacturation, un écran opérationnel : CRA validé → jours × TJM →
+ * à contrôler → prête à exporter → exportée vers l'outil comptable.
+ * Centrium n'émet pas la facture : c'est l'outil comptable qui le fait.
+ */
 export function PrefacturationPanel({ lang, canEdit }: { lang: 'fr' | 'en'; canEdit: boolean }) {
   const fr = lang === 'fr';
   const { activeOrgId } = useOrganization();
-  const [stage, setStage] = useState<Stage>('review');
-  const [party, setParty] = useState<'client' | 'consultant'>('client');
+  const { format } = useExportFormat();
+  const [party, setParty] = useState<Party>('client');
+  const [stage, setStage] = useState<PrefactureStage>('review');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
 
-  const { data, loading, reload } = useCachedQuery<Row[]>(
-    `prefactures:${activeOrgId ?? 'none'}`,
-    async () => {
-      const { data: rows } = await createClient()
-        .from('invoices')
-        .select('*, companies(name), consultants(first_name, last_name), missions(title)')
-        .eq('organization_id', activeOrgId!)
-        .eq('archived', false)
-        .order('issue_date', { ascending: false })
-        .limit(3000);
-      return (rows ?? []) as unknown as Row[];
-    },
-    { enabled: !!activeOrgId },
-  );
+  const { data, loading, reload } = useCachedQuery<PrefacturationData>(prefacturationKey(activeOrgId), () => loadPrefacturation(createClient(), activeOrgId!), {
+    enabled: !!activeOrgId,
+  });
 
   const counts = useMemo(() => {
-    const c: Record<Stage, number> = { review: 0, ready: 0, issued: 0, closed: 0 };
-    for (const i of data ?? []) if (i.party === party) c[stageOfInvoice(i)]++;
+    const c: Record<PrefactureStage, number> = { prepare: party === 'client' ? (data?.toPrepare.length ?? 0) : 0, review: 0, ready: 0, done: 0 };
+    for (const i of data?.invoices ?? []) if (i.party === party) c[stageOf(i)]++;
     return c;
   }, [data, party]);
 
-  const rows = useMemo(() => (data ?? []).filter((i) => i.party === party && stageOfInvoice(i) === stage), [data, party, stage]);
+  const invoices = useMemo(() => (data?.invoices ?? []).filter((i) => i.party === party && stage !== 'prepare' && stageOf(i) === stage), [data, party, stage]);
+  const toPrepare = party === 'client' && stage === 'prepare' ? (data?.toPrepare ?? []) : [];
   const today = new Date().toISOString().slice(0, 10);
 
-  async function act(i: Row, action: string, success: string) {
+  function reset(next: Partial<{ party: Party; stage: PrefactureStage }>) {
+    if (next.party) setParty(next.party);
+    if (next.stage) setStage(next.stage);
+    if (next.party === 'consultant' && stage === 'prepare') setStage('review');
+    setSelected(new Set());
+  }
+
+  async function act(i: PrefactureRow, action: string) {
     setBusy(i.id);
     const res = await fetch(`/api/finance/prefactures/${i.id}`, {
       method: 'PATCH',
@@ -91,18 +71,33 @@ export function PrefacturationPanel({ lang, canEdit }: { lang: 'fr' | 'en'; canE
     setBusy(null);
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error(json.message ?? json.error ?? (fr ? 'Action impossible' : 'Action failed'));
+      toast.error(json.message ?? (typeof json.error === 'string' ? json.error : fr ? 'Action impossible' : 'Action failed'));
       return;
     }
-    toast.success(success);
+    void reload();
+  }
+
+  /** Prépare les préfactures manquantes : un CRA après l'autre. */
+  async function prepare(rows: ToPrepareRow[]) {
+    if (!activeOrgId || rows.length === 0) return;
+    setBusy('bulk');
+    let ok = 0;
+    for (const r of rows) {
+      const res = await timesheetService.validateAndInvoice(r.id, activeOrgId);
+      if (!res.error && res.data) ok++;
+    }
+    setBusy(null);
+    setSelected(new Set());
+    showBrandToast(ok === rows.length ? 'success' : 'warning', fr ? `${ok} préfacture${ok > 1 ? 's' : ''} préparée${ok > 1 ? 's' : ''}` : `${ok} pre-invoice${ok > 1 ? 's' : ''} prepared`, {
+      description: ok < rows.length ? (fr ? `${rows.length - ok} en échec` : `${rows.length - ok} failed`) : fr ? 'À contrôler avant export' : 'To review before export',
+    });
     void reload();
   }
 
   async function validateSelected() {
-    const ids = [...selected];
     setBusy('bulk');
     let ok = 0;
-    for (const id of ids) {
+    for (const id of selected) {
       const res = await fetch(`/api/finance/prefactures/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -112,37 +107,90 @@ export function PrefacturationPanel({ lang, canEdit }: { lang: 'fr' | 'en'; canE
     }
     setBusy(null);
     setSelected(new Set());
-    toast.success(fr ? `${ok} préfacture(s) validée(s)` : `${ok} pre-invoice(s) approved`);
+    showBrandToast('success', fr ? `${ok} préfacture${ok > 1 ? 's' : ''} validée${ok > 1 ? 's' : ''}` : `${ok} pre-invoice${ok > 1 ? 's' : ''} approved`, {
+      description: fr ? 'Prêtes à exporter' : 'Ready to export',
+    });
     void reload();
   }
 
   async function exportSelected() {
-    const ids = [...selected];
     setBusy('export');
-    const res = await fetch('/api/finance/export', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids }),
-    });
+    const error = await downloadPrefactures([...selected], format, fr);
     setBusy(null);
-    if (!res.ok) {
-      const json = await res.json().catch(() => ({}));
-      toast.error(json.message ?? (fr ? 'Export impossible' : 'Export failed'));
+    if (error) {
+      toast.error(error);
       return;
     }
-    const blob = await res.blob();
-    const href = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = href;
-    a.download = `prefactures-${today}.csv`;
-    a.click();
-    URL.revokeObjectURL(href);
     setSelected(new Set());
-    toast.success(fr ? 'Export généré · préfactures marquées comme exportées' : 'Export generated · pre-invoices marked as exported');
+    showBrandToast('success', fr ? 'Export généré' : 'Export generated', { description: fr ? 'Préfactures marquées comme exportées' : 'Pre-invoices marked as exported' });
     void reload();
   }
 
-  const columns: Column<Row>[] = [
+  const prepareColumns: Column<ToPrepareRow>[] = [
+    {
+      id: 'consultant',
+      header: 'Consultant',
+      mobile: 'title',
+      sortValue: (r) => r.consultant,
+      cell: (r) => <span className="font-medium text-foreground">{r.consultant}</span>,
+    },
+    {
+      id: 'mission',
+      header: 'Mission',
+      mobile: 'subtitle',
+      sortValue: (r) => r.mission,
+      cell: (r) => (
+        <span className="block max-w-[18rem] truncate text-[13px] text-muted-foreground xl:max-w-[26rem]">
+          {r.mission}
+          {r.client ? ` · ${r.client}` : ''}
+        </span>
+      ),
+    },
+    {
+      id: 'period',
+      header: fr ? 'Mois' : 'Month',
+      mobile: 'meta',
+      sortValue: (r) => r.period_year * 100 + r.period_month,
+      cell: (r) => <span className="whitespace-nowrap text-[13px]">{periodLabelShort(r.period_month, r.period_year, lang)}</span>,
+    },
+    {
+      id: 'calc',
+      header: fr ? 'Jours × TJM' : 'Days × rate',
+      align: 'right',
+      hideOnMobile: true,
+      cell: (r) => (
+        <span className="num whitespace-nowrap text-[13px] text-muted-foreground">
+          {r.days} × {formatEur(r.rate, lang)}
+        </span>
+      ),
+    },
+    {
+      id: 'amount',
+      header: fr ? 'Montant HT' : 'Amount (excl. VAT)',
+      align: 'right',
+      mobile: 'meta',
+      sortValue: (r) => r.amount,
+      cell: (r) => <span className="num font-medium">{formatEur(r.amount, lang, 2)}</span>,
+    },
+    ...(canEdit
+      ? ([
+          {
+            id: 'actions',
+            header: <span className="sr-only">Actions</span>,
+            align: 'right',
+            hideOnMobile: true,
+            cell: (r) => (
+              <Button size="sm" variant="secondary" disabled={!!busy} onClick={() => void prepare([r])}>
+                <FilePlus2 />
+                {fr ? 'Préparer' : 'Prepare'}
+              </Button>
+            ),
+          },
+        ] as Column<ToPrepareRow>[])
+      : []),
+  ];
+
+  const invoiceColumns: Column<PrefactureRow>[] = [
     {
       id: 'number',
       header: fr ? 'N°' : 'No.',
@@ -152,11 +200,11 @@ export function PrefacturationPanel({ lang, canEdit }: { lang: 'fr' | 'en'; canE
     },
     {
       id: 'party',
-      header: party === 'client' ? (fr ? 'Client' : 'Client') : fr ? 'Consultant' : 'Consultant',
+      header: party === 'client' ? 'Client' : 'Consultant',
       mobile: 'subtitle',
       sortValue: (i) => (party === 'client' ? (i.companies?.name ?? '') : `${i.consultants?.last_name ?? ''}`),
       cell: (i) => (
-        <span className="min-w-0">
+        <span className="block min-w-0 max-w-[18rem] xl:max-w-[26rem]">
           <span className="block truncate">{party === 'client' ? (i.companies?.name ?? '—') : i.consultants ? `${i.consultants.first_name} ${i.consultants.last_name}` : '—'}</span>
           <span className="block truncate text-xs text-muted-foreground">{i.missions?.title}</span>
         </span>
@@ -167,7 +215,7 @@ export function PrefacturationPanel({ lang, canEdit }: { lang: 'fr' | 'en'; canE
       header: fr ? 'Période' : 'Period',
       hideOnMobile: true,
       sortValue: (i) => i.issue_date,
-      cell: (i) => <span className="text-[13px] text-muted-foreground">{i.period_label ?? formatDate(i.issue_date, lang, 'short')}</span>,
+      cell: (i) => <span className="whitespace-nowrap text-[13px] text-muted-foreground">{i.period_label ?? formatDate(i.issue_date, lang, 'short')}</span>,
     },
     {
       id: 'amount',
@@ -175,29 +223,22 @@ export function PrefacturationPanel({ lang, canEdit }: { lang: 'fr' | 'en'; canE
       align: 'right',
       mobile: 'meta',
       sortValue: (i) => Number(i.amount_ht),
-      cell: (i) => <span className="num">{formatEur(Number(i.amount_ht), lang, 2)}</span>,
-    },
-    {
-      id: 'due',
-      header: fr ? 'Échéance' : 'Due',
-      mobile: 'meta',
-      sortValue: (i) => i.due_date,
-      cell: (i) => (
-        <span className={i.status === 'sent' && i.due_date < today ? 'text-[13px] font-medium text-destructive' : 'text-[13px] text-muted-foreground'}>
-          {formatDate(i.due_date, lang, 'short')}
-        </span>
-      ),
+      cell: (i) => <span className="num font-medium">{formatEur(Number(i.amount_ht), lang, 2)}</span>,
     },
     {
       id: 'status',
       header: fr ? 'Statut' : 'Status',
       mobile: 'trailing',
       cell: (i) => {
+        const st = stageOf(i);
+        if (st === 'review') return <StatusPill tone="warning">{fr ? 'À contrôler' : 'To review'}</StatusPill>;
+        if (st === 'ready') return <StatusPill tone="brand">{fr ? 'Prête à exporter' : 'Ready to export'}</StatusPill>;
         const s = statusOf(INVOICE_STATUS, i.status, lang);
         return (
           <span className="flex flex-wrap items-center gap-1.5">
-            {i.status === 'draft' && i.validated_at ? <StatusPill tone="brand">{fr ? 'Validée' : 'Approved'}</StatusPill> : <StatusPill tone={s.tone}>{s.label}</StatusPill>}
             {i.export_status === 'exported' && <Badge variant="success">{fr ? 'Exportée' : 'Exported'}</Badge>}
+            {i.status !== 'draft' && <StatusPill tone={s.tone}>{s.label}</StatusPill>}
+            {i.status === 'sent' && i.due_date < today && <span className="text-xs font-medium text-destructive">{fr ? 'échue' : 'overdue'}</span>}
           </span>
         );
       },
@@ -210,144 +251,168 @@ export function PrefacturationPanel({ lang, canEdit }: { lang: 'fr' | 'en'; canE
             align: 'right',
             hideOnMobile: true,
             cell: (i) => (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon-sm" disabled={busy === i.id} aria-label={fr ? `Actions sur ${i.invoice_number}` : `Actions for ${i.invoice_number}`}>
-                    <MoreHorizontal />
+              <span className="flex justify-end gap-1">
+                {stageOf(i) === 'review' && (
+                  <Button size="sm" variant="secondary" disabled={busy === i.id} onClick={() => void act(i, 'validate')}>
+                    <CheckCircle2 />
+                    {fr ? 'Valider' : 'Approve'}
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  {i.status === 'draft' && !i.validated_at && (
-                    <DropdownMenuItem onSelect={() => void act(i, 'validate', fr ? 'Préfacture validée' : 'Pre-invoice approved')}>
-                      <CheckCircle2 />
-                      {fr ? 'Valider' : 'Approve'}
-                    </DropdownMenuItem>
-                  )}
-                  {i.status === 'draft' && i.validated_at && (
-                    <>
-                      <DropdownMenuItem onSelect={() => void act(i, 'mark_sent', fr ? 'Marquée comme émise' : 'Marked as issued')}>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon-sm" disabled={busy === i.id} aria-label={fr ? `Actions sur ${i.invoice_number}` : `Actions for ${i.invoice_number}`}>
+                      <MoreHorizontal />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-60">
+                    {i.status === 'draft' && i.validated_at && i.export_status !== 'exported' && (
+                      <DropdownMenuItem onSelect={() => void act(i, 'unvalidate')}>
+                        <Undo2 />
+                        {fr ? 'Remettre à contrôler' : 'Back to review'}
+                      </DropdownMenuItem>
+                    )}
+                    {i.status === 'draft' && i.validated_at && (
+                      <DropdownMenuItem onSelect={() => void act(i, 'mark_sent')}>
                         <Send />
-                        {fr ? 'Marquer comme émise' : 'Mark as issued'}
+                        {fr ? 'Suivi : émise par l’outil comptable' : 'Tracking: issued by the accounting tool'}
                       </DropdownMenuItem>
-                      {i.export_status !== 'exported' && (
-                        <DropdownMenuItem onSelect={() => void act(i, 'unvalidate', fr ? 'Remise en contrôle' : 'Back to review')}>
-                          <Undo2 />
-                          {fr ? 'Remettre en contrôle' : 'Back to review'}
-                        </DropdownMenuItem>
-                      )}
-                    </>
-                  )}
-                  {(i.status === 'sent' || i.status === 'overdue') && (
-                    <DropdownMenuItem onSelect={() => void act(i, 'mark_paid', fr ? 'Paiement enregistré' : 'Payment recorded')}>
-                      <BadgeEuro />
-                      {fr ? 'Marquer comme payée' : 'Mark as paid'}
+                    )}
+                    {(i.status === 'sent' || i.status === 'overdue') && (
+                      <DropdownMenuItem onSelect={() => void act(i, 'mark_paid')}>
+                        <BadgeEuro />
+                        {fr ? 'Suivi : payée' : 'Tracking: paid'}
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem asChild>
+                      <Link href={`/invoices/${i.id}`}>
+                        <Receipt />
+                        {fr ? 'Ouvrir la préfacture' : 'Open pre-invoice'}
+                      </Link>
                     </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem asChild>
-                    <Link href={`/invoices/${i.id}`}>
-                      <Receipt />
-                      {fr ? 'Ouvrir le document' : 'Open document'}
-                    </Link>
-                  </DropdownMenuItem>
-                  {i.status === 'draft' && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem destructive onSelect={() => void act(i, 'cancel', fr ? 'Préfacture annulée' : 'Pre-invoice cancelled')}>
-                        <Ban />
-                        {fr ? 'Annuler' : 'Cancel'}
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    {i.status === 'draft' && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem destructive onSelect={() => void act(i, 'cancel')}>
+                          <Ban />
+                          {fr ? 'Annuler la préfacture' : 'Cancel pre-invoice'}
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </span>
             ),
           },
-        ] as Column<Row>[])
+        ] as Column<PrefactureRow>[])
       : []),
   ];
 
-  const selectable = canEdit && (stage === 'review' || stage === 'ready');
+  const selectable = canEdit && stage !== 'done';
+  const hints: Record<PrefactureStage, string> = {
+    prepare: fr ? `CRA validés des ${PREPARE_WINDOW_MONTHS} derniers mois sans préfacture : jours validés × TJM.` : `Approved timesheets of the last ${PREPARE_WINDOW_MONTHS} months without a pre-invoice: approved days × rate.`,
+    review: fr ? 'Préfactures issues des CRA validés : vérifiez les jours, le TJM et le client.' : 'Pre-invoices from approved timesheets: check days, rate and client.',
+    ready: fr ? 'Contrôlées : exportez-les vers votre outil comptable, qui émettra la facture.' : 'Approved: export them to your accounting tool, which will issue the invoice.',
+    done: fr ? 'Exportées, avec le suivi saisi (émise, payée).' : 'Exported, with recorded tracking (issued, paid).',
+  };
 
   return (
-    <div>
-      <ol className="mb-4 grid gap-2 sm:grid-cols-4" aria-label={fr ? 'Étapes de la préfacturation' : 'Pre-invoicing steps'}>
-        {STEPS.map((s, i) => (
-          <li key={s.id}>
-            <button
-              type="button"
-              onClick={() => {
-                setStage(s.id);
-                setSelected(new Set());
-              }}
-              aria-pressed={stage === s.id}
-              className="flex w-full items-start gap-3 rounded-lg border border-border bg-card p-3 text-left transition-colors hover:border-sand-300 aria-pressed:border-primary aria-pressed:ring-1 aria-pressed:ring-primary"
-            >
-              <span className="num flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">{i + 1}</span>
-              <span className="min-w-0">
-                <span className="flex items-center gap-2 text-[13.5px] font-medium">
-                  {s[lang]} <span className="num text-xs text-muted-foreground">{counts[s.id]}</span>
-                </span>
-                <span className="block text-xs text-muted-foreground">{s.hint[lang]}</span>
-              </span>
-            </button>
-          </li>
-        ))}
-      </ol>
-
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <Tabs value={party} onValueChange={(v) => { setParty(v as 'client' | 'consultant'); setSelected(new Set()); }}>
-          <TabsList>
-            <TabsTrigger value="client">{fr ? 'Ventes (clients)' : 'Sales (clients)'}</TabsTrigger>
-            <TabsTrigger value="consultant">{fr ? 'Achats (sous-traitance)' : 'Purchases (subcontracting)'}</TabsTrigger>
-          </TabsList>
-        </Tabs>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="mb-2 flex shrink-0 flex-wrap items-center gap-2">
+        <Segmented<PrefactureStage>
+          label={fr ? 'Étape' : 'Step'}
+          value={stage}
+          onChange={(v) => reset({ stage: v })}
+          options={[
+            ...(party === 'client' ? [{ value: 'prepare' as const, label: fr ? 'À préparer' : 'To prepare', count: counts.prepare }] : []),
+            { value: 'review', label: fr ? 'À contrôler' : 'To review', count: counts.review },
+            { value: 'ready', label: fr ? 'Prêtes à exporter' : 'Ready to export', count: counts.ready },
+            { value: 'done', label: fr ? 'Exportées' : 'Exported', count: counts.done },
+          ]}
+        />
+        <Segmented<Party>
+          label={fr ? 'Type' : 'Type'}
+          value={party}
+          onChange={(v) => reset({ party: v })}
+          options={[
+            { value: 'client', label: fr ? 'Ventes' : 'Sales' },
+            { value: 'consultant', label: fr ? 'Sous-traitance' : 'Subcontracting' },
+          ]}
+        />
         {selectable && selected.size > 0 && (
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2">
             <span className="num text-xs text-muted-foreground">
               {selected.size} {fr ? 'sélectionnée(s)' : 'selected'}
             </span>
-            {stage === 'review' ? (
+            {stage === 'prepare' && (
+              <Button size="sm" loading={busy === 'bulk'} onClick={() => void prepare(toPrepare.filter((r) => selected.has(r.id)))}>
+                <FilePlus2 />
+                {fr ? 'Préparer la sélection' : 'Prepare selection'}
+              </Button>
+            )}
+            {stage === 'review' && (
               <Button size="sm" loading={busy === 'bulk'} onClick={() => void validateSelected()}>
                 <FileCheck2 />
                 {fr ? 'Valider la sélection' : 'Approve selection'}
               </Button>
-            ) : (
+            )}
+            {stage === 'ready' && (
               <Button size="sm" loading={busy === 'export'} onClick={() => void exportSelected()}>
                 <Download />
-                {fr ? 'Exporter (CSV)' : 'Export (CSV)'}
+                {fr ? 'Exporter la sélection' : 'Export selection'}
               </Button>
             )}
           </div>
         )}
       </div>
+      <p className={cn('mb-2 shrink-0 text-xs text-muted-foreground')}>{hints[stage]}</p>
 
-      <DataTable
-        aria-label={fr ? 'Préfactures' : 'Pre-invoices'}
-        rows={rows}
-        columns={columns}
-        getRowId={(i) => i.id}
-        rowHref={(i) => `/invoices/${i.id}`}
-        rowActions={(i) => linkActions(`/invoices/${i.id}`, fr)}
-        tableId="prefactures"
-        loading={loading && !data}
-        selectable={selectable}
-        selected={selected}
-        onSelectedChange={setSelected}
-        initialSort={{ id: 'period', dir: 'desc' }}
-        empty={
-          <EmptyState
-            icon={Receipt}
-            title={fr ? 'Rien à cette étape' : 'Nothing at this step'}
-            description={
-              stage === 'review'
-                ? fr
-                  ? 'Une préfacture est préparée automatiquement à chaque CRA validé.'
-                  : 'A pre-invoice is prepared automatically for each approved timesheet.'
-                : undefined
-            }
-          />
-        }
-      />
+      {stage === 'prepare' ? (
+        <DataTable
+          fill
+          aria-label={fr ? 'CRA validés à préparer' : 'Approved timesheets to prepare'}
+          rows={toPrepare}
+          columns={prepareColumns}
+          getRowId={(r) => r.id}
+          rowHref={(r) => `/timesheets/${r.id}`}
+          rowActions={(r) => linkActions(`/timesheets/${r.id}`, fr)}
+          tableId="prefacturation-prepare"
+          loading={loading && !data}
+          selectable={selectable}
+          selected={selected}
+          onSelectedChange={setSelected}
+          initialSort={{ id: 'period', dir: 'desc' }}
+          empty={<EmptyState icon={FileCheck2} title={fr ? 'Rien à préparer' : 'Nothing to prepare'} description={fr ? 'Chaque CRA validé a sa préfacture.' : 'Every approved timesheet has its pre-invoice.'} />}
+        />
+      ) : (
+        <DataTable
+          fill
+          aria-label={fr ? 'Préfactures' : 'Pre-invoices'}
+          rows={invoices}
+          columns={invoiceColumns}
+          getRowId={(i) => i.id}
+          rowHref={(i) => `/invoices/${i.id}`}
+          rowActions={(i) => linkActions(`/invoices/${i.id}`, fr)}
+          tableId="prefactures"
+          loading={loading && !data}
+          selectable={selectable}
+          selected={selected}
+          onSelectedChange={setSelected}
+          initialSort={{ id: 'period', dir: 'desc' }}
+          empty={
+            <EmptyState
+              icon={Receipt}
+              title={fr ? 'Rien à cette étape' : 'Nothing at this step'}
+              description={
+                stage === 'review'
+                  ? fr
+                    ? 'Une préfacture est préparée à chaque CRA validé.'
+                    : 'A pre-invoice is prepared for each approved timesheet.'
+                  : undefined
+              }
+            />
+          }
+        />
+      )}
     </div>
   );
 }
