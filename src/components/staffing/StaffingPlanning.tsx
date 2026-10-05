@@ -32,7 +32,7 @@ export function StaffingPlanning({ rows, win, lang, today }: { rows: Row[]; win:
   const todaySeg = segmentIn(win, today, today);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+    <div className="tile-surface overflow-hidden">
       <div className="overflow-x-auto">
         <div className="min-w-[960px]">
           {/* En-tête des colonnes */}

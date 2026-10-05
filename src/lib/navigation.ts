@@ -33,6 +33,8 @@ export type NavItem = {
   matchAlso?: string[];
   /** Mots-clés supplémentaires pour la palette de commandes. */
   keywords?: string[];
+  /** false : hors de la barre latérale (accessible via Paramètres et la recherche). */
+  sidebar?: boolean;
 };
 
 export type NavSection = {
@@ -155,28 +157,6 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    id: 'collaboration',
-    label: { fr: 'Collaboration', en: 'Collaboration' },
-    items: [
-      {
-        id: 'portals',
-        label: { fr: 'Portails', en: 'Portals' },
-        href: '/portals',
-        icon: DoorOpen,
-        permission: 'portals.manage',
-        keywords: ['portail client', 'portail consultant', 'accès', 'demandes'],
-      },
-      {
-        id: 'automations',
-        label: { fr: 'Automatisations', en: 'Automations' },
-        href: '/automations',
-        icon: Workflow,
-        permission: 'automations.manage',
-        keywords: ['règles', 'rappels', 'alertes', 'workflows'],
-      },
-    ],
-  },
-  {
     id: 'analyse',
     label: { fr: 'Analyse', en: 'Insights' },
     items: [
@@ -194,6 +174,24 @@ export const NAV_SECTIONS: NavSection[] = [
     id: 'administration',
     label: { fr: 'Administration', en: 'Administration' },
     items: [
+      {
+        id: 'portals',
+        label: { fr: 'Portails', en: 'Portals' },
+        href: '/portals',
+        icon: DoorOpen,
+        permission: 'portals.manage',
+        keywords: ['portail client', 'portail consultant', 'accès', 'demandes'],
+        sidebar: false,
+      },
+      {
+        id: 'automations',
+        label: { fr: 'Automatisations', en: 'Automations' },
+        href: '/automations',
+        icon: Workflow,
+        permission: 'automations.manage',
+        keywords: ['règles', 'rappels', 'alertes', 'workflows'],
+        sidebar: false,
+      },
       {
         id: 'settings',
         label: { fr: 'Paramètres', en: 'Settings' },

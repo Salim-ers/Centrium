@@ -310,8 +310,8 @@ export default function DocumentsPage() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsContent value="quotes" className="mt-0 space-y-5">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KPICard label={fr ? 'Devis en attente' : 'Pending quotes'} value={quoteKpis.pendingCount} loading={loading && !data} hint={formatEurCompact(quoteKpis.pendingAmount, lang)} />
-            <KPICard label={fr ? 'Acceptés (12 mois)' : 'Accepted (12 months)'} value={quoteKpis.acceptedAmount} format={(n) => formatEurCompact(n, lang)} loading={loading && !data} />
+            <KPICard accent="peach" label={fr ? 'Devis en attente' : 'Pending quotes'} value={quoteKpis.pendingCount} loading={loading && !data} hint={formatEurCompact(quoteKpis.pendingAmount, lang)} />
+            <KPICard accent="terra" label={fr ? 'Acceptés (12 mois)' : 'Accepted (12 months)'} value={quoteKpis.acceptedAmount} format={(n) => formatEurCompact(n, lang)} loading={loading && !data} />
             <KPICard
               label={fr ? 'Taux d’acceptation' : 'Acceptance rate'}
               valueText={quoteKpis.rate != null ? formatPct(quoteKpis.rate, lang, 0) : '—'}

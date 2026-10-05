@@ -275,11 +275,11 @@ export default function ConsultantsPage() {
 
       {scope === 'staff' && (
         <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <KPICard label={fr ? 'Effectif' : 'Headcount'} value={kpis.total} loading={loading && !data} />
+          <KPICard accent="terra" label={fr ? 'Effectif' : 'Headcount'} value={kpis.total} loading={loading && !data} />
           <KPICard label={fr ? 'En mission' : 'On mission'} value={kpis.onMission} loading={loading && !data} />
           <KPICard label={fr ? 'Disponibles' : 'Available'} value={kpis.available} tone={kpis.available ? 'amber' : 'neutral'} loading={loading && !data} />
           <KPICard label={fr ? 'Disponibles sous 30 j' : 'Free within 30 d'} value={kpis.soon} loading={loading && !data} />
-          <KPICard label={fr ? 'Taux d’intercontrat' : 'Bench rate'} valueText={formatPct(kpis.bench, lang, 0)} loading={loading && !data} />
+          <KPICard accent="peach" label={fr ? 'Taux d’intercontrat' : 'Bench rate'} valueText={formatPct(kpis.bench, lang, 0)} loading={loading && !data} />
         </section>
       )}
 

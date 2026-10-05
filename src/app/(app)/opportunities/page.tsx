@@ -12,6 +12,7 @@ import { Select } from '@/components/ui/select';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Avatar } from '@/components/ui/avatar';
 import { DataTable, type Column, linkActions } from '@/components/ui/data-table';
+import { CrmStats } from '@/components/crm/CrmStats';
 import { CrmTabs } from '@/components/crm/CrmTabs';
 import { CrmToolbar } from '@/components/crm/CrmToolbar';
 import { OpportunityDrawer } from '@/components/crm/OpportunityDrawer';
@@ -23,7 +24,7 @@ import { useCompaniesLite, useTeamMembers } from '@/hooks/useOrgDirectory';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { createClient } from '@/lib/supabase/client';
 import { OPEN_STAGES, PIPELINE_STAGES, stageLabel, stageOf, stageTone } from '@/lib/crm/pipeline';
-import { followUpState, pipelineSentence, summarizePipeline } from '@/lib/crm/summary';
+import { followUpState } from '@/lib/crm/summary';
 import { isOpenOpportunity, opportunityAmount } from '@/lib/pilotage/metrics';
 import { formatDate, formatEurCompact } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -161,7 +162,7 @@ export default function OpportunitiesPage() {
       <PageHeader
         eyebrow={fr ? 'Activité commerciale' : 'Sales'}
         title="CRM"
-        description={pipelineSentence(summarizePipeline(byOwner, today), lang)}
+        description={fr ? 'Suivez chaque opportunité, du premier contact à la signature.' : 'Follow every opportunity, from first contact to signature.'}
         actions={
           canEdit && (
             <Button onClick={() => setDrawerOpen(true)}>
@@ -173,6 +174,8 @@ export default function OpportunitiesPage() {
       >
         <CrmTabs />
       </PageHeader>
+
+      {(data ?? []).length > 0 && <CrmStats opps={byOwner} today={today} lang={lang} />}
 
       <CrmToolbar lang={lang} view="list" query={query} onQuery={setQuery} owner={owner} onOwner={setOwner} members={memberOptions}>
         <Select value={stage} onChange={(e) => setStage(e.target.value)} className="sm:w-44" aria-label={fr ? 'Étape' : 'Stage'}>

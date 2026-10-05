@@ -444,14 +444,14 @@ export default function OffersPage() {
 
       {!showArchived && (
         <Reveal className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <KPICard
+          <KPICard accent="terra"
             label={t.pages.offers.kpi_open}
             value={openCount}
             icon={DoorOpen}
             tone="cyan"
             hint={t.pages.offers.kpi_open_hint}
           />
-          <KPICard
+          <KPICard accent="soft"
             label={t.pages.offers.kpi_pushed}
             value={pushedCount}
             icon={Trophy}

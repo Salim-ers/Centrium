@@ -45,7 +45,7 @@ export function SetupChecklist() {
   }
 
   return (
-    <section className="relative mb-6 rounded-xl border border-border bg-card p-5 shadow-xs">
+    <section className="tile-surface relative mb-6 p-5">
       <button
         type="button"
         onClick={dismiss}

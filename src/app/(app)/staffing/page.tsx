@@ -153,9 +153,9 @@ export default function StaffingPage() {
       {tab === 'planning' ? (
         <>
           <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
-            <KPICard label={fr ? 'Capacité' : 'Capacity'} value={kpis?.capacity} hint={fr ? 'Hors indisponibles' : 'Excluding unavailable'} loading={!kpis} />
+            <KPICard accent="terra" label={fr ? 'Capacité' : 'Capacity'} value={kpis?.capacity} hint={fr ? 'Hors indisponibles' : 'Excluding unavailable'} loading={!kpis} />
             <KPICard label={fr ? "Taux d'occupation" : 'Utilisation'} valueText={formatPct(kpis?.rate, lang)} loading={!kpis} />
-            <KPICard label={fr ? 'Intercontrat' : 'On bench'} value={kpis?.bench} tone={kpis && kpis.bench > 0 ? 'amber' : 'neutral'} loading={!kpis} />
+            <KPICard accent="peach" label={fr ? 'Intercontrat' : 'On bench'} value={kpis?.bench} tone={kpis && kpis.bench > 0 ? 'amber' : 'neutral'} loading={!kpis} />
             <KPICard label={fr ? 'Libérés sous 30 j' : 'Free within 30 d'} value={kpis?.soon} loading={!kpis} />
             <KPICard label={fr ? 'Positionnés' : 'Positioned'} value={kpis?.proposals} hint={fr ? 'Sur des opportunités ouvertes' : 'On open opportunities'} loading={!kpis} />
           </section>

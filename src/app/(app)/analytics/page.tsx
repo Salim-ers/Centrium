@@ -94,14 +94,14 @@ export default function AnalyticsPage() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KPICard
+        <KPICard accent="terra"
           label={fr ? 'Taux de transformation' : 'Win rate'}
           valueText={data?.commercial.win.rate != null ? formatPct(data.commercial.win.rate, lang, 0) : '—'}
           hint={data ? (fr ? `${data.commercial.win.won} gagnées · ${data.commercial.win.lost} perdues` : `${data.commercial.win.won} won · ${data.commercial.win.lost} lost`) : undefined}
           loading={isLoading}
         />
         <KPICard label={fr ? 'Opportunités créées' : 'Opportunities created'} value={data?.commercial.created ?? 0} loading={isLoading} />
-        <KPICard
+        <KPICard accent="soft"
           label={fr ? 'Acceptation des devis' : 'Quote acceptance'}
           valueText={q?.acceptanceRate != null ? formatPct(q.acceptanceRate, lang, 0) : '—'}
           hint={q ? (fr ? `${q.sent} envoyés · ${q.pending} en attente` : `${q.sent} sent · ${q.pending} pending`) : undefined}

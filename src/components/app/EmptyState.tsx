@@ -29,7 +29,7 @@ export function EmptyState({
       className={cn(
         'flex flex-col items-center text-center',
         size === 'default'
-          ? 'rounded-xl border border-dashed border-sand-300 bg-card px-6 py-14'
+          ? 'tile-surface px-6 py-14'
           : 'px-4 py-8',
         className,
       )}

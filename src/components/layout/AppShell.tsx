@@ -47,7 +47,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
           id="main"
           className={cn(
             'app-main relative flex flex-1 flex-col pt-16 transition-[padding] duration-300 ease-out-soft',
-            collapsed ? 'md:pl-16' : 'md:pl-[220px]',
+            collapsed ? 'md:pl-[72px]' : 'md:pl-[260px]',
           )}
         >
           {/* Suspense : les pages qui lisent useSearchParams() restent rendables statiquement. */}

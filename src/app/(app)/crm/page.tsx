@@ -11,6 +11,7 @@ import { PageHeader } from '@/components/app';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/app/EmptyState';
 import { showBrandToast } from '@/components/ui/BrandToast';
+import { CrmStats } from '@/components/crm/CrmStats';
 import { CrmTabs } from '@/components/crm/CrmTabs';
 import { CrmToolbar } from '@/components/crm/CrmToolbar';
 import { OpportunityCard } from '@/components/crm/OpportunityCard';
@@ -25,7 +26,6 @@ import { createClient } from '@/lib/supabase/client';
 import { crmService } from '@/lib/services/crm.service';
 import { broadcastOrgActivity } from '@/lib/realtime/org-activity';
 import { OPEN_STAGES, STAGE_BY_ID, probabilityForMove, stageOf, type PipelineStageId } from '@/lib/crm/pipeline';
-import { pipelineSentence, summarizePipeline } from '@/lib/crm/summary';
 import { opportunityAmount } from '@/lib/pilotage/metrics';
 import { formatEurCompact } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -245,7 +245,7 @@ export default function CrmPipelinePage() {
       <PageHeader
         eyebrow={fr ? 'Activité commerciale' : 'Sales'}
         title="CRM"
-        description={pipelineSentence(summarizePipeline(filtered, today), lang)}
+        description={fr ? 'Suivez chaque opportunité, du premier contact à la signature.' : 'Follow every opportunity, from first contact to signature.'}
         actions={
           canEdit && (
             <Button onClick={() => setDrawer({ open: true, opp: null })}>
@@ -257,6 +257,8 @@ export default function CrmPipelinePage() {
       >
         <CrmTabs />
       </PageHeader>
+
+      {opps.length > 0 && <CrmStats opps={filtered} today={today} lang={lang} />}
 
       <CrmToolbar lang={lang} view="board" query={query} onQuery={setQuery} owner={owner} onOwner={setOwner} members={memberOptions} />
 

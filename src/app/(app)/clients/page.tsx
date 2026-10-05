@@ -159,7 +159,7 @@ export default function ClientsPage() {
       />
 
       <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KPICard label={fr ? 'Comptes' : 'Accounts'} value={data?.length} loading={loading && !data} />
+        <KPICard accent="terra" label={fr ? 'Comptes' : 'Accounts'} value={data?.length} loading={loading && !data} />
         <KPICard label={fr ? 'Clients avec mission' : 'Clients with missions'} value={totals.active} loading={loading && !data} />
         {withFinance && (
           <>
@@ -169,7 +169,7 @@ export default function ClientsPage() {
               hint={fr ? 'CRA validés' : 'Approved timesheets'}
               loading={loading && !data}
             />
-            <KPICard
+            <KPICard accent="peach"
               label={fr ? 'Concentration' : 'Concentration'}
               valueText={formatPct(totals.topShare, lang, 0)}
               hint={totals.topName ? (fr ? `Part de ${totals.topName}` : `${totals.topName}'s share`) : undefined}

@@ -53,7 +53,7 @@ export function CrmToolbar({ lang, view, query, onQuery, owner, onOwner, members
       <div
         role="group"
         aria-label={fr ? 'Affichage' : 'View'}
-        className="inline-flex h-9 items-center gap-0.5 self-start rounded-lg border border-border bg-muted p-0.5 text-muted-foreground sm:ml-auto sm:self-auto"
+        className="inline-flex h-10 items-center gap-1 self-start rounded-xl border-2 border-terra/30 bg-card p-1 text-terra-deep sm:ml-auto sm:self-auto"
       >
         {views.map((v) => (
           <Link
@@ -61,8 +61,8 @@ export function CrmToolbar({ lang, view, query, onQuery, owner, onOwner, members
             href={v.href}
             aria-current={view === v.id ? 'page' : undefined}
             className={cn(
-              'inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:shadow-focus',
-              view === v.id ? 'bg-card text-foreground shadow-xs' : 'hover:text-foreground',
+              'inline-flex h-7 items-center gap-1.5 rounded-lg px-3 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:shadow-focus',
+              view === v.id ? 'bg-terra text-white shadow-sm' : 'hover:bg-terra-blush/70',
             )}
           >
             <v.icon className="h-3.5 w-3.5" />

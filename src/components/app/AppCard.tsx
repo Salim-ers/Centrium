@@ -22,10 +22,9 @@ export function AppCard({ variant = 'default', interactive = false, className, c
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-xl border',
-        variant === 'subtle' ? 'border-border bg-transparent' : 'border-border bg-card shadow-xs',
-        interactive &&
-          'group transition-[border-color,box-shadow] duration-150 hover:border-sand-300 hover:shadow-md',
+        'relative overflow-hidden',
+        variant === 'subtle' ? 'rounded-xl border border-border bg-transparent' : 'tile-surface',
+        interactive && 'group transition-transform duration-300 hover:-translate-y-1',
         className,
       )}
     >

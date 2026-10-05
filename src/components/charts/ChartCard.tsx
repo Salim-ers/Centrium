@@ -21,7 +21,7 @@ export function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className={cn('flex flex-col rounded-xl border border-border bg-card p-4 shadow-xs sm:p-5', className)}>
+    <section className={cn('tile-surface flex flex-col p-4 sm:p-5', className)}>
       <div className="mb-3 flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
           <h2 className="font-display text-[15px] font-semibold tracking-tight text-foreground">{title}</h2>

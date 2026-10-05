@@ -39,7 +39,7 @@ export function CrmTabs() {
   const tabs = TABS.filter((t) => t.permission.some(can));
   if (tabs.length < 2) return null;
   return (
-    <nav aria-label="CRM" className="no-scrollbar flex gap-5 overflow-x-auto border-b border-border">
+    <nav aria-label="CRM" className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
       {tabs.map((t) => {
         const active = t.match(pathname);
         return (
@@ -48,11 +48,11 @@ export function CrmTabs() {
             href={t.href}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              '-mb-px inline-flex h-10 items-center gap-1.5 whitespace-nowrap border-b-2 px-0.5 text-[13px] font-medium transition-colors',
-              active ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground',
+              'inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border-2 px-4 text-[14px] font-semibold transition-colors',
+              active ? 'border-terra bg-terra text-white shadow-sm' : 'border-terra/35 bg-card text-terra-deep hover:border-terra hover:bg-terra-blush/60',
             )}
           >
-            <t.icon className="h-3.5 w-3.5" />
+            <t.icon className="h-4 w-4" />
             {t.label[lang]}
           </Link>
         );

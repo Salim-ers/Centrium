@@ -214,7 +214,7 @@ export default function ContactsPage() {
       </PageHeader>
 
       <Reveal className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <KPICard
+        <KPICard accent="terra"
           label={t.pages.contacts.kpi_total}
           value={allContacts.length}
           icon={Users}
@@ -232,7 +232,7 @@ export default function ContactsPage() {
           icon={Building2}
           tone="violet"
         />
-        <KPICard
+        <KPICard accent="soft"
           label={t.pages.contacts.kpi_esn}
           value={partnerCount}
           icon={Network}

@@ -428,7 +428,7 @@ function BillingPageInner() {
         <>
           {/* KPIs récap */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <KPICard
+            <KPICard accent="terra"
               icon={Sparkles}
               label={tb.kpi_current_plan}
               valueText={sub?.planName ?? '—'}

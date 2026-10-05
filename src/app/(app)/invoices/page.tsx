@@ -297,7 +297,7 @@ function InvoicesPageInner() {
       </Reveal>
 
       <Reveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <KPICard
+        <KPICard accent="terra"
           icon={FileText}
           label={t.pages.invoices.kpi_issued}
           valueText={formatCurrency(issuedThisMonth)}
@@ -315,7 +315,7 @@ function InvoicesPageInner() {
           valueText={formatCurrency(totalPending)}
           tone="amber"
         />
-        <KPICard
+        <KPICard accent="peach"
           icon={AlertTriangle}
           label={t.pages.invoices.kpi_overdue}
           valueText={formatCurrency(overdueAmount)}

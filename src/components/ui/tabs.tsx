@@ -23,8 +23,8 @@ const TabsList = React.forwardRef<
       ref={ref}
       className={cn(
         variant === 'segmented'
-          ? 'inline-flex h-9 items-center gap-0.5 rounded-lg border border-border bg-muted p-0.5 text-muted-foreground'
-          : 'no-scrollbar flex w-full items-center gap-5 overflow-x-auto border-b border-border text-muted-foreground',
+          ? 'inline-flex h-10 items-center gap-1 rounded-xl border-2 border-terra/30 bg-card p-1 text-terra-deep'
+          : 'no-scrollbar flex w-full items-center gap-2 overflow-x-auto pb-1 text-terra-deep',
         className,
       )}
       {...props}
@@ -45,9 +45,11 @@ const TabsTrigger = React.forwardRef<
         'inline-flex items-center justify-center gap-1.5 whitespace-nowrap text-[13px] font-medium transition-colors',
         'focus-visible:outline-none focus-visible:shadow-focus disabled:pointer-events-none disabled:opacity-50',
         '[&_svg]:size-3.5',
+        // Compteurs et pastilles restent lisibles sur l'onglet actif terracotta.
+        'data-[state=active]:[&_.text-muted-foreground]:text-white/85 data-[state=active]:[&_.bg-primary]:bg-white/25',
         variant === 'segmented'
-          ? 'h-8 rounded-md px-3 hover:text-foreground data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs'
-          : '-mb-px h-10 border-b-2 border-transparent px-0.5 hover:text-foreground data-[state=active]:border-primary data-[state=active]:text-foreground',
+          ? 'h-7 rounded-lg px-3 font-semibold hover:bg-terra-blush/70 data-[state=active]:bg-terra data-[state=active]:text-white data-[state=active]:shadow-sm'
+          : 'h-10 shrink-0 rounded-xl border-2 border-terra/35 bg-card px-4 font-semibold hover:border-terra hover:bg-terra-blush/60 data-[state=active]:border-terra data-[state=active]:bg-terra data-[state=active]:text-white data-[state=active]:shadow-sm',
         className,
       )}
       {...props}

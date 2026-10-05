@@ -331,11 +331,11 @@ export default function TimesheetsPage() {
       />
 
       <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <KPICard label={fr ? 'À valider' : 'To approve'} value={kpis.pending} tone={kpis.pending ? 'amber' : 'neutral'} loading={loading && !data} />
+        <KPICard accent="peach" label={fr ? 'À valider' : 'To approve'} value={kpis.pending} tone={kpis.pending ? 'amber' : 'neutral'} loading={loading && !data} />
         <KPICard label={fr ? 'Chez le client' : 'With client'} value={kpis.clientPending} hint={fr ? 'Approbation demandée' : 'Approval requested'} loading={loading && !data} />
-        <KPICard label={fr ? 'Validés' : 'Approved'} value={kpis.prevValidated} hint={kpis.prevLabel} loading={loading && !data} />
+        <KPICard accent="terra" label={fr ? 'Validés' : 'Approved'} value={kpis.prevValidated} hint={kpis.prevLabel} loading={loading && !data} />
         <KPICard label={fr ? 'Jours validés' : 'Approved days'} value={kpis.prevDays} hint={kpis.prevLabel} loading={loading && !data} />
-        <KPICard label={fr ? 'CRA manquants' : 'Missing timesheets'} value={kpis.missing} hint={kpis.prevLabel} tone={kpis.missing ? 'rose' : 'neutral'} loading={loading && !data} />
+        <KPICard accent="soft" label={fr ? 'CRA manquants' : 'Missing timesheets'} value={kpis.missing} hint={kpis.prevLabel} tone={kpis.missing ? 'rose' : 'neutral'} loading={loading && !data} />
       </section>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -369,7 +369,7 @@ export default function TimesheetsPage() {
         (data?.missing ?? []).length === 0 ? (
           <EmptyState icon={ClipboardCheck} title={fr ? 'Aucun CRA manquant' : 'No missing timesheet'} description={fr ? 'Toutes les missions actives ont transmis leur CRA du mois dernier.' : 'All active missions have submitted last month’s timesheet.'} />
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+          <div className="tile-surface overflow-hidden">
             <ul className="divide-y divide-border">
               {(data?.missing ?? []).map((m) => (
                 <li key={m.mission_id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center">

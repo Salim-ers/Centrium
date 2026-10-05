@@ -307,7 +307,7 @@ export default function TeamSettingsPage() {
       <UsageBanner resource="members" />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
-        <KPICard
+        <KPICard accent="terra"
           label={t.pages.team.kpi_members}
           value={kpis.total}
           icon={Users}
@@ -321,7 +321,7 @@ export default function TeamSettingsPage() {
           tone="violet"
           hint={t.pages.team.kpi_admins_hint}
         />
-        <KPICard
+        <KPICard accent="peach"
           label={t.pages.team.kpi_invitations}
           value={kpis.pending}
           icon={Hourglass}

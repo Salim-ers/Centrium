@@ -204,16 +204,16 @@ export default function Client360Page() {
 
       <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
         {m.revenue12m !== null && (
-          <KPICard label={fr ? 'CA généré · 12 mois' : 'Revenue · 12 months'} valueText={formatEurCompact(m.revenue12m, lang)} hint={fr ? 'CRA validés' : 'Approved timesheets'} />
+          <KPICard accent="terra" label={fr ? 'CA généré · 12 mois' : 'Revenue · 12 months'} valueText={formatEurCompact(m.revenue12m, lang)} hint={fr ? 'CRA validés' : 'Approved timesheets'} />
         )}
         {m.forecast3m !== null && (
           <KPICard label={fr ? 'CA prévisionnel · 3 mois' : 'Forecast · 3 months'} valueText={formatEurCompact(m.forecast3m, lang)} hint={fr ? 'Missions actives' : 'Active missions'} />
         )}
         {m.marginPct !== null && (
-          <KPICard label={fr ? 'Marge moyenne' : 'Average margin'} valueText={formatPct(m.marginPct, lang)} tone="emerald" />
+          <KPICard accent="soft" label={fr ? 'Marge moyenne' : 'Average margin'} valueText={formatPct(m.marginPct, lang)} tone="emerald" />
         )}
         <KPICard label={fr ? 'Consultants placés' : 'Consultants placed'} value={m.placedConsultants} hint={fr ? `${m.activeMissions} mission(s) en cours` : `${m.activeMissions} active mission(s)`} />
-        <KPICard
+        <KPICard accent="peach"
           label={fr ? 'Opportunités ouvertes' : 'Open opportunities'}
           value={m.openOpportunities}
           hint={m.weightedPipeline ? `${formatEurCompact(m.weightedPipeline, lang)} ${fr ? 'pondérés' : 'weighted'}` : undefined}

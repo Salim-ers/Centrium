@@ -336,7 +336,7 @@ export default function MissionDetailPage() {
           />
         )}
         {financials && (
-          <KPICard
+          <KPICard accent="terra"
             label={fr ? 'Marge' : 'Margin'}
             valueText={stats.marginPct != null ? formatPct(stats.marginPct, lang) : '—'}
             hint={stats.marginEur != null ? `${formatEurCompact(stats.marginEur, lang)} ${fr ? 'sur la mission' : 'over the mission'}` : undefined}

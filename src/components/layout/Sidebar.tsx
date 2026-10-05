@@ -34,9 +34,9 @@ function OrgSwitcher({ collapsed }: { collapsed: boolean }) {
 
   const mark = logo ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={logo} alt="" className="h-8 w-8 shrink-0 rounded-[10px] border border-border bg-white object-contain" />
+    <img src={logo} alt="" className={cn('shrink-0 rounded-xl border border-border bg-white object-contain', collapsed ? 'h-10 w-10' : 'h-11 w-11')} />
   ) : (
-    <CentriumLogo className="h-8 w-8" />
+    <CentriumLogo className={collapsed ? 'h-10 w-10' : 'h-11 w-11'} />
   );
 
   const trigger = (
@@ -44,7 +44,7 @@ function OrgSwitcher({ collapsed }: { collapsed: boolean }) {
       type="button"
       disabled={!canSwitch}
       className={cn(
-        'flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors',
+        'flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left transition-colors',
         canSwitch && 'hover:bg-black/[0.04]',
         collapsed && 'justify-center px-0',
       )}
@@ -54,9 +54,9 @@ function OrgSwitcher({ collapsed }: { collapsed: boolean }) {
       {!collapsed && (
         <>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13px] font-semibold text-foreground">{name}</span>
+            <span className="block truncate text-[15px] font-semibold text-foreground">{name}</span>
             {role && (
-              <span className="block truncate text-[11px] text-muted-foreground">
+              <span className="block truncate text-[12px] text-muted-foreground">
                 {ROLE_LABEL[role]?.[locale === 'en' ? 'en' : 'fr'] ?? role}
               </span>
             )}
@@ -102,13 +102,13 @@ export function SidebarBody({
 
   const sections = NAV_SECTIONS.map((s) => ({
     ...s,
-    items: s.items.filter((i) => i.id !== 'settings' && canSeeNavItem(i, can)),
+    items: s.items.filter((i) => i.id !== 'settings' && i.sidebar !== false && canSeeNavItem(i, can)),
   })).filter((s) => s.items.length > 0);
   const settingsActive = ['/settings', '/billing', '/onboarding/setup'].some((p) => pathname === p || pathname.startsWith(p + '/'));
 
   return (
     <div className="flex h-full flex-col">
-      <div className={cn('flex h-16 shrink-0 items-center px-3', collapsed && 'px-3')}>
+      <div className={cn('flex h-20 shrink-0 items-center px-3', collapsed && 'justify-center')}>
         <OrgSwitcher collapsed={collapsed} />
       </div>
 
@@ -116,16 +116,11 @@ export function SidebarBody({
         aria-label={lang === 'fr' ? 'Navigation principale' : 'Main navigation'}
         className={cn('no-scrollbar flex-1 overflow-y-auto py-2', collapsed ? 'px-3' : 'px-3')}
       >
+        {/* Une liste simple : pas de titres de section, un trait fin entre les groupes. */}
         {sections.map((section, si) => (
-          <div key={section.id} className={cn(si > 0 && (collapsed ? 'mt-2' : 'mt-3'))}>
-            {collapsed ? (
-              si > 0 && <div aria-hidden className="mx-auto mb-2 h-px w-6 bg-border" />
-            ) : (
-              <div className="mb-0.5 px-2.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/80">
-                {section.label[lang]}
-              </div>
-            )}
-            <ul className={collapsed ? 'space-y-1' : 'space-y-0.5'}>
+          <div key={section.id} aria-label={section.label[lang]} role="group">
+            {si > 0 && <div aria-hidden className={cn('my-2.5 h-px bg-border', collapsed ? 'mx-auto w-7' : 'mx-3')} />}
+            <ul className="space-y-1">
               {section.items.map((item) => {
                 const active = isNavItemActive(item, pathname);
                 const Icon = item.icon;
@@ -136,8 +131,8 @@ export function SidebarBody({
                     aria-current={active ? 'page' : undefined}
                     aria-label={collapsed ? item.label[lang] : undefined}
                     className={cn(
-                      'group relative flex h-9 items-center gap-3 rounded-xl px-2.5 text-[13.5px] transition-colors duration-200',
-                      collapsed && 'mx-auto h-10 w-10 justify-center px-0',
+                      'group relative flex h-11 items-center gap-3.5 rounded-xl px-3 text-[15px] transition-colors duration-200',
+                      collapsed && 'mx-auto h-11 w-11 justify-center px-0',
                       active
                         ? 'bg-terra-blush font-medium text-terra-deep'
                         : 'text-muted-foreground hover:bg-black/[0.04] hover:text-foreground',
@@ -146,7 +141,7 @@ export function SidebarBody({
                     <Icon
                       strokeWidth={1.8}
                       className={cn(
-                        'h-[18px] w-[18px] shrink-0 transition-colors',
+                        'h-5 w-5 shrink-0 transition-colors',
                         active ? 'text-terra-deep' : 'text-muted-foreground group-hover:text-foreground',
                       )}
                     />
@@ -184,12 +179,12 @@ export function SidebarBody({
               aria-current={l.active ? 'page' : undefined}
               aria-label={collapsed ? l.label : undefined}
               className={cn(
-                'flex h-9 items-center gap-3 rounded-xl px-2.5 text-[13.5px] transition-colors duration-200',
-                collapsed && 'mx-auto h-10 w-10 justify-center px-0',
+                'flex h-11 items-center gap-3.5 rounded-xl px-3 text-[15px] transition-colors duration-200',
+                collapsed && 'mx-auto h-11 w-11 justify-center px-0',
                 l.active ? 'bg-terra-blush font-medium text-terra-deep' : 'text-muted-foreground hover:bg-black/[0.04] hover:text-foreground',
               )}
             >
-              <l.icon strokeWidth={1.8} className="h-[18px] w-[18px] shrink-0" />
+              <l.icon strokeWidth={1.8} className="h-5 w-5 shrink-0" />
               {!collapsed && l.label}
             </Link>
           );
@@ -222,7 +217,7 @@ export function Sidebar() {
       data-app-sidebar
       className={cn(
         'fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-black/[0.06] bg-sidebar transition-[width] duration-300 ease-out-soft md:flex',
-        collapsed ? 'w-16' : 'w-[220px]',
+        collapsed ? 'w-[72px]' : 'w-[260px]',
       )}
     >
       <SidebarBody collapsed={collapsed} />
@@ -231,7 +226,7 @@ export function Sidebar() {
         onClick={() => setCollapsed(!collapsed)}
         aria-label={label}
         title={label}
-        className="absolute -right-3 top-[4.5rem] z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs transition hover:text-foreground"
+        className="absolute -right-3 top-[5.5rem] z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs transition hover:text-foreground"
       >
         {collapsed ? <ChevronsRight className="h-3.5 w-3.5" /> : <ChevronsLeft className="h-3.5 w-3.5" />}
       </button>

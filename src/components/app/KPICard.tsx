@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { type LucideIcon, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { TONE_CLASSES } from '@/components/bento/Tile';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Sparkline } from '@/components/charts/Sparkline';
 
@@ -21,8 +22,13 @@ const ICON_TONE: Record<Tone, string> = {
   neutral: 'text-sand-700 bg-sand-100',
 };
 
+/** Couleur de la tuile (même famille que le tableau de bord). */
+export type KPIAccent = 'white' | 'terra' | 'peach' | 'soft' | 'ink';
+
 type Props = {
   label: string;
+  /** terra : indicateur principal ; peach : à traiter ; white par défaut. */
+  accent?: KPIAccent;
   /** Valeur numérique animée. Pour un texte fixe, utiliser `valueText`. */
   value?: number;
   valueText?: string;
@@ -57,6 +63,7 @@ export function KPICard({
   suffix,
   icon: Icon,
   tone = 'neutral',
+  accent = 'white',
   delta,
   deltaPositiveIsGood = true,
   hint,
@@ -65,6 +72,8 @@ export function KPICard({
   loading = false,
   className,
 }: Props) {
+  const t = TONE_CLASSES[accent];
+  const onColor = accent === 'terra' || accent === 'ink';
   const good = delta === undefined || delta === 0 ? null : (delta > 0) === deltaPositiveIsGood;
   const DeltaIcon =
     delta === undefined ? null : delta > 0 ? ArrowUpRight : delta < 0 ? ArrowDownRight : Minus;
@@ -72,20 +81,20 @@ export function KPICard({
   const inner = (
     <>
       <div className="flex items-start justify-between gap-3">
-        <div className="text-[13px] font-medium text-muted-foreground">{label}</div>
+        <div className={cn('text-[13px] font-medium', t.muted)}>{label}</div>
         {Icon && (
-          <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-md', ICON_TONE[tone])}>
-            <Icon className="h-3.5 w-3.5" />
+          <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-xl', onColor ? 'bg-white/15 text-white' : accent === 'white' ? ICON_TONE[tone] : 'bg-white/60 text-terra-deep')}>
+            <Icon className="h-4 w-4" />
           </span>
         )}
       </div>
-      <div className="mt-2 flex items-end justify-between gap-3">
-        <div className="num flex min-h-[2rem] items-baseline gap-0.5 font-display text-[26px] font-semibold leading-8 tracking-tight text-foreground">
+      <div className="mt-4 flex items-end justify-between gap-3">
+        <div className={cn('num flex min-h-[2.25rem] items-baseline gap-0.5 font-display text-[30px] font-semibold leading-9 tracking-tight', t.strong)}>
           {loading ? (
             <span className="skeleton inline-block h-7 w-24" />
           ) : (
             <>
-              {prefix && <span className="mr-0.5 text-lg font-medium text-muted-foreground">{prefix}</span>}
+              {prefix && <span className={cn('mr-0.5 text-lg font-medium', t.muted)}>{prefix}</span>}
               {valueText !== undefined ? (
                 valueText
               ) : value !== undefined && Number.isFinite(value) ? (
@@ -93,7 +102,7 @@ export function KPICard({
               ) : (
                 '—'
               )}
-              {suffix && <span className="ml-0.5 text-lg font-medium text-muted-foreground">{suffix}</span>}
+              {suffix && <span className={cn('ml-0.5 text-lg font-medium', t.muted)}>{suffix}</span>}
             </>
           )}
         </div>
@@ -102,12 +111,14 @@ export function KPICard({
         )}
       </div>
       {(hint || delta !== undefined) && (
-        <div className="mt-2 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+        <div className={cn('mt-auto flex min-w-0 items-center gap-2 pt-2 text-xs', t.muted)}>
           {DeltaIcon && delta !== undefined && (
             <span
               className={cn(
                 'num inline-flex items-center gap-0.5 rounded px-1 py-px font-medium',
-                good === null
+                onColor
+                  ? 'bg-white/15 text-white'
+                  : good === null
                   ? 'bg-muted text-muted-foreground'
                   : good
                     ? 'bg-success-soft text-success'
@@ -125,9 +136,11 @@ export function KPICard({
     </>
   );
 
+  // Tuile « Bento » : arrondie, dégradé et ombre douce, comme le tableau de bord.
   const base = cn(
-    'group relative block rounded-xl border border-border bg-card p-4 shadow-xs',
-    href && 'transition-[border-color,box-shadow] duration-150 hover:border-sand-300 hover:shadow-md',
+    'group relative flex min-h-[132px] flex-col rounded-[22px] p-5 transition-transform duration-300',
+    t.tile,
+    href && 'hover:-translate-y-1',
     className,
   );
 

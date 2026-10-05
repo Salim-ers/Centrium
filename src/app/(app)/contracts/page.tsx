@@ -288,19 +288,19 @@ export default function ContractsPage() {
 
       {view === 'active' && (
         <Reveal className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <KPICard
+          <KPICard accent="terra"
             label={t.pages.contracts.kpi_signed_month}
             value={signedThisMonth}
             icon={CheckCircle2}
             tone="emerald"
           />
-          <KPICard
+          <KPICard accent="peach"
             label={t.pages.contracts.kpi_pending_signature}
             value={pendingSignature}
             icon={Hourglass}
             tone="amber"
           />
-          <KPICard
+          <KPICard accent="soft"
             label={t.pages.contracts.kpi_expired}
             value={expiredCount}
             icon={AlertCircle}

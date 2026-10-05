@@ -51,7 +51,7 @@ export function TodayActions({
 }) {
   const fr = lang === 'fr';
   return (
-    <section className="flex flex-col rounded-xl border border-border bg-card shadow-xs">
+    <section className="tile-surface flex flex-col">
       <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
         <div>
           <h2 className="font-display text-[15px] font-semibold tracking-tight">

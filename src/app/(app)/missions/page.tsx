@@ -237,7 +237,7 @@ export default function MissionsPage() {
       />
 
       <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KPICard label={fr ? 'Missions en cours' : 'Active missions'} value={kpis.active} loading={loading && !data} />
+        <KPICard accent="terra" label={fr ? 'Missions en cours' : 'Active missions'} value={kpis.active} loading={loading && !data} />
         {showRates && (
           <KPICard
             label={fr ? 'CA prévisionnel du mois' : 'Forecast this month'}
@@ -246,9 +246,9 @@ export default function MissionsPage() {
           />
         )}
         {financials && (
-          <KPICard label={fr ? 'Marge moyenne' : 'Average margin'} valueText={formatPct(kpis.marginPct, lang)} tone="emerald" loading={loading && !data} />
+          <KPICard accent="soft" label={fr ? 'Marge moyenne' : 'Average margin'} valueText={formatPct(kpis.marginPct, lang)} tone="emerald" loading={loading && !data} />
         )}
-        <KPICard
+        <KPICard accent="peach"
           label={fr ? 'Fin ≤ 30 jours' : 'Ending ≤ 30 days'}
           value={kpis.ending30}
           tone={kpis.ending30 > 0 ? 'amber' : 'neutral'}

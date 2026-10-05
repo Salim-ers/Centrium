@@ -189,7 +189,7 @@ export function DataTable<T>({
 
   if (loading) {
     return (
-      <div className={cn('overflow-hidden rounded-card border border-border bg-card', className)}>
+      <div className={cn('tile-surface overflow-hidden', className)}>
         <SkeletonRows rows={6} />
       </div>
     );
@@ -208,7 +208,7 @@ export function DataTable<T>({
   };
 
   return (
-    <div className={cn('overflow-hidden rounded-card border border-border bg-card shadow-xs', className)}>
+    <div className={cn('tile-surface overflow-hidden', className)}>
       {tableId && (
         <div className="hidden items-center justify-end border-b border-border px-3 py-1.5 md:flex">
           <DropdownMenu>

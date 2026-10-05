@@ -156,7 +156,7 @@ export default function AutomationsPage() {
 
       <Link
         href="/settings/notifications"
-        className="mt-6 flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 text-[13.5px] hover:bg-muted/40"
+        className="mt-6 flex items-center justify-between gap-3 tile-surface p-4 text-[13.5px] transition-transform hover:-translate-y-0.5"
       >
         <span>
           <span className="block font-medium">{fr ? 'Canaux, cadences et seuils' : 'Channels, cadences and thresholds'}</span>

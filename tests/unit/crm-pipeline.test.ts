@@ -90,6 +90,16 @@ describe('Navigation : CRM et CV Optimizer', () => {
     expect(canSeeNavItem(byId('crm'), canWith(['finance.view']))).toBe(false);
   });
 
+  it('n’a plus de section Collaboration : portails et automatisations passent par Paramètres', () => {
+    expect(NAV_SECTIONS.some((s) => s.id === 'collaboration')).toBe(false);
+    for (const id of ['portals', 'automations']) {
+      const item = byId(id);
+      expect(item.sidebar).toBe(false);
+      // Toujours trouvables (palette, fil d'Ariane).
+      expect(isNavItemActive(item, `/${id}`)).toBe(true);
+    }
+  });
+
   it('remet le CV Optimizer dans le menu, sous Ressources', () => {
     const ressources = NAV_SECTIONS.find((s) => s.id === 'ressources')!;
     const cv = ressources.items.find((i) => i.id === 'cv-optimizer');

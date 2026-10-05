@@ -149,7 +149,7 @@ export default function FinancePage() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsContent value="overview" className="mt-0 space-y-5">
           <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KPICard label={fr ? 'CA signé' : 'Booked revenue'} valueText={k ? formatEurCompact(k.booked, lang) : undefined} hint={fr ? 'Carnet des missions en cours' : 'Active missions backlog'} loading={isLoading} />
+            <KPICard accent="terra" label={fr ? 'CA signé' : 'Booked revenue'} valueText={k ? formatEurCompact(k.booked, lang) : undefined} hint={fr ? 'Carnet des missions en cours' : 'Active missions backlog'} loading={isLoading} />
             <KPICard label={fr ? `CA réalisé ${year}` : `Actual revenue ${year}`} valueText={k ? formatEurCompact(k.realizedYtd, lang) : undefined} hint={k ? `${fr ? '12 mois' : '12 months'} : ${formatEurCompact(k.realized12m, lang)}` : undefined} loading={isLoading} />
             <KPICard label={fr ? 'CA prévisionnel · 3 mois' : 'Forecast · 3 months'} valueText={k ? formatEurCompact(k.forecast3m, lang) : undefined} hint={fr ? 'Missions actives, jours ouvrés' : 'Active missions, business days'} loading={isLoading} />
             {withCosts ? (
@@ -172,9 +172,9 @@ export default function FinancePage() {
           </section>
 
           <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KPICard label={fr ? 'Préfactures à contrôler' : 'Pre-invoices to review'} valueText={k ? formatEurCompact(k.draftAmount, lang) : undefined} hint={k ? `${k.draftCount} ${fr ? 'préfacture(s)' : 'pre-invoice(s)'}` : undefined} href="/finance?tab=prefacturation" tone={k && k.draftCount > 0 ? 'amber' : 'neutral'} loading={isLoading} />
+            <KPICard accent="peach" label={fr ? 'Préfactures à contrôler' : 'Pre-invoices to review'} valueText={k ? formatEurCompact(k.draftAmount, lang) : undefined} hint={k ? `${k.draftCount} ${fr ? 'préfacture(s)' : 'pre-invoice(s)'}` : undefined} href="/finance?tab=prefacturation" tone={k && k.draftCount > 0 ? 'amber' : 'neutral'} loading={isLoading} />
             <KPICard label={fr ? 'À exporter' : 'To export'} valueText={k ? formatEurCompact(k.toExportAmount, lang) : undefined} hint={k ? `${k.toExportCount} ${fr ? 'validée(s)' : 'approved'}` : undefined} loading={isLoading} />
-            <KPICard label={fr ? 'À encaisser' : 'Receivables'} valueText={k ? formatEurCompact(k.receivable, lang) : undefined} hint={k && k.overdue > 0 ? `${formatEurCompact(k.overdue, lang)} ${fr ? 'en retard' : 'overdue'}` : fr ? 'Factures émises' : 'Issued invoices'} tone={k && k.overdue > 0 ? 'rose' : 'neutral'} loading={isLoading} />
+            <KPICard accent="soft" label={fr ? 'À encaisser' : 'Receivables'} valueText={k ? formatEurCompact(k.receivable, lang) : undefined} hint={k && k.overdue > 0 ? `${formatEurCompact(k.overdue, lang)} ${fr ? 'en retard' : 'overdue'}` : fr ? 'Factures émises' : 'Issued invoices'} tone={k && k.overdue > 0 ? 'rose' : 'neutral'} loading={isLoading} />
             <KPICard
               label={fr ? 'Coût de l’intercontrat · mois' : 'Bench cost · month'}
               valueText={k?.benchCostMonth != null ? formatEurCompact(k.benchCostMonth, lang) : '—'}
@@ -219,7 +219,7 @@ export default function FinancePage() {
           </ChartCard>
 
           {data && (
-            <div className="rounded-xl border border-border bg-card p-4 text-[13px]">
+            <div className="tile-surface p-4 text-[13px]">
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                 <span className="font-medium">{fr ? 'Concentration du CA' : 'Revenue concentration'}</span>
                 <span>
