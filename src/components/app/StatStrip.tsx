@@ -12,6 +12,9 @@ export type StatItem = {
   tone?: TileTone;
   icon?: LucideIcon;
   href?: string;
+  /** Tuile-filtre : un clic l'active ou la désactive (état dans `active`). */
+  onSelect?: () => void;
+  active?: boolean;
   /** Infobulle native (précision sur le calcul). */
   title?: string;
 };
@@ -59,8 +62,17 @@ export function StatStrip({ items, className, scrollOnMobile = false }: { items:
           'flex min-w-0 items-center gap-3 rounded-2xl px-3.5 py-2.5',
           scrollOnMobile && 'w-[46%] shrink-0 snap-start sm:w-auto',
           t.tile,
-          it.href && 'transition-transform duration-200 hover:-translate-y-0.5',
+          (it.href || it.onSelect) && 'transition-transform duration-200 hover:-translate-y-0.5',
+          it.onSelect && 'text-left focus-visible:outline-none focus-visible:shadow-focus',
+          it.active && 'ring-2 ring-app-terra ring-offset-2 ring-offset-background',
         );
+        if (it.onSelect) {
+          return (
+            <button key={it.label} type="button" onClick={it.onSelect} aria-pressed={!!it.active} title={it.title} className={cls}>
+              {body}
+            </button>
+          );
+        }
         return it.href ? (
           <Link key={it.label} href={it.href} title={it.title} className={cls}>
             {body}

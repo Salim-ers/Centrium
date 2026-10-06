@@ -6,7 +6,10 @@
 
 import { isOpenOpportunity, opportunityAmount, type OpportunityLite } from '@/lib/pilotage/metrics';
 import { isBusinessDay } from '@/lib/utils/business-days';
+import { dayDiff } from '@/lib/utils/dates';
 import type { AlertPriority } from '@/types';
+
+export { dayDiff };
 
 export type DealLite = OpportunityLite & {
   priority?: AlertPriority | null;
@@ -22,12 +25,6 @@ export type DealLite = OpportunityLite & {
 export const STALE_AFTER_DAYS = 14;
 /** Une relance prévue dans ce délai est « bientôt ». */
 export const SOON_WITHIN_DAYS = 3;
-
-/** Écart en jours entre deux dates AAAA-MM-JJ (ou horodatages ISO). */
-export function dayDiff(from: string, to: string): number {
-  const utc = (s: string) => Date.UTC(Number(s.slice(0, 4)), Number(s.slice(5, 7)) - 1, Number(s.slice(8, 10)));
-  return Math.round((utc(to) - utc(from)) / 86_400_000);
-}
 
 export type Urgency =
   | { level: 'late'; days: number }

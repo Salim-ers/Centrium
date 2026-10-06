@@ -1,24 +1,27 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowUpRight, FileText, Mail, Phone, Target } from 'lucide-react';
+import { ArrowUpRight, Briefcase, FileText, Mail, Phone, Sparkles, Target } from 'lucide-react';
 
 import { DetailDrawer } from '@/components/app/DetailDrawer';
 import { FactList } from '@/components/app/FactList';
+import { AvailabilityBadge } from '@/components/consultants/AvailabilityBadge';
+import { SkillChips } from '@/components/consultants/SkillChips';
 import { Avatar } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StatusPill } from '@/components/ui/status-pill';
 import { CONSULTANT_STATUS, statusOf } from '@/lib/status';
 import { SENIORITY_LABEL } from '@/constants';
-import { formatDate, formatEur } from '@/lib/format';
+import { availabilityOf, languageName } from '@/lib/talents/filters';
+import { formatEur } from '@/lib/format';
 import type { ConsultantListItem } from '@/lib/services/consultant.service';
 
-type Skill = { id: string; name: string; level?: number | null; is_highlighted?: boolean | null };
+type Skill = { id: string; name: string; level: number | null; years: number | null; is_highlighted?: boolean | null; matched?: boolean };
 
 /**
- * Aperçu d'un consultant dans un tiroir : l'essentiel pour staffer, et les
- * actions courantes (dossier de compétences, positionnement, fiche).
+ * Aperçu d'un consultant dans un tiroir : l'essentiel pour staffer
+ * (disponibilité réelle, mission, compétences et niveaux) et les accès
+ * directs : dossier de compétences, matching IA, mission en cours.
  */
 export function ConsultantQuickView({
   consultant,
@@ -33,6 +36,7 @@ export function ConsultantQuickView({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   lang: 'fr' | 'en';
+  /** Compétences déjà ordonnées (recherchées, mises en avant, niveau). */
   skills: Skill[];
   showRates: boolean;
   today: string;
@@ -41,14 +45,10 @@ export function ConsultantQuickView({
   if (!consultant) return null;
   const c = consultant;
   const st = statusOf(CONSULTANT_STATUS, c.status, lang);
-  const availableNow = c.status === 'available' && (!c.available_from || c.available_from <= today);
-  const freeOn = availableNow ? null : (c.available_from ?? c.current_mission_end ?? null);
+  const availability = availabilityOf(c, today);
   const mission = c.active_missions.find((m) => m.status === 'active') ?? c.active_missions[0];
   const owner = c.owner ? `${c.owner.first_name ?? ''} ${c.owner.last_name ?? ''}`.trim() || c.owner.email : null;
-  const top = skills
-    .slice()
-    .sort((a, b) => Number(b.is_highlighted) - Number(a.is_highlighted) || (b.level ?? 0) - (a.level ?? 0))
-    .slice(0, 12);
+  const languages = (Array.isArray(c.languages) ? c.languages : []).filter((l) => l.code);
 
   const overview = (
     <div className="space-y-5">
@@ -57,33 +57,41 @@ export function ConsultantQuickView({
         <div className="min-w-0">
           <div className="truncate text-[15px] font-semibold">{c.job_title}</div>
           <div className="text-[13px] text-muted-foreground">
-            {c.seniority ? SENIORITY_LABEL[c.seniority] : ''}
-            {c.city ? `${c.seniority ? ' · ' : ''}${c.city}` : ''}
+            {[c.seniority ? SENIORITY_LABEL[c.seniority] : null, c.years_experience ? (fr ? `${c.years_experience} ans d’expérience` : `${c.years_experience} years’ experience`) : null, c.city]
+              .filter(Boolean)
+              .join(' · ')}
           </div>
         </div>
       </div>
       <FactList
         columns={2}
         facts={[
+          { label: fr ? 'Disponibilité' : 'Availability', value: <AvailabilityBadge availability={availability} lang={lang} /> },
           {
-            label: fr ? 'Disponibilité' : 'Availability',
-            value: availableNow ? <span className="font-medium text-success">{fr ? 'Immédiate' : 'Now'}</span> : freeOn ? formatDate(freeOn, lang) : null,
+            label: fr ? 'Mission actuelle' : 'Current mission',
+            value: mission ? (
+              <Link href={`/missions/${mission.id}`} className="hover:text-primary-deep hover:underline">
+                {mission.title}
+              </Link>
+            ) : null,
+            hint: mission && c.current_client ? c.current_client : undefined,
           },
-          { label: fr ? 'Mission actuelle' : 'Current mission', value: mission?.title ?? null },
           ...(showRates ? [{ label: 'TJM', value: c.daily_rate_eur ? formatEur(Number(c.daily_rate_eur), lang) : null }] : []),
+          { label: fr ? 'Mobilité' : 'Mobility', value: c.mobility },
+          {
+            label: fr ? 'Langues' : 'Languages',
+            value: languages.length ? languages.map((l) => `${languageName(l.code, lang)}${l.level ? ` (${l.level.toLowerCase()})` : ''}`).join(', ') : null,
+          },
           { label: fr ? 'Référent' : 'Owner', value: owner },
         ]}
       />
-      {top.length > 0 && (
+      {skills.length > 0 && (
         <div>
-          <div className="mb-1.5 text-xs text-muted-foreground">{fr ? 'Compétences clés' : 'Key skills'}</div>
-          <div className="flex flex-wrap gap-1.5">
-            {top.map((s) => (
-              <Badge key={s.id} variant={s.is_highlighted ? 'default' : 'secondary'}>
-                {s.name}
-              </Badge>
-            ))}
+          <div className="mb-1.5 flex items-baseline justify-between text-xs text-muted-foreground">
+            <span>{fr ? 'Compétences' : 'Skills'}</span>
+            <span>{fr ? 'niveau 1 à 5' : 'level 1 to 5'}</span>
           </div>
+          <SkillChips skills={skills} max={14} lang={lang} />
         </div>
       )}
       {(c.email || c.phone) && (
@@ -111,7 +119,12 @@ export function ConsultantQuickView({
       onOpenChange={onOpenChange}
       title={`${c.first_name} ${c.last_name}`}
       subtitle={c.job_title}
-      badges={<StatusPill tone={st.tone}>{st.label}</StatusPill>}
+      badges={
+        <>
+          <StatusPill tone={st.tone}>{st.label}</StatusPill>
+          {c.is_prospect && <span className="rounded-full bg-muted px-2 py-0.5 text-[12px] font-medium text-muted-foreground">{fr ? 'Vivier' : 'Pool'}</span>}
+        </>
+      }
       actions={
         <>
           <Button asChild size="sm">
@@ -121,9 +134,23 @@ export function ConsultantQuickView({
             </Link>
           </Button>
           <Button asChild size="sm" variant="secondary">
+            <Link href={`/matching?consultant=${c.id}`}>
+              <Sparkles />
+              {fr ? 'Matching IA' : 'AI matching'}
+            </Link>
+          </Button>
+          {mission && (
+            <Button asChild size="sm" variant="secondary">
+              <Link href={`/missions/${mission.id}`}>
+                <Briefcase />
+                {fr ? 'Mission' : 'Mission'}
+              </Link>
+            </Button>
+          )}
+          <Button asChild size="sm" variant="ghost">
             <Link href={`/consultants/${c.id}?tab=opportunities`}>
               <Target />
-              {fr ? 'Positionner' : 'Position'}
+              {fr ? 'Propositions' : 'Proposals'}
             </Link>
           </Button>
         </>
