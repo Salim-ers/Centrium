@@ -26,6 +26,22 @@ describe('RBAC — matrice par défaut', () => {
     expect(can('recruiter', 'consultants.edit')).toBe(true);
   });
 
+  it('commercial : pipeline et propositions, ni CRA ni finance', () => {
+    expect(can('commercial', 'crm.edit')).toBe(true);
+    expect(can('commercial', 'documents.edit')).toBe(true);
+    expect(can('commercial', 'staffing.edit')).toBe(true);
+    expect(can('commercial', 'timesheets.validate')).toBe(false);
+    expect(can('commercial', 'finance.view')).toBe(false);
+  });
+
+  it('opérations : CRA, documents et portails, préfacturation en lecture', () => {
+    expect(can('operations', 'timesheets.validate')).toBe(true);
+    expect(can('operations', 'portals.manage')).toBe(true);
+    expect(can('operations', 'finance.view')).toBe(true);
+    expect(can('operations', 'finance.edit')).toBe(false);
+    expect(can('operations', 'crm.edit')).toBe(false);
+  });
+
   it('les rôles externes n’ont aucune permission interne', () => {
     for (const role of ['consultant', 'client', 'super_admin'] as EffectiveRole[]) {
       expect(resolvePermissions(role).size).toBe(0);
@@ -72,14 +88,14 @@ describe('RBAC — surcharges d’organisation', () => {
 });
 
 describe('RBAC — alignement base de données', () => {
-  it('la migration 096 contient exactement la matrice TypeScript', () => {
+  it('la migration 106 contient exactement la matrice TypeScript', () => {
     const sql = readFileSync(
-      path.resolve(__dirname, '../../supabase/migrations/096_v2_rbac_owner.sql'),
+      path.resolve(__dirname, '../../supabase/migrations/106_v2_rbac_by_permission.sql'),
       'utf8',
     );
     const seeded = new Set([...sql.matchAll(/\('([a-z_]+)', '([a-z_]+\.[a-z_]+)'\)/g)].map((m) => `${m[1]}:${m[2]}`));
     const expected = new Set<string>();
-    for (const role of ['owner', 'admin', 'direction', 'business_manager', 'recruiter', 'finance', 'viewer'] as EffectiveRole[]) {
+    for (const role of ['owner', 'admin', 'direction', 'business_manager', 'commercial', 'recruiter', 'operations', 'finance', 'viewer'] as EffectiveRole[]) {
       for (const p of defaultPermissions(role)) expected.add(`${role}:${p}`);
     }
     expect([...seeded].sort()).toEqual([...expected].sort());

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { DASHBOARD_VIEWS, DEFAULT_LAYOUTS, WIDGETS, WIDGET_IDS, resolveLayout, widgetAllowed, widgetSpan } from '@/lib/dashboard/widgets';
+import { DASHBOARD_VIEWS, DEFAULT_LAYOUTS, WIDGETS, WIDGET_IDS, allowedViews, pickView, resolveLayout, widgetAllowed, widgetSpan } from '@/lib/dashboard/widgets';
+import { can as canRole, type EffectiveRole } from '@/lib/auth/permissions';
 import type { Permission } from '@/lib/auth/permissions';
 
 describe('resolveLayout', () => {
@@ -79,5 +80,21 @@ describe('grille contrôlée du tableau de bord', () => {
     expect(widgetSpan('direction', 'activity').rows).toBe(3);
     expect(widgetSpan('finance', 'activity').cols).toBe(9);
     expect(WIDGET_IDS.filter((id) => WIDGETS[id].kpi).every((id) => WIDGETS[id].span.rows === 1)).toBe(true);
+  });
+});
+
+describe('vue d’entrée par rôle', () => {
+  const viewsOf = (role: EffectiveRole) => allowedViews((p) => canRole(role, p));
+  it('chaque rôle arrive sur sa vue, jamais sur une vue vide', () => {
+    expect(pickView(viewsOf('business_manager'), null, 'business_manager')).toBe('commercial');
+    expect(pickView(viewsOf('recruiter'), null, 'recruiter')).toBe('staffing');
+    expect(pickView(viewsOf('finance'), null, 'finance')).toBe('finance');
+    expect(pickView(viewsOf('owner'), null, 'owner')).toBe('direction');
+    // Le recruteur n’a aucun widget financier : la vue Finance ne lui est pas proposée.
+    expect(viewsOf('recruiter')).not.toContain('finance');
+  });
+  it('un choix mémorisé l’emporte tant qu’il reste permis', () => {
+    expect(pickView(viewsOf('owner'), 'finance', 'owner')).toBe('finance');
+    expect(pickView(viewsOf('recruiter'), 'finance', 'recruiter')).toBe('staffing');
   });
 });

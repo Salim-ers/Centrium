@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireOrg } from '@/lib/auth/guards';
+import { getAuthorization } from '@/lib/auth/rbac';
 import { contractBaseSchema } from '@/lib/validators/contract';
 
 // =========================================================================
@@ -28,8 +28,8 @@ const updateSchema = contractBaseSchema.partial().extend({
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const ctx = await requireOrg();
-  if (!['admin', 'business_manager'].includes(ctx.role)) {
+  const ctx = await getAuthorization();
+  if (!ctx.permissions.has('documents.edit')) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
@@ -84,8 +84,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  const ctx = await requireOrg();
-  if (!['admin', 'business_manager'].includes(ctx.role)) {
+  const ctx = await getAuthorization();
+  if (!ctx.permissions.has('documents.edit')) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 

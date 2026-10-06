@@ -16,20 +16,24 @@ import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useOrganization } from '@/lib/auth/context';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import {
+  ASSIGNABLE_ROLES,
   LOCKED_PERMISSIONS,
   PERMISSIONS,
   PERMISSION_LABEL,
+  ROLE_DESCRIPTION,
   ROLE_LABEL,
   defaultPermissions,
+  type AssignableRole,
   type Permission,
   type PermissionOverride,
 } from '@/lib/auth/permissions';
 import { cn } from '@/lib/utils';
 
 // Les administrateurs gardent toutes les permissions (pas de verrouillage
-// accidentel) ; les autres rôles sont personnalisables.
-const ROLES = ['direction', 'business_manager', 'recruiter', 'finance', 'viewer'] as const;
-type CustomRole = (typeof ROLES)[number];
+// accidentel) ; les autres rôles sont personnalisables. Commercial et
+// Opérations apparaissent une fois les migrations 105-106 appliquées.
+type CustomRole = Exclude<AssignableRole, 'admin'>;
+const BASE_ROLES = (ASSIGNABLE_ROLES as readonly AssignableRole[]).filter((r): r is CustomRole => r !== 'admin');
 
 export default function PermissionsPage() {
   const { activeOrgId } = useOrganization();
@@ -39,6 +43,16 @@ export default function PermissionsPage() {
   const fr = lang === 'fr';
   const allowed = can('team.manage');
   const [busy, setBusy] = useState<string | null>(null);
+  const { data: available } = useCachedQuery<AssignableRole[]>(
+    `team-roles:${activeOrgId ?? 'none'}`,
+    async () => {
+      const res = await fetch('/api/team/roles', { cache: 'no-store' });
+      if (!res.ok) return [...ASSIGNABLE_ROLES];
+      return ((await res.json()) as { data?: { roles?: AssignableRole[] } }).data?.roles ?? [...ASSIGNABLE_ROLES];
+    },
+    { enabled: !!activeOrgId && ready && allowed },
+  );
+  const ROLES: CustomRole[] = available ? available.filter((r): r is CustomRole => r !== 'admin') : BASE_ROLES;
 
   const { data, loading, setData } = useCachedQuery<PermissionOverride[]>(
     `role-permissions:${activeOrgId ?? 'none'}`,
@@ -101,6 +115,14 @@ export default function PermissionsPage() {
             : 'Adjust what each role can see and do. Changes are enforced server-side on each user’s next request. Administrators keep every right.'
         }
       />
+      <ul className="mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3" aria-label={fr ? 'Rôles' : 'Roles'}>
+        {ROLES.map((r) => (
+          <li key={r} className="rounded-xl border border-border bg-card px-3.5 py-2.5">
+            <div className="text-[13px] font-semibold">{ROLE_LABEL[r][lang]}</div>
+            <div className="text-[12.5px] text-muted-foreground">{ROLE_DESCRIPTION[r]?.[lang]}</div>
+          </li>
+        ))}
+      </ul>
       {loading && !data ? (
         <Skeleton className="h-96 w-full" />
       ) : (

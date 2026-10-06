@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireOrg } from '@/lib/auth/guards';
+import { getAuthorization } from '@/lib/auth/rbac';
 import { contractBaseSchema, refineContractParty } from '@/lib/validators/contract';
 
 // =========================================================================
@@ -38,8 +38,8 @@ const bodySchema = contractBaseSchema
   .superRefine(refineContractParty);
 
 export async function POST(req: NextRequest) {
-  const ctx = await requireOrg();
-  if (!['admin', 'business_manager'].includes(ctx.role)) {
+  const ctx = await getAuthorization();
+  if (!ctx.permissions.has('documents.edit')) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 

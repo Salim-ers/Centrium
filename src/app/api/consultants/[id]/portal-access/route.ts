@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireOrg } from '@/lib/auth/guards';
+import { getAuthorization } from '@/lib/auth/rbac';
 import { sendPortalInvite, buildRedirectTo } from '@/lib/auth/sendInvite';
 import { logger } from '@/lib/logger';
 
@@ -30,8 +30,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const ctx = await requireOrg();
-  if (!['admin', 'business_manager', 'recruiter'].includes(ctx.role)) {
+  const ctx = await getAuthorization();
+  if (!(ctx.permissions.has('consultants.edit') || ctx.permissions.has('portals.manage'))) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 

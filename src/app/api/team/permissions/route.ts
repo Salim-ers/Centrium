@@ -4,11 +4,13 @@ import { z } from 'zod';
 import { apiPermission } from '@/lib/auth/rbac';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logAudit } from '@/lib/audit/log';
+import { assignableRoles, ROLE_UNAVAILABLE } from '@/lib/auth/role-support';
+import { createClient } from '@/lib/supabase/server';
 import { LOCKED_PERMISSIONS, PERMISSIONS, defaultPermissions, type Permission } from '@/lib/auth/permissions';
 
 export const runtime = 'nodejs';
 
-const OVERRIDABLE_ROLES = ['admin', 'direction', 'business_manager', 'recruiter', 'finance', 'viewer'] as const;
+const OVERRIDABLE_ROLES = ['admin', 'direction', 'business_manager', 'commercial', 'recruiter', 'operations', 'finance', 'viewer'] as const;
 
 /** GET /api/team/permissions — surcharges de l'organisation. */
 export async function GET() {
@@ -38,6 +40,10 @@ export async function PUT(req: NextRequest) {
   const parsed = putSchema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: 'invalid_input' }, { status: 400 });
   const { role, permission, allowed } = parsed.data;
+  // Rôles étendus : la contrainte de role_permissions ne les accepte qu'après la migration 106.
+  if (!(await assignableRoles(createClient())).includes(role)) {
+    return NextResponse.json(ROLE_UNAVAILABLE, { status: 409 });
+  }
   if (LOCKED_PERMISSIONS.includes(permission)) {
     return NextResponse.json({ error: 'locked', message: 'Permission réservée au propriétaire et aux administrateurs.' }, { status: 409 });
   }

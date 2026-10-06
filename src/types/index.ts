@@ -12,6 +12,10 @@ export type UserRole =
   | 'recruiter'
   | 'finance'
   | 'viewer'
+  // Commercial et Opérations (migrations 105-106, à appliquer) : n'existent
+  // en base qu'une fois la migration jouée ; avant, ils ne sont proposés nulle part.
+  | 'commercial'
+  | 'operations'
   | 'consultant'
   // Contact client avec accès au portail client (V2, migration 095).
   // N'a jamais d'organisation active : accès via client_portal_users.

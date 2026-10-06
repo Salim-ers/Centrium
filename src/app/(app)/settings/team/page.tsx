@@ -23,7 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/Combobox';
 import { Select } from '@/components/ui/select';
-import { ASSIGNABLE_ROLES, ROLE_LABEL, type EffectiveRole } from '@/lib/auth/permissions';
+import { ASSIGNABLE_ROLES, ROLE_DESCRIPTION, ROLE_LABEL, type AssignableRole, type EffectiveRole } from '@/lib/auth/permissions';
 import { useAppT, useLocale } from '@/lib/i18n/LocaleProvider';
 import {
   Table,
@@ -71,11 +71,16 @@ type Invitation = {
 const roleLabel = (role: string, isEn: boolean): string =>
   ROLE_LABEL[role as EffectiveRole]?.[isEn ? 'en' : 'fr'] ?? role;
 
+const roleDescription = (role: string, isEn: boolean): string | undefined =>
+  ROLE_DESCRIPTION[role as EffectiveRole]?.[isEn ? 'en' : 'fr'];
+
 const ROLE_TONE: Record<string, StatusTone> = {
   admin: 'magenta',
   direction: 'violet',
   business_manager: 'violet',
+  commercial: 'violet',
   recruiter: 'info',
+  operations: 'info',
   finance: 'info',
   viewer: 'neutral',
   consultant: 'neutral',
@@ -97,6 +102,22 @@ export default function TeamSettingsPage() {
 
   const isAdmin = role === 'admin';
   const [busyMember, setBusyMember] = useState<string | null>(null);
+  // Rôles attribuables selon l'état de la base (Commercial et Opérations
+  // après les migrations 105-106) ; à défaut, la liste historique.
+  const [roles, setRoles] = useState<readonly AssignableRole[]>(ASSIGNABLE_ROLES);
+  useEffect(() => {
+    if (!isAdmin) return;
+    let cancelled = false;
+    fetch('/api/team/roles', { cache: 'no-store' })
+      .then((r) => (r.ok ? (r.json() as Promise<{ data?: { roles?: AssignableRole[] } }>) : null))
+      .then((body) => {
+        if (!cancelled && body?.data?.roles?.length) setRoles(body.data.roles);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin, activeOrgId]);
 
   // Source UNIQUE et admin-backed (cohérente avec le compteur de quota) :
   // la liste ne dépend plus de la RLS client, qui renvoyait 0 selon le
@@ -366,7 +387,7 @@ export default function TeamSettingsPage() {
                     required
                   />
                 </div>
-                <div className="w-44 space-y-1.5">
+                <div className="w-full space-y-1.5 sm:w-56">
                   <Label htmlFor="role" className="text-xs">
                     {t.pages.team.role_label}
                   </Label>
@@ -374,7 +395,7 @@ export default function TeamSettingsPage() {
                     id="role"
                     value={inviteRole}
                     onChange={(v) => setInviteRole(v)}
-                    options={[...ASSIGNABLE_ROLES].reverse().map((r) => ({ value: r, label: roleLabel(r, isEn) }))}
+                    options={[...roles].reverse().map((r) => ({ value: r, label: roleLabel(r, isEn) }))}
                   />
                 </div>
                 <Button
@@ -390,8 +411,36 @@ export default function TeamSettingsPage() {
                   {t.pages.team.invite_button}
                 </Button>
               </form>
+              {roleDescription(inviteRole, isEn) && (
+                <p className="mt-3 text-[12.5px] text-muted-foreground">
+                  <span className="font-medium text-foreground">{roleLabel(inviteRole, isEn)} : </span>
+                  {roleDescription(inviteRole, isEn)}
+                </p>
+              )}
             </AppCardBody>
           </AppCard>
+          {/* Qui voit quoi : une phrase par rôle, la matrice détaillée reste dans Rôles & permissions. */}
+          <details className="group mt-3 rounded-2xl border border-border bg-card">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-[13.5px] font-medium">
+              {isEn ? 'Who sees what? The roles at a glance' : 'Qui voit quoi ? Les rôles en un coup d’œil'}
+              <span className="text-[12.5px] font-normal text-primary-deep group-open:hidden">{isEn ? 'Show' : 'Afficher'}</span>
+              <span className="hidden text-[12.5px] font-normal text-primary-deep group-open:inline">{isEn ? 'Hide' : 'Masquer'}</span>
+            </summary>
+            <ul className="grid gap-px border-t border-border bg-border sm:grid-cols-2">
+              {roles.map((r) => (
+                <li key={r} className="bg-card px-4 py-3">
+                  <div className="text-[13.5px] font-medium">{roleLabel(r, isEn)}</div>
+                  <div className="text-[12.5px] text-muted-foreground">{roleDescription(r, isEn)}</div>
+                </li>
+              ))}
+            </ul>
+            <div className="border-t border-border px-4 py-3 text-[12.5px] text-muted-foreground">
+              {isEn ? 'Each role only sees the modules it is allowed to use. ' : 'Chaque rôle ne voit que les modules auxquels il a droit. '}
+              <Link href="/settings/permissions" className="font-medium text-primary-deep hover:underline">
+                {isEn ? 'Fine-tune permissions' : 'Ajuster les permissions'}
+              </Link>
+            </div>
+          </details>
         </section>
       )}
 
@@ -469,7 +518,7 @@ export default function TeamSettingsPage() {
                             className="h-8 w-44"
                             aria-label={isEn ? 'Role' : 'Rôle'}
                           >
-                            {ASSIGNABLE_ROLES.map((r) => (
+                            {(roles.includes(m.role as AssignableRole) ? roles : [...roles, m.role]).map((r) => (
                               <option key={r} value={r}>
                                 {roleLabel(r, isEn)}
                               </option>

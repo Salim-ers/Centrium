@@ -1,11 +1,12 @@
 // Génère le bloc INSERT de role_permission_defaults à partir de la matrice
 // TypeScript (src/lib/auth/permissions.ts) — source unique des droits.
+// Dernière matrice publiée : migration 106 (rôles Commercial et Opérations).
 // Usage : npx tsx scripts/v2-permissions-sql.ts
 // Un test (tests/unit/permissions-sql.test.ts) vérifie que la migration
 // reste alignée sur la matrice.
 import { defaultPermissions, type EffectiveRole } from '../src/lib/auth/permissions';
 
-const ROLES: EffectiveRole[] = ['owner', 'admin', 'direction', 'business_manager', 'recruiter', 'finance', 'viewer'];
+const ROLES: EffectiveRole[] = ['owner', 'admin', 'direction', 'business_manager', 'commercial', 'recruiter', 'operations', 'finance', 'viewer'];
 
 const rows: string[] = [];
 for (const role of ROLES) {

@@ -251,7 +251,8 @@ export type OrganizationInput = z.infer<typeof organizationSchema>;
 
 export const invitationSchema = z.object({
   email: z.string().email('Email invalide'),
-  role: z.enum(['admin', 'direction', 'business_manager', 'recruiter', 'finance', 'viewer']),
+  // Commercial et Opérations : refusés côté route tant que la base ne les connaît pas.
+  role: z.enum(['admin', 'direction', 'business_manager', 'commercial', 'recruiter', 'operations', 'finance', 'viewer']),
 });
 
 export type InvitationInput = z.infer<typeof invitationSchema>;

@@ -60,7 +60,9 @@ export const INTERNAL_ROLES: EffectiveRole[] = [
   'admin',
   'direction',
   'business_manager',
+  'commercial',
   'recruiter',
+  'operations',
   'finance',
   'viewer',
 ];
@@ -74,7 +76,17 @@ export const ASSIGNABLE_ROLES = [
   'finance',
   'viewer',
 ] as const;
-export type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];
+/**
+ * Rôles qui n'existent en base qu'après les migrations 105-106 (valeurs
+ * d'enum et matrice SQL). Le serveur ne les propose que si la matrice SQL
+ * les connaît (voir lib/auth/role-support).
+ */
+export const EXTENDED_ROLES = ['commercial', 'operations'] as const;
+export type ExtendedRole = (typeof EXTENDED_ROLES)[number];
+
+/** Tous les rôles internes qu'une organisation peut attribuer, base à jour. */
+export const ALL_ASSIGNABLE_ROLES = ['admin', 'direction', 'business_manager', 'commercial', 'recruiter', 'operations', 'finance', 'viewer'] as const;
+export type AssignableRole = (typeof ALL_ASSIGNABLE_ROLES)[number];
 
 const ALL_VIEW: Permission[] = PERMISSIONS.filter((p) => p.endsWith('.view'));
 
@@ -116,6 +128,44 @@ const DEFAULTS: Record<EffectiveRole, Permission[]> = {
     'finance.view',
     'portals.manage',
     'analytics.view',
+  ],
+  // Commercial (ingénieur d'affaires) : pipeline, clients, positionnement et
+  // propositions, avec les TJM et marges pour chiffrer ; ni validation de
+  // CRA ni pilotage financier.
+  commercial: [
+    'dashboard.view',
+    'crm.view',
+    'crm.edit',
+    'clients.view',
+    'clients.edit',
+    'opportunities.view',
+    'opportunities.edit',
+    'consultants.view',
+    'consultants.financials',
+    'staffing.view',
+    'staffing.edit',
+    'missions.view',
+    'documents.view',
+    'documents.edit',
+    'analytics.view',
+  ],
+  // Opérations (ADV, delivery) : missions, CRA, contrats et documents,
+  // accès portail ; voit la préfacturation sans la valider ni l'exporter.
+  operations: [
+    'dashboard.view',
+    'clients.view',
+    'opportunities.view',
+    'consultants.view',
+    'consultants.edit',
+    'staffing.view',
+    'missions.view',
+    'missions.edit',
+    'timesheets.view',
+    'timesheets.validate',
+    'documents.view',
+    'documents.edit',
+    'finance.view',
+    'portals.manage',
   ],
   recruiter: [
     'dashboard.view',
@@ -203,12 +253,27 @@ export const ROLE_LABEL: Record<EffectiveRole, { fr: string; en: string }> = {
   admin: { fr: 'Administrateur', en: 'Administrator' },
   direction: { fr: 'Direction', en: 'Leadership' },
   business_manager: { fr: 'Business Manager', en: 'Business Manager' },
+  commercial: { fr: 'Commercial', en: 'Sales' },
   recruiter: { fr: 'Recruteur', en: 'Recruiter' },
+  operations: { fr: 'Opérations', en: 'Operations' },
   finance: { fr: 'Finance / ADV', en: 'Finance / Sales admin' },
   viewer: { fr: 'Lecture seule', en: 'Read-only' },
   consultant: { fr: 'Consultant', en: 'Consultant' },
   client: { fr: 'Client', en: 'Client' },
   super_admin: { fr: 'Super admin', en: 'Super admin' },
+};
+
+/** Ce que chaque rôle voit et fait, en une phrase (équipe, permissions). */
+export const ROLE_DESCRIPTION: Partial<Record<EffectiveRole, { fr: string; en: string }>> = {
+  owner: { fr: 'Tous les droits, abonnement et suppression de l’organisation compris.', en: 'Every right, including subscription and organisation deletion.' },
+  admin: { fr: 'Tous les droits sauf la suppression de l’organisation : équipe, paramètres, abonnement.', en: 'Every right except deleting the organisation: team, settings, subscription.' },
+  direction: { fr: 'Pilotage complet : tout voir, décider, valider les CRA, sans administrer l’équipe.', en: 'Full oversight: sees everything, decides, approves timesheets, without managing the team.' },
+  business_manager: { fr: 'Commercial et delivery : pipeline, clients, staffing, missions et validation des CRA.', en: 'Sales and delivery: pipeline, clients, staffing, missions and timesheet approval.' },
+  commercial: { fr: 'Pipeline, clients, positionnement des consultants et propositions ; ni CRA ni finance.', en: 'Pipeline, clients, staffing proposals and quotes; no timesheets or finance.' },
+  recruiter: { fr: 'Talents, CV, matching et staffing ; sans les TJM, coûts ni marges.', en: 'Talent, CVs, matching and staffing; no rates, costs or margins.' },
+  operations: { fr: 'Missions, CRA, contrats, documents et accès portail ; préfacturation en lecture.', en: 'Missions, timesheets, contracts, documents and portal access; pre-invoicing read-only.' },
+  finance: { fr: 'Préfacturation, encaissements et exports ; consultants et missions en lecture.', en: 'Pre-invoicing, collections and exports; consultants and missions read-only.' },
+  viewer: { fr: 'Tout consulter sauf les données financières, sans rien modifier.', en: 'Read everything except financial data, without editing.' },
 };
 
 export const PERMISSION_LABEL: Record<Permission, { fr: string; en: string; group: string }> = {

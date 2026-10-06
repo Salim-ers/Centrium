@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireOrg } from '@/lib/auth/guards';
+import { getAuthorization } from '@/lib/auth/rbac';
 
 // =========================================================================
 // DELETE /api/timesheets/:id — Supprime un CRA (hard delete).
@@ -14,8 +14,8 @@ import { requireOrg } from '@/lib/auth/guards';
 export const runtime = 'nodejs';
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  const ctx = await requireOrg();
-  if (!['admin', 'business_manager'].includes(ctx.role)) {
+  const ctx = await getAuthorization();
+  if (!ctx.permissions.has('timesheets.validate')) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 

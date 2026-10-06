@@ -10,6 +10,7 @@ import {
 } from '@/lib/billing/enforce';
 import { rateLimit } from '@/lib/security/rate-limit';
 import { logAudit } from '@/lib/audit/log';
+import { assignableRoles, ROLE_UNAVAILABLE } from '@/lib/auth/role-support';
 
 // =========================================================================
 // POST /api/invitations — Crée une invitation pour l'organisation active
@@ -80,6 +81,10 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createClient();
+
+  if (!(await assignableRoles(supabase)).includes(parsed.data.role)) {
+    return NextResponse.json(ROLE_UNAVAILABLE, { status: 409 });
+  }
 
   // 1. Récupère le nom de l'org (pour le metadata du mail)
   const { data: org } = await supabase

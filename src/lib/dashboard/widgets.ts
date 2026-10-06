@@ -278,3 +278,33 @@ export function widgetAllowed(def: WidgetDef, can: (p: Permission) => boolean): 
   if (def.anyOf && !def.anyOf.some(can)) return false;
   return true;
 }
+
+/** Vue d'entrée par rôle : chacun arrive sur ce qui le concerne. */
+const ROLE_VIEW: Partial<Record<string, DashboardView>> = {
+  business_manager: 'commercial',
+  commercial: 'commercial',
+  recruiter: 'staffing',
+  operations: 'staffing',
+  finance: 'finance',
+};
+
+/** Ce qu'il faut pour qu'une vue ait du sens (au moins une de ces permissions). */
+const VIEW_REQUIRES: Record<DashboardView, Permission[]> = {
+  direction: ['dashboard.view'],
+  commercial: ['opportunities.view', 'crm.view'],
+  staffing: ['staffing.view'],
+  finance: ['finance.view', 'analytics.view'],
+};
+
+/** Vues utiles au rôle : sa permission d'entrée et au moins un widget autorisé (jamais de vue vide). */
+export function allowedViews(can: (p: Permission) => boolean): DashboardView[] {
+  return DASHBOARD_VIEWS.filter((v) => VIEW_REQUIRES[v].some(can) && DEFAULT_LAYOUTS[v].some((i) => widgetAllowed(WIDGETS[i.id], can)));
+}
+
+/** Vue affichée : le choix mémorisé s'il reste permis, sinon celle du rôle, sinon la première permise. */
+export function pickView(views: readonly DashboardView[], stored: DashboardView | null, role: string | null): DashboardView {
+  if (stored && views.includes(stored)) return stored;
+  const byRole = role ? ROLE_VIEW[role] : undefined;
+  if (byRole && views.includes(byRole)) return byRole;
+  return views[0] ?? 'direction';
+}

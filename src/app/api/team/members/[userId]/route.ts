@@ -4,11 +4,13 @@ import { z } from 'zod';
 import { apiPermission } from '@/lib/auth/rbac';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logAudit } from '@/lib/audit/log';
-import { ASSIGNABLE_ROLES } from '@/lib/auth/permissions';
+import { ALL_ASSIGNABLE_ROLES } from '@/lib/auth/permissions';
+import { assignableRoles, ROLE_UNAVAILABLE } from '@/lib/auth/role-support';
+import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 
-const bodySchema = z.object({ role: z.enum(ASSIGNABLE_ROLES) });
+const bodySchema = z.object({ role: z.enum(ALL_ASSIGNABLE_ROLES) });
 
 /**
  * PATCH /api/team/members/:userId — change le rôle d'un membre interne.
@@ -21,6 +23,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { userId: st
   const parsed = bodySchema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: 'invalid_input' }, { status: 400 });
   const role = parsed.data.role;
+  if (!(await assignableRoles(createClient())).includes(role)) {
+    return NextResponse.json(ROLE_UNAVAILABLE, { status: 409 });
+  }
 
   const admin = createAdminClient('team-management');
   const { data: members, error } = await admin

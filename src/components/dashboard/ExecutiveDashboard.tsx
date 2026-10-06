@@ -32,6 +32,8 @@ import {
   DASHBOARD_VIEWS,
   DEFAULT_LAYOUTS,
   WIDGETS,
+  allowedViews,
+  pickView,
   resolveLayout,
   widgetAllowed,
   type DashboardView,
@@ -105,7 +107,7 @@ function ago(at: string, lang: Lang): string {
 /** Tableau de bord exécutif : vues, grille Bento, personnalisation. */
 export function ExecutiveDashboard() {
   const { activeOrgId, user } = useOrganization();
-  const { can, ready } = usePermissions();
+  const { can, ready, role: myRole } = usePermissions();
   const { locale } = useLocale();
   const lang: Lang = locale === 'en' ? 'en' : 'fr';
   const fr = lang === 'fr';
@@ -121,17 +123,22 @@ export function ExecutiveDashboard() {
 
   // ── Vue active (mémorisée sur l'appareil) ───────────────────────────────
   const viewKey = `${VIEW_KEY}${user?.id ?? 'anon'}`;
-  const [view, setView] = useState<DashboardView>('direction');
+  // Vues utiles au rôle (au moins un widget permis) ; sans choix mémorisé,
+  // chacun arrive sur la sienne (BM et commercial : Commercial, recruteur et
+  // opérations : Staffing, finance : Finance).
+  const [stored, setStored] = useState<DashboardView | null>(null);
   useEffect(() => {
     try {
       const v = window.localStorage.getItem(viewKey);
-      if (v && (DASHBOARD_VIEWS as readonly string[]).includes(v)) setView(v as DashboardView);
+      setStored(v && (DASHBOARD_VIEWS as readonly string[]).includes(v) ? (v as DashboardView) : null);
     } catch {
       /* stockage indisponible */
     }
   }, [viewKey]);
+  const views = useMemo(() => allowedViews(can), [can]);
+  const view = pickView(views, stored, myRole);
   const chooseView = (v: DashboardView) => {
-    setView(v);
+    setStored(v);
     try {
       window.localStorage.setItem(viewKey, v);
     } catch {
@@ -531,9 +538,9 @@ export function ExecutiveDashboard() {
           </h1>
           <p className="text-[12.5px] capitalize text-muted-foreground">{formatDate(today.toISOString().slice(0, 10), lang, 'long')}</p>
         </div>
-        <div className="min-w-0 max-w-full">
+        <div className={cn('min-w-0 max-w-full', views.length < 2 && 'hidden')}>
           <div role="tablist" aria-label={fr ? 'Vue du tableau de bord' : 'Dashboard view'} className="no-scrollbar inline-flex max-w-full overflow-x-auto rounded-xl bg-black/[0.04] p-1">
-            {DASHBOARD_VIEWS.map((v) => (
+            {views.map((v) => (
               <button
                 key={v}
                 type="button"
