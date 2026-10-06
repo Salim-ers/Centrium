@@ -20,6 +20,7 @@ import {
   Pencil,
   Phone,
   Plus,
+  Sparkles,
   Target,
   UserCheck,
   UserMinus,
@@ -269,6 +270,12 @@ export default function Consultant360Page() {
                 </Link>
               </Button>
             )}
+            <Button asChild variant="secondary">
+              <Link href={`/matching?consultant=${c.id}`}>
+                <Sparkles />
+                {fr ? 'Matching IA' : 'AI matching'}
+              </Link>
+            </Button>
             {canEdit && (
               <Button variant="secondary" onClick={() => setEditOpen(true)}>
                 <Pencil />

@@ -474,11 +474,11 @@ export async function runOrgAlerts(
         loadMatchingPool(admin, org.id),
         admin
           .from('opportunities')
-          .select('id, organization_id, title, company_id, contact_id, owner_id, daily_rate_eur, duration_months, description, required_skills, start_date, location, status, archived')
+          .select('id, organization_id, title, company_id, contact_id, owner_id, daily_rate_eur, duration_months, description, required_skills, start_date, location, remote_policy, status, archived')
           .eq('organization_id', org.id),
       ]);
       if (!opps.error) {
-        matchCandidates = detectConsultantMatches(pool.consultants, (opps.data ?? []) as MatchOpportunityRow[], pool.skillsByConsultant, now);
+        matchCandidates = detectConsultantMatches(pool.consultants, (opps.data ?? []) as MatchOpportunityRow[], pool.skillsByConsultant, now, undefined, pool.evidence);
       }
     } catch (e) {
       report.errors.push(`matching: ${(e as Error).message}`);

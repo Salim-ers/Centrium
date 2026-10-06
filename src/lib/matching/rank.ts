@@ -1,11 +1,13 @@
 // =========================================================================
-// Classement des consultants pour un besoin (opportunité ou fiche de poste).
-// Délègue le calcul au moteur déterministe existant (computeMatchingV2) :
-// score sur 100, composantes détaillées, garde-fous. Aucune compétence
-// n'est déduite ou inventée — seules les compétences saisies comptent.
+// Classement des consultants pour un besoin (opportunité ou fiche de poste)
+// et, dans l'autre sens, des besoins pour un consultant. Délègue le calcul
+// au moteur déterministe (engine.ts) : score sur 100 en six critères,
+// forces, écarts, plafonds. Aucune compétence n'est déduite ou inventée —
+// seules les données saisies comptent.
 // =========================================================================
 
-import { computeMatchingV2, type ScoreBreakdown } from '@/lib/ai/matching/score';
+import { scoreMatch, type MatchNeed, type MatchResult } from './engine';
+import { needFromJobOffer, profileFromConsultant, type ProfileEvidence } from './needs';
 import type { Consultant, ConsultantSkill, JobOffer } from '@/types';
 
 /** Champs du consultant nécessaires au scoring (pas de données personnelles). */
@@ -33,59 +35,42 @@ export const MATCHING_CONSULTANT_COLUMNS =
 
 export type RankedConsultant = {
   consultant: MatchingConsultant;
-  breakdown: ScoreBreakdown;
+  breakdown: MatchResult;
 };
 
-/** Complète les champs non lus par le moteur pour satisfaire son type. */
-function asConsultant(c: MatchingConsultant): Consultant {
-  return {
-    organization_id: '',
-    owner_id: null,
-    initials: null,
-    email: null,
-    phone: null,
-    linkedin_url: null,
-    sub_title: null,
-    country: 'FR',
-    current_client: null,
-    summary: null,
-    internal_notes: null,
-    archived: false,
-    cv_pushed: false,
-    cv_pushed_at: null,
-    cv_pushed_target: null,
-    legal_status: null,
-    company_name: null,
-    siret: null,
-    vat_number: null,
-    address: null,
-    postal_code: null,
-    iban: null,
-    bic: null,
-    created_at: '',
-    updated_at: '',
-    ...c,
-    languages: Array.isArray(c.languages) ? c.languages : [],
-  } as Consultant;
-}
+type RankOptions = {
+  limit?: number;
+  minScore?: number;
+  excludeIds?: Set<string>;
+  /** Expériences, missions et certifications par consultant (bonus, preuves). */
+  evidence?: Map<string, ProfileEvidence>;
+  companyName?: string | null;
+  today?: string;
+};
 
-export function rankConsultants(
-  offer: JobOffer,
-  consultants: MatchingConsultant[],
-  skillsByConsultant: Map<string, ConsultantSkill[]>,
-  options: { limit?: number; minScore?: number; excludeIds?: Set<string> } = {},
-): RankedConsultant[] {
-  const { limit = 20, minScore = 0, excludeIds } = options;
+/** Consultants classés pour un besoin (meilleur score d'abord). */
+export function rankForNeed(need: MatchNeed, consultants: MatchingConsultant[], skillsByConsultant: Map<string, ConsultantSkill[]>, options: RankOptions = {}): RankedConsultant[] {
+  const { limit = 20, minScore = 0, excludeIds, evidence, today } = options;
   const out: RankedConsultant[] = [];
   for (const c of consultants) {
     if (c.status === 'archived' || excludeIds?.has(c.id)) continue;
-    const skills = skillsByConsultant.get(c.id) ?? [];
-    const breakdown = computeMatchingV2(asConsultant(c), skills, offer);
+    const profile = profileFromConsultant(c, skillsByConsultant.get(c.id) ?? [], evidence ? (evidence.get(c.id) ?? { experiences: [], missions: [] }) : null);
+    const breakdown = scoreMatch(need, profile, { today });
     if (breakdown.score < minScore) continue;
     out.push({ consultant: c, breakdown });
   }
-  out.sort((a, b) => b.breakdown.score - a.breakdown.score);
+  // À score égal : la disponibilité, puis les compétences clés départagent.
+  out.sort(
+    (a, b) =>
+      b.breakdown.score - a.breakdown.score ||
+      (b.breakdown.criteria[2]?.points ?? 0) - (a.breakdown.criteria[2]?.points ?? 0) ||
+      (b.breakdown.criteria[0]?.points ?? 0) - (a.breakdown.criteria[0]?.points ?? 0),
+  );
   return out.slice(0, limit);
+}
+
+export function rankConsultants(offer: JobOffer, consultants: MatchingConsultant[], skillsByConsultant: Map<string, ConsultantSkill[]>, options: RankOptions = {}): RankedConsultant[] {
+  return rankForNeed(needFromJobOffer(offer, options.companyName), consultants, skillsByConsultant, options);
 }
 
 export function groupSkills(rows: ConsultantSkill[]): Map<string, ConsultantSkill[]> {

@@ -95,8 +95,8 @@ import { categorizeRequiredSkills } from './matching/equivalences';
  *
  * Utilise la normalisation intelligente (synonymes ESN + fuzzy Jaro-Winkler)
  * pour comparer les noms. Pour un scoring multi-critères complet (séniorité,
- * dispo, TJM, langues, location), utiliser `computeMatchingV2` de
- * `@/lib/ai/matching/score`.
+ * dispo, TJM, langues, localisation, missions similaires), utiliser
+ * `scoreMatch` de `@/lib/matching/engine`.
  *
  * Conservé pour la rétrocompat avec les tests + la génération CV qui
  * n'a besoin que du score skill brut.

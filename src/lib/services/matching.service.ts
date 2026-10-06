@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/client';
 import type { Consultant, JobOffer, ConsultantSkill, ServiceResult } from '@/types';
-import { computeMatchingV2, type ScoreBreakdown } from '@/lib/ai/matching/score';
+import { scoreMatch, type MatchResult as EngineResult } from '@/lib/matching/engine';
+import { needFromJobOffer, profileFromConsultant } from '@/lib/matching/needs';
 
 export type MatchJustification = {
   pitch: string;
@@ -16,9 +17,9 @@ export type MatchResult = {
   recommendation: 'recommend' | 'maybe' | 'not_recommended';
   /** Confiance locale calculée par le moteur (avant LLM). */
   confidence: 'high' | 'medium' | 'low';
-  /** Breakdown détaillé des 7 composants (skills, séniorité, dispo, TJM, langues, location, nice-to-have). */
-  breakdown: ScoreBreakdown['components'];
-  /** Hard-gates déclenchés (ex: 'unavailable', 'seniority-mismatch', 'skills-too-low'). */
+  /** Détail du moteur : six critères, forces, écarts, plafonds. */
+  breakdown: EngineResult;
+  /** Plafonds appliqués ('skills', 'unavailable', 'seniority'). */
   gates: string[];
   /** Justification IA — peuplée à la demande pour le top N via /api/matching/justify. */
   justification?: MatchJustification | null;
@@ -45,6 +46,7 @@ export const matchingService = {
     const { data: consultants, error: cErr } = await supabase
       .from('consultants')
       .select('*')
+      .eq('organization_id', offer.organization_id)
       .eq('archived', false)
       .in('status', ['available', 'soon_available', 'on_mission', 'unavailable']);
     if (cErr) return { data: null, error: cErr };
@@ -67,28 +69,29 @@ export const matchingService = {
       skillsByConsultant.set(s.consultant_id, arr);
     }
 
+    // Même moteur que le centre de matching : score sur 100 en six critères.
+    const need = needFromJobOffer(offer as JobOffer);
     const results: MatchResult[] = (consultants as Consultant[]).map((c) => {
-      const consultantSkills = skillsByConsultant.get(c.id) ?? [];
-      const m = computeMatchingV2(c, consultantSkills, offer as JobOffer);
+      const m = scoreMatch(need, profileFromConsultant(c, skillsByConsultant.get(c.id) ?? []));
       return {
         consultant: c,
         score: m.score,
         matchedSkills: m.matchedSkills,
         missingSkills: m.missingSkills,
-        recommendation: m.recommendation,
-        confidence: m.confidence,
-        breakdown: m.components,
-        gates: m.gates,
+        recommendation: m.verdict === 'excellent' || m.verdict === 'good' ? 'recommend' : m.verdict === 'possible' ? 'maybe' : 'not_recommended',
+        confidence: m.notEvaluated.length === 0 && m.matchedSkills.length >= 3 ? 'high' : m.notEvaluated.length <= 1 ? 'medium' : 'low',
+        breakdown: m,
+        gates: m.caps.map((cap) => cap.id),
       };
     });
 
     // Tri principal : score desc.
-    // Tri secondaire si égalité : (1) dispo (factor desc), (2) skills matchés desc,
-    // (3) années d'XP desc. `?? 0` pour éviter NaN sur résultats legacy.
+    // Tri secondaire si égalité : (1) disponibilité, (2) compétences couvertes,
+    // (3) années d'expérience.
     results.sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
-      const af = a.breakdown?.availability?.factor ?? 0;
-      const bf = b.breakdown?.availability?.factor ?? 0;
+      const af = a.breakdown.criteria.find((c) => c.id === 'availability')?.points ?? 0;
+      const bf = b.breakdown.criteria.find((c) => c.id === 'availability')?.points ?? 0;
       if (bf !== af) return bf - af;
       if (b.matchedSkills.length !== a.matchedSkills.length) {
         return b.matchedSkills.length - a.matchedSkills.length;

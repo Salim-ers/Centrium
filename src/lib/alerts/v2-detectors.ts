@@ -9,6 +9,7 @@
 import type { ConsultantSkill } from '@/types';
 import type { AlertCandidate } from './detectors';
 import { rankConsultants, type MatchingConsultant } from '@/lib/matching/rank';
+import type { ProfileEvidence } from '@/lib/matching/needs';
 import { hasSkills, opportunityToOffer, type OppLike } from '@/lib/matching/opportunity-offer';
 
 const DAY = 86_400_000;
@@ -78,13 +79,15 @@ export function detectConsultantMatches(
   skillsByConsultant: Map<string, ConsultantSkill[]>,
   today: Date = new Date(),
   minScore = 75,
+  /** Expériences, missions, certifications : même score que dans l'interface. */
+  evidence?: Map<string, ProfileEvidence>,
 ): AlertCandidate[] {
   const pool = consultants.filter((c) => availableSoon(c, today));
   if (!pool.length) return [];
   const byConsultant = new Map<string, Array<{ opp: MatchOpportunityRow; score: number }>>();
   for (const o of opportunities) {
     if (CLOSED.has(o.status) || o.archived || !hasSkills(o)) continue;
-    const ranked = rankConsultants(opportunityToOffer(o), pool, skillsByConsultant, { limit: 5, minScore });
+    const ranked = rankConsultants(opportunityToOffer(o), pool, skillsByConsultant, { limit: 5, minScore, evidence, today: today.toISOString().slice(0, 10) });
     for (const r of ranked) {
       const list = byConsultant.get(r.consultant.id) ?? [];
       list.push({ opp: o, score: Math.round(r.breakdown.score) });

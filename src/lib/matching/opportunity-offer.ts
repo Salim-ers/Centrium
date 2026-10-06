@@ -1,6 +1,6 @@
 // =========================================================================
 // Adaptateur opportunité → fiche besoin pour le moteur de scoring
-// (lib/ai/matching/score.ts). Si l'opportunité est liée à une fiche de
+// (lib/matching/engine.ts, via needFromJobOffer). Si l'opportunité est liée à une fiche de
 // poste, ses exigences priment ; sinon on part des champs V2 de
 // l'opportunité. Aucune compétence n'est inventée : seules les compétences
 // renseignées sur le besoin et sur la fiche consultant sont comparées.
@@ -16,6 +16,8 @@ export type OppLike = Pick<
   required_skills?: string[] | null;
   start_date?: string | null;
   location?: string | null;
+  /** Politique de télétravail de l'opportunité (sur site, hybride, remote). */
+  remote_policy?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -52,7 +54,10 @@ export function opportunityToOffer(opp: OppLike, linked?: Partial<JobOffer> | nu
     working_conditions: linked?.working_conditions ?? [],
     contract_kind: linked?.contract_kind ?? null,
     show_rate: null,
-    work_mode: null,
+    // Mode de travail de la fiche, sinon celui de l'opportunité.
+    work_mode:
+      linked?.work_mode ??
+      (opp.remote_policy === 'onsite' || opp.remote_policy === 'hybrid' || opp.remote_policy === 'remote' ? opp.remote_policy : null),
     work_mode_detail: null,
     start_type: null,
     start_label: null,
