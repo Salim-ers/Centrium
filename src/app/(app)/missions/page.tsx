@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Briefcase, CalendarClock, CalendarPlus, ClipboardCheck, Eye, FileText, Gauge, Plus, Search, TrendingUp } from 'lucide-react';
+import { Briefcase, CalendarClock, CalendarPlus, ClipboardCheck, Eye, FileText, Gauge, Plus, Search, ShieldAlert, TrendingUp } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader } from '@/components/app';
@@ -18,6 +18,9 @@ import { DataTable, type Column, linkActions } from '@/components/ui/data-table'
 import { MissionDrawer, type MissionDraft } from '@/components/missions/MissionDrawer';
 import { MissionQuickView } from '@/components/missions/MissionQuickView';
 import { WonOpportunityPicker } from '@/components/missions/WonOpportunityPicker';
+import { MissionHealthCell } from '@/components/missions/MissionHealth';
+import { useMarginPolicy } from '@/hooks/useMarginPolicy';
+import { missionHealth, type MissionHealth } from '@/lib/missions/health';
 import { useOrganization } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
@@ -34,7 +37,7 @@ import { cn } from '@/lib/utils';
 const BUCKETS = [15, 30, 60, 90] as const;
 type Scope = 'active' | 'proposed' | 'ended' | 'all';
 type Ending = 'all' | '15' | '30' | '60' | '90';
-const DEFAULT_FILTERS = { scope: 'active', ending: 'all', client: 'all', query: '' };
+const DEFAULT_FILTERS = { scope: 'active', ending: 'all', client: 'all', query: '', watch: '' };
 
 /** Prépare le formulaire de mission à partir d'une opportunité gagnée. */
 async function draftFromOpportunity(oppId: string): Promise<MissionDraft | null> {
@@ -110,12 +113,25 @@ export default function MissionsPage() {
     void draftFromOpportunity(oppId).then((draft) => setDrawer({ open: true, draft: draft ?? undefined }));
   }
 
+  const canDocs = can('documents.view');
+  const { policy } = useMarginPolicy();
+  const [watch, setWatch] = useState(params.get('watch') === '1');
   const { data, loading, reload } = useCachedQuery<MissionRow[]>(
-    `missions-v2:${activeOrgId ?? 'none'}:${financials ? 'f' : 'n'}`,
-    () => loadMissions(createClient(), activeOrgId!, { financials }),
+    `missions-v3:${activeOrgId ?? 'none'}:${financials ? 'f' : 'n'}:${canDocs ? 'd' : 'n'}`,
+    () => loadMissions(createClient(), activeOrgId!, { financials, health: true, contracts: canDocs }),
     { enabled: !!activeOrgId && ready },
   );
   const all = useMemo(() => data ?? [], [data]);
+
+  // Santé de chaque mission active : signaux qui demandent une action.
+  const health = useMemo(() => {
+    const out = new Map<string, MissionHealth>();
+    for (const m of all) {
+      out.set(m.id, missionHealth({ ...m, sheets: m.recent_sheets ?? [], has_contract: m.has_contract ?? null }, today, { financials, marginTarget: policy.target }));
+    }
+    return out;
+  }, [all, today, financials, policy.target]);
+  const watched = useMemo(() => all.filter((m) => (health.get(m.id)?.level ?? 'ok') !== 'ok').length, [all, health]);
 
   const counts = useMemo(
     () => ({
@@ -134,9 +150,10 @@ export default function MissionsPage() {
       if (scope !== 'all' && m.status !== scope) return false;
       if (scope === 'active' && limit != null && (m.days_left == null || m.days_left < 0 || m.days_left > limit)) return false;
       if (client !== 'all' && m.company_id !== client) return false;
+      if (watch && (health.get(m.id)?.level ?? 'ok') === 'ok') return false;
       return !q || `${m.title} ${m.consultant_name} ${m.company_name ?? ''}`.toLowerCase().includes(q);
     });
-  }, [all, scope, ending, client, query]);
+  }, [all, scope, ending, client, query, watch, health]);
 
   const kpis = useMemo(() => {
     const active = all.filter((m) => m.status === 'active');
@@ -245,18 +262,33 @@ export default function MissionsPage() {
       },
     },
     {
-      id: 'status',
-      header: fr ? 'Statut' : 'Status',
-      mobile: 'trailing',
-      sortValue: (m) => m.status,
-      cell: (m) => {
-        const s = statusOf(MISSION_STATUS, m.status, lang);
-        return <StatusPill tone={s.tone}>{s.label}</StatusPill>;
+      id: 'health',
+      header: fr ? 'Santé' : 'Health',
+      mobile: 'meta',
+      sortValue: (m) => {
+        const h = health.get(m.id);
+        return h ? (h.level === 'critical' ? 0 : h.level === 'watch' ? 1 : 2) * 10 - h.signals.length : 99;
       },
+      cell: (m) => (m.status === 'active' && health.get(m.id) ? <MissionHealthCell health={health.get(m.id)!} lang={lang} /> : <span className="text-muted-foreground">—</span>),
     },
+    // En cours : toutes le sont, la colonne n'apporte rien.
+    ...(scope === 'active'
+      ? []
+      : ([
+          {
+            id: 'status',
+            header: fr ? 'Statut' : 'Status',
+            mobile: 'trailing',
+            sortValue: (m) => m.status,
+            cell: (m) => {
+              const s = statusOf(MISSION_STATUS, m.status, lang);
+              return <StatusPill tone={s.tone}>{s.label}</StatusPill>;
+            },
+          },
+        ] as Column<MissionRow>[])),
   ];
 
-  const filtered = query.trim() !== '' || client !== 'all' || (scope === 'active' && ending !== 'all');
+  const filtered = query.trim() !== '' || client !== 'all' || watch || (scope === 'active' && ending !== 'all');
   const createActions = canEdit ? (
     <div className="flex flex-wrap justify-center gap-2">
       <Button onClick={() => setDrawer({ open: true })}>
@@ -314,6 +346,15 @@ export default function MissionsPage() {
         items={[
           { label: fr ? 'missions en cours' : 'active missions', value: loading && !data ? '…' : counts.active, tone: 'terra', icon: Briefcase },
           {
+            label: fr ? 'à surveiller' : 'to watch',
+            title: fr ? 'CRA manquant ou à valider, échéance, renouvellement, marge, contrat' : 'Missing or pending timesheet, end date, renewal, margin, contract',
+            value: loading && !data ? '…' : watched,
+            tone: watched ? 'peach' : 'ivory',
+            icon: ShieldAlert,
+            onSelect: () => setWatch((v) => !v),
+            active: watch,
+          },
+          {
             label: fr ? `fin sous 30 j · ${kpis.toDecide} à statuer` : `ending within 30 d · ${kpis.toDecide} to decide`,
             value: loading && !data ? '…' : kpis.ending30,
             tone: kpis.ending30 > 0 ? 'peach' : 'ivory',
@@ -358,13 +399,14 @@ export default function MissionsPage() {
         <div className="sm:ml-auto">
           <SavedViews
             page="missions"
-            current={{ scope, ending, client, query }}
+            current={{ scope, ending, client, query, watch: watch ? '1' : '' }}
             defaults={DEFAULT_FILTERS}
             onApply={(f) => {
               setScope((['active', 'proposed', 'ended', 'all'] as string[]).includes(f.scope) ? (f.scope as Scope) : 'active');
               setEnding(f.scope === 'active' && BUCKETS.some((b) => String(b) === f.ending) ? (f.ending as Ending) : 'all');
               setClient(f.client || 'all');
               setQuery(f.query ?? '');
+              setWatch(f.watch === '1');
               if (params.get('ending') || params.get('endingWithin')) router.replace('/missions');
             }}
           />
@@ -414,6 +456,7 @@ export default function MissionsPage() {
                       setQuery('');
                       setClient('all');
                       setEnding('all');
+                      setWatch(false);
                     }}
                   >
                     {fr ? 'Réinitialiser les filtres' : 'Reset filters'}
@@ -435,6 +478,7 @@ export default function MissionsPage() {
         financials={financials}
         canEdit={canEdit}
         ownerName={quick?.owner_id ? (members.get(quick.owner_id)?.name ?? null) : null}
+        health={quick ? (health.get(quick.id) ?? null) : null}
         onChanged={() => void reload()}
       />
 

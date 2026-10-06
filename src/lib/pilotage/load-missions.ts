@@ -24,12 +24,23 @@ export type MissionRow = Mission & {
   margin_eur: number | null;
   days_left: number | null;
   bucket: 15 | 30 | 60 | 90 | null;
+  /** CRA récents (santé de la mission), si demandés. */
+  recent_sheets: Array<{ year: number; month: number; status: string }>;
+  /** Contrat rattaché ; null : non chargé ou non visible. */
+  has_contract: boolean | null;
 };
 
 export async function loadMissions(
   supabase: SupabaseClient,
   orgId: string,
-  opts: { financials: boolean; includeArchived?: boolean },
+  opts: {
+    financials: boolean;
+    includeArchived?: boolean;
+    /** CRA récents (12 derniers mois) pour les signaux de santé. */
+    health?: boolean;
+    /** Contrats rattachés (seulement avec l'accès aux documents). */
+    contracts?: boolean;
+  },
   today = new Date(),
 ): Promise<MissionRow[]> {
   let q = supabase
@@ -40,7 +51,7 @@ export async function loadMissions(
     .limit(5000);
   if (!opts.includeArchived) q = q.eq('archived', false);
 
-  const [{ data: missions }, ts, mf, cf] = await Promise.all([
+  const [{ data: missions }, ts, mf, cf, recent, contracts] = await Promise.all([
     q,
     supabase
       .from('timesheets')
@@ -50,7 +61,27 @@ export async function loadMissions(
       .limit(20000),
     opts.financials ? supabase.from('mission_financials').select('mission_id, daily_cost_eur') : Promise.resolve({ data: [], error: null }),
     opts.financials ? supabase.from('consultant_financials').select('consultant_id, daily_cost_eur') : Promise.resolve({ data: [], error: null }),
+    opts.health
+      ? supabase
+          .from('timesheets')
+          .select('mission_id, period_year, period_month, status')
+          .eq('organization_id', orgId)
+          .eq('archived', false)
+          .gte('period_year', today.getFullYear() - 1)
+          .limit(20000)
+      : Promise.resolve({ data: [], error: null }),
+    opts.contracts
+      ? supabase.from('contracts').select('mission_id').eq('organization_id', orgId).eq('archived', false).not('mission_id', 'is', null).limit(20000)
+      : Promise.resolve({ data: null, error: null }),
   ]);
+  const sheetsByMission = new Map<string, Array<{ year: number; month: number; status: string }>>();
+  for (const t of ((recent.error ? [] : recent.data) ?? []) as Array<{ mission_id: string; period_year: number; period_month: number; status: string }>) {
+    const list = sheetsByMission.get(t.mission_id) ?? [];
+    list.push({ year: Number(t.period_year), month: Number(t.period_month), status: t.status });
+    sheetsByMission.set(t.mission_id, list);
+  }
+  // Contrats : inconnus si non demandés ou en erreur (jamais « manquant » par défaut).
+  const withContract = opts.contracts && !contracts.error && contracts.data ? new Set((contracts.data as Array<{ mission_id: string }>).map((c) => c.mission_id)) : null;
 
   const validated = new Map<string, number>();
   for (const t of (ts.data ?? []) as Array<{ mission_id: string; days_validated: number | null; days_worked: number | null }>) {
@@ -96,6 +127,8 @@ export async function loadMissions(
       margin_eur: cost != null && planned != null ? Math.round(planned * (rate - cost)) : null,
       days_left: m.end_date && m.status === 'active' ? daysUntil(m.end_date, today) : null,
       bucket: m.status === 'active' && m.end_date && m.end_date >= todayIso ? endingBucket(m.end_date, today) : null,
+      recent_sheets: sheetsByMission.get(m.id) ?? [],
+      has_contract: withContract ? withContract.has(m.id) : null,
     };
   });
 }

@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { StatusPill } from '@/components/ui/status-pill';
 import { RenewalPrompt } from '@/components/missions/RenewalPrompt';
+import { MissionHealthList } from '@/components/missions/MissionHealth';
+import type { MissionHealth } from '@/lib/missions/health';
 import { MISSION_STATUS, RENEWAL_STATUS, statusOf } from '@/lib/status';
 import { formatDate, formatEur, formatEurCompact, formatPct } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -29,6 +31,7 @@ export function MissionQuickView({
   canEdit,
   ownerName,
   onChanged,
+  health = null,
 }: {
   mission: MissionRow | null;
   open: boolean;
@@ -40,6 +43,8 @@ export function MissionQuickView({
   canEdit: boolean;
   ownerName: string | null;
   onChanged: () => void;
+  /** Signaux de santé (CRA, échéance, marge, contrat). */
+  health?: MissionHealth | null;
 }) {
   const fr = lang === 'fr';
   if (!m) return null;
@@ -74,6 +79,7 @@ export function MissionQuickView({
 
   const overview = (
     <div className="space-y-5">
+      {health && <MissionHealthList health={health} lang={lang} />}
       <RenewalPrompt
         mission={m}
         lang={lang}

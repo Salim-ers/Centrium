@@ -39,6 +39,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { MissionDrawer } from '@/components/missions/MissionDrawer';
 import { MissionTimeline } from '@/components/missions/MissionTimeline';
 import { RenewalPrompt } from '@/components/missions/RenewalPrompt';
+import { MissionHealthList } from '@/components/missions/MissionHealth';
+import { MissionSuccessors } from '@/components/missions/MissionSuccessors';
+import { missionHealth } from '@/lib/missions/health';
 import { TaskList } from '@/components/crm/TaskList';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
@@ -181,40 +184,33 @@ export default function MissionDetailPage() {
 
   const stage = data ? renewalStage(data.mission, todayIso) : null;
 
-  const alerts = useMemo(() => {
-    if (!data || !stats) return [] as Array<{ tone: 'danger' | 'warning'; text: string; href?: string }>;
+  // Signaux de santé : les mêmes que dans la liste des missions.
+  const health = useMemo(() => {
+    if (!data || !stats) return null;
     const m = data.mission;
-    const out: Array<{ tone: 'danger' | 'warning'; text: string; href?: string }> = [];
-    // Sous 30 jours, la question du renouvellement prend le relais.
-    if (m.status === 'active' && !stage && stats.left != null && stats.left >= 0 && stats.left <= 90) {
-      out.push({ tone: 'warning', text: fr ? `La mission se termine dans ${stats.left} jours.` : `The mission ends in ${stats.left} days.` });
-    }
-    if (m.status === 'active') {
-      const now = new Date();
-      const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const started = m.start_date <= `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}-28`;
-      const has = data.timesheets.some((t) => t.period_year === prev.getFullYear() && t.period_month === prev.getMonth() + 1 && t.status !== 'draft');
-      if (started && !has) {
-        out.push({
-          tone: 'warning',
-          text: fr ? `CRA de ${periodLabel(prev.getMonth() + 1, prev.getFullYear(), lang)} non transmis.` : `Timesheet for ${periodLabel(prev.getMonth() + 1, prev.getFullYear(), lang)} not submitted.`,
-          href: '/timesheets',
-        });
-      }
-      if (data.contracts.length === 0 && canDocs) {
-        out.push({ tone: 'warning', text: fr ? 'Aucun contrat rattaché à cette mission.' : 'No contract linked to this mission.', href: '/contracts' });
-      }
-    }
-    if (m.status === 'active' && financials && data.cost == null) {
-      out.push({ tone: 'warning', text: fr ? 'CJM non renseigné : la marge ne peut pas être calculée.' : 'Daily cost missing: margin cannot be computed.' });
-    }
-    // Simple signal, jamais bloquant : objectif du consultant, sinon celui de l'organisation.
-    const target = data.marginTarget ?? policy.target;
-    if (m.status === 'active' && financials && stats.marginPct != null && stats.marginPct < target) {
-      out.push({ tone: 'warning', text: fr ? `Marge sous votre objectif de ${formatPct(target, lang, 0)}.` : `Margin below your ${formatPct(target, lang, 0)} target.` });
-    }
-    return out;
-  }, [data, stats, stage, fr, lang, canDocs, financials, policy.target]);
+    return missionHealth(
+      {
+        id: m.id,
+        status: m.status,
+        start_date: m.start_date,
+        end_date: m.end_date,
+        renewal_status: m.renewal_status,
+        margin_pct: stats.marginPct,
+        daily_cost_eur: data.cost,
+        sheets: data.timesheets.map((t) => ({ year: t.period_year, month: t.period_month, status: t.status })),
+        has_contract: canDocs ? data.contracts.length > 0 : null,
+      },
+      todayIso,
+      { financials, marginTarget: data.marginTarget ?? policy.target },
+    );
+  }, [data, stats, todayIso, canDocs, financials, policy.target]);
+  // Hors fenêtre de renouvellement, l'échéance reste visible jusqu'à 90 jours.
+  const endingInfo =
+    data && stats && data.mission.status === 'active' && !stage && stats.left != null && stats.left > 30 && stats.left <= 90
+      ? fr
+        ? `La mission se termine dans ${stats.left} jours.`
+        : `The mission ends in ${stats.left} days.`
+      : null;
 
   async function patch(body: Record<string, unknown>, success: string) {
     setBusy(true);
@@ -540,26 +536,12 @@ export default function MissionDetailPage() {
         </section>
 
         <aside className="no-scrollbar flex min-w-0 flex-col gap-3 lg:min-h-0 lg:overflow-y-auto">
-          {alerts.length > 0 && (
-            <ul className="space-y-1.5">
-              {alerts.map((a, i) => (
-                <li
-                  key={i}
-                  className={cn(
-                    'flex items-center gap-2 rounded-xl px-3 py-2 text-[12.5px]',
-                    a.tone === 'danger' ? 'bg-danger-soft text-destructive' : 'bg-warning-soft text-warning',
-                  )}
-                >
-                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                  <span className="flex-1">{a.text}</span>
-                  {a.href && (
-                    <Link href={a.href} className="shrink-0 text-xs font-semibold underline-offset-2 hover:underline">
-                      {fr ? 'Voir' : 'View'}
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ul>
+          {health && <MissionHealthList health={health} lang={lang} />}
+          {endingInfo && (
+            <p className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-[12.5px] text-muted-foreground">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              {endingInfo}
+            </p>
           )}
 
           <div className="tile-surface p-4">
@@ -626,6 +608,10 @@ export default function MissionDetailPage() {
               </div>
             </div>
           </div>
+
+          {(m.status === 'active' || m.status === 'proposed') && (
+            <MissionSuccessors mission={m} companyName={m.companies?.name ?? null} lang={lang} showRates={showRates} />
+          )}
 
           <div className="tile-surface p-4">
             <h3 className="mb-2 text-[13px] font-semibold">{fr ? 'Tâches' : 'Tasks'}</h3>
