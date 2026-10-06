@@ -13,6 +13,9 @@ export const PUBLIC_PATHS: string[] = [
   '/pricing',
   '/tarifs',
   '/demo',
+  // Liens directs des espaces de démonstration.
+  '/demo/esn',
+  '/demo/consultant',
   '/devis',
   '/essai',
   '/security',

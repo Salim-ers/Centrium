@@ -8,6 +8,14 @@ Deux accès sans inscription depuis `/demo` :
 - **Démo Consultant** : le portail d'une consultante en mission (accueil,
   mission, CRA, documents, profil).
 
+Liens directs à partager (actifs une fois la démo ouverte, voir plus bas) :
+
+- Démo ESN : https://www.centrium-platform.com/demo/esn
+- Démo Consultant : https://www.centrium-platform.com/demo/consultant
+
+Chaque lien ouvre l’espace aussitôt ; si un vrai compte est déjà connecté
+dans le navigateur, la page demande confirmation avant de le remplacer.
+
 Tout vit dans une organisation dédiée, isolée comme n'importe quel client
 (`organization_id` + RLS), et un bandeau rappelle partout que les données
 sont fictives.
