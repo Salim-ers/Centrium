@@ -88,10 +88,12 @@ async function main() {
     }
   }
 
-  // Direction : voit tout le produit, sans pouvoir administrer l'équipe ni l'abonnement.
+  // Business Manager : pipeline, talents, staffing, missions, CRA (validation
+  // comprise), finance et analytics, sans administrer l'équipe ni l'abonnement.
+  // (La Direction ne valide les CRA en base qu'après la migration 106.)
   await check(
     'membre ESN',
-    admin.from('organization_members').upsert({ organization_id: DEMO_ORG_ID, user_id: esnId, role: 'direction', is_owner: false }, { onConflict: 'organization_id,user_id' }),
+    admin.from('organization_members').upsert({ organization_id: DEMO_ORG_ID, user_id: esnId, role: 'business_manager', is_owner: false }, { onConflict: 'organization_id,user_id' }),
   );
   await check(
     'membre consultant',
@@ -99,7 +101,7 @@ async function main() {
   );
   await check(
     'profil ESN',
-    admin.from('profiles').update({ organization_id: DEMO_ORG_ID, role: 'direction', consultant_id: null, first_name: 'Camille', last_name: 'Démo', password_set: true }).eq('id', esnId),
+    admin.from('profiles').update({ organization_id: DEMO_ORG_ID, role: 'business_manager', consultant_id: null, first_name: 'Camille', last_name: 'Démo', password_set: true }).eq('id', esnId),
   );
   await check(
     'profil consultant',
@@ -116,7 +118,7 @@ async function main() {
   }
 
   console.log(`Démo prête dans « ${org.name} » :`);
-  console.log(`  Démo ESN        ${esnEmail} (direction)`);
+  console.log(`  Démo ESN        ${esnEmail} (business manager)`);
   console.log(`  Démo Consultant ${consultantEmail} (portail consultant)`);
   console.log('Pour ouvrir l’accès public : DEMO_ACCESS=on et les quatre identifiants dans l’environnement de l’application.');
 }

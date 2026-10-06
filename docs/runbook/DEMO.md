@@ -2,7 +2,7 @@
 
 Deux accès sans inscription depuis `/demo` :
 
-- **Démo ESN** : la direction d'une ESN fictive de 22 consultants (tableau de
+- **Démo ESN** : le business manager d'une ESN fictive de 22 consultants (tableau de
   bord, CRM, talents, Matching IA, staffing, missions, opérations, analytics,
   paramètres) ;
 - **Démo Consultant** : le portail d'une consultante en mission (accueil,
@@ -69,8 +69,9 @@ nouveau.
 
 ## Sécurité
 
-- Le compte ESN a le rôle **Direction** : il voit tout le produit, mais
-  n'administre ni l'équipe, ni les rôles, ni l'abonnement.
+- Le compte ESN a le rôle **Business Manager** : pipeline, talents, staffing,
+  missions, CRA (validation comprise), finance et analytics, sans administrer
+  l'équipe, les rôles ni l'abonnement.
 - `/api/demo/session` referme aussitôt la session si le compte n'appartient
   pas à l'organisation de démo (ou, côté consultant, n'est pas relié à la
   fiche de démo).

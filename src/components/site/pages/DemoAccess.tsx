@@ -12,7 +12,7 @@ const SPACES: Array<{ kind: Kind; title: string; lead: string; items: string[]; 
   {
     kind: 'esn',
     title: 'Démo ESN',
-    lead: 'Le poste de pilotage d’une ESN de 22 consultants, vu par sa direction.',
+    lead: 'Le poste de pilotage d’une ESN de 22 consultants, vu par son business manager.',
     items: ['Tableau de bord', 'CRM et pipeline', 'Talents et Matching IA', 'Staffing et missions', 'Opérations : CRA, documents, préfacturation', 'Analytics et paramètres'],
     icon: Briefcase,
   },
