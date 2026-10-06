@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import type { Permission } from '@/lib/auth/permissions';
 
@@ -48,6 +49,10 @@ export function KeyboardShortcuts() {
   const allowed = GO_TO.filter((g) => !g.permission || g.permission.some((p) => can(p)));
   const allowedRef = useRef(allowed);
   allowedRef.current = allowed;
+  // « [ » replie ou déplie la barre latérale (comme la flèche de son bord).
+  const [collapsed, setCollapsed] = useSidebarCollapsed();
+  const sidebarRef = useRef({ collapsed, setCollapsed });
+  sidebarRef.current = { collapsed, setCollapsed };
 
   useEffect(() => {
     const onOpen = () => setOpen(true);
@@ -71,6 +76,11 @@ export function KeyboardShortcuts() {
         pending.current = Date.now();
         return;
       }
+      if (e.key === '[') {
+        e.preventDefault();
+        sidebarRef.current.setCollapsed(!sidebarRef.current.collapsed);
+        return;
+      }
       if (e.key === '?') {
         e.preventDefault();
         setOpen(true);
@@ -88,6 +98,7 @@ export function KeyboardShortcuts() {
   const rows: Array<{ keys: string[][]; label: string }> = [
     { keys: [[isMac ? '⌘' : 'Ctrl', 'K']], label: fr ? 'Rechercher, ouvrir, créer' : 'Search, open, create' },
     { keys: [['C']], label: fr ? 'Créer' : 'Create' },
+    { keys: [['[']], label: fr ? 'Replier ou déplier la barre latérale' : 'Collapse or expand the sidebar' },
     ...allowed.map((g) => ({ keys: [['G'], [g.key.toUpperCase()]], label: `${fr ? 'Aller à' : 'Go to'} ${g.label[lang]}` })),
     { keys: [['?']], label: fr ? 'Afficher cette aide' : 'Show this help' },
   ];

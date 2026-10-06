@@ -50,6 +50,8 @@ export type NavItem = {
   matchAlso?: string[];
   /** Mots-clés supplémentaires pour la palette de commandes. */
   keywords?: string[];
+  /** Ce que contient la destination, en quelques mots (barre latérale). */
+  hint?: Label;
 };
 
 /** Les huit destinations de la barre latérale. */
@@ -62,6 +64,7 @@ export const NAV_ITEMS: NavItem[] = [
     permission: 'dashboard.view',
     matchAlso: ['/alerts', '/todos'],
     keywords: ['accueil', 'home', 'kpi', 'à faire', 'tableau de bord'],
+    hint: { fr: 'Vue d’ensemble et priorités', en: 'Overview and priorities' },
   },
   {
     id: 'crm',
@@ -71,6 +74,7 @@ export const NAV_ITEMS: NavItem[] = [
     permission: ['crm.view', 'opportunities.view', 'clients.view'],
     matchAlso: ['/opportunities', '/clients', '/companies', '/contacts', '/offers', '/responses'],
     keywords: ['pipeline', 'opportunités', 'clients', 'contacts', 'affaires', 'tâches', 'besoins'],
+    hint: { fr: 'Pipeline, clients, contacts', en: 'Pipeline, clients, contacts' },
   },
   {
     id: 'talents',
@@ -80,6 +84,7 @@ export const NAV_ITEMS: NavItem[] = [
     permission: 'consultants.view',
     matchAlso: ['/prospects', '/cv-pushed', '/cv-optimizer'],
     keywords: ['consultants', 'vivier', 'cv', 'dossier de compétences', 'profils'],
+    hint: { fr: 'Consultants, CV Optimizer', en: 'Consultants, CV Optimizer' },
   },
   {
     id: 'staffing',
@@ -89,6 +94,7 @@ export const NAV_ITEMS: NavItem[] = [
     permission: 'staffing.view',
     matchAlso: ['/matching', '/en-mission'],
     keywords: ['planning', 'disponibilités', 'matching', 'intercontrat', 'positionnements'],
+    hint: { fr: 'Planning, Matching IA', en: 'Planning, AI matching' },
   },
   {
     id: 'missions',
@@ -97,6 +103,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Briefcase,
     permission: 'missions.view',
     keywords: ['affectations', 'échéances', 'renouvellements'],
+    hint: { fr: 'En cours, échéances, santé', en: 'Ongoing, deadlines, health' },
   },
   {
     id: 'operations',
@@ -106,6 +113,7 @@ export const NAV_ITEMS: NavItem[] = [
     permission: ['timesheets.view', 'documents.view', 'finance.view'],
     matchAlso: ['/documents', '/contracts', '/templates', '/finance', '/invoices', '/accounting'],
     keywords: ['cra', 'comptes rendus', 'devis', 'documents', 'préfacturation', 'finance', 'export'],
+    hint: { fr: 'CRA, documents, finance', en: 'Timesheets, documents, finance' },
   },
   {
     id: 'analytics',
@@ -114,6 +122,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: BarChart3,
     permission: 'analytics.view',
     keywords: ['rapports', 'statistiques', 'rentabilité', 'performance'],
+    hint: { fr: 'Business, staffing, finance', en: 'Business, staffing, finance' },
   },
   {
     id: 'portals',
@@ -122,6 +131,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: DoorOpen,
     permission: 'portals.manage',
     keywords: ['portail client', 'portail consultant', 'accès', 'demandes'],
+    hint: { fr: 'Accès clients et consultants', en: 'Client and consultant access' },
   },
 ];
 
@@ -135,6 +145,7 @@ export const SECONDARY_ITEMS: NavItem[] = [
     permission: 'dashboard.view',
     matchAlso: ['/billing', '/onboarding/setup', '/automations'],
     keywords: ['équipe', 'rôles', 'abonnement', 'branding', 'intégrations', 'automatisations'],
+    hint: { fr: 'Équipe, rôles, branding', en: 'Team, roles, branding' },
   },
   {
     id: 'help',
@@ -144,6 +155,7 @@ export const SECONDARY_ITEMS: NavItem[] = [
     permission: 'dashboard.view',
     matchAlso: ['/changelog'],
     keywords: ['support', 'documentation', 'nouveautés'],
+    hint: { fr: 'Guides et nouveautés', en: 'Guides and updates' },
   },
 ];
 
@@ -177,6 +189,11 @@ export const SECTION_TABS: Record<'crm' | 'operations' | 'staffing' | 'talents',
     { href: '/matching', label: { fr: 'Matching', en: 'Matching' }, permission: 'staffing.view', match: ['/matching'] },
   ],
 };
+
+/** Sous-pages d'une destination de la barre latérale (onglets internes), s'il y en a. */
+export function sectionTabsFor(id: string): SectionTab[] {
+  return (SECTION_TABS as Record<string, SectionTab[] | undefined>)[id] ?? [];
+}
 
 export type SettingsSection = SectionTab & { icon: LucideIcon; group: 'org' | 'workspace' | 'account' };
 

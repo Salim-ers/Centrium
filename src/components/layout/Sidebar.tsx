@@ -3,19 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import {
-  Check,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  ChevronsUpDown,
-  Cookie,
-  Languages,
-  LogOut,
-  Settings,
-  ShieldCheck,
-  UserRound,
-} from 'lucide-react';
+import { Check, ChevronLeft, ChevronsUpDown, Cookie, Languages, LogOut, Settings, ShieldCheck, UserRound } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { CentriumLogo, CentriumType } from '@/components/brand/CentriumLogo';
@@ -24,7 +12,7 @@ import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
 import { useIsoLayoutEffect } from '@/hooks/useIsoLayoutEffect';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { NAV_ITEMS, SECONDARY_ITEMS, canSeeNavItem, isNavItemActive, type NavItem } from '@/lib/navigation';
+import { NAV_ITEMS, SECONDARY_ITEMS, activeSectionTab, canSeeNavItem, isNavItemActive, sectionTabsFor, type NavItem } from '@/lib/navigation';
 import { ROLE_LABEL } from '@/lib/auth/permissions';
 import { Tooltip } from '@/components/ui/tooltip';
 import {
@@ -36,9 +24,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-/** Largeurs de la barre : compacte (icônes) et étendue (icônes + titres). */
-export const SIDEBAR_COMPACT = 72;
-export const SIDEBAR_EXPANDED = 228;
+/** Largeurs de la barre : compacte (icônes) et étendue (icônes, titres et descriptions). */
+export const SIDEBAR_COMPACT = 76;
+export const SIDEBAR_EXPANDED = 260;
+
+/** Pastille de l'entrée active : dégradé terracotta, reflet et halo. */
+const ACTIVE_FILL =
+  'bg-[linear-gradient(135deg,#E2876B_0%,#C65F46_46%,#9D4432_100%)] shadow-[0_12px_26px_-12px_rgba(198,95,70,.95),inset_0_1px_0_rgba(255,255,255,.22)]';
 
 function initials(name: string) {
   return (
@@ -51,39 +43,108 @@ function initials(name: string) {
   );
 }
 
-/** Une entrée de la barre : pastille terracotta quand active (glissante dans le dock). */
-function DockLink({ item, active, collapsed, lang, onClick, onPick, dock = false }: { item: NavItem; active: boolean; collapsed: boolean; lang: 'fr' | 'en'; onClick?: () => void; onPick?: (href: string) => void; dock?: boolean }) {
+/**
+ * Une destination : icône, titre et ce qu'elle contient. Active, elle prend
+ * la pastille en dégradé et déroule ses sous-pages.
+ */
+function NavEntry({
+  item,
+  active,
+  collapsed,
+  lang,
+  pathname,
+  dock,
+  compact = false,
+  onClick,
+  onPick,
+}: {
+  item: NavItem;
+  active: boolean;
+  collapsed: boolean;
+  lang: 'fr' | 'en';
+  pathname: string;
+  dock: boolean;
+  /** Bas de barre : une seule ligne, sans description. */
+  compact?: boolean;
+  onClick?: () => void;
+  onPick?: (href: string) => void;
+}) {
+  const { can } = usePermissions();
   const Icon = item.icon;
+  const hint = !compact && item.hint ? item.hint[lang] : null;
+  const tabs = sectionTabsFor(item.id).filter((t) => canSeeNavItem(t, can));
+  const currentTab = active ? activeSectionTab(tabs, pathname) : null;
+  const pick = (href: string) => (e: React.MouseEvent) => {
+    if (!(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)) onPick?.(href);
+    onClick?.();
+  };
+
   const link = (
     <Link
       href={item.href}
-      onClick={(e) => {
-        if (!(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)) onPick?.(item.href);
-        onClick?.();
-      }}
-      aria-current={active ? 'page' : undefined}
+      onClick={pick(item.href)}
+      aria-current={active && !currentTab ? 'page' : active ? 'location' : undefined}
       aria-label={collapsed ? item.label[lang] : undefined}
       data-dock-item
+      data-active={active || undefined}
       className={cn(
-        'group relative z-[1] flex h-10 items-center gap-3 rounded-xl text-[14px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C65F46]/70',
-        collapsed ? 'mx-auto w-10 justify-center' : 'px-3',
-        active
-          ? dock
-            ? 'text-white'
-            : 'bg-[#C65F46] text-white shadow-[0_8px_20px_-10px_rgba(198,95,70,.8)]'
-          : 'text-white/70 hover:bg-white/[0.07] hover:text-white',
+        'group relative z-[1] flex items-center gap-3 rounded-2xl transition-[color,background-color,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E2876B]/80 active:scale-[0.98]',
+        collapsed ? 'mx-auto h-12 w-12 justify-center' : cn('px-3.5', hint ? 'min-h-[54px] py-2' : 'h-11'),
+        active ? cn('text-white', !dock && ACTIVE_FILL) : 'text-white/75 hover:bg-white/[0.07] hover:text-white',
       )}
     >
-      <Icon strokeWidth={1.9} className={cn('h-[19px] w-[19px] shrink-0 transition-colors', active ? 'text-white' : 'text-white/60 group-hover:text-white')} />
-      {!collapsed && <span className="truncate">{item.label[lang]}</span>}
+      <Icon strokeWidth={1.9} className={cn('h-5 w-5 shrink-0 transition-colors', active ? 'text-white' : 'text-white/55 group-hover:text-white')} />
+      {!collapsed && (
+        <span className="min-w-0 flex-1">
+          <span className={cn('block truncate text-[15px] leading-5', active ? 'font-semibold' : 'font-medium')}>{item.label[lang]}</span>
+          {hint && <span className={cn('block truncate text-[12px] leading-4', active ? 'text-white/80' : 'text-white/45 group-hover:text-white/65')}>{hint}</span>}
+        </span>
+      )}
     </Link>
   );
-  return collapsed ? (
-    <Tooltip label={item.label[lang]} side="right">
-      {link}
-    </Tooltip>
-  ) : (
-    link
+
+  return (
+    <div>
+      {collapsed ? (
+        <Tooltip
+          side="right"
+          label={
+            <span className="block">
+              <span className="block font-medium">{item.label[lang]}</span>
+              {item.hint && <span className="block text-[11.5px] opacity-75">{item.hint[lang]}</span>}
+            </span>
+          }
+        >
+          {link}
+        </Tooltip>
+      ) : (
+        link
+      )}
+      {/* Sous-pages de la destination active : chacune explicite, accessible en un clic. */}
+      {active && !collapsed && tabs.length > 1 && (
+        <ul className="ml-[26px] mt-1 space-y-0.5 border-l border-white/[0.12] py-0.5 pl-3 animate-in fade-in slide-in-from-top-1 duration-200">
+          {tabs.map((tab) => {
+            const on = currentTab?.href === tab.href;
+            return (
+              <li key={tab.href}>
+                <Link
+                  href={tab.href}
+                  onClick={pick(tab.href)}
+                  aria-current={on ? 'page' : undefined}
+                  className={cn(
+                    'flex h-9 items-center gap-2.5 rounded-xl px-3 text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E2876B]/80',
+                    on ? 'bg-white/[0.08] font-semibold text-white' : 'text-white/60 hover:bg-white/[0.06] hover:text-white',
+                  )}
+                >
+                  <span aria-hidden className={cn('h-1.5 w-1.5 shrink-0 rounded-full', on ? 'bg-[#E2876B]' : 'bg-white/25')} />
+                  {tab.label[lang]}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -120,9 +181,9 @@ function ProfileMenu({ collapsed }: { collapsed: boolean }) {
 
   const avatar = logo ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={logo} alt="" className="h-9 w-9 shrink-0 rounded-xl bg-white object-contain p-0.5" />
+    <img src={logo} alt="" className="h-10 w-10 shrink-0 rounded-xl bg-white object-contain p-0.5" />
   ) : (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#C65F46]/20 text-[12px] font-semibold text-[#F1C7BA]">{initials(orgName)}</span>
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#C65F46]/20 text-[13px] font-semibold text-[#F1C7BA]">{initials(orgName)}</span>
   );
 
   return (
@@ -132,7 +193,7 @@ function ProfileMenu({ collapsed }: { collapsed: boolean }) {
           type="button"
           aria-label={fr ? 'Organisation et compte' : 'Organisation and account'}
           className={cn(
-            'flex w-full items-center gap-2.5 rounded-xl p-1.5 text-left transition-colors hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C65F46]/70',
+            'flex w-full items-center gap-3 rounded-2xl p-1.5 text-left transition-colors hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E2876B]/80',
             collapsed && 'justify-center',
           )}
         >
@@ -140,10 +201,10 @@ function ProfileMenu({ collapsed }: { collapsed: boolean }) {
           {!collapsed && (
             <>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-semibold text-white">{fullName || orgName}</span>
-                <span className="block truncate text-[11.5px] text-white/55">{[orgName, roleLabel].filter(Boolean).join(' · ')}</span>
+                <span className="block truncate text-[14px] font-semibold text-white">{fullName || orgName}</span>
+                <span className="block truncate text-[12px] text-white/55">{[orgName, roleLabel].filter(Boolean).join(' · ')}</span>
               </span>
-              <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-white/45" />
+              <ChevronsUpDown className="h-4 w-4 shrink-0 text-white/45" />
             </>
           )}
         </button>
@@ -213,15 +274,13 @@ type Marker = { top: number; left: number; width: number; height: number };
  * Contenu de la barre (dock sombre). Réutilisé par la barre desktop et le
  * tiroir mobile (`onItemClick` ferme le tiroir après navigation).
  *
- * `dock` (barre desktop) : la pastille terracotta du menu actif et
- * l'encoche du bord droit sont un seul indicateur, mesuré sur l'entrée
- * active et animé d'une entrée à l'autre (y compris Paramètres et Aide).
+ * `dock` (barre desktop) : la pastille en dégradé est un seul indicateur,
+ * mesuré sur l'entrée active et animé d'une entrée à l'autre, dès le clic.
  */
-export function SidebarBody({ collapsed = false, onItemClick, dock = false, onToggle }: { collapsed?: boolean; onItemClick?: () => void; dock?: boolean; onToggle?: () => void }) {
+export function SidebarBody({ collapsed = false, onItemClick, dock = false }: { collapsed?: boolean; onItemClick?: () => void; dock?: boolean }) {
   const pathname = usePathname() ?? '';
   const { locale } = useLocale();
   const lang = locale === 'en' ? 'en' : 'fr';
-  const fr = lang === 'fr';
   const { can } = usePermissions();
   const items = NAV_ITEMS.filter((i) => canSeeNavItem(i, can));
   const rootRef = useRef<HTMLDivElement>(null);
@@ -238,12 +297,16 @@ export function SidebarBody({ collapsed = false, onItemClick, dock = false, onTo
     const t = window.setTimeout(() => setPicked(null), 4000);
     return () => window.clearTimeout(t);
   }, [picked]);
-  const isActive = (item: NavItem) => (picked ? item.href === picked : isNavItemActive(item, pathname));
+  // Une sous-page cliquée garde sa destination active.
+  const isActive = (item: NavItem) => {
+    if (!picked) return isNavItemActive(item, pathname);
+    return item.href === picked || sectionTabsFor(item.id).some((t) => t.href === picked);
+  };
 
   const measure = useCallback(() => {
     const root = rootRef.current;
     if (!dock || !root) return;
-    const el = root.querySelector<HTMLElement>('a[data-dock-item][aria-current="page"]');
+    const el = root.querySelector<HTMLElement>('a[data-dock-item][data-active]');
     if (!el) {
       setMarker(null);
       return;
@@ -268,6 +331,7 @@ export function SidebarBody({ collapsed = false, onItemClick, dock = false, onTo
     if (!dock) return;
     const root = rootRef.current;
     const nav = navRef.current;
+    // La largeur change pendant le repli : l'observateur suit l'entrée active jusqu'au bout.
     const observer = new ResizeObserver(() => measure());
     if (root) observer.observe(root);
     nav?.addEventListener('scroll', measure, { passive: true });
@@ -280,76 +344,41 @@ export function SidebarBody({ collapsed = false, onItemClick, dock = false, onTo
   }, [dock, measure]);
 
   const motion = animate ? 'transition-[transform,width,height,opacity] duration-[420ms] ease-[cubic-bezier(.22,1,.36,1)] motion-reduce:transition-none' : '';
-  const toggleLabel = collapsed ? (fr ? 'Afficher les titres' : 'Show labels') : fr ? 'Réduire la barre' : 'Collapse sidebar';
-  const toggle = onToggle ? (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-label={toggleLabel}
-      aria-expanded={!collapsed}
-      className={cn(
-        'relative z-[1] flex h-9 items-center gap-3 rounded-xl text-[13px] text-white/50 transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C65F46]/70',
-        collapsed ? 'mx-auto w-10 justify-center' : 'w-full px-3',
-      )}
-    >
-      {collapsed ? <ChevronsRight className="h-4 w-4 shrink-0" /> : <ChevronsLeft className="h-4 w-4 shrink-0" />}
-      {!collapsed && <span>{toggleLabel}</span>}
-    </button>
-  ) : null;
 
   return (
     <div ref={rootRef} className="relative flex h-full flex-col bg-app-dock text-white">
       {dock && marker && (
-        <>
-          {/* Pastille de l'entrée active. */}
-          <span
-            aria-hidden
-            className={cn('pointer-events-none absolute left-0 top-0 z-0 rounded-xl bg-[#C65F46] shadow-[0_8px_20px_-10px_rgba(198,95,70,.8)]', motion)}
-            style={{ transform: `translate3d(${marker.left}px, ${marker.top}px, 0)`, width: marker.width, height: marker.height }}
-          />
-          {/* Encoche du bord droit, à hauteur de l'entrée active. */}
-          <span
-            aria-hidden
-            className={cn('pointer-events-none absolute left-full top-0 z-10 flex w-3.5 flex-col', motion)}
-            style={{ transform: `translate3d(0, ${marker.top + marker.height / 2 - 34}px, 0)` }}
-          >
-            <span className="block h-3 w-3 bg-[radial-gradient(circle_at_100%_0,transparent_11.5px,#1B1817_12px)]" />
-            <span className="flex h-11 w-3.5 items-center justify-center rounded-r-[10px] bg-app-dock">
-              <ChevronRight className="h-3 w-3 text-[#E8876E]" strokeWidth={3} />
-            </span>
-            <span className="block h-3 w-3 bg-[radial-gradient(circle_at_100%_100%,transparent_11.5px,#1B1817_12px)]" />
-          </span>
-        </>
+        <span
+          aria-hidden
+          className={cn('pointer-events-none absolute left-0 top-0 z-0 rounded-2xl', ACTIVE_FILL, motion)}
+          style={{ transform: `translate3d(${marker.left}px, ${marker.top}px, 0)`, width: marker.width, height: marker.height }}
+        />
       )}
       <Link
         href="/dashboard"
         onClick={onItemClick}
         aria-label={lang === 'fr' ? 'Centrium, tableau de bord' : 'Centrium, dashboard'}
-        className={cn('flex h-16 shrink-0 items-center gap-2.5 text-[#D9785F]', collapsed ? 'justify-center' : 'px-5')}
+        className={cn('flex h-16 shrink-0 items-center gap-3 text-[#E2876B]', collapsed ? 'justify-center' : 'px-5')}
       >
-        <CentriumLogo className="h-8 w-8 shrink-0" color="currentColor" />
-        {!collapsed && <CentriumType className="h-[12px] text-white" />}
+        <CentriumLogo className="h-9 w-9 shrink-0" color="currentColor" />
+        {!collapsed && <CentriumType className="h-[13px] text-white" />}
       </Link>
 
-      <nav ref={navRef} aria-label={lang === 'fr' ? 'Navigation principale' : 'Main navigation'} className={cn('no-scrollbar flex-1 space-y-1 overflow-y-auto pb-3 pt-2', collapsed ? 'px-2' : 'px-3')}>
+      <nav
+        ref={navRef}
+        aria-label={lang === 'fr' ? 'Navigation principale' : 'Main navigation'}
+        className={cn('no-scrollbar flex-1 space-y-1 overflow-y-auto pb-3 pt-3', collapsed ? 'px-2' : 'px-3')}
+      >
         {items.map((item) => (
-          <DockLink key={item.id} item={item} active={isActive(item)} collapsed={collapsed} lang={lang} onClick={onItemClick} onPick={setPicked} dock={dock} />
+          <NavEntry key={item.id} item={item} active={isActive(item)} collapsed={collapsed} lang={lang} pathname={pathname} dock={dock} onClick={onItemClick} onPick={setPicked} />
         ))}
       </nav>
 
-      <div className={cn('shrink-0 space-y-1 border-t border-white/[0.07] pb-3 pt-3', collapsed ? 'px-2' : 'px-3')}>
+      <div className={cn('shrink-0 space-y-1 border-t border-white/[0.08] pb-3 pt-3', collapsed ? 'px-2' : 'px-3')}>
         {SECONDARY_ITEMS.map((item) => (
-          <DockLink key={item.id} item={item} active={isActive(item)} collapsed={collapsed} lang={lang} onClick={onItemClick} onPick={setPicked} dock={dock} />
+          <NavEntry key={item.id} item={item} active={isActive(item)} collapsed={collapsed} lang={lang} pathname={pathname} dock={dock} compact onClick={onItemClick} onPick={setPicked} />
         ))}
-        {toggle &&
-          (collapsed ? (
-            <Tooltip label={toggleLabel} side="right">
-              {toggle}
-            </Tooltip>
-          ) : (
-            toggle
-          ))}
-        <div className="pt-1.5">
+        <div className="pt-2">
           <ProfileMenu collapsed={collapsed} />
         </div>
       </div>
@@ -359,19 +388,32 @@ export function SidebarBody({ collapsed = false, onItemClick, dock = false, onTo
 
 /**
  * Barre latérale desktop : dock sombre fixe, compacte ou étendue (choix
- * mémorisé). L'encoche du bord droit suit l'entrée active ; la bascule
- * compacte / étendue est en bas de la barre.
+ * mémorisé). La flèche du bord droit replie ou déplie la barre (touche [).
  */
 export function Sidebar() {
   const [collapsed, setCollapsed] = useSidebarCollapsed();
+  const { locale } = useLocale();
+  const fr = locale !== 'en';
+  const label = collapsed ? (fr ? 'Déplier la barre' : 'Expand sidebar') : fr ? 'Replier la barre' : 'Collapse sidebar';
 
   return (
     <aside
       data-app-sidebar
       style={{ width: collapsed ? SIDEBAR_COMPACT : SIDEBAR_EXPANDED }}
-      className="no-print relative z-30 hidden h-dvh shrink-0 transition-[width] duration-[240ms] ease-out-soft lg:block"
+      className="no-print relative z-30 hidden h-dvh shrink-0 transition-[width] duration-[260ms] ease-out-soft lg:block"
     >
-      <SidebarBody collapsed={collapsed} dock onToggle={() => setCollapsed(!collapsed)} />
+      <SidebarBody collapsed={collapsed} dock />
+      <Tooltip side="right" label={<span>{label} <kbd className="ml-1 rounded border border-current/30 px-1 font-sans text-[11px]">[</kbd></span>}>
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          aria-label={label}
+          aria-expanded={!collapsed}
+          className="absolute -right-3.5 top-[18px] z-40 grid h-7 w-7 place-items-center rounded-full border border-black/10 bg-white text-[#9D4432] shadow-[0_6px_16px_-6px_rgba(0,0,0,.5)] transition-[transform,color] duration-200 hover:scale-110 hover:text-[#C65F46] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C65F46]/70 active:scale-95"
+        >
+          <ChevronLeft className={cn('h-4 w-4 transition-transform duration-300', collapsed && 'rotate-180')} strokeWidth={2.6} />
+        </button>
+      </Tooltip>
     </aside>
   );
 }
