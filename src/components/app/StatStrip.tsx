@@ -21,11 +21,13 @@ export type StatItem = {
  * même famille de couleurs que le tableau de bord, sans manger la hauteur
  * du tableau ou du kanban qui suit.
  */
-export function StatStrip({ items, className }: { items: StatItem[]; className?: string }) {
+export function StatStrip({ items, className, scrollOnMobile = false }: { items: StatItem[]; className?: string; scrollOnMobile?: boolean }) {
   return (
     <div
       className={cn(
         'grid shrink-0 grid-cols-2 gap-2.5',
+        // Mobile : une seule rangée qui défile au doigt (au lieu de trois rangées).
+        scrollOnMobile && 'no-scrollbar -mx-4 flex snap-x snap-mandatory overflow-x-auto scroll-px-4 px-4 sm:mx-0 sm:grid sm:overflow-visible sm:px-0',
         items.length >= 5
           ? 'sm:grid-cols-3 lg:grid-cols-5'
           : items.length === 4
@@ -53,7 +55,12 @@ export function StatStrip({ items, className }: { items: StatItem[]; className?:
             </span>
           </>
         );
-        const cls = cn('flex min-w-0 items-center gap-3 rounded-2xl px-3.5 py-2.5', t.tile, it.href && 'transition-transform duration-200 hover:-translate-y-0.5');
+        const cls = cn(
+          'flex min-w-0 items-center gap-3 rounded-2xl px-3.5 py-2.5',
+          scrollOnMobile && 'w-[46%] shrink-0 snap-start sm:w-auto',
+          t.tile,
+          it.href && 'transition-transform duration-200 hover:-translate-y-0.5',
+        );
         return it.href ? (
           <Link key={it.label} href={it.href} title={it.title} className={cls}>
             {body}

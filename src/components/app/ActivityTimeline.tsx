@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRightLeft, FilePlus2, PencilLine, UserPlus, Activity as ActivityIcon, CheckCircle2 } from 'lucide-react';
+import { ArrowRightLeft, BellRing, FilePlus2, PencilLine, UserPlus, Activity as ActivityIcon, CheckCheck, CheckCircle2 } from 'lucide-react';
 import { Timeline, type TimelineItem } from '@/components/ui/timeline';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
@@ -11,18 +11,41 @@ import { stageLabel } from '@/lib/crm/pipeline';
 import { formatDate } from '@/lib/format';
 import type { OpportunityStatus } from '@/types';
 
+/** Champs modifiés par une édition rapide, en clair. */
+const FIELD_LABEL: Record<string, { fr: string; en: string }> = {
+  expected_revenue: { fr: 'montant', en: 'amount' },
+  probability: { fr: 'chances de gagner', en: 'chance of winning' },
+  daily_rate_eur: { fr: 'TJM', en: 'day rate' },
+  budget_eur: { fr: 'budget', en: 'budget' },
+  owner_id: { fr: 'responsable', en: 'owner' },
+  priority: { fr: 'priorité', en: 'priority' },
+  expected_close: { fr: 'clôture prévue', en: 'expected close' },
+  start_date: { fr: 'démarrage', en: 'start' },
+  duration_months: { fr: 'durée', en: 'duration' },
+  next_action: { fr: 'prochaine action', en: 'next step' },
+  next_follow_up: { fr: 'date de relance', en: 'follow-up date' },
+};
+
 function describe(a: Activity, lang: 'fr' | 'en'): Pick<TimelineItem, 'title' | 'description' | 'icon' | 'tone'> {
   const fr = lang === 'fr';
   const d = (a.details ?? a.metadata ?? {}) as Record<string, unknown>;
   switch (a.action) {
     case 'created':
       return { title: fr ? 'Création' : 'Created', icon: FilePlus2, tone: 'brand' };
-    case 'updated':
-      return { title: fr ? 'Mise à jour' : 'Updated', icon: PencilLine };
+    case 'updated': {
+      const fields = Array.isArray(d.fields) ? (d.fields as string[]).map((f) => FIELD_LABEL[f]?.[lang]).filter(Boolean) : [];
+      return { title: fr ? 'Mise à jour' : 'Updated', description: fields.length ? fields.join(', ') : undefined, icon: PencilLine };
+    }
+    case 'follow_up_planned':
+      return { title: fr ? 'Relance planifiée' : 'Follow-up planned', icon: BellRing, tone: 'brand' };
+    case 'follow_up_done':
+      return { title: fr ? 'Relance faite' : 'Follow-up done', description: typeof d.action === 'string' ? d.action : undefined, icon: CheckCheck, tone: 'success' };
     case 'stage_changed':
       return {
         title: fr ? "Changement d'étape" : 'Stage changed',
-        description: `${stageLabel(d.from as OpportunityStatus, lang)} → ${stageLabel(d.to as OpportunityStatus, lang)}`,
+        description: [`${stageLabel(d.from as OpportunityStatus, lang)} → ${stageLabel(d.to as OpportunityStatus, lang)}`, typeof d.lost_reason === 'string' ? d.lost_reason : null]
+          .filter(Boolean)
+          .join(' — '),
         icon: ArrowRightLeft,
         tone: d.to === 'won' ? 'success' : d.to === 'lost' ? 'danger' : 'brand',
       };
