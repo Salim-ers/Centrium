@@ -2,9 +2,10 @@
 
 import type { CSSProperties, ReactNode } from 'react';
 
-import type { CVContent } from '@/types';
+import type { CVContent, CVSectionId } from '@/types';
 import type { CVBrand } from '@/lib/cv/branding';
 import type { DossierTemplateId } from '@/lib/cv/templates';
+import { certificationLine, sectionOrder, sectionTitle, visibleCategories } from '@/lib/cv/layout';
 import { cn } from '@/lib/utils';
 import { Editable } from './Editable';
 import { EditableDate } from './EditableDate';
@@ -13,6 +14,8 @@ import { EditableDate } from './EditableDate';
 // Dossier de compétences — quatre mises en page neutres (Minimal,
 // Consulting, Executive, Compact). Même contenu, mêmes chemins d'édition ;
 // seule l'identité de l'organisation (logo, couleurs, mentions) varie.
+// Les sections suivent l'ordre et les titres de la mise en page
+// (`content.layout`) ; les titres se retouchent sur place (`title.<id>`).
 // =========================================================================
 
 type Props = {
@@ -41,6 +44,11 @@ export function tint(hex: string, alpha: number): string {
 
 function E({ ctx, ...p }: { ctx: Ctx; path: string; value: string; placeholder?: string; multiline?: boolean; className?: string; as?: 'span' | 'div' | 'p' | 'h1' | 'h2' | 'h3'; style?: CSSProperties }) {
   return <Editable {...p} editable={ctx.editable} onEdit={ctx.onEdit} />;
+}
+
+/** Titre de section modifiable sur place. */
+function T({ ctx, c, id, fallback }: { ctx: Ctx; c: CVContent; id: CVSectionId; fallback: string }) {
+  return <E ctx={ctx} path={`title.${id}`} value={sectionTitle(c, id, fallback)} placeholder={fallback} />;
 }
 
 /** Logo de l'organisation, ou son nom en toutes lettres. Jamais un autre logo. */
@@ -167,6 +175,20 @@ function Educations({ c, ctx, stacked = false, yearClass }: { c: CVContent; ctx:
   );
 }
 
+/** Certifications : telles que saisies sur le profil (jamais complétées). */
+function Certifications({ c, className, marker }: { c: CVContent; className?: string; marker?: ReactNode }) {
+  return (
+    <ul className={cn('space-y-1', className)}>
+      {(c.certifications ?? []).map((cert, i) => (
+        <li key={`${cert.name}-${i}`} className="flex gap-2">
+          {marker}
+          <span className="min-w-0 flex-1">{certificationLine(cert)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Confidential({ show, className }: { show: boolean; className?: string }) {
   if (!show) return null;
   return <span className={cn('text-[8.5px] uppercase tracking-[0.2em] text-neutral-400', className)}>Document confidentiel</span>;
@@ -180,6 +202,22 @@ function Footer({ b, show, className }: { b: CVBrand; show: boolean; className?:
     </footer>
   );
 }
+
+/** Sections présentes (données ou édition) dans l'ordre de la mise en page. */
+function present(c: CVContent, editable: boolean, ids: CVSectionId[]): CVSectionId[] {
+  const has: Record<CVSectionId, boolean> = {
+    // Section masquée : déjà retirée de l'ordre ; vide mais visible : éditable.
+    summary: !!c.summary || editable,
+    skills: visibleCategories(c).length > 0,
+    experiences: c.experiences.length > 0,
+    educations: c.educations.length > 0,
+    certifications: (c.certifications ?? []).length > 0,
+    languages: c.languages.length > 0,
+  };
+  return sectionOrder(c).filter((id) => ids.includes(id) && has[id]);
+}
+
+const ALL: CVSectionId[] = ['summary', 'skills', 'experiences', 'educations', 'certifications', 'languages'];
 
 export function DossierDocument({ content: c, template, brand: b, showConfidential = true, editable = false, onEdit, qrSrc }: Props) {
   const ctx: Ctx = { editable, onEdit };
@@ -197,12 +235,82 @@ type VariantProps = { c: CVContent; b: CVBrand; ctx: Ctx; showConfidential: bool
 // ── 01 Minimal ─────────────────────────────────────────────────────────────
 
 function Minimal({ c, b, ctx, showConfidential, qrSrc, page, pageStyle }: VariantProps) {
-  const Title = ({ children }: { children: ReactNode }) => (
+  const Title = ({ id, fallback }: { id: CVSectionId; fallback: string }) => (
     <h2 className="mb-3 flex items-center gap-2.5 text-[9.5px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
       <span className="h-px w-4" style={{ background: b.accent }} />
-      {children}
+      <T ctx={ctx} c={c} id={id} fallback={fallback} />
     </h2>
   );
+  const sections: Record<CVSectionId, () => ReactNode> = {
+    summary: () => (
+      <section key="summary" className="mt-9">
+        <Title id="summary" fallback="Profil" />
+        <E ctx={ctx} as="p" path="summary" value={c.summary} placeholder="Résumé du profil…" multiline className="block whitespace-pre-wrap text-[11.5px] leading-[1.7] text-neutral-800" />
+      </section>
+    ),
+    skills: () => (
+      <section key="skills" className="mt-8">
+        <Title id="skills" fallback="Compétences" />
+        <div className="space-y-1.5 text-[11px]">
+          {visibleCategories(c).map(({ cat, index: ci, items }) => (
+            <div key={ci} className="flex gap-4">
+              <E ctx={ctx} path={`skill.${ci}.name`} value={cat.name} placeholder="Catégorie" className="w-32 shrink-0 pt-px text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-500" />
+              <span className="min-w-0 flex-1 leading-[1.6] text-neutral-800">
+                {items.map(({ item, index }, k) => (
+                  <span key={index}>
+                    <E ctx={ctx} path={`skill.${ci}.item.${index}`} value={item} placeholder="—" className={cn(cat.highlighted?.includes(item) && 'font-semibold')} />
+                    {k < items.length - 1 && <span className="mx-1.5 text-neutral-300">·</span>}
+                  </span>
+                ))}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+    ),
+    experiences: () => (
+      <section key="experiences" className="cv-section mt-8">
+        <Title id="experiences" fallback="Expériences" />
+        <div className="space-y-6">
+          {c.experiences.map((x) => (
+            <article key={x.id} className="cv-article">
+              <div className="flex items-baseline justify-between gap-4">
+                <h3 className="min-w-0 flex-1 text-[12.5px]">
+                  <E ctx={ctx} path={`experience.${x.id}.role`} value={x.role} placeholder="Rôle" className="font-semibold" />
+                  <span className="text-neutral-400"> · </span>
+                  <E ctx={ctx} path={`experience.${x.id}.client_name`} value={x.client_name} placeholder="Client" style={{ color: b.primary }} className="font-medium" />
+                </h3>
+                <Dates ctx={ctx} id={x.id} start={x.start_date} end={x.end_date} className="text-[9.5px] uppercase tracking-[0.1em] text-neutral-500" />
+              </div>
+              {(x.context || ctx.editable) && (
+                <E ctx={ctx} as="p" path={`experience.${x.id}.context`} value={x.context ?? ''} placeholder="Contexte de la mission…" multiline className="mt-1 block whitespace-pre-wrap text-[10.5px] leading-[1.6] text-neutral-500" />
+              )}
+              <Tasks ctx={ctx} id={x.id} tasks={x.tasks} className="mt-2 text-[10.8px] leading-[1.55] text-neutral-800" bullet={<span className="shrink-0" style={{ color: b.accent }}>–</span>} />
+              <Environment ctx={ctx} id={x.id} env={x.environment} className="mt-2 text-[9.5px] text-neutral-500" />
+            </article>
+          ))}
+        </div>
+      </section>
+    ),
+    educations: () => (
+      <section key="educations" className="mt-8 text-[11px] text-neutral-800">
+        <Title id="educations" fallback="Formation" />
+        <Educations c={c} ctx={ctx} yearClass="text-neutral-400" />
+      </section>
+    ),
+    certifications: () => (
+      <section key="certifications" className="mt-8 text-[11px] text-neutral-800">
+        <Title id="certifications" fallback="Certifications" />
+        <Certifications c={c} marker={<span className="shrink-0" style={{ color: b.accent }}>–</span>} />
+      </section>
+    ),
+    languages: () => (
+      <section key="languages" className="mt-8 text-[11px] text-neutral-800">
+        <Title id="languages" fallback="Langues" />
+        <Languages c={c} ctx={ctx} />
+      </section>
+    ),
+  };
   return (
     <div className={cn(page, 'flex flex-col px-[18mm] py-[15mm]')} style={pageStyle}>
       <header className="flex items-start justify-between gap-6">
@@ -226,72 +334,10 @@ function Minimal({ c, b, ctx, showConfidential, qrSrc, page, pageStyle }: Varian
               <E ctx={ctx} path={i.path} value={i.value} placeholder={i.placeholder} className="font-medium" />
             </span>
           ))}
-          {c.languages.length > 0 && (
-            <span>
-              <span className="mr-1.5 text-[8.5px] uppercase tracking-[0.14em] text-neutral-400">Langues</span>
-              <Languages c={c} ctx={ctx} />
-            </span>
-          )}
         </div>
       </section>
 
-      <section className="mt-9">
-        <Title>Profil</Title>
-        <E ctx={ctx} as="p" path="summary" value={c.summary} placeholder="Résumé du profil…" multiline className="block whitespace-pre-wrap text-[11.5px] leading-[1.7] text-neutral-800" />
-      </section>
-
-      {c.skillCategories.length > 0 && (
-        <section className="mt-8">
-          <Title>Compétences</Title>
-          <div className="space-y-1.5 text-[11px]">
-            {c.skillCategories.map((cat, ci) => (
-              <div key={ci} className="flex gap-4">
-                <E ctx={ctx} path={`skill.${ci}.name`} value={cat.name} placeholder="Catégorie" className="w-32 shrink-0 pt-px text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-500" />
-                <span className="min-w-0 flex-1 leading-[1.6] text-neutral-800">
-                  {cat.items.map((it, i) => (
-                    <span key={i}>
-                      <E ctx={ctx} path={`skill.${ci}.item.${i}`} value={it} placeholder="—" />
-                      {i < cat.items.length - 1 && <span className="mx-1.5 text-neutral-300">·</span>}
-                    </span>
-                  ))}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {c.experiences.length > 0 && (
-        <section className="cv-section mt-8">
-          <Title>Expériences</Title>
-          <div className="space-y-6">
-            {c.experiences.map((x) => (
-              <article key={x.id} className="cv-article">
-                <div className="flex items-baseline justify-between gap-4">
-                  <h3 className="min-w-0 flex-1 text-[12.5px]">
-                    <E ctx={ctx} path={`experience.${x.id}.role`} value={x.role} placeholder="Rôle" className="font-semibold" />
-                    <span className="text-neutral-400"> · </span>
-                    <E ctx={ctx} path={`experience.${x.id}.client_name`} value={x.client_name} placeholder="Client" style={{ color: b.primary }} className="font-medium" />
-                  </h3>
-                  <Dates ctx={ctx} id={x.id} start={x.start_date} end={x.end_date} className="text-[9.5px] uppercase tracking-[0.1em] text-neutral-500" />
-                </div>
-                {(x.context || ctx.editable) && (
-                  <E ctx={ctx} as="p" path={`experience.${x.id}.context`} value={x.context ?? ''} placeholder="Contexte de la mission…" multiline className="mt-1 block whitespace-pre-wrap text-[10.5px] leading-[1.6] text-neutral-500" />
-                )}
-                <Tasks ctx={ctx} id={x.id} tasks={x.tasks} className="mt-2 text-[10.8px] leading-[1.55] text-neutral-800" bullet={<span className="shrink-0" style={{ color: b.accent }}>–</span>} />
-                <Environment ctx={ctx} id={x.id} env={x.environment} className="mt-2 text-[9.5px] text-neutral-500" />
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {c.educations.length > 0 && (
-        <section className="mt-8 text-[11px] text-neutral-800">
-          <Title>Formation</Title>
-          <Educations c={c} ctx={ctx} yearClass="text-neutral-400" />
-        </section>
-      )}
+      {present(c, ctx.editable, ALL).map((id) => sections[id]())}
 
       <Footer b={b} show={showConfidential} className="mt-auto pt-3" />
     </div>
@@ -300,17 +346,109 @@ function Minimal({ c, b, ctx, showConfidential, qrSrc, page, pageStyle }: Varian
 
 // ── 02 Consulting ──────────────────────────────────────────────────────────
 
+const ASIDE: CVSectionId[] = ['skills', 'educations', 'certifications', 'languages'];
+const MAIN: CVSectionId[] = ['summary', 'experiences'];
+
 function Consulting({ c, b, ctx, showConfidential, qrSrc, page, pageStyle }: VariantProps) {
-  const AsideTitle = ({ children }: { children: ReactNode }) => (
+  const AsideTitle = ({ id, fallback }: { id: CVSectionId; fallback: string }) => (
     <h2 className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em]" style={{ color: b.primary }}>
-      {children}
+      <T ctx={ctx} c={c} id={id} fallback={fallback} />
     </h2>
   );
-  const Title = ({ children }: { children: ReactNode }) => (
+  const Title = ({ id, fallback }: { id: CVSectionId; fallback: string }) => (
     <h2 className="mb-3 border-b border-neutral-200 pb-1.5 text-[10.5px] font-bold uppercase tracking-[0.16em]" style={{ color: b.primary }}>
-      {children}
+      <T ctx={ctx} c={c} id={id} fallback={fallback} />
     </h2>
   );
+  const aside: Partial<Record<CVSectionId, () => ReactNode>> = {
+    languages: () => (
+      <div key="languages" className="text-[10.5px]">
+        <AsideTitle id="languages" fallback="Langues" />
+        <div className="flex flex-col gap-0.5">
+          {c.languages.map((l, i) => (
+            <span key={i} className="flex justify-between gap-2">
+              <E ctx={ctx} path={`language.${i}.code`} value={l.code.toUpperCase()} placeholder="FR" className="font-semibold" />
+              <E ctx={ctx} path={`language.${i}.level`} value={l.level} placeholder="Niveau" className="text-neutral-600" />
+            </span>
+          ))}
+        </div>
+      </div>
+    ),
+    skills: () => (
+      <div key="skills" className="space-y-3">
+        <AsideTitle id="skills" fallback="Compétences" />
+        {visibleCategories(c).map(({ cat, index: ci, items }) => (
+          <div key={ci}>
+            <E ctx={ctx} as="p" path={`skill.${ci}.name`} value={cat.name} placeholder="Catégorie" className="mb-1 block text-[9.5px] font-semibold text-neutral-700" />
+            <div className="flex flex-wrap gap-1">
+              {items.map(({ item, index }) => {
+                const hi = cat.highlighted?.includes(item);
+                return (
+                  <span
+                    key={index}
+                    className={cn('rounded-[4px] px-1.5 py-[2px] text-[9.5px]', hi ? 'font-semibold text-white' : 'bg-white')}
+                    style={hi ? { background: b.primary } : { boxShadow: `inset 0 0 0 1px ${tint(b.accent, 0.35)}` }}
+                  >
+                    <E ctx={ctx} path={`skill.${ci}.item.${index}`} value={item} placeholder="—" />
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    ),
+    educations: () => (
+      <div key="educations" className="text-[10px]">
+        <AsideTitle id="educations" fallback="Formation" />
+        <Educations c={c} ctx={ctx} stacked yearClass="text-neutral-500" />
+      </div>
+    ),
+    certifications: () => (
+      <div key="certifications" className="text-[10px]">
+        <AsideTitle id="certifications" fallback="Certifications" />
+        <Certifications c={c} className="space-y-1.5 leading-snug" />
+      </div>
+    ),
+  };
+  const main: Partial<Record<CVSectionId, (first: boolean) => ReactNode>> = {
+    summary: (first) => (
+      <section key="summary" className={first ? 'mt-4' : 'mt-7'}>
+        <Title id="summary" fallback="Profil" />
+        <E ctx={ctx} as="p" path="summary" value={c.summary} placeholder="Résumé du profil…" multiline className="block whitespace-pre-wrap text-[11px] leading-[1.65] text-neutral-800" />
+      </section>
+    ),
+    experiences: (first) => (
+      <section key="experiences" className={cn('cv-section', first ? 'mt-4' : 'mt-7')}>
+        <Title id="experiences" fallback="Expériences" />
+        <div className="space-y-5">
+          {c.experiences.map((x) => (
+            <article key={x.id} className="cv-article">
+              <div className="flex items-baseline justify-between gap-3">
+                <h3 className="min-w-0 flex-1 text-[12px]">
+                  <E ctx={ctx} path={`experience.${x.id}.client_name`} value={x.client_name} placeholder="Client" className="font-bold" />
+                  <span className="text-neutral-400"> — </span>
+                  <E ctx={ctx} path={`experience.${x.id}.role`} value={x.role} placeholder="Rôle" className="text-neutral-700" />
+                </h3>
+                <Dates ctx={ctx} id={x.id} start={x.start_date} end={x.end_date} className="text-[9px] font-semibold uppercase tracking-[0.08em] text-neutral-500" />
+              </div>
+              {(x.context || ctx.editable) && (
+                <E ctx={ctx} as="p" path={`experience.${x.id}.context`} value={x.context ?? ''} placeholder="Contexte de la mission…" multiline className="mt-1 block whitespace-pre-wrap text-[10.3px] italic leading-[1.55] text-neutral-600" />
+              )}
+              <Tasks
+                ctx={ctx}
+                id={x.id}
+                tasks={x.tasks}
+                className="mt-1.5 text-[10.5px] leading-[1.55] text-neutral-800"
+                bullet={<span className="mt-[6px] h-[4px] w-[4px] shrink-0 rounded-full" style={{ background: b.accent }} />}
+              />
+              <Environment ctx={ctx} id={x.id} env={x.environment} label={false} className="mt-2 text-[9px] text-neutral-600" chip={{ background: tint(b.primary, 0.07) }} />
+            </article>
+          ))}
+        </div>
+      </section>
+    ),
+  };
   return (
     <div className={cn(page, 'flex')} style={pageStyle}>
       <aside className="w-[34%] shrink-0 space-y-6 px-[8mm] py-[13mm]" style={{ background: tint(b.primary, 0.055) }}>
@@ -333,82 +471,14 @@ function Consulting({ c, b, ctx, showConfidential, qrSrc, page, pageStyle }: Var
             </div>
           ))}
         </div>
-        {c.languages.length > 0 && (
-          <div className="text-[10.5px]">
-            <AsideTitle>Langues</AsideTitle>
-            <div className="flex flex-col gap-0.5">
-              {c.languages.map((l, i) => (
-                <span key={i} className="flex justify-between gap-2">
-                  <E ctx={ctx} path={`language.${i}.code`} value={l.code.toUpperCase()} placeholder="FR" className="font-semibold" />
-                  <E ctx={ctx} path={`language.${i}.level`} value={l.level} placeholder="Niveau" className="text-neutral-600" />
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-        {c.skillCategories.length > 0 && (
-          <div className="space-y-3">
-            <AsideTitle>Compétences</AsideTitle>
-            {c.skillCategories.map((cat, ci) => (
-              <div key={ci}>
-                <E ctx={ctx} as="p" path={`skill.${ci}.name`} value={cat.name} placeholder="Catégorie" className="mb-1 block text-[9.5px] font-semibold text-neutral-700" />
-                <div className="flex flex-wrap gap-1">
-                  {cat.items.map((it, i) => (
-                    <span key={i} className="rounded-[4px] bg-white px-1.5 py-[2px] text-[9.5px]" style={{ boxShadow: `inset 0 0 0 1px ${tint(b.accent, 0.35)}` }}>
-                      <E ctx={ctx} path={`skill.${ci}.item.${i}`} value={it} placeholder="—" />
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        {c.educations.length > 0 && (
-          <div className="text-[10px]">
-            <AsideTitle>Formation</AsideTitle>
-            <Educations c={c} ctx={ctx} stacked yearClass="text-neutral-500" />
-          </div>
-        )}
+        {present(c, ctx.editable, ASIDE).map((id) => aside[id]?.())}
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col px-[10mm] py-[13mm]">
         <div className="flex justify-end">
           <Confidential show={showConfidential} />
         </div>
-        <section className="mt-4">
-          <Title>Profil</Title>
-          <E ctx={ctx} as="p" path="summary" value={c.summary} placeholder="Résumé du profil…" multiline className="block whitespace-pre-wrap text-[11px] leading-[1.65] text-neutral-800" />
-        </section>
-        {c.experiences.length > 0 && (
-          <section className="cv-section mt-7">
-            <Title>Expériences</Title>
-            <div className="space-y-5">
-              {c.experiences.map((x) => (
-                <article key={x.id} className="cv-article">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <h3 className="min-w-0 flex-1 text-[12px]">
-                      <E ctx={ctx} path={`experience.${x.id}.client_name`} value={x.client_name} placeholder="Client" className="font-bold" />
-                      <span className="text-neutral-400"> — </span>
-                      <E ctx={ctx} path={`experience.${x.id}.role`} value={x.role} placeholder="Rôle" className="text-neutral-700" />
-                    </h3>
-                    <Dates ctx={ctx} id={x.id} start={x.start_date} end={x.end_date} className="text-[9px] font-semibold uppercase tracking-[0.08em] text-neutral-500" />
-                  </div>
-                  {(x.context || ctx.editable) && (
-                    <E ctx={ctx} as="p" path={`experience.${x.id}.context`} value={x.context ?? ''} placeholder="Contexte de la mission…" multiline className="mt-1 block whitespace-pre-wrap text-[10.3px] italic leading-[1.55] text-neutral-600" />
-                  )}
-                  <Tasks
-                    ctx={ctx}
-                    id={x.id}
-                    tasks={x.tasks}
-                    className="mt-1.5 text-[10.5px] leading-[1.55] text-neutral-800"
-                    bullet={<span className="mt-[6px] h-[4px] w-[4px] shrink-0 rounded-full" style={{ background: b.accent }} />}
-                  />
-                  <Environment ctx={ctx} id={x.id} env={x.environment} label={false} className="mt-2 text-[9px] text-neutral-600" chip={{ background: tint(b.primary, 0.07) }} />
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
+        {present(c, ctx.editable, MAIN).map((id, i) => main[id]?.(i === 0))}
         <Footer b={b} show={showConfidential} className="mt-auto pt-3" />
       </main>
     </div>
@@ -418,12 +488,90 @@ function Consulting({ c, b, ctx, showConfidential, qrSrc, page, pageStyle }: Var
 // ── 03 Executive ───────────────────────────────────────────────────────────
 
 function Executive({ c, b, ctx, showConfidential, qrSrc, page, pageStyle }: VariantProps) {
-  const Title = ({ children }: { children: ReactNode }) => (
+  const Title = ({ id, fallback }: { id: CVSectionId; fallback: string }) => (
     <h2 className="mb-3" style={{ fontFamily: SERIF }}>
-      <span className="block text-[16px] font-semibold text-neutral-900">{children}</span>
+      <span className="block text-[16px] font-semibold text-neutral-900">
+        <T ctx={ctx} c={c} id={id} fallback={fallback} />
+      </span>
       <span className="mt-1.5 block h-[2px] w-7" style={{ background: b.accent }} />
     </h2>
   );
+  const sections: Record<CVSectionId, () => ReactNode> = {
+    // Résumé mis en avant, sans titre (signature du modèle) ; titre ajouté s'il est personnalisé.
+    summary: () => (
+      <section key="summary" className="mt-9">
+        {c.layout?.titles?.summary?.trim() && <Title id="summary" fallback="Profil" />}
+        <E
+          ctx={ctx}
+          as="p"
+          path="summary"
+          value={c.summary}
+          placeholder="Résumé du profil…"
+          multiline
+          className="block whitespace-pre-wrap border-l-2 pl-5 text-[13px] leading-[1.75] text-neutral-800"
+          style={{ fontFamily: SERIF, borderColor: b.accent }}
+        />
+      </section>
+    ),
+    skills: () => (
+      <section key="skills" className="mt-9">
+        <Title id="skills" fallback="Compétences clés" />
+        <div className="grid grid-cols-3 gap-x-6 gap-y-4">
+          {visibleCategories(c).map(({ cat, index: ci, items }) => (
+            <div key={ci}>
+              <E ctx={ctx} as="p" path={`skill.${ci}.name`} value={cat.name} placeholder="Catégorie" className="mb-1 block text-[11.5px] font-semibold" style={{ fontFamily: SERIF, color: b.primary }} />
+              <ul className="space-y-0.5 text-[10.3px] text-neutral-700">
+                {items.map(({ item, index }) => (
+                  <li key={index} className={cn(cat.highlighted?.includes(item) && 'font-semibold text-neutral-900')}>
+                    <E ctx={ctx} path={`skill.${ci}.item.${index}`} value={item} placeholder="—" />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+    ),
+    experiences: () => (
+      <section key="experiences" className="cv-section mt-9">
+        <Title id="experiences" fallback="Parcours" />
+        <div className="space-y-7">
+          {c.experiences.map((x) => (
+            <article key={x.id} className="cv-article">
+              <div className="flex items-baseline justify-between gap-4">
+                <E ctx={ctx} as="h3" path={`experience.${x.id}.role`} value={x.role} placeholder="Rôle" className="block min-w-0 flex-1 text-[15px] font-semibold leading-snug" style={{ fontFamily: SERIF }} />
+                <Dates ctx={ctx} id={x.id} start={x.start_date} end={x.end_date} className="text-[9.5px] uppercase tracking-[0.14em] text-neutral-500" />
+              </div>
+              <E ctx={ctx} as="p" path={`experience.${x.id}.client_name`} value={x.client_name} placeholder="Client" className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: b.primary }} />
+              {(x.context || ctx.editable) && (
+                <E ctx={ctx} as="p" path={`experience.${x.id}.context`} value={x.context ?? ''} placeholder="Contexte de la mission…" multiline className="mt-2 block whitespace-pre-wrap text-[11px] italic leading-[1.6] text-neutral-600" style={{ fontFamily: SERIF }} />
+              )}
+              <Tasks ctx={ctx} id={x.id} tasks={x.tasks} className="mt-2 text-[10.8px] leading-[1.6] text-neutral-800" bullet={<span className="mt-[8px] h-px w-3 shrink-0" style={{ background: b.accent }} />} />
+              <Environment ctx={ctx} id={x.id} env={x.environment} className="mt-2 text-[9.5px] text-neutral-500" />
+            </article>
+          ))}
+        </div>
+      </section>
+    ),
+    educations: () => (
+      <section key="educations" className="mt-9 text-[11px] text-neutral-800">
+        <Title id="educations" fallback="Formation" />
+        <Educations c={c} ctx={ctx} yearClass="text-neutral-400" />
+      </section>
+    ),
+    certifications: () => (
+      <section key="certifications" className="mt-9 text-[11px] text-neutral-800">
+        <Title id="certifications" fallback="Certifications" />
+        <Certifications c={c} marker={<span className="mt-[8px] h-px w-3 shrink-0" style={{ background: b.accent }} />} />
+      </section>
+    ),
+    languages: () => (
+      <section key="languages" className="mt-9 text-[11px] text-neutral-800">
+        <Title id="languages" fallback="Langues" />
+        <Languages c={c} ctx={ctx} />
+      </section>
+    ),
+  };
   return (
     <div className={cn(page, 'flex flex-col px-[20mm] py-[16mm]')} style={pageStyle}>
       <header className="flex items-start justify-between gap-6">
@@ -447,76 +595,10 @@ function Executive({ c, b, ctx, showConfidential, qrSrc, page, pageStyle }: Vari
               <E ctx={ctx} path={i.path} value={i.value} placeholder={i.placeholder} className="font-semibold" />
             </span>
           ))}
-          {c.languages.length > 0 && (
-            <span>
-              <span className="mr-1.5 text-[8px] uppercase tracking-[0.16em] text-neutral-400">Langues</span>
-              <Languages c={c} ctx={ctx} />
-            </span>
-          )}
         </div>
       </section>
 
-      <section className="mt-9">
-        <E
-          ctx={ctx}
-          as="p"
-          path="summary"
-          value={c.summary}
-          placeholder="Résumé du profil…"
-          multiline
-          className="block whitespace-pre-wrap border-l-2 pl-5 text-[13px] leading-[1.75] text-neutral-800"
-          style={{ fontFamily: SERIF, borderColor: b.accent }}
-        />
-      </section>
-
-      {c.skillCategories.length > 0 && (
-        <section className="mt-9">
-          <Title>Compétences clés</Title>
-          <div className="grid grid-cols-3 gap-x-6 gap-y-4">
-            {c.skillCategories.map((cat, ci) => (
-              <div key={ci}>
-                <E ctx={ctx} as="p" path={`skill.${ci}.name`} value={cat.name} placeholder="Catégorie" className="mb-1 block text-[11.5px] font-semibold" style={{ fontFamily: SERIF, color: b.primary }} />
-                <ul className="space-y-0.5 text-[10.3px] text-neutral-700">
-                  {cat.items.map((it, i) => (
-                    <li key={i}>
-                      <E ctx={ctx} path={`skill.${ci}.item.${i}`} value={it} placeholder="—" />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {c.experiences.length > 0 && (
-        <section className="cv-section mt-9">
-          <Title>Parcours</Title>
-          <div className="space-y-7">
-            {c.experiences.map((x) => (
-              <article key={x.id} className="cv-article">
-                <div className="flex items-baseline justify-between gap-4">
-                  <E ctx={ctx} as="h3" path={`experience.${x.id}.role`} value={x.role} placeholder="Rôle" className="block min-w-0 flex-1 text-[15px] font-semibold leading-snug" style={{ fontFamily: SERIF }} />
-                  <Dates ctx={ctx} id={x.id} start={x.start_date} end={x.end_date} className="text-[9.5px] uppercase tracking-[0.14em] text-neutral-500" />
-                </div>
-                <E ctx={ctx} as="p" path={`experience.${x.id}.client_name`} value={x.client_name} placeholder="Client" className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: b.primary }} />
-                {(x.context || ctx.editable) && (
-                  <E ctx={ctx} as="p" path={`experience.${x.id}.context`} value={x.context ?? ''} placeholder="Contexte de la mission…" multiline className="mt-2 block whitespace-pre-wrap text-[11px] italic leading-[1.6] text-neutral-600" style={{ fontFamily: SERIF }} />
-                )}
-                <Tasks ctx={ctx} id={x.id} tasks={x.tasks} className="mt-2 text-[10.8px] leading-[1.6] text-neutral-800" bullet={<span className="mt-[8px] h-px w-3 shrink-0" style={{ background: b.accent }} />} />
-                <Environment ctx={ctx} id={x.id} env={x.environment} className="mt-2 text-[9.5px] text-neutral-500" />
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {c.educations.length > 0 && (
-        <section className="mt-9 text-[11px] text-neutral-800">
-          <Title>Formation</Title>
-          <Educations c={c} ctx={ctx} yearClass="text-neutral-400" />
-        </section>
-      )}
+      {present(c, ctx.editable, ALL).map((id) => sections[id]())}
 
       <Footer b={b} show={showConfidential} className="mt-auto pt-3" />
     </div>
@@ -526,12 +608,84 @@ function Executive({ c, b, ctx, showConfidential, qrSrc, page, pageStyle }: Vari
 // ── 04 Compact ─────────────────────────────────────────────────────────────
 
 function Compact({ c, b, ctx, showConfidential, qrSrc, page, pageStyle }: VariantProps) {
-  const Title = ({ children }: { children: ReactNode }) => (
+  const Title = ({ id, fallback }: { id: CVSectionId; fallback: string }) => (
     <h2 className="mb-2 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.16em]" style={{ color: b.primary }}>
-      {children}
+      <T ctx={ctx} c={c} id={id} fallback={fallback} />
       <span className="h-px flex-1" style={{ background: tint(b.primary, 0.25) }} />
     </h2>
   );
+  const sections: Record<CVSectionId, () => ReactNode> = {
+    summary: () => (
+      <section key="summary" className="mt-4">
+        <Title id="summary" fallback="Profil" />
+        <E ctx={ctx} as="p" path="summary" value={c.summary} placeholder="Résumé du profil…" multiline className="block whitespace-pre-wrap text-[10px] leading-[1.55] text-neutral-800" />
+      </section>
+    ),
+    skills: () => (
+      <section key="skills" className="mt-4">
+        <Title id="skills" fallback="Compétences" />
+        <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+          {visibleCategories(c).map(({ cat, index: ci, items }) => (
+            <div key={ci} className="flex gap-2">
+              <E ctx={ctx} path={`skill.${ci}.name`} value={cat.name} placeholder="Catégorie" className="w-24 shrink-0 text-[8.5px] font-semibold uppercase tracking-[0.08em] text-neutral-500" />
+              <span className="min-w-0 flex-1 leading-[1.5] text-neutral-800">
+                {items.map(({ item, index }, k) => (
+                  <span key={index}>
+                    <E ctx={ctx} path={`skill.${ci}.item.${index}`} value={item} placeholder="—" className={cn(cat.highlighted?.includes(item) && 'font-semibold')} />
+                    {k < items.length - 1 && <span className="mx-1 text-neutral-300">·</span>}
+                  </span>
+                ))}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+    ),
+    experiences: () => (
+      <section key="experiences" className="cv-section mt-4">
+        <Title id="experiences" fallback="Expériences" />
+        <div className="space-y-3">
+          {c.experiences.map((x) => (
+            <article key={x.id} className="cv-article grid grid-cols-[24mm_minmax(0,1fr)] gap-3">
+              <Dates ctx={ctx} id={x.id} start={x.start_date} end={x.end_date} className="flex-wrap content-start self-start pt-px text-[8.5px] font-semibold uppercase tracking-[0.06em] text-neutral-500" />
+              <div className="min-w-0 border-l pl-3" style={{ borderColor: tint(b.accent, 0.45) }}>
+                <h3 className="text-[10.8px]">
+                  <E ctx={ctx} path={`experience.${x.id}.client_name`} value={x.client_name} placeholder="Client" className="font-bold" />
+                  <span className="text-neutral-400"> · </span>
+                  <E ctx={ctx} path={`experience.${x.id}.role`} value={x.role} placeholder="Rôle" className="font-medium" style={{ color: b.primary }} />
+                </h3>
+                {(x.context || ctx.editable) && (
+                  <E ctx={ctx} as="p" path={`experience.${x.id}.context`} value={x.context ?? ''} placeholder="Contexte…" multiline className="mt-0.5 block whitespace-pre-wrap text-[9.5px] leading-[1.5] text-neutral-500" />
+                )}
+                <Tasks ctx={ctx} id={x.id} tasks={x.tasks} className="mt-1 space-y-0.5 text-[9.8px] leading-[1.45] text-neutral-800" bullet={<span className="shrink-0" style={{ color: b.accent }}>›</span>} />
+                <Environment ctx={ctx} id={x.id} env={x.environment} label={false} className="mt-1 text-[8.5px] text-neutral-600" chip={{ background: tint(b.primary, 0.07) }} />
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    ),
+    educations: () => (
+      <section key="educations" className="mt-4 text-[10px] text-neutral-800">
+        <Title id="educations" fallback="Formation" />
+        <Educations c={c} ctx={ctx} yearClass="text-neutral-400" />
+      </section>
+    ),
+    certifications: () => (
+      <section key="certifications" className="mt-4 text-[10px] text-neutral-800">
+        <Title id="certifications" fallback="Certifications" />
+        <Certifications c={c} className="space-y-0.5" marker={<span className="shrink-0" style={{ color: b.accent }}>›</span>} />
+      </section>
+    ),
+    languages: () => (
+      <section key="languages" className="mt-4 text-[10px] text-neutral-800">
+        <Title id="languages" fallback="Langues" />
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
+          <Languages c={c} ctx={ctx} />
+        </div>
+      </section>
+    ),
+  };
   return (
     <div className={cn(page, 'flex flex-col px-[12mm] py-[10mm] text-[10px]')} style={pageStyle}>
       <header className="flex items-end justify-between gap-6 border-b-2 pb-3" style={{ borderColor: b.primary }}>
@@ -562,75 +716,7 @@ function Compact({ c, b, ctx, showConfidential, qrSrc, page, pageStyle }: Varian
         ))}
       </div>
 
-      <section className="mt-4">
-        <Title>Profil</Title>
-        <E ctx={ctx} as="p" path="summary" value={c.summary} placeholder="Résumé du profil…" multiline className="block whitespace-pre-wrap text-[10px] leading-[1.55] text-neutral-800" />
-      </section>
-
-      {c.skillCategories.length > 0 && (
-        <section className="mt-4">
-          <Title>Compétences</Title>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-            {c.skillCategories.map((cat, ci) => (
-              <div key={ci} className="flex gap-2">
-                <E ctx={ctx} path={`skill.${ci}.name`} value={cat.name} placeholder="Catégorie" className="w-24 shrink-0 text-[8.5px] font-semibold uppercase tracking-[0.08em] text-neutral-500" />
-                <span className="min-w-0 flex-1 leading-[1.5] text-neutral-800">
-                  {cat.items.map((it, i) => (
-                    <span key={i}>
-                      <E ctx={ctx} path={`skill.${ci}.item.${i}`} value={it} placeholder="—" />
-                      {i < cat.items.length - 1 && <span className="mx-1 text-neutral-300">·</span>}
-                    </span>
-                  ))}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {c.experiences.length > 0 && (
-        <section className="cv-section mt-4">
-          <Title>Expériences</Title>
-          <div className="space-y-3">
-            {c.experiences.map((x) => (
-              <article key={x.id} className="cv-article grid grid-cols-[24mm_minmax(0,1fr)] gap-3">
-                <Dates ctx={ctx} id={x.id} start={x.start_date} end={x.end_date} className="flex-wrap content-start self-start pt-px text-[8.5px] font-semibold uppercase tracking-[0.06em] text-neutral-500" />
-                <div className="min-w-0 border-l pl-3" style={{ borderColor: tint(b.accent, 0.45) }}>
-                  <h3 className="text-[10.8px]">
-                    <E ctx={ctx} path={`experience.${x.id}.client_name`} value={x.client_name} placeholder="Client" className="font-bold" />
-                    <span className="text-neutral-400"> · </span>
-                    <E ctx={ctx} path={`experience.${x.id}.role`} value={x.role} placeholder="Rôle" className="font-medium" style={{ color: b.primary }} />
-                  </h3>
-                  {(x.context || ctx.editable) && (
-                    <E ctx={ctx} as="p" path={`experience.${x.id}.context`} value={x.context ?? ''} placeholder="Contexte…" multiline className="mt-0.5 block whitespace-pre-wrap text-[9.5px] leading-[1.5] text-neutral-500" />
-                  )}
-                  <Tasks ctx={ctx} id={x.id} tasks={x.tasks} className="mt-1 space-y-0.5 text-[9.8px] leading-[1.45] text-neutral-800" bullet={<span className="shrink-0" style={{ color: b.accent }}>›</span>} />
-                  <Environment ctx={ctx} id={x.id} env={x.environment} label={false} className="mt-1 text-[8.5px] text-neutral-600" chip={{ background: tint(b.primary, 0.07) }} />
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {(c.educations.length > 0 || c.languages.length > 0) && (
-        <section className="mt-4 grid grid-cols-2 gap-6">
-          {c.educations.length > 0 && (
-            <div className="text-[10px] text-neutral-800">
-              <Title>Formation</Title>
-              <Educations c={c} ctx={ctx} yearClass="text-neutral-400" />
-            </div>
-          )}
-          {c.languages.length > 0 && (
-            <div className="text-[10px] text-neutral-800">
-              <Title>Langues</Title>
-              <div className="flex flex-wrap gap-x-3 gap-y-1">
-                <Languages c={c} ctx={ctx} />
-              </div>
-            </div>
-          )}
-        </section>
-      )}
+      {present(c, ctx.editable, ALL).map((id) => sections[id]())}
 
       <Footer b={b} show={showConfidential} className="mt-auto pt-2" />
     </div>

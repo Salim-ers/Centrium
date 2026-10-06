@@ -79,6 +79,61 @@ export const cvService = {
     };
   },
 
+  /**
+   * Enregistre le dossier tel qu'il a été préparé (mise en page et retouches
+   * comprises) : c'est la version envoyée au client. Le modèle réel est gardé
+   * dans le contenu (`template`), la colonne n'acceptant que les modèles
+   * historiques.
+   */
+  async saveVersion(params: {
+    organizationId: string;
+    consultantId: string;
+    templateId: string;
+    jobOfferId?: string | null;
+    label: string;
+    content: CVContent;
+    score?: number | null;
+    matchedSkills?: string[];
+    missingSkills?: string[];
+    warnings?: string[];
+  }): Promise<ServiceResult<CVVersion>> {
+    const label = params.label.trim().slice(0, 200);
+    if (!label) return { data: null, error: new Error('Donnez un nom à la version') };
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const column: CVTemplateId = params.templateId === 'dense' || params.templateId === 'executive' ? params.templateId : 'standard';
+    const { data, error } = await supabase
+      .from('cv_versions')
+      .insert({
+        organization_id: params.organizationId,
+        consultant_id: params.consultantId,
+        template_id: column,
+        job_offer_id: params.jobOfferId ?? null,
+        version_label: label,
+        content: { ...params.content, template: params.templateId },
+        matching_score: params.score ?? null,
+        matched_skills: params.matchedSkills ?? [],
+        missing_skills: params.missingSkills ?? [],
+        warnings: params.warnings ?? [],
+        created_by: user?.id ?? null,
+      })
+      .select()
+      .single();
+    if (error) return { data: null, error };
+    await supabase.from('activities').insert({
+      organization_id: params.organizationId,
+      entity_type: 'consultant',
+      entity_id: params.consultantId,
+      action: 'dossier_saved',
+      user_id: user?.id ?? null,
+      actor_id: user?.id ?? null,
+      details: { label, template: params.templateId, score: params.score ?? null },
+    });
+    return { data: data as CVVersion, error: null };
+  },
+
   async listByConsultant(consultantId: string): Promise<ServiceResult<CVVersion[]>> {
     const supabase = createClient();
     const { data, error } = await supabase

@@ -51,6 +51,7 @@ import {
 } from '@/lib/talents/filters';
 import { formatEur, formatPct } from '@/lib/format';
 import { RelatedLinks } from '@/components/app/RelatedLinks';
+import { SectionTabs } from '@/components/layout/SectionTabs';
 import { cn } from '@/lib/utils';
 import type { SeniorityLevel } from '@/types';
 
@@ -325,25 +326,28 @@ export default function ConsultantsPage() {
             : `${rows.length} ${rows.length > 1 ? 'talents' : 'talent'}${scope === 'pool' ? (fr ? ' dans le vivier' : ' in the pool') : scope === 'archived' ? (fr ? ' archivés' : ' archived') : scope === 'positioned' ? (fr ? ' positionnés' : ' positioned') : ''}`
         }
         tabs={
-          <div role="tablist" aria-label={fr ? 'Population' : 'Population'} className="no-scrollbar inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-app-terra/20 bg-card p-1">
-            {scopes.map((sc) => (
-              <button
-                key={sc.id}
-                type="button"
-                role="tab"
-                aria-selected={scope === sc.id}
-                onClick={() => {
-                  setScope(sc.id);
-                  setSelected(new Set());
-                }}
-                className={cn(
-                  'inline-flex h-8 shrink-0 items-center rounded-lg px-3.5 text-[13px] font-semibold transition-colors',
-                  scope === sc.id ? 'bg-app-terra text-white shadow-[0_6px_14px_-8px_rgba(198,95,70,.9)]' : 'text-app-terra-dark hover:bg-app-peach-light',
-                )}
-              >
-                {sc.label}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <SectionTabs section="talents" />
+            <div role="tablist" aria-label={fr ? 'Population' : 'Population'} className="no-scrollbar inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-app-terra/20 bg-card p-1">
+              {scopes.map((sc) => (
+                <button
+                  key={sc.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={scope === sc.id}
+                  onClick={() => {
+                    setScope(sc.id);
+                    setSelected(new Set());
+                  }}
+                  className={cn(
+                    'inline-flex h-8 shrink-0 items-center rounded-lg px-3.5 text-[13px] font-semibold transition-colors',
+                    scope === sc.id ? 'bg-app-terra text-white shadow-[0_6px_14px_-8px_rgba(198,95,70,.9)]' : 'text-app-terra-dark hover:bg-app-peach-light',
+                  )}
+                >
+                  {sc.label}
+                </button>
+              ))}
+            </div>
           </div>
         }
         actions={

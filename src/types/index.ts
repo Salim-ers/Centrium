@@ -243,6 +243,9 @@ export type CVHeaderData = {
   availability: string | null;
 };
 
+/** Sections d'un dossier de compétences, ordonnables et masquables. */
+export type CVSectionId = 'summary' | 'skills' | 'experiences' | 'educations' | 'certifications' | 'languages';
+
 export type CVContent = {
   header: CVHeaderData;
   summary: string;
@@ -250,10 +253,18 @@ export type CVContent = {
     name: string;
     items: string[];
     highlighted?: string[];
+    /** Masquées par la mise en page (les indices restent ceux de `items`). */
+    hiddenItems?: string[];
   }>;
   experiences: ConsultantExperience[];
   educations: ConsultantEducation[];
   languages: Language[];
+  /** Certifications du profil retenues pour le dossier. */
+  certifications?: Certification[];
+  /** Ordre des sections visibles et titres personnalisés (mise en page). */
+  layout?: { order: CVSectionId[]; titles: Partial<Record<CVSectionId, string>> };
+  /** Modèle d'une version enregistrée (minimal, standard, executive, dense). */
+  template?: string;
 };
 
 export type CVVersion = {

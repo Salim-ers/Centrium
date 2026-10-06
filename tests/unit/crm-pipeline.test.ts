@@ -113,7 +113,8 @@ describe('Navigation V2 : huit destinations, un seul niveau d’onglets', () => 
     expect(breadcrumb('/clients/abc', 'fr')).toEqual(['CRM', 'Clients']);
     expect(breadcrumb('/finance', 'fr')).toEqual(['Opérations', 'Pilotage financier']);
     expect(breadcrumb('/missions/abc', 'fr')).toEqual(['Missions']);
-    expect(breadcrumb('/cv-optimizer', 'fr')).toEqual(['Talents']);
+    expect(breadcrumb('/cv-optimizer', 'fr')).toEqual(['Talents', 'CV Optimizer']);
+    expect(breadcrumb('/consultants', 'fr')).toEqual(['Talents', 'Consultants']);
   });
 
   it('nomme la section des Paramètres dans le fil d’Ariane', () => {

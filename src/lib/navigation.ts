@@ -156,7 +156,7 @@ export type SectionTab = {
 };
 
 /** Onglets internes des destinations qui en ont. */
-export const SECTION_TABS: Record<'crm' | 'operations' | 'staffing', SectionTab[]> = {
+export const SECTION_TABS: Record<'crm' | 'operations' | 'staffing' | 'talents', SectionTab[]> = {
   crm: [
     { href: '/crm', label: { fr: 'Pipeline', en: 'Pipeline' }, permission: ['crm.view', 'opportunities.view'], match: ['/crm', '/opportunities', '/offers', '/responses'] },
     { href: '/clients', label: { fr: 'Clients', en: 'Clients' }, permission: 'clients.view', match: ['/clients', '/companies'] },
@@ -167,6 +167,10 @@ export const SECTION_TABS: Record<'crm' | 'operations' | 'staffing', SectionTab[
     { href: '/timesheets', label: { fr: 'CRA', en: 'Timesheets' }, permission: 'timesheets.view', match: ['/timesheets'] },
     { href: '/documents', label: { fr: 'Documents', en: 'Documents' }, permission: 'documents.view', match: ['/documents', '/contracts', '/templates'] },
     { href: '/finance', label: { fr: 'Pilotage financier', en: 'Financial overview' }, permission: 'finance.view', match: ['/finance', '/invoices', '/accounting'] },
+  ],
+  talents: [
+    { href: '/consultants', label: { fr: 'Consultants', en: 'Consultants' }, permission: 'consultants.view', match: ['/consultants', '/prospects', '/cv-pushed'] },
+    { href: '/cv-optimizer', label: { fr: 'CV Optimizer', en: 'CV Optimizer' }, permission: 'consultants.view', match: ['/cv-optimizer'] },
   ],
   staffing: [
     { href: '/staffing', label: { fr: 'Planning', en: 'Planning' }, permission: 'staffing.view', match: ['/staffing', '/en-mission'] },
