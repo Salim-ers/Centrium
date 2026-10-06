@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Check,
-  ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ChevronsUpDown,
   Cookie,
   Languages,
@@ -20,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { CentriumLogo, CentriumType } from '@/components/brand/CentriumLogo';
 import { useOrganizationSafe } from '@/lib/auth/context';
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
+import { useIsoLayoutEffect } from '@/hooks/useIsoLayoutEffect';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { NAV_ITEMS, SECONDARY_ITEMS, canSeeNavItem, isNavItemActive, type NavItem } from '@/lib/navigation';
@@ -49,19 +51,27 @@ function initials(name: string) {
   );
 }
 
-/** Une entrée de la barre : pastille terracotta quand active. */
-function DockLink({ item, active, collapsed, lang, onClick }: { item: NavItem; active: boolean; collapsed: boolean; lang: 'fr' | 'en'; onClick?: () => void }) {
+/** Une entrée de la barre : pastille terracotta quand active (glissante dans le dock). */
+function DockLink({ item, active, collapsed, lang, onClick, onPick, dock = false }: { item: NavItem; active: boolean; collapsed: boolean; lang: 'fr' | 'en'; onClick?: () => void; onPick?: (href: string) => void; dock?: boolean }) {
   const Icon = item.icon;
   const link = (
     <Link
       href={item.href}
-      onClick={onClick}
+      onClick={(e) => {
+        if (!(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)) onPick?.(item.href);
+        onClick?.();
+      }}
       aria-current={active ? 'page' : undefined}
       aria-label={collapsed ? item.label[lang] : undefined}
+      data-dock-item
       className={cn(
-        'group relative flex h-10 items-center gap-3 rounded-xl text-[14px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C65F46]/70',
+        'group relative z-[1] flex h-10 items-center gap-3 rounded-xl text-[14px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C65F46]/70',
         collapsed ? 'mx-auto w-10 justify-center' : 'px-3',
-        active ? 'bg-[#C65F46] text-white shadow-[0_8px_20px_-10px_rgba(198,95,70,.8)]' : 'text-white/70 hover:bg-white/[0.07] hover:text-white',
+        active
+          ? dock
+            ? 'text-white'
+            : 'bg-[#C65F46] text-white shadow-[0_8px_20px_-10px_rgba(198,95,70,.8)]'
+          : 'text-white/70 hover:bg-white/[0.07] hover:text-white',
       )}
     >
       <Icon strokeWidth={1.9} className={cn('h-[19px] w-[19px] shrink-0 transition-colors', active ? 'text-white' : 'text-white/60 group-hover:text-white')} />
@@ -130,8 +140,8 @@ function ProfileMenu({ collapsed }: { collapsed: boolean }) {
           {!collapsed && (
             <>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-semibold text-white">{orgName}</span>
-                <span className="block truncate text-[11.5px] text-white/55">{roleLabel || fullName}</span>
+                <span className="block truncate text-[13px] font-semibold text-white">{fullName || orgName}</span>
+                <span className="block truncate text-[11.5px] text-white/55">{[orgName, roleLabel].filter(Boolean).join(' · ')}</span>
               </span>
               <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-white/45" />
             </>
@@ -197,19 +207,120 @@ function ProfileMenu({ collapsed }: { collapsed: boolean }) {
   );
 }
 
+type Marker = { top: number; left: number; width: number; height: number };
+
 /**
  * Contenu de la barre (dock sombre). Réutilisé par la barre desktop et le
  * tiroir mobile (`onItemClick` ferme le tiroir après navigation).
+ *
+ * `dock` (barre desktop) : la pastille terracotta du menu actif et
+ * l'encoche du bord droit sont un seul indicateur, mesuré sur l'entrée
+ * active et animé d'une entrée à l'autre (y compris Paramètres et Aide).
  */
-export function SidebarBody({ collapsed = false, onItemClick }: { collapsed?: boolean; onItemClick?: () => void }) {
+export function SidebarBody({ collapsed = false, onItemClick, dock = false, onToggle }: { collapsed?: boolean; onItemClick?: () => void; dock?: boolean; onToggle?: () => void }) {
   const pathname = usePathname() ?? '';
   const { locale } = useLocale();
   const lang = locale === 'en' ? 'en' : 'fr';
+  const fr = lang === 'fr';
   const { can } = usePermissions();
   const items = NAV_ITEMS.filter((i) => canSeeNavItem(i, can));
+  const rootRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const [marker, setMarker] = useState<Marker | null>(null);
+  // Pas d'animation à la première mesure : l'indicateur apparaît en place.
+  const [animate, setAnimate] = useState(false);
+  // Entrée cliquée : active immédiatement, sans attendre le chargement de la page.
+  const [picked, setPicked] = useState<string | null>(null);
+  useEffect(() => setPicked(null), [pathname]);
+  // Navigation annulée (ou même page) : on revient à l'adresse réelle.
+  useEffect(() => {
+    if (!picked) return;
+    const t = window.setTimeout(() => setPicked(null), 4000);
+    return () => window.clearTimeout(t);
+  }, [picked]);
+  const isActive = (item: NavItem) => (picked ? item.href === picked : isNavItemActive(item, pathname));
+
+  const measure = useCallback(() => {
+    const root = rootRef.current;
+    if (!dock || !root) return;
+    const el = root.querySelector<HTMLElement>('a[data-dock-item][aria-current="page"]');
+    if (!el) {
+      setMarker(null);
+      return;
+    }
+    const r = el.getBoundingClientRect();
+    const box = root.getBoundingClientRect();
+    const next = { top: r.top - box.top, left: r.left - box.left, width: r.width, height: r.height };
+    setMarker((m) => (m && m.top === next.top && m.left === next.left && m.width === next.width && m.height === next.height ? m : next));
+  }, [dock]);
+
+  useIsoLayoutEffect(() => {
+    measure();
+  }, [measure, pathname, picked, collapsed, lang, items.length]);
+
+  useEffect(() => {
+    if (!marker || animate) return;
+    const id = requestAnimationFrame(() => setAnimate(true));
+    return () => cancelAnimationFrame(id);
+  }, [marker, animate]);
+
+  useEffect(() => {
+    if (!dock) return;
+    const root = rootRef.current;
+    const nav = navRef.current;
+    const observer = new ResizeObserver(() => measure());
+    if (root) observer.observe(root);
+    nav?.addEventListener('scroll', measure, { passive: true });
+    window.addEventListener('resize', measure);
+    return () => {
+      observer.disconnect();
+      nav?.removeEventListener('scroll', measure);
+      window.removeEventListener('resize', measure);
+    };
+  }, [dock, measure]);
+
+  const motion = animate ? 'transition-[transform,width,height,opacity] duration-[420ms] ease-[cubic-bezier(.22,1,.36,1)] motion-reduce:transition-none' : '';
+  const toggleLabel = collapsed ? (fr ? 'Afficher les titres' : 'Show labels') : fr ? 'Réduire la barre' : 'Collapse sidebar';
+  const toggle = onToggle ? (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={toggleLabel}
+      aria-expanded={!collapsed}
+      className={cn(
+        'relative z-[1] flex h-9 items-center gap-3 rounded-xl text-[13px] text-white/50 transition-colors hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C65F46]/70',
+        collapsed ? 'mx-auto w-10 justify-center' : 'w-full px-3',
+      )}
+    >
+      {collapsed ? <ChevronsRight className="h-4 w-4 shrink-0" /> : <ChevronsLeft className="h-4 w-4 shrink-0" />}
+      {!collapsed && <span>{toggleLabel}</span>}
+    </button>
+  ) : null;
 
   return (
-    <div className="flex h-full flex-col bg-app-dock text-white">
+    <div ref={rootRef} className="relative flex h-full flex-col bg-app-dock text-white">
+      {dock && marker && (
+        <>
+          {/* Pastille de l'entrée active. */}
+          <span
+            aria-hidden
+            className={cn('pointer-events-none absolute left-0 top-0 z-0 rounded-xl bg-[#C65F46] shadow-[0_8px_20px_-10px_rgba(198,95,70,.8)]', motion)}
+            style={{ transform: `translate3d(${marker.left}px, ${marker.top}px, 0)`, width: marker.width, height: marker.height }}
+          />
+          {/* Encoche du bord droit, à hauteur de l'entrée active. */}
+          <span
+            aria-hidden
+            className={cn('pointer-events-none absolute left-full top-0 z-10 flex w-3.5 flex-col', motion)}
+            style={{ transform: `translate3d(0, ${marker.top + marker.height / 2 - 34}px, 0)` }}
+          >
+            <span className="block h-3 w-3 bg-[radial-gradient(circle_at_100%_0,transparent_11.5px,#1B1817_12px)]" />
+            <span className="flex h-11 w-3.5 items-center justify-center rounded-r-[10px] bg-app-dock">
+              <ChevronRight className="h-3 w-3 text-[#E8876E]" strokeWidth={3} />
+            </span>
+            <span className="block h-3 w-3 bg-[radial-gradient(circle_at_100%_100%,transparent_11.5px,#1B1817_12px)]" />
+          </span>
+        </>
+      )}
       <Link
         href="/dashboard"
         onClick={onItemClick}
@@ -220,16 +331,24 @@ export function SidebarBody({ collapsed = false, onItemClick }: { collapsed?: bo
         {!collapsed && <CentriumType className="h-[12px] text-white" />}
       </Link>
 
-      <nav aria-label={lang === 'fr' ? 'Navigation principale' : 'Main navigation'} className={cn('no-scrollbar flex-1 space-y-1 overflow-y-auto pb-3 pt-2', collapsed ? 'px-2' : 'px-3')}>
+      <nav ref={navRef} aria-label={lang === 'fr' ? 'Navigation principale' : 'Main navigation'} className={cn('no-scrollbar flex-1 space-y-1 overflow-y-auto pb-3 pt-2', collapsed ? 'px-2' : 'px-3')}>
         {items.map((item) => (
-          <DockLink key={item.id} item={item} active={isNavItemActive(item, pathname)} collapsed={collapsed} lang={lang} onClick={onItemClick} />
+          <DockLink key={item.id} item={item} active={isActive(item)} collapsed={collapsed} lang={lang} onClick={onItemClick} onPick={setPicked} dock={dock} />
         ))}
       </nav>
 
       <div className={cn('shrink-0 space-y-1 border-t border-white/[0.07] pb-3 pt-3', collapsed ? 'px-2' : 'px-3')}>
         {SECONDARY_ITEMS.map((item) => (
-          <DockLink key={item.id} item={item} active={isNavItemActive(item, pathname)} collapsed={collapsed} lang={lang} onClick={onItemClick} />
+          <DockLink key={item.id} item={item} active={isActive(item)} collapsed={collapsed} lang={lang} onClick={onItemClick} onPick={setPicked} dock={dock} />
         ))}
+        {toggle &&
+          (collapsed ? (
+            <Tooltip label={toggleLabel} side="right">
+              {toggle}
+            </Tooltip>
+          ) : (
+            toggle
+          ))}
         <div className="pt-1.5">
           <ProfileMenu collapsed={collapsed} />
         </div>
@@ -240,13 +359,11 @@ export function SidebarBody({ collapsed = false, onItemClick }: { collapsed?: bo
 
 /**
  * Barre latérale desktop : dock sombre fixe, compacte ou étendue (choix
- * mémorisé). L'encoche sur le bord droit porte le bouton de bascule.
+ * mémorisé). L'encoche du bord droit suit l'entrée active ; la bascule
+ * compacte / étendue est en bas de la barre.
  */
 export function Sidebar() {
   const [collapsed, setCollapsed] = useSidebarCollapsed();
-  const { locale } = useLocale();
-  const fr = locale !== 'en';
-  const label = collapsed ? (fr ? 'Afficher les titres' : 'Show labels') : fr ? 'Réduire la barre' : 'Collapse sidebar';
 
   return (
     <aside
@@ -254,21 +371,7 @@ export function Sidebar() {
       style={{ width: collapsed ? SIDEBAR_COMPACT : SIDEBAR_EXPANDED }}
       className="no-print relative z-30 hidden h-dvh shrink-0 transition-[width] duration-[240ms] ease-out-soft lg:block"
     >
-      <SidebarBody collapsed={collapsed} />
-      {/* Encoche : congés concaves au-dessus et au-dessous de la bosse. */}
-      <span aria-hidden className="pointer-events-none absolute left-full top-[60px] h-3 w-3 bg-[radial-gradient(circle_at_100%_0,transparent_11.5px,#1B1817_12px)]" />
-      <span aria-hidden className="pointer-events-none absolute left-full top-[116px] h-3 w-3 bg-[radial-gradient(circle_at_100%_100%,transparent_11.5px,#1B1817_12px)]" />
-      <Tooltip label={label} side="right">
-        <button
-          type="button"
-          onClick={() => setCollapsed(!collapsed)}
-          aria-label={label}
-          aria-expanded={!collapsed}
-          className="absolute left-full top-[72px] flex h-11 w-3.5 items-center justify-center rounded-r-[10px] bg-app-dock text-white/55 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C65F46]/70"
-        >
-          {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
-        </button>
-      </Tooltip>
+      <SidebarBody collapsed={collapsed} dock onToggle={() => setCollapsed(!collapsed)} />
     </aside>
   );
 }
