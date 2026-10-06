@@ -2,7 +2,7 @@
 // Navigation de l'application — source unique pour la barre latérale, les
 // onglets internes, le fil d'Ariane et la palette de commandes.
 //
-// Huit destinations, jamais de troisième niveau : une destination peut
+// Sept destinations, jamais de troisième niveau : une destination peut
 // avoir des onglets (SECTION_TABS), rien de plus. Voir
 // docs/CENTRIUM_UX_AUDIT.md §2.
 // =========================================================================
@@ -54,7 +54,8 @@ export type NavItem = {
   hint?: Label;
 };
 
-/** Les huit destinations de la barre latérale. */
+/** Les sept destinations de la barre latérale. Les portails (accès clients
+ *  et consultants, demandes) se gèrent dans Paramètres → Portails. */
 export const NAV_ITEMS: NavItem[] = [
   {
     id: 'dashboard',
@@ -124,15 +125,6 @@ export const NAV_ITEMS: NavItem[] = [
     keywords: ['rapports', 'statistiques', 'rentabilité', 'performance'],
     hint: { fr: 'Business, staffing, finance', en: 'Business, staffing, finance' },
   },
-  {
-    id: 'portals',
-    label: { fr: 'Portails', en: 'Portals' },
-    href: '/portals',
-    icon: DoorOpen,
-    permission: 'portals.manage',
-    keywords: ['portail client', 'portail consultant', 'accès', 'demandes'],
-    hint: { fr: 'Accès clients et consultants', en: 'Client and consultant access' },
-  },
 ];
 
 /** Bas de la barre latérale. */
@@ -143,7 +135,7 @@ export const SECONDARY_ITEMS: NavItem[] = [
     href: '/settings',
     icon: Settings,
     permission: 'dashboard.view',
-    matchAlso: ['/billing', '/onboarding/setup', '/automations'],
+    matchAlso: ['/billing', '/onboarding/setup', '/automations', '/portals'],
     keywords: ['équipe', 'rôles', 'abonnement', 'branding', 'intégrations', 'automatisations'],
     hint: { fr: 'Équipe, rôles, branding', en: 'Team, roles, branding' },
   },
@@ -216,7 +208,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   { group: 'org', href: '/settings/subscription', label: { fr: 'Abonnement', en: 'Subscription' }, icon: CreditCard, permission: 'dashboard.view', match: ['/settings/subscription', '/billing'] },
   { group: 'workspace', href: '/settings/notifications', label: { fr: 'Notifications', en: 'Notifications' }, icon: BellRing, permission: 'dashboard.view', match: ['/settings/notifications'] },
   { group: 'workspace', href: '/settings/automations', label: { fr: 'Automatisations', en: 'Automations' }, icon: Workflow, permission: 'automations.manage', match: ['/settings/automations', '/automations'] },
-  { group: 'workspace', href: '/settings/portals', label: { fr: 'Portails', en: 'Portals' }, icon: DoorOpen, permission: 'portals.manage', match: ['/settings/portals'] },
+  { group: 'workspace', href: '/settings/portals', label: { fr: 'Portails', en: 'Portals' }, icon: DoorOpen, permission: 'portals.manage', match: ['/settings/portals', '/portals'] },
   { group: 'workspace', href: '/settings/integrations', label: { fr: 'Intégrations', en: 'Integrations' }, icon: Plug, permission: 'finance.edit', match: ['/settings/integrations'] },
   { group: 'workspace', href: '/settings/privacy', label: { fr: 'Sécurité & données', en: 'Security & data' }, icon: ShieldCheck, permission: 'dashboard.view', match: ['/settings/privacy'] },
   { group: 'account', href: '/settings/profile', label: { fr: 'Mon profil', en: 'My profile' }, icon: User, permission: 'dashboard.view', match: ['/settings/profile'] },

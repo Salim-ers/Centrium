@@ -22,7 +22,7 @@
 
 ## 2. Architecture cible
 
-### Barre latérale (8 destinations)
+### Barre latérale (7 destinations)
 
 | | Destination | Contenu (onglets internes, jamais de 3ᵉ niveau) | Routes regroupées |
 |---|---|---|---|
@@ -33,10 +33,11 @@
 | 5 | Missions | Liste · cockpit mission | `/missions` |
 | 6 | Opérations | CRA · Documents · Finance | `/timesheets`, `/documents`, `/contracts`, `/templates`, `/finance`, `/invoices`, `/accounting` |
 | 7 | Analytics | Business · Staffing · Finance · Performance | `/analytics` |
-| 8 | Portails | Clients · Consultants · Demandes | `/portals` |
 
 En bas : Paramètres, Aide, bloc organisation / utilisateur (menu : profil,
 changer d'organisation, paramètres, confidentialité, déconnexion).
+Les portails (accès clients et consultants, demandes) se gèrent dans
+Paramètres → Portails ; `/portals` reste valide et allume « Paramètres ».
 
 ### Coque
 

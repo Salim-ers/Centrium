@@ -73,12 +73,12 @@ describe('CRM : résumé du pipeline', () => {
   });
 });
 
-describe('Navigation V2 : huit destinations, un seul niveau d’onglets', () => {
+describe('Navigation V2 : sept destinations, un seul niveau d’onglets', () => {
   const byId = (id: string) => NAV_ITEMS.find((i) => i.id === id)!;
   const canWith = (perms: Permission[]) => (p: Permission) => perms.includes(p);
 
-  it('expose exactement les huit destinations prévues, dans l’ordre', () => {
-    expect(NAV_ITEMS.map((i) => i.id)).toEqual(['dashboard', 'crm', 'talents', 'staffing', 'missions', 'operations', 'analytics', 'portals']);
+  it('expose exactement les sept destinations prévues, dans l’ordre (portails dans les Paramètres)', () => {
+    expect(NAV_ITEMS.map((i) => i.id)).toEqual(['dashboard', 'crm', 'talents', 'staffing', 'missions', 'operations', 'analytics']);
   });
 
   it('regroupe opportunités, clients et contacts dans le CRM', () => {
@@ -122,6 +122,7 @@ describe('Navigation V2 : huit destinations, un seul niveau d’onglets', () => 
     expect(breadcrumb('/settings/branding', 'fr')).toEqual(['Paramètres', 'Branding']);
     expect(breadcrumb('/settings/subscription', 'en')).toEqual(['Settings', 'Subscription']);
     expect(breadcrumb('/billing', 'fr')).toEqual(['Paramètres', 'Abonnement']);
+    expect(breadcrumb('/portals', 'fr')).toEqual(['Paramètres', 'Portails']);
   });
 
   it('ne montre une section des Paramètres qu’avec sa permission', () => {
