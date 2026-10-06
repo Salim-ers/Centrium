@@ -4,6 +4,7 @@ import { Toaster } from 'sonner';
 import './globals.css';
 import { GlobalToastBridge } from '@/components/ui/GlobalToastBridge';
 import { AuthHashRecovery } from '@/components/auth/AuthHashRecovery';
+import { ServiceWorkerRegister } from '@/components/pwa/ServiceWorkerRegister';
 import { OrganizationProvider } from '@/lib/auth/context';
 import { CookieBanner } from '@/components/marketing/CookieBanner';
 import { LocaleProvider } from '@/lib/i18n/LocaleProvider';
@@ -39,6 +40,8 @@ export const metadata: Metadata = {
   creator: 'QuadCore SAS',
   publisher: 'QuadCore SAS',
   formatDetection: { telephone: false, address: false, email: false },
+  // Installée sur iOS : plein écran, titre court, barre d'état claire.
+  appleWebApp: { capable: true, title: 'Centrium', statusBarStyle: 'default' },
   alternates: { canonical: '/' },
   openGraph: {
     type: 'website',
@@ -165,6 +168,7 @@ export default function RootLayout({
         </LocaleProvider>
         <GlobalToastBridge />
         <AuthHashRecovery />
+        <ServiceWorkerRegister />
         {/* Bas-droite : ne chevauche jamais le header, lecture naturelle.
             unstyled : la carte est entièrement dessinée par BrandToast. */}
         <Toaster

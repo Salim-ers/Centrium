@@ -16,9 +16,10 @@ export const config = {
   //   - llms.txt       : idem (pour ChatGPT, Claude, Perplexity)
   //   - manifest.webmanifest : PWA manifest public
   //   - opengraph-image : OG dynamique pour réseaux sociaux
-  //   - icon, apple-icon : favicons dynamiques edge
+  //   - icon, apple-icon : favicons dynamiques edge (et /icons/* du manifeste)
+  //   - sw.js, offline.html : service worker et page hors ligne (PWA)
   //   - *.svg / png / jpg / etc. : assets binaires
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml|llms\\.txt|manifest\\.webmanifest|opengraph-image|icon|apple-icon|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)',
+    '/((?!api|_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml|llms\\.txt|manifest\\.webmanifest|sw\\.js|offline\\.html|opengraph-image|icon|apple-icon|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)',
   ],
 };
