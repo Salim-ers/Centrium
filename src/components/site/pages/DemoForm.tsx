@@ -83,13 +83,13 @@ export function DemoForm() {
     if (p && (PUBLIC_PLAN_IDS as readonly string[]).includes(p)) setPlan(p as PublicPlanId);
   }, []);
 
-  // Focus sur le premier champ de l'étape (sauf au premier affichage).
-  const first = useRef(true);
+  // Focus sur le premier champ quand l'étape change (jamais au premier
+  // affichage : la page ne doit pas défiler d'elle-même jusqu'au formulaire).
+  // Comparer l'étape précédente résiste au double appel des effets en dev.
+  const shownStep = useRef(step);
   useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      return;
-    }
+    if (shownStep.current === step) return;
+    shownStep.current = step;
     panel.current?.querySelector<HTMLElement>('input, button[role="radio"], textarea')?.focus();
   }, [step]);
 

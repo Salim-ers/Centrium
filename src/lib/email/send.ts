@@ -109,12 +109,26 @@ function renderText(input: SendEmailInput): string {
 }
 
 /**
+ * Domaines réservés (RFC 2606 / 6761) : jamais délivrables. Les comptes et
+ * fiches de l'espace de démonstration les utilisent ; on n'essaie même pas.
+ */
+export function isReservedEmail(email: string): boolean {
+  const domain = email.trim().toLowerCase().split('@')[1] ?? '';
+  // Dernier libellé du domaine (TLD réservé) ou domaines d'exemple de l'IANA.
+  const tld = domain.split('.').at(-1) ?? '';
+  return ['invalid', 'example', 'test', 'localhost'].includes(tld) || ['example.com', 'example.net', 'example.org'].includes(domain);
+}
+
+/**
  * Envoie l'email. Ne throw JAMAIS : retourne { sent, error? }.
  * Sans RESEND_API_KEY : log console + { sent: false } (dev-friendly).
  */
 export async function sendEmail(
   input: SendEmailInput,
 ): Promise<{ sent: boolean; error?: string }> {
+  const recipients = (Array.isArray(input.to) ? input.to : [input.to]).filter((to) => !isReservedEmail(to));
+  if (recipients.length === 0) return { sent: false, error: 'reserved_recipient' };
+  input = { ...input, to: recipients };
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     logger.info('[email] RESEND_API_KEY absente — email non envoyé.', {

@@ -12,6 +12,7 @@ import { KeyboardShortcuts } from './KeyboardShortcuts';
 import { BrandingStyles } from '@/components/brand/BrandingStyles';
 import { OrgActivityListener } from '@/components/realtime/OrgActivityListener';
 import { SessionPresenceGate } from '@/components/auth/SessionPresenceGate';
+import { DemoBanner } from '@/components/demo/DemoBanner';
 import { useAppearance } from '@/hooks/useAppearance';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
@@ -52,6 +53,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <Header />
+          <DemoBanner />
           <main id="main" tabIndex={-1} className="app-main relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden focus:outline-none">
             {/* Suspense : les pages qui lisent useSearchParams() restent rendables statiquement. */}
             <Suspense fallback={null}>{children}</Suspense>

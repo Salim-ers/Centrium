@@ -8,6 +8,7 @@ import { LogOut, Menu } from 'lucide-react';
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
 import { CentriumWordmark } from '@/components/brand/CentriumWordmark';
 import { LocaleToggle } from '@/components/i18n/LocaleToggle';
+import { DemoBanner } from '@/components/demo/DemoBanner';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { cn } from '@/lib/utils';
 
@@ -146,6 +147,7 @@ export function PortalChrome({
       </Drawer>
 
       <main className="pb-24 md:pb-10 md:pl-60">
+        <DemoBanner />
         <div className="mx-auto max-w-4xl px-4 py-5 md:px-8 md:py-8">{children}</div>
       </main>
 

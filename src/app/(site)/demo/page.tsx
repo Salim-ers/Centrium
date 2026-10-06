@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { DemoAccess } from '@/components/site/pages/DemoAccess';
 import { DemoForm } from '@/components/site/pages/DemoForm';
+import { demoEnabled } from '@/lib/demo/config';
 import { Kicker, Lead, MaskImage, Section, Title, Wide } from '@/components/site/kit';
 
 export const metadata: Metadata = {
@@ -18,12 +20,28 @@ const EXPECT = [
 ];
 
 export default function DemoPage() {
+  const live = demoEnabled();
   return (
-    <Section tone="ivory" aria-label="Demander une démo" className="pb-24 pt-32 md:pb-32 md:pt-40">
+    <>
+    {live && (
+      <Section tone="ivory" aria-label="Explorer la démo" className="pb-4 pt-32 md:pt-40">
+        <Wide>
+          <div id="explorer" className="scroll-mt-28">
+            <Kicker>Démo en libre accès</Kicker>
+            <Title as="h1" size="lg" immediate className="mt-6 text-[clamp(2.2rem,4.6vw,4.8rem)]" lines={[['Explorez Centrium'], ['', { em: 'maintenant.' }]]} />
+            <Lead className="mt-5 max-w-2xl">Deux espaces prêts à l’emploi, sans inscription : celui d’une ESN et celui d’une consultante en mission.</Lead>
+            <div className="mt-10">
+              <DemoAccess />
+            </div>
+          </div>
+        </Wide>
+      </Section>
+    )}
+    <Section tone="ivory" aria-label="Demander une démo" className={live ? 'pb-24 pt-16 md:pb-32 md:pt-24' : 'pb-24 pt-32 md:pb-32 md:pt-40'}>
       <Wide className="grid gap-16 lg:grid-cols-[minmax(0,6fr)_minmax(0,6fr)] lg:gap-20">
         <div>
           <Kicker>Démo</Kicker>
-          <Title as="h1" size="lg" immediate className="mt-6 text-[clamp(2.4rem,5.4vw,6rem)]" lines={[['Voyez Centrium'], ['avec vos propres'], ['', { em: 'enjeux.' }]]} />
+          <Title as={live ? 'h2' : 'h1'} size="lg" immediate className="mt-6 text-[clamp(2.4rem,5.4vw,6rem)]" lines={[['Voyez Centrium'], ['avec vos propres'], ['', { em: 'enjeux.' }]]} />
           <Lead className="mt-6">Trois questions, puis nous revenons vers vous pour convenir d’un créneau.</Lead>
           <ul className="mt-10 border-t border-ink/15">
             {EXPECT.map((e, i) => (
@@ -48,5 +66,6 @@ export default function DemoPage() {
         </div>
       </Wide>
     </Section>
+    </>
   );
 }

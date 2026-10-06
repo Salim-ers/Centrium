@@ -104,6 +104,21 @@ for (const f of files) {
 }
 console.log(`Migrations : ${files.length - failures}/${files.length} OK`);
 
+// Seed de l'espace de démonstration : doit rester compatible avec le schéma
+// et rejouable (joué deux fois). Il ne touche que l'organisation de démo.
+const demoSeed = path.join(ROOT, 'supabase', 'seed', 'demo.sql');
+if (!process.argv[2] && fs.existsSync(demoSeed)) {
+  try {
+    const seed = fs.readFileSync(demoSeed, 'utf8');
+    await db.exec(seed);
+    await db.exec(seed);
+    console.log('Seed démo : OK (rejoué deux fois)');
+  } catch (e) {
+    failures++;
+    console.log(`FAIL seed démo : ${e.message}`);
+  }
+}
+
 for (const t of tests) {
   const sql = fs.readFileSync(t, 'utf8');
   try {
