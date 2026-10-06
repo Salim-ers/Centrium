@@ -27,7 +27,15 @@ export const TIMESHEET_STATUS: Record<string, StatusDef> = {
   draft: { label: { fr: 'Brouillon', en: 'Draft' }, tone: 'neutral' },
   submitted: { label: { fr: 'À valider', en: 'To approve' }, tone: 'warning' },
   client_validated: { label: { fr: 'Validé', en: 'Approved' }, tone: 'success' },
-  rejected: { label: { fr: 'Refusé', en: 'Rejected' }, tone: 'danger' },
+  rejected: { label: { fr: 'Renvoyé', en: 'Sent back' }, tone: 'danger' },
+};
+
+/** CRA vus par le consultant : le statut dit ce qu'il lui reste à faire. */
+export const CONSULTANT_TIMESHEET_STATUS: Record<string, StatusDef> = {
+  draft: { label: { fr: 'Brouillon', en: 'Draft' }, tone: 'neutral' },
+  submitted: { label: { fr: 'Envoyé', en: 'Sent' }, tone: 'info' },
+  client_validated: { label: { fr: 'Validé', en: 'Approved' }, tone: 'success' },
+  rejected: { label: { fr: 'À corriger', en: 'To fix' }, tone: 'danger' },
 };
 
 /**

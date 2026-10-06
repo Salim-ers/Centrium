@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import { loadTimesheets, previousPeriod, summarizeTimesheets, type TimesheetRow } from '@/lib/timesheets/approvals';
+import { loadTimesheets, missingExportRows, missionLabel, previousPeriod, summarizeTimesheets, timesheetExportRows, type TimesheetRow } from '@/lib/timesheets/approvals';
 
 // Client Supabase factice : chaque table renvoie ses lignes quels que soient
 // les filtres (le module filtre lui-même ce qui compte ici).
@@ -80,5 +80,29 @@ describe('loadTimesheets', () => {
     expect(data.rows).toHaveLength(2);
     // m1 a soumis ; m2 n'a qu'un brouillon ; m3 s'est terminée avant septembre.
     expect(data.missing).toEqual([{ mission_id: 'm2', title: 'Mission 2', consultant: 'Yanis Benali', client: null, month: 9, year: 2026 }]);
+  });
+});
+
+describe('CRA : libellés et export', () => {
+  it('ne répète pas le client déjà présent dans l’intitulé de mission', () => {
+    expect(missionLabel('Data engineer · Nordal Assurances', 'Nordal Assurances')).toBe('Data engineer · Nordal Assurances');
+    expect(missionLabel('Data engineer', 'Nordal Assurances')).toBe('Data engineer · Nordal Assurances');
+    expect(missionLabel('Data engineer', null)).toBe('Data engineer');
+    expect(missionLabel(null, 'Nordal')).toBe('Nordal');
+  });
+
+  it('exporte une ligne par CRA, jours validés seulement une fois validé', () => {
+    const out = timesheetExportRows([
+      row({ status: 'submitted', days_worked: 18, submitted_at: '2026-10-02T09:00:00Z' }),
+      row({ status: 'client_validated', days_worked: 20, days_validated: 19, validated_at: '2026-10-04T10:00:00Z' }),
+    ]);
+    expect(out[0]).toMatchObject({ jours_declares: 18, jours_valides: null, statut: 'À valider', soumis_le: '2026-10-02' });
+    expect(out[1]).toMatchObject({ jours_declares: 20, jours_valides: 19, statut: 'Validé', valide_le: '2026-10-04' });
+  });
+
+  it('exporte les CRA manquants avec leur période', () => {
+    expect(missingExportRows([{ mission_id: 'm1', title: 'Mission 1', consultant: 'Inès Morel', client: 'Nordal', month: 9, year: 2026 }])).toEqual([
+      { consultant: 'Inès Morel', mission: 'Mission 1', client: 'Nordal', periode: '2026-09' },
+    ]);
   });
 });

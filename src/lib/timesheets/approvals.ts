@@ -4,6 +4,7 @@
 // =========================================================================
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { fold } from '@/lib/utils/text';
 
 export type TimesheetRow = {
   id: string;
@@ -19,7 +20,14 @@ export type TimesheetRow = {
   client_approval_status?: string;
   rejection_reason: string | null;
   consultant: { first_name: string; last_name: string } | null;
-  mission: { title: string; company_id: string | null; companies: { name: string } | null } | null;
+  mission: {
+    title: string;
+    company_id: string | null;
+    /** Période de la mission, pour les contrôles du mois (jours attendus, hors mission). */
+    start_date?: string | null;
+    end_date?: string | null;
+    companies: { name: string } | null;
+  } | null;
 };
 
 export type MissingTimesheet = {
@@ -48,7 +56,7 @@ export async function loadTimesheets(supabase: SupabaseClient, orgId: string, to
   const [ts, missions] = await Promise.all([
     supabase
       .from('timesheets')
-      .select('*, consultant:consultants(first_name, last_name), mission:missions(title, company_id, companies(name))')
+      .select('*, consultant:consultants(first_name, last_name), mission:missions(title, company_id, start_date, end_date, companies(name))')
       .eq('organization_id', orgId)
       .eq('archived', false)
       .order('period_year', { ascending: false })
@@ -98,3 +106,35 @@ export function summarizeTimesheets(data: TimesheetsData, today = new Date()) {
 }
 
 export const consultantName = (r: Pick<TimesheetRow, 'consultant'>) => (r.consultant ? `${r.consultant.first_name} ${r.consultant.last_name}` : '—');
+
+/** « Data engineer · Nordal » — sans répéter le client déjà présent dans l'intitulé. */
+export function missionLabel(title: string | null | undefined, client: string | null | undefined): string {
+  const t = (title ?? '').trim();
+  const c = (client ?? '').trim();
+  if (!t) return c || '—';
+  if (!c || fold(t).includes(fold(c))) return t;
+  return `${t} · ${c}`;
+}
+
+const STATUS_FR: Record<string, string> = { draft: 'Brouillon', submitted: 'À valider', client_validated: 'Validé', rejected: 'Renvoyé', invoiced: 'Facturé' };
+
+/** CRA à exporter (vue courante), une ligne par CRA, colonnes en clair. */
+export function timesheetExportRows(rows: TimesheetRow[]): Array<Record<string, unknown>> {
+  return rows.map((r) => ({
+    consultant: consultantName(r),
+    mission: r.mission?.title ?? '',
+    client: r.mission?.companies?.name ?? '',
+    periode: `${r.period_year}-${pad(r.period_month)}`,
+    jours_declares: Number(r.days_worked || 0),
+    jours_valides: r.status === 'client_validated' ? Number(r.days_validated || 0) : null,
+    statut: STATUS_FR[r.status] ?? r.status,
+    soumis_le: r.submitted_at?.slice(0, 10) ?? null,
+    valide_le: r.validated_at?.slice(0, 10) ?? null,
+    motif_renvoi: r.rejection_reason ?? null,
+  }));
+}
+
+/** CRA manquants à exporter (relances). */
+export function missingExportRows(missing: MissingTimesheet[]): Array<Record<string, unknown>> {
+  return missing.map((m) => ({ consultant: m.consultant, mission: m.title, client: m.client ?? '', periode: `${m.year}-${pad(m.month)}` }));
+}

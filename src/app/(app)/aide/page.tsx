@@ -71,8 +71,8 @@ export default function AidePage() {
       title: isEn ? 'CRA (activity reports)' : 'CRA (comptes rendus d’activité)',
       steps: [
         isEn
-          ? 'A CRA is unique per mission and per month. Working days are pre-filled.'
-          : 'Un CRA est unique par mission et par mois. Les jours ouvrés sont pré-remplis.',
+          ? 'A CRA is unique per mission and per month. The mission working days are pre-filled, public holidays excluded; checks flag missing days before sending.'
+          : 'Un CRA est unique par mission et par mois. Les jours ouvrés de la mission sont pré-remplis, hors jours fériés ; des contrôles signalent les jours manquants avant l’envoi.',
         isEn
           ? 'The consultant submits, you approve. An approved CRA can generate the matching invoice.'
           : 'Le consultant soumet, tu valides. Un CRA validé peut générer la facture correspondante.',

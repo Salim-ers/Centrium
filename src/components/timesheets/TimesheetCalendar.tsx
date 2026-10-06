@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Briefcase, Home, Palmtree, HeartPulse, MinusCircle, Sparkles, Trash2 } from 'lucide-react';
 
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { inSpan, type MissionSpan } from '@/lib/timesheets/month';
 
 export type TimesheetDayKind =
   | 'worked'
@@ -39,6 +40,10 @@ type Props = {
    * de ne recharger qu'une seule fois. Fallback : onChange jour par jour.
    */
   onBatchChange?: (dayDates: string[], next: DayChange) => Promise<void> | void;
+  /** Légende et totaux sous la grille (masqués quand la page affiche son propre récapitulatif). */
+  legend?: boolean;
+  /** Période de la mission : les jours ouvrés hors période sont atténués. */
+  missionSpan?: MissionSpan;
 };
 
 /** Pinceau de remplissage rapide : un type + durée, ou "vider". */
@@ -109,6 +114,8 @@ type Cell = {
   dayNum: number | null;
   iso: string | null;
   isWeekend: boolean;
+  /** En dehors de la période de la mission. */
+  outside: boolean;
   data: CalendarDay | null;
 };
 
@@ -133,17 +140,20 @@ export function TimesheetCalendar({
   onChange,
   onBatchChange,
   primaryColor,
+  legend = true,
+  missionSpan = null,
 }: Props) {
   const { locale } = useLocale();
   const isEn = locale === 'en';
   const BRUSHES = useMemo(() => buildBrushes(isEn), [isEn]);
-  const cells = useMemo(() => buildCells(year, month, days), [year, month, days]);
+  const cells = useMemo(() => buildCells(year, month, days, missionSpan), [year, month, days, missionSpan]);
   const [openIso, setOpenIso] = useState<string | null>(null);
 
-  // ============ Pinceau + clic-glissé multi-jours ============
+  // ============ Pinceau + glissé multi-jours ============
   // brush = null → comportement historique (clic = popover jour par jour).
-  // brush actif → mousedown/mouseenter peignent les jours, mouseup commit
-  // le lot en un seul batch (une seule sauvegarde, un seul reload).
+  // brush actif → pointerdown puis glissé (souris ou doigt) peignent les
+  // jours, pointerup commit le lot en un seul batch (une seule sauvegarde,
+  // un seul reload).
   const [brush, setBrush] = useState<Brush | null>(null);
   const [painting, setPainting] = useState(false);
   const [pending, setPending] = useState<Set<string>>(new Set());
@@ -172,8 +182,12 @@ export function TimesheetCalendar({
       }
     }
     const up = () => void commit();
-    window.addEventListener('mouseup', up);
-    return () => window.removeEventListener('mouseup', up);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    return () => {
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    };
   }, [painting, pending, brush, onBatchChange, onChange]);
 
   function startPaint(iso: string) {
@@ -184,6 +198,14 @@ export function TimesheetCalendar({
   function paintEnter(iso: string) {
     if (!painting) return;
     setPending((prev) => (prev.has(iso) ? prev : new Set(prev).add(iso)));
+  }
+  // Au doigt, le pointeur reste capturé par la première case : on retrouve
+  // la case survolée par sa position.
+  function paintMove(e: React.PointerEvent) {
+    if (!painting) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>('[data-paint-iso]');
+    const iso = el?.dataset.paintIso;
+    if (iso) paintEnter(iso);
   }
 
   // Totaux
@@ -217,46 +239,52 @@ export function TimesheetCalendar({
       {/* Barre de remplissage rapide : choisis un type, puis clique OU
           clique-glisse sur les jours pour les remplir en lot. */}
       {editable && (
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-            {isEn ? 'Quick fill' : 'Remplissage rapide'}
-          </span>
-          {BRUSHES.map((b) => {
-            const BI = b.icon;
-            const active = brush?.id === b.id;
-            return (
-              <button
-                key={b.id}
-                type="button"
-                onClick={() => setBrush(active ? null : b)}
-                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
-                  active
-                    ? `${b.activeClass} ring-1 ring-current/30`
-                    : 'border-hairline text-muted-foreground hover-surface hover:text-foreground'
-                }`}
-                title={
-                  active
-                    ? isEn ? 'Disable the brush' : 'Désactiver le pinceau'
-                    : isEn ? 'Select then click-drag over the days' : 'Sélectionner puis cliquer-glisser sur les jours'
-                }
-              >
-                <BI className="h-3 w-3" />
-                {b.label}
-              </button>
-            );
-          })}
-          <span className="ml-1 text-[11px] text-muted-foreground">
-            {saving
-              ? isEn ? 'Saving…' : 'Enregistrement…'
-              : brush
-                ? isEn ? 'Click or drag over the days to fill' : 'Clique ou glisse sur les jours à remplir'
-                : ''}
-          </span>
+        <div className="space-y-1.5">
+          {/* Une ligne qui défile sur mobile, plusieurs lignes au-delà. */}
+          <div className="-mx-1 flex items-center gap-1.5 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
+            <span className="mr-1 hidden shrink-0 text-[10px] uppercase tracking-[0.14em] text-muted-foreground sm:inline">
+              {isEn ? 'Quick fill' : 'Remplissage rapide'}
+            </span>
+            {BRUSHES.map((b) => {
+              const BI = b.icon;
+              const active = brush?.id === b.id;
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setBrush(active ? null : b)}
+                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
+                    active
+                      ? `${b.activeClass} ring-1 ring-current/30`
+                      : 'border-hairline text-muted-foreground hover-surface hover:text-foreground'
+                  }`}
+                  title={
+                    active
+                      ? isEn ? 'Disable the brush' : 'Désactiver le pinceau'
+                      : isEn ? 'Select, then tap or drag over the days' : 'Sélectionner, puis toucher ou glisser sur les jours'
+                  }
+                >
+                  <BI className="h-3 w-3" />
+                  {b.label}
+                </button>
+              );
+            })}
+          </div>
+          {(saving || brush) && (
+            <p className="text-[11.5px] text-muted-foreground" aria-live="polite">
+              {saving
+                ? isEn ? 'Saving…' : 'Enregistrement…'
+                : isEn
+                  ? `“${brush!.label}”: tap or drag over the days, then tap the button again to stop.`
+                  : `« ${brush!.label} » : touchez ou glissez sur les jours, puis touchez à nouveau le bouton pour arrêter.`}
+            </p>
+          )}
         </div>
       )}
 
       {/* En-têtes jours */}
-      <div className="grid grid-cols-7 gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+      <div className="grid grid-cols-7 gap-1 text-[10px] uppercase tracking-wider text-muted-foreground sm:gap-1.5">
         {(isEn
           ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
           : ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
@@ -268,10 +296,11 @@ export function TimesheetCalendar({
       </div>
 
       {/* Grille jours */}
-      <div className={`grid grid-cols-7 gap-1.5 ${brush ? 'select-none' : ''}`}>
+      <div className={`grid grid-cols-7 gap-1 sm:gap-1.5 ${brush ? 'touch-none select-none' : ''}`} onPointerMove={paintMove}>
         {cells.map((cell, i) => (
           <CalendarCell
             key={i}
+            col={i % 7}
             cell={cell}
             editable={!!editable && cell.dayNum !== null && !cell.isWeekend}
             isOpen={openIso !== null && openIso === cell.iso}
@@ -289,6 +318,7 @@ export function TimesheetCalendar({
       </div>
 
       {/* Légende + totaux */}
+      {legend && (
       <div className="flex items-center justify-between gap-3 flex-wrap text-xs pt-2">
         <div className="flex items-center gap-3 flex-wrap">
           {(Object.keys(KIND_META) as TimesheetDayKind[]).map((k) => {
@@ -311,11 +341,13 @@ export function TimesheetCalendar({
           })}
         </div>
       </div>
+      )}
     </div>
   );
 }
 
 function CalendarCell({
+  col,
   cell,
   editable,
   isOpen,
@@ -329,6 +361,8 @@ function CalendarCell({
   onPaintStart,
   onPaintEnter,
 }: {
+  /** Colonne (0 = lundi) : le menu du jour s'aligne pour ne pas sortir de l'écran. */
+  col: number;
   cell: Cell;
   editable: boolean;
   isOpen: boolean;
@@ -373,7 +407,9 @@ function CalendarCell({
     pendingPreview ??
     (meta
       ? `${baseClasses} ${meta.border} ${meta.bg} ${meta.text}`
-      : `${baseClasses} border-hairline surface-1 text-muted-foreground`);
+      : cell.outside
+        ? `${baseClasses} border-dashed border-hairline bg-transparent text-muted-foreground/50`
+        : `${baseClasses} border-hairline surface-1 text-muted-foreground`);
 
   const interactive = editable
     ? brush
@@ -396,17 +432,18 @@ function CalendarCell({
           // Pinceau actif → le clic est géré par mousedown/mouseup (paint).
           if (editable && !brush) onOpen();
         }}
-        onMouseDown={(e) => {
+        onPointerDown={(e) => {
           if (!editable || !brush || !cell.iso) return;
           e.preventDefault();
           onPaintStart(cell.iso);
         }}
-        onMouseEnter={() => {
+        onPointerEnter={() => {
           if (!editable || !brush || !cell.iso) return;
           onPaintEnter(cell.iso);
         }}
+        data-paint-iso={editable && cell.iso ? cell.iso : undefined}
         className={`${cellClasses} ${interactive} w-full text-left`}
-        aria-label={`${cell.iso} — ${(cell.data ? kindLabel(cell.data.kind, isEn) : null) ?? (isEn ? 'empty' : 'vide')}`}
+        aria-label={`${cell.iso} — ${(cell.data ? kindLabel(cell.data.kind, isEn) : null) ?? (cell.outside ? (isEn ? 'outside the mission' : 'hors mission') : isEn ? 'empty' : 'vide')}`}
         title={
           brush
             ? isEn ? `Apply "${brush.label}"` : `Appliquer « ${brush.label} »`
@@ -434,10 +471,17 @@ function CalendarCell({
             {kindLabel(cell.data.kind, isEn)}
           </div>
         )}
+        {!cell.data && cell.outside && (
+          <div className="hidden self-end text-[8px] uppercase tracking-wider sm:block">{isEn ? 'Off mission' : 'Hors mission'}</div>
+        )}
       </button>
 
       {isOpen && (
-        <div className="absolute z-30 top-full left-1/2 -translate-x-1/2 mt-1 w-44 rounded-lg border border-hairline bg-card shadow-2xl overflow-hidden">
+        <div
+          className={`absolute z-30 top-full mt-1 w-44 rounded-lg border border-hairline bg-card shadow-2xl overflow-hidden ${
+            col <= 1 ? 'left-0' : col >= 5 ? 'right-0' : 'left-1/2 -translate-x-1/2'
+          }`}
+        >
           {(Object.keys(KIND_META) as TimesheetDayKind[]).map((k) => {
             const km = KIND_META[k];
             const KI = km.icon;
@@ -447,7 +491,7 @@ function CalendarCell({
                 key={k}
                 type="button"
                 onClick={() => handlePick(k, k === 'worked' ? 1 : undefined)}
-                className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted ${km.text} ${isCurrent ? 'bg-card' : ''}`}
+                className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs sm:py-2 hover:bg-muted ${km.text} ${isCurrent ? 'bg-card' : ''}`}
               >
                 <KI className="h-3.5 w-3.5" />
                 <span className="flex-1 text-left">{kindLabel(k, isEn)}</span>
@@ -459,7 +503,7 @@ function CalendarCell({
           <button
             type="button"
             onClick={() => handlePick('worked', 1, true)}
-            className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted border-t border-hairline ${KIND_META.worked.text}`}
+            className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs sm:py-2 hover:bg-muted border-t border-hairline ${KIND_META.worked.text}`}
           >
             <Home className="h-3.5 w-3.5" />
             <span className="flex-1 text-left">{isEn ? 'Remote' : 'Télétravail'}</span>
@@ -469,7 +513,7 @@ function CalendarCell({
           <button
             type="button"
             onClick={() => handlePick('worked', 0.5)}
-            className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted text-primary border-t border-hairline"
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-xs sm:py-2 hover:bg-muted text-primary border-t border-hairline"
           >
             <Briefcase className="h-3.5 w-3.5" />
             <span className="flex-1 text-left">{isEn ? 'Half day' : 'Demi-journée'}</span>
@@ -482,7 +526,7 @@ function CalendarCell({
             <button
               type="button"
               onClick={() => handlePick(null)}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-destructive/10 text-destructive border-t border-hairline"
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-xs sm:py-2 hover:bg-destructive/10 text-destructive border-t border-hairline"
             >
               <Trash2 className="h-3.5 w-3.5" />
               <span className="flex-1 text-left">{isEn ? 'Clear' : 'Vider'}</span>
@@ -494,7 +538,7 @@ function CalendarCell({
   );
 }
 
-function buildCells(year: number, month: number, days: CalendarDay[]): Cell[] {
+function buildCells(year: number, month: number, days: CalendarDay[], span: MissionSpan): Cell[] {
   const firstDay = new Date(year, month - 1, 1);
   const daysInMonth = new Date(year, month, 0).getDate();
   const firstIso = ((firstDay.getDay() + 6) % 7) + 1; // Lun=1..Dim=7
@@ -505,7 +549,7 @@ function buildCells(year: number, month: number, days: CalendarDay[]): Cell[] {
 
   const cells: Cell[] = [];
   for (let i = 0; i < leading; i++) {
-    cells.push({ dayNum: null, iso: null, isWeekend: false, data: null });
+    cells.push({ dayNum: null, iso: null, isWeekend: false, outside: false, data: null });
   }
   for (let d = 1; d <= daysInMonth; d++) {
     const iso = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
@@ -515,11 +559,12 @@ function buildCells(year: number, month: number, days: CalendarDay[]): Cell[] {
       dayNum: d,
       iso,
       isWeekend,
+      outside: !inSpan(iso, span),
       data: byDate.get(iso) ?? null,
     });
   }
   while (cells.length % 7 !== 0) {
-    cells.push({ dayNum: null, iso: null, isWeekend: false, data: null });
+    cells.push({ dayNum: null, iso: null, isWeekend: false, outside: false, data: null });
   }
   return cells;
 }

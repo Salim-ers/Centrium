@@ -31,6 +31,8 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { TimesheetDocument, type TimesheetIssuer } from '@/components/timesheets/TimesheetDocument';
+import { MonthChecks } from '@/components/timesheets/MonthChecks';
+import { monthChecks } from '@/lib/timesheets/month';
 import {
   TimesheetCalendar,
   type DayChange,
@@ -294,7 +296,7 @@ export default function TimesheetDetailPage() {
               className="border-destructive/40 text-destructive hover:bg-destructive/10"
             >
               <XCircle className="h-4 w-4" />
-              {isEn ? 'Reject' : 'Refuser'}
+              {isEn ? 'Send back' : 'Renvoyer'}
             </Button>
           )}
           {timesheet.status !== 'client_validated' && (
@@ -391,11 +393,19 @@ export default function TimesheetDetailPage() {
               </div>
             </div>
           </div>
+          {(timesheet.status === 'submitted' || timesheet.status === 'draft') && (
+            <MonthChecks
+              className="mb-4"
+              checks={monthChecks(timesheet.period_year, timesheet.period_month, detail.mission ? { start_date: detail.mission.start_date, end_date: detail.mission.end_date } : null, detail.days)}
+              okText={isEn ? 'Nothing to flag: every working day of the mission is filled in.' : 'Rien à signaler : chaque jour ouvré de la mission est renseigné.'}
+            />
+          )}
           <TimesheetCalendar
             year={timesheet.period_year}
             month={timesheet.period_month}
             days={detail.days}
             editable={calendarEditable}
+            missionSpan={detail.mission ? { start_date: detail.mission.start_date, end_date: detail.mission.end_date } : null}
             onChange={handleDayChange}
             onBatchChange={handleBatchDayChange}
             primaryColor={branding?.primaryColor ?? undefined}
@@ -414,12 +424,12 @@ export default function TimesheetDetailPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <XCircle className="h-5 w-5 text-destructive" />
-              {isEn ? 'Reject this timesheet' : 'Refuser ce CRA'}
+              {isEn ? 'Send this timesheet back' : 'Renvoyer ce CRA au consultant'}
             </DialogTitle>
             <DialogDescription>
               {isEn
                 ? 'The consultant will receive an email with your reason, will be able to correct their timesheet from their portal and submit it again.'
-                : 'Le consultant recevra un email avec ta raison, pourra corriger son CRA depuis son portail et le soumettre à nouveau.'}
+                : 'Le consultant recevra un e-mail avec le motif, pourra corriger son CRA depuis son portail et le renvoyer.'}
             </DialogDescription>
           </DialogHeader>
           <Textarea
@@ -453,7 +463,7 @@ export default function TimesheetDetailPage() {
                   );
                   const body = await res.json().catch(() => ({}));
                   if (!res.ok) {
-                    toast.error(body.message ?? (isEn ? 'Rejection failed' : 'Refus impossible'));
+                    toast.error(body.message ?? (isEn ? 'Could not send back' : 'Renvoi impossible'));
                     return;
                   }
                   setRejectOpen(false);
@@ -465,7 +475,7 @@ export default function TimesheetDetailPage() {
               className="border-destructive/40 text-destructive hover:bg-destructive/10"
             >
               {rejecting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isEn ? 'Reject and request correction' : 'Refuser et demander correction'}
+              {isEn ? 'Send back for correction' : 'Renvoyer pour correction'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { BellRing, Check, CheckCheck, ClipboardCheck, ClipboardX, Eye, Plus, Search, Send, X } from 'lucide-react';
+import { BellRing, Check, CheckCheck, ClipboardCheck, ClipboardX, Download, Eye, Plus, Search, Send, X } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader } from '@/components/app';
@@ -32,7 +32,8 @@ import { useRealtimeReload } from '@/hooks/useRealtimeReload';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { createClient } from '@/lib/supabase/client';
 import { timesheetService } from '@/lib/services';
-import { consultantName, loadTimesheets, previousPeriod, summarizeTimesheets, type MissingTimesheet, type TimesheetRow, type TimesheetsData } from '@/lib/timesheets/approvals';
+import { consultantName, loadTimesheets, missingExportRows, missionLabel, previousPeriod, summarizeTimesheets, timesheetExportRows, type MissingTimesheet, type TimesheetRow, type TimesheetsData } from '@/lib/timesheets/approvals';
+import { toDelimited } from '@/lib/finance/export-format';
 import { TIMESHEET_STATUS, periodLabel, periodLabelShort, statusOf } from '@/lib/status';
 import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -72,7 +73,7 @@ export default function TimesheetsPage() {
   const [createOpen, setCreateOpen] = useState(params.get('new') === '1');
 
   const { data, loading, reload } = useCachedQuery<TimesheetsData>(
-    `timesheets-v2:${activeOrgId ?? 'none'}`,
+    `timesheets-v3:${activeOrgId ?? 'none'}`,
     () => loadTimesheets(createClient(), activeOrgId!),
     { enabled: !!activeOrgId },
   );
@@ -108,6 +109,26 @@ export default function TimesheetsPage() {
 
   const selectedRows = rows.filter((r) => selected.has(r.id) && r.status === 'submitted');
   const selectedDays = selectedRows.reduce((s, r) => s + Number(r.days_worked || 0), 0);
+
+  /** Export CSV de la vue affichée (à valider, manquants ou tous, filtres compris). */
+  function exportView() {
+    const out = view === 'missing' ? missingExportRows(missing) : timesheetExportRows(rows);
+    if (out.length === 0) {
+      toast.error(fr ? 'Rien à exporter dans cette vue' : 'Nothing to export in this view');
+      return;
+    }
+    // BOM UTF-8 : accents corrects à l'ouverture dans Excel.
+    const blob = new Blob(['\uFEFF' + toDelimited(out)], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cra-${view === 'missing' ? 'manquants' : view === 'pending' ? 'a-valider' : 'tous'}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showBrandToast('success', fr ? 'Export prêt' : 'Export ready', { description: fr ? `${out.length} ligne${out.length > 1 ? 's' : ''}` : `${out.length} row${out.length > 1 ? 's' : ''}` });
+  }
 
   function notifyValidated(id: string) {
     void fetch(`/api/timesheets/${id}/transition`, {
@@ -249,8 +270,7 @@ export default function TimesheetsPage() {
       sortValue: (r) => r.mission?.title ?? '',
       cell: (r) => (
         <span className="block min-w-0 max-w-[15rem] truncate text-[13px] text-muted-foreground xl:max-w-[20rem] 2xl:max-w-[28rem]">
-          {r.mission?.title ?? '—'}
-          {r.mission?.companies?.name ? ` · ${r.mission.companies.name}` : ''}
+          {missionLabel(r.mission?.title, r.mission?.companies?.name)}
         </span>
       ),
     },
@@ -423,18 +443,24 @@ export default function TimesheetsPage() {
             })}
           </Select>
         )}
-        {view === 'pending' && canValidate && rows.length > 1 && selected.size === 0 && (
-          <Button variant="secondary" className="sm:ml-auto" onClick={() => setSelected(new Set(rows.map((r) => r.id)))}>
-            <CheckCheck />
-            {fr ? 'Tout sélectionner' : 'Select all'}
+        <div className="flex flex-wrap gap-2 sm:ml-auto">
+          {view === 'pending' && canValidate && rows.length > 1 && selected.size === 0 && (
+            <Button variant="secondary" onClick={() => setSelected(new Set(rows.map((r) => r.id)))}>
+              <CheckCheck />
+              {fr ? 'Tout sélectionner' : 'Select all'}
+            </Button>
+          )}
+          {view === 'missing' && canValidate && missing.length > 1 && (
+            <Button variant="secondary" onClick={() => void remindAll()} loading={bulkBusy}>
+              <BellRing />
+              {fr ? `Relancer les ${missing.length}` : `Remind all ${missing.length}`}
+            </Button>
+          )}
+          <Button variant="ghost" onClick={exportView} title={fr ? 'Exporter la vue affichée (CSV, filtres compris)' : 'Export the current view (CSV, filters included)'}>
+            <Download />
+            {fr ? 'Exporter' : 'Export'}
           </Button>
-        )}
-        {view === 'missing' && canValidate && missing.length > 1 && (
-          <Button variant="secondary" className="sm:ml-auto" onClick={() => void remindAll()} loading={bulkBusy}>
-            <BellRing />
-            {fr ? `Relancer les ${missing.length}` : `Remind all ${missing.length}`}
-          </Button>
-        )}
+        </div>
       </div>
 
       {view === 'pending' && selectedRows.length > 0 && canValidate && (
@@ -473,9 +499,8 @@ export default function TimesheetsPage() {
                     <div className="truncate text-[13.5px] font-medium">{m.consultant}</div>
                     <div className="truncate text-xs text-muted-foreground">
                       <Link href={`/missions/${m.mission_id}`} className="hover:text-foreground">
-                        {m.title}
+                        {missionLabel(m.title, m.client)}
                       </Link>
-                      {m.client ? ` · ${m.client}` : ''}
                     </div>
                   </div>
                   <span className="text-[13px] capitalize text-muted-foreground">{periodLabel(m.month, m.year, lang)}</span>

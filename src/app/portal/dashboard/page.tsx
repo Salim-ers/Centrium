@@ -13,7 +13,8 @@ import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { fetchMyMissions, fetchMyProfile, type PortalProfile } from '@/lib/portal/consultant-data';
 import { availabilityOf, craOverview, type Availability } from '@/lib/portal/consultant-home';
 import { REMOTE_POLICY_LABEL, type RemotePolicy } from '@/lib/validators/v2';
-import { TIMESHEET_STATUS, periodLabel, statusOf } from '@/lib/status';
+import { CONSULTANT_TIMESHEET_STATUS, periodLabel, statusOf } from '@/lib/status';
+import { fold } from '@/lib/utils/text';
 import { formatDate } from '@/lib/format';
 import { daysUntil, iso } from '@/lib/pilotage/metrics';
 import { cn } from '@/lib/utils';
@@ -112,7 +113,9 @@ export default function PortalDashboardPage() {
             <>
               <Link href={`/portal/missions/${current.id}`} className="-mx-1 block rounded-lg px-1 py-0.5 hover:bg-muted/40">
                 <div className="text-[15px] font-semibold leading-snug">{current.title}</div>
-                {current.company_name && <div className="text-[13px] text-muted-foreground">{current.company_name}</div>}
+                {current.company_name && !fold(current.title).includes(fold(current.company_name)) && (
+                  <div className="text-[13px] text-muted-foreground">{current.company_name}</div>
+                )}
               </Link>
               <ul className="space-y-1 text-[12.5px] text-muted-foreground">
                 <li className="flex items-center gap-1.5">
@@ -177,7 +180,7 @@ export default function PortalDashboardPage() {
             <p className="text-[13.5px] text-muted-foreground">{fr ? 'Aucun CRA à remplir ce mois-ci.' : 'No timesheet to fill in this month.'}</p>
           )}
           {cra.current.map(({ mission, sheet }) => {
-            const st = sheet ? statusOf(TIMESHEET_STATUS, sheet.status, lang) : null;
+            const st = sheet ? statusOf(CONSULTANT_TIMESHEET_STATUS, sheet.status, lang) : null;
             const editable = !sheet || sheet.status === 'draft' || sheet.status === 'rejected';
             return (
               <div key={mission.id} className="space-y-2.5">

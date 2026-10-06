@@ -26,6 +26,7 @@ import type {
   TimesheetInput,
   JobOfferInput,
 } from '@/lib/validators';
+import { prefillCorrections, type MissionSpan, type MonthDay } from '@/lib/timesheets/month';
 
 // =========================================================================
 // Helpers anti-doublon
@@ -944,10 +945,10 @@ export const timesheetService = {
 
   async create(input: TimesheetInput, organizationId: string): Promise<ServiceResult<Timesheet>> {
     const supabase = createClient();
-    // Récupérer consultant_id depuis la mission
+    // Récupérer consultant_id (et la période, pour le pré-remplissage) depuis la mission
     const { data: mission } = await supabase
       .from('missions')
-      .select('consultant_id')
+      .select('consultant_id, start_date, end_date')
       .eq('id', input.mission_id)
       .single();
     if (!mission) return { data: null, error: new Error('Mission introuvable') };
@@ -976,6 +977,12 @@ export const timesheetService = {
         };
       }
       return { data: null, error };
+    }
+    // Pré-remplissage aligné sur la mission ; un échec ici n'annule pas la création.
+    const aligned = await timesheetService.alignPrefill((data as Timesheet).id, { start_date: mission.start_date, end_date: mission.end_date });
+    if (aligned.data && aligned.data.cleared + aligned.data.holidays > 0) {
+      const { data: fresh } = await supabase.from('timesheets').select().eq('id', (data as Timesheet).id).maybeSingle();
+      if (fresh) return { data: fresh as Timesheet, error: null };
     }
     return { data: data as Timesheet, error: null };
   },
@@ -1099,6 +1106,32 @@ export const timesheetService = {
       },
       error: null,
     };
+  },
+
+  /**
+   * Aligne le pré-remplissage d'un CRA qui vient d'être créé sur sa mission :
+   * le trigger de la migration 026 marque tous les jours ouvrés du mois
+   * « travaillé » ; on retire ceux hors période et on passe les jours fériés
+   * en « férié ». Le trigger de recalcul remet days_worked à jour.
+   */
+  async alignPrefill(timesheetId: string, span: MissionSpan): Promise<ServiceResult<{ cleared: number; holidays: number }>> {
+    const supabase = createClient();
+    const { data, error } = await supabase.from('timesheet_days').select('day_date, kind, duration').eq('timesheet_id', timesheetId);
+    if (error) return { data: null, error };
+    const { clear, holidays } = prefillCorrections(span, (data ?? []) as MonthDay[]);
+    if (clear.length) {
+      const res = await supabase.from('timesheet_days').delete().eq('timesheet_id', timesheetId).in('day_date', clear);
+      if (res.error) return { data: null, error: res.error };
+    }
+    if (holidays.length) {
+      const res = await supabase
+        .from('timesheet_days')
+        .update({ kind: 'holiday', duration: 0, is_remote: false })
+        .eq('timesheet_id', timesheetId)
+        .in('day_date', holidays);
+      if (res.error) return { data: null, error: res.error };
+    }
+    return { data: { cleared: clear.length, holidays: holidays.length }, error: null };
   },
 
   /**
