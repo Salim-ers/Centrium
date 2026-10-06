@@ -2,7 +2,6 @@
 
 import { Download, FileText } from 'lucide-react';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
@@ -30,7 +29,7 @@ function size(n: number | null) {
  * les téléchargements passent par des routes serveur qui vérifient le
  * rattachement et la visibilité (`endpoint` + `/:id`).
  */
-export function SharedDocumentsList({ endpoint, cacheKey }: { endpoint: string; cacheKey: string }) {
+export function SharedDocumentsList({ endpoint, cacheKey, title }: { endpoint: string; cacheKey: string; title?: string }) {
   const { locale } = useLocale();
   const lang = locale === 'en' ? 'en' : 'fr';
   const fr = lang === 'fr';
@@ -42,29 +41,30 @@ export function SharedDocumentsList({ endpoint, cacheKey }: { endpoint: string; 
   });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{fr ? 'Documents partagés avec vous' : 'Documents shared with you'}</CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
+    <section aria-labelledby="shared-docs" className="space-y-2">
+      <h2 id="shared-docs" className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {title ?? (fr ? 'Documents partagés avec vous' : 'Documents shared with you')}
+      </h2>
+      <div className="overflow-hidden rounded-2xl border border-border bg-card">
         {loading && !data ? (
-          <div className="space-y-2 p-5">
+          <div className="space-y-2 p-4">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
           </div>
         ) : !data?.length ? (
-          <p className="px-5 pb-5 text-[13px] text-muted-foreground">{fr ? 'Aucun document partagé pour le moment.' : 'No shared documents yet.'}</p>
+          <p className="px-4 py-4 text-[13px] text-muted-foreground">{fr ? 'Aucun document partagé pour le moment.' : 'No shared documents yet.'}</p>
         ) : (
-          <ul className="divide-y divide-border border-t border-border">
+          <ul className="divide-y divide-border">
             {data.map((d) => (
               <li key={d.id}>
-                <a href={`${endpoint}/${d.id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/50">
+                <a href={`${endpoint}/${d.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40">
                   <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13.5px] font-medium">{d.title}</span>
                     <span className="block truncate text-[12px] text-muted-foreground">
-                      {DOCUMENT_KIND[d.kind]?.[lang] ?? d.kind} · {formatDate(d.created_at, lang)}
-                      {d.size_bytes ? ` · ${size(d.size_bytes)}` : ''}
+                      {[d.kind !== 'other' ? (DOCUMENT_KIND[d.kind]?.[lang] ?? d.kind) : null, formatDate(d.created_at, lang), d.size_bytes ? size(d.size_bytes) : null]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </span>
                   </span>
                   <Download className="h-4 w-4 shrink-0 text-primary-deep" aria-label={fr ? 'Télécharger' : 'Download'} />
@@ -73,7 +73,7 @@ export function SharedDocumentsList({ endpoint, cacheKey }: { endpoint: string; 
             ))}
           </ul>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

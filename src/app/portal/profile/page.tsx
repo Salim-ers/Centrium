@@ -1,55 +1,42 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { toast } from 'sonner';
-import {
-  Mail,
-  Phone,
-  Linkedin,
-  MapPin,
-  Pencil,
-  Plus,
-  Save,
-  Trash2,
-  X,
-  Loader2,
-  Briefcase,
-  AlertTriangle,
-  Languages,
-  Building2,
-} from 'lucide-react';
+import { AlertTriangle, CalendarClock, ChevronRight, FileText, Languages, Linkedin, Loader2, Mail, MapPin, Pencil, Phone, Plus, Save, Trash2, X } from 'lucide-react';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  PageHeader,
-  SectionHeader,
-  AppCard,
-  AppCardBody,
-  Reveal,
-} from '@/components/app';
-import { createClient } from '@/lib/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
+import { showBrandToast } from '@/components/ui/BrandToast';
 import { useBrandName } from '@/components/brand/BrandingStyles';
+import { ConsultantCompleteness } from '@/components/consultants/ConsultantCompleteness';
+import { createClient } from '@/lib/supabase/client';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
-import { formatDate } from '@/lib/utils';
-import {
-  CONSULTANT_STATUS_STYLE,
-} from '@/constants';
-import { fetchMyProfile, type PortalProfile } from '@/lib/portal/consultant-data';
 import { useOrganization } from '@/lib/auth/context';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { useConsultantStatusLabels, useSeniorityLabels } from '@/lib/i18n/useBadges';
-import { KycDocuments } from '@/components/consultants/KycDocuments';
-import { ConsultantCompleteness } from '@/components/consultants/ConsultantCompleteness';
-import { ConsultantSelfDocuments } from '@/components/portal/ConsultantSelfDocuments';
+import { useSeniorityLabels } from '@/lib/i18n/useBadges';
+import { fetchMyMissions, fetchMyProfile, isIndependent, type PortalProfile } from '@/lib/portal/consultant-data';
+import { availabilityOf } from '@/lib/portal/consultant-home';
+import { availabilityDisplay } from '@/lib/portal/mission-phase-label';
+import { CONTRACT_TYPE_LABEL } from '@/lib/status';
+import { formatDate } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import type { PortalMission } from '@/types';
 import { usePortalConsultant } from '../portal-context';
 
 type LangRow = { code: string; level: string };
 
 const LANG_LEVELS = ['Natif', 'Bilingue', 'Courant', 'Professionnel', 'Intermédiaire', 'Notions'];
+const LEVEL_EN: Record<string, string> = {
+  Natif: 'Native',
+  Bilingue: 'Bilingual',
+  Courant: 'Fluent',
+  Professionnel: 'Professional',
+  Intermédiaire: 'Intermediate',
+  Notions: 'Basics',
+};
 
 type EditableForm = {
   email: string;
@@ -79,7 +66,7 @@ function emptyForm(): EditableForm {
   };
 }
 
-/** Form pré-rempli depuis la fiche consultant (partagé load/cancel). */
+/** Formulaire pré-rempli depuis la fiche (partagé chargement / annulation). */
 function formFromConsultant(c: PortalProfile): EditableForm {
   return {
     email: c.email ?? '',
@@ -101,28 +88,28 @@ function formFromConsultant(c: PortalProfile): EditableForm {
   };
 }
 
+/**
+ * Mon profil : identité et disponibilité (tenues par l'ESN), puis ce que le
+ * consultant met à jour lui-même : coordonnées, société et facturation
+ * (indépendants), langues. Les documents vivent dans « Mes documents ».
+ */
 export default function PortalProfilePage() {
-  const { consultantId, userId } = usePortalConsultant();
+  const { consultantId } = usePortalConsultant();
   const { activeOrgId } = useOrganization();
   const brandName = useBrandName();
   const { locale } = useLocale();
-  const isEn = locale === 'en';
-  const statusLabels = useConsultantStatusLabels();
+  const lang = locale === 'en' ? 'en' : 'fr';
+  const fr = lang === 'fr';
   const seniorityLabels = useSeniorityLabels();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<EditableForm>(emptyForm());
 
-  const {
-    data: consultant,
-    loading,
-    setData: setConsultant,
-  } = useCachedQuery<PortalProfile | null>(`portal-profile:${consultantId}`, () => fetchMyProfile(createClient()));
+  const { data: consultant, loading, setData: setConsultant } = useCachedQuery<PortalProfile | null>(`portal-profile:${consultantId}`, () => fetchMyProfile(createClient()));
+  const { data: missions } = useCachedQuery<PortalMission[]>(`portal-missions:${consultantId}`, () => fetchMyMissions(createClient()));
 
   useEffect(() => {
-    if (consultant && !editing) {
-      setForm(formFromConsultant(consultant));
-    }
+    if (consultant && !editing) setForm(formFromConsultant(consultant));
   }, [consultant, editing]);
 
   async function save() {
@@ -131,25 +118,29 @@ export default function PortalProfilePage() {
       const res = await fetch('/api/portal/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          // Ignore les lignes langue incomplètes (code < 2 caractères)
-          languages: form.languages.filter((l) => l.code.trim().length >= 2),
-        }),
+        // Les lignes de langue incomplètes (code de moins de 2 caractères) sont ignorées.
+        body: JSON.stringify({ ...form, languages: form.languages.filter((l) => l.code.trim().length >= 2) }),
       });
-      const body = await res.json().catch(() => ({}));
+      const body = (await res.json().catch(() => ({}))) as { data?: PortalProfile; message?: string; details?: { fieldErrors?: Record<string, string[]> } };
       if (!res.ok) {
-        toast.error(body.message ?? (isEn ? 'Unable to update' : 'Mise à jour impossible'));
+        const firstField = body.details?.fieldErrors ? Object.values(body.details.fieldErrors).flat()[0] : null;
+        toast.error(firstField ?? body.message ?? (fr ? 'Mise à jour impossible' : 'Unable to update'));
         return;
       }
-      toast.success(isEn ? 'Profile updated' : 'Profil mis à jour');
       setConsultant(body.data as PortalProfile);
       setEditing(false);
+      showBrandToast('success', fr ? 'Profil enregistré' : 'Profile saved');
     } catch {
-      toast.error(isEn ? 'Network error' : 'Erreur réseau');
+      toast.error(fr ? 'Erreur réseau. Réessayez.' : 'Network error. Please try again.');
     } finally {
       setSaving(false);
     }
+  }
+
+  /** Ouvre l'édition et amène les champs à l'écran (sur mobile, ils sont sous l'identité). */
+  function startEditing() {
+    setEditing(true);
+    requestAnimationFrame(() => document.getElementById('profile-contact')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   }
 
   function cancel() {
@@ -157,504 +148,354 @@ export default function PortalProfilePage() {
     setEditing(false);
   }
 
-  if (loading) return <div className="h-60 rounded-2xl bg-foreground/[0.03] animate-pulse" />;
-  if (!consultant) return <p className="text-muted-foreground">{isEn ? 'Profile not found.' : 'Profil introuvable.'}</p>;
+  if (loading && !consultant) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-3">
+        <Skeleton className="h-8 w-40" />
+        <Skeleton className="h-28 w-full rounded-2xl" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
+      </div>
+    );
+  }
+  if (!consultant) return <p className="text-muted-foreground">{fr ? 'Profil introuvable.' : 'Profile not found.'}</p>;
 
   const c = consultant;
-  const billingMissing = !c.legal_status && !c.siret && !c.iban;
-  const langLevelLabel = (lvl: string) =>
-    isEn
-      ? ({
-          Natif: 'Native',
-          Bilingue: 'Bilingual',
-          Courant: 'Fluent',
-          Professionnel: 'Professional',
-          Intermédiaire: 'Intermediate',
-          Notions: 'Basics',
-        }[lvl] ?? lvl)
-      : lvl;
+  const independent = isIndependent(c.contract_type);
+  const hasBilling = !!(c.legal_status || c.company_name || c.siret || c.vat_number || c.iban || c.bic);
+  // Salarié : pas de société ni de RIB professionnel à déclarer ici.
+  const showBilling = !c.contract_type || independent || hasBilling;
+  const billingMissing = independent && !c.legal_status && !c.siret && !c.iban;
+  const { availability, next } = availabilityOf(c, missions ?? [], new Date());
+  const av = availabilityDisplay(availability, lang);
+  const levelLabel = (lvl: string) => (fr ? lvl : (LEVEL_EN[lvl] ?? lvl));
+  const set = <K extends keyof EditableForm>(key: K, value: EditableForm[K]) => setForm((f) => ({ ...f, [key]: value }));
+
+  const editActions = (
+    <>
+      <Button variant="outline" onClick={cancel} disabled={saving}>
+        <X className="h-4 w-4" />
+        {fr ? 'Annuler' : 'Cancel'}
+      </Button>
+      <Button onClick={() => void save()} disabled={saving}>
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+        {fr ? 'Enregistrer' : 'Save'}
+      </Button>
+    </>
+  );
 
   return (
-    <div>
-      <PageHeader
-        eyebrow={isEn ? 'My space' : 'Mon espace'}
-        title={<>{isEn ? 'My ' : 'Mon '}<span className="text-primary font-display ">{isEn ? 'profile.' : 'profil.'}</span></>}
-        description={
-          isEn
-            ? `Update your personal information — the business fields (day rate, seniority, status) remain managed by ${brandName}.`
-            : `Mets à jour tes infos personnelles — les champs business (TJM, séniorité, statut) restent gérés par ${brandName}.`
-        }
-        actions={
-          editing ? (
-            <>
-              <Button variant="outline" onClick={cancel} disabled={saving}>
-                <X className="h-4 w-4" />
-                {isEn ? 'Cancel' : 'Annuler'}
-              </Button>
-              <Button onClick={save} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                {isEn ? 'Save' : 'Enregistrer'}
-              </Button>
-            </>
-          ) : (
-            <Button onClick={() => setEditing(true)}>
-              <Pencil className="h-4 w-4" />
-              {isEn ? 'Edit' : 'Modifier'}
-            </Button>
-          )
-        }
-      />
+    <div className={cn('mx-auto max-w-3xl space-y-5', editing && 'pb-20 md:pb-0')}>
+      <header className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-[22px] font-semibold tracking-tight sm:text-2xl">{fr ? 'Mon profil' : 'My profile'}</h1>
+          <p className="text-[13.5px] text-muted-foreground">
+            {fr ? `Vos coordonnées et votre disponibilité. TJM, séniorité et statut sont gérés par ${brandName}.` : `Your details and availability. Day rate, seniority and status are managed by ${brandName}.`}
+          </p>
+        </div>
+        {editing ? (
+          <div className="hidden shrink-0 gap-2 md:flex">{editActions}</div>
+        ) : (
+          <Button variant="outline" onClick={startEditing} className="shrink-0">
+            <Pencil className="h-4 w-4" />
+            {fr ? 'Modifier' : 'Edit'}
+          </Button>
+        )}
+      </header>
 
-      {/* ---- Héro identité (champs business, lecture seule) ---- */}
-      <Reveal>
-        <AppCard variant="luminous" tone="magenta" className="mb-8">
-          <div className="h-1 bg-qc-gradient" />
-          <AppCardBody size="lg">
-            <div className="flex items-start gap-6 flex-wrap">
-              <div className="relative shrink-0">
-                <div className="h-20 w-20 rounded-full bg-qc-gradient flex items-center justify-center text-white text-2xl font-bold ring-4 ring-primary/10">
-                  {c.first_name[0]}
-                  {c.last_name[0]}
-                </div>
-              </div>
-
-              <div className="flex-1 min-w-[280px]">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h2 className="font-display font-light tracking-[-0.02em] text-2xl sm:text-3xl">
-                    {c.first_name}{' '}
-                    <span className="text-primary font-display ">{c.last_name}</span>
-                  </h2>
-                  <Badge variant="outline" className={CONSULTANT_STATUS_STYLE[c.status]}>
-                    {statusLabels[c.status]}
-                  </Badge>
-                </div>
-                <p className="text-lg text-muted-foreground mt-1 inline-flex items-center gap-2">
-                  <Briefcase className="h-4 w-4" />
-                  {c.job_title}
-                </p>
-                {c.sub_title && (
-                  <p className="text-sm text-muted-foreground/80">{c.sub_title}</p>
-                )}
-
-                <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl overflow-hidden border border-hairline bg-hairline/40">
-                  <HeroStat label={isEn ? 'Seniority' : 'Séniorité'} value={seniorityLabels[c.seniority]} />
-                  <HeroStat label={isEn ? 'Experience' : 'Expérience'} value={isEn ? `${c.years_experience} yrs` : `${c.years_experience} ans`} />
-                  <HeroStat label={isEn ? 'City' : 'Ville'} value={c.city || '—'} />
-                  <HeroStat
-                    label={isEn ? 'Available' : 'Disponible'}
-                    value={c.available_from ? formatDate(c.available_from) : (isEn ? 'Now' : 'Maintenant')}
-                  />
-                </div>
-              </div>
+      {/* Identité : tenue par l'ESN, en lecture seule. */}
+      <section className="rounded-2xl border border-border bg-card p-4">
+        <div className="flex items-center gap-4">
+          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-primary text-lg font-semibold text-primary-foreground">
+            {(c.first_name?.[0] ?? '') + (c.last_name?.[0] ?? '')}
+          </div>
+          <div className="min-w-0">
+            <div className="truncate text-[17px] font-semibold">
+              {c.first_name} {c.last_name}
             </div>
-          </AppCardBody>
-        </AppCard>
-      </Reveal>
+            <div className="truncate text-[13.5px] text-muted-foreground">{[c.job_title, c.sub_title].filter(Boolean).join(' · ')}</div>
+          </div>
+        </div>
+        <dl className="mt-4 grid grid-cols-3 gap-2">
+          <Fact label={fr ? 'Séniorité' : 'Seniority'} value={seniorityLabels[c.seniority] ?? '—'} />
+          <Fact label={fr ? 'Expérience' : 'Experience'} value={c.years_experience != null ? (fr ? `${c.years_experience} ans` : `${c.years_experience} yrs`) : '—'} />
+          <Fact label={fr ? 'Contrat' : 'Contract'} value={c.contract_type ? (CONTRACT_TYPE_LABEL[c.contract_type]?.[lang] ?? c.contract_type) : '—'} />
+        </dl>
+      </section>
 
-      {/* ---- Coordonnées (éditables) ---- */}
-      <Reveal delay={0.06}>
-        <SectionHeader
-          eyebrow={isEn ? 'Contact' : 'Contact'}
-          title={<>{isEn ? 'My ' : 'Mes '}<span className="text-primary font-display ">{isEn ? 'contact details.' : 'coordonnées.'}</span></>}
+      {/* Disponibilité : déduite des missions, sinon de la fiche. */}
+      <section className="rounded-2xl border border-border bg-card p-4" aria-labelledby="profile-availability">
+        <h2 id="profile-availability" className="flex items-center gap-2 text-[14px] font-semibold">
+          <CalendarClock className="h-4 w-4 text-primary" />
+          {fr ? 'Disponibilité' : 'Availability'}
+        </h2>
+        <div className="mt-2 text-[15px] font-semibold">{av.title}</div>
+        {av.detail && <div className="text-[13px] text-muted-foreground">{av.detail}</div>}
+        {next && availability.kind === 'on_mission' && (
+          <p className="mt-1 text-[12.5px] text-muted-foreground">
+            {fr ? `Mission suivante : ${next.title}, à partir du ${formatDate(next.start_date, lang)}.` : `Next mission: ${next.title}, from ${formatDate(next.start_date, lang)}.`}
+          </p>
+        )}
+        <p className="mt-2 text-[12.5px] text-muted-foreground">
+          {fr
+            ? `Un changement (congés, fin de mission anticipée) ? Prévenez votre contact ${brandName} : votre disponibilité sert à vous proposer les bonnes missions.`
+            : `Any change (leave, early end of mission)? Let your ${brandName} contact know: your availability is used to offer you the right missions.`}
+        </p>
+      </section>
+
+      {activeOrgId && (
+        <ConsultantCompleteness
+          consultantId={consultantId}
+          organizationId={activeOrgId}
+          asConsultant
+          profile={{
+            first_name: c.first_name,
+            last_name: c.last_name,
+            email: c.email,
+            phone: c.phone,
+            job_title: c.job_title,
+            contract_type: c.contract_type,
+            status: c.status,
+            city: c.city,
+            address: c.address,
+            legal_status: c.legal_status,
+            company_name: c.company_name,
+            siret: c.siret,
+            iban: c.iban,
+            bic: c.bic,
+          }}
         />
-        <AppCard className="mb-8">
-          <AppCardBody>
-            {editing ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField label="Email" icon={<Mail className="h-3.5 w-3.5" />}>
-                  <Input
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    placeholder="prenom.nom@email.fr"
-                  />
-                </FormField>
-                <FormField label={isEn ? 'Phone' : 'Téléphone'} icon={<Phone className="h-3.5 w-3.5" />}>
-                  <Input
-                    value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    placeholder="+33 6 XX XX XX XX"
-                  />
-                </FormField>
-                <FormField label="LinkedIn" icon={<Linkedin className="h-3.5 w-3.5" />}>
-                  <Input
-                    value={form.linkedin_url}
-                    onChange={(e) => setForm({ ...form, linkedin_url: e.target.value })}
-                    placeholder="https://linkedin.com/in/…"
-                  />
-                </FormField>
-                <FormField label={isEn ? 'City' : 'Ville'} icon={<MapPin className="h-3.5 w-3.5" />}>
-                  <Input
-                    value={form.city}
-                    onChange={(e) => setForm({ ...form, city: e.target.value })}
-                    placeholder="Paris"
-                  />
-                </FormField>
-                <FormField label={isEn ? 'Country' : 'Pays'}>
-                  <Input
-                    value={form.country}
-                    onChange={(e) => setForm({ ...form, country: e.target.value })}
-                    placeholder="FR"
-                  />
-                </FormField>
-                <FormField label={isEn ? 'Mobility' : 'Mobilité'} className="md:col-span-2">
-                  <Input
-                    value={form.mobility}
-                    onChange={(e) => setForm({ ...form, mobility: e.target.value })}
-                    placeholder={isEn ? 'Île-de-France, Lyon, full-remote France…' : 'Île-de-France, Lyon, full-remote France…'}
-                  />
-                </FormField>
-                <FormField label={isEn ? 'Summary' : 'Résumé'} className="md:col-span-2">
-                  <Textarea
-                    value={form.summary}
-                    onChange={(e) => setForm({ ...form, summary: e.target.value })}
-                    rows={4}
-                    placeholder={isEn ? 'A few lines to introduce yourself…' : 'Quelques lignes pour te présenter…'}
-                  />
-                </FormField>
+      )}
+
+      {/* Coordonnées */}
+      <Section id="profile-contact" title={fr ? 'Coordonnées' : 'Contact details'}>
+        {editing ? (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <FormField label="E-mail" icon={<Mail className="h-3.5 w-3.5" />}>
+              <Input type="email" autoComplete="email" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="prenom.nom@email.fr" />
+            </FormField>
+            <FormField label={fr ? 'Téléphone' : 'Phone'} icon={<Phone className="h-3.5 w-3.5" />}>
+              <Input type="tel" autoComplete="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="+33 6 12 34 56 78" />
+            </FormField>
+            <FormField label="LinkedIn" icon={<Linkedin className="h-3.5 w-3.5" />}>
+              <Input type="url" value={form.linkedin_url} onChange={(e) => set('linkedin_url', e.target.value)} placeholder="https://linkedin.com/in/…" />
+            </FormField>
+            <FormField label={fr ? 'Ville' : 'City'} icon={<MapPin className="h-3.5 w-3.5" />}>
+              <Input autoComplete="address-level2" value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="Paris" />
+            </FormField>
+            <FormField label={fr ? 'Adresse' : 'Address'}>
+              <Input autoComplete="street-address" value={form.address} onChange={(e) => set('address', e.target.value)} placeholder={fr ? '12 rue Exemple' : '12 Example Street'} />
+            </FormField>
+            <div className="grid grid-cols-2 gap-3">
+              <FormField label={fr ? 'Code postal' : 'Postal code'}>
+                <Input autoComplete="postal-code" inputMode="numeric" value={form.postal_code} onChange={(e) => set('postal_code', e.target.value)} placeholder="75011" />
+              </FormField>
+              <FormField label={fr ? 'Pays' : 'Country'}>
+                <Input value={form.country} onChange={(e) => set('country', e.target.value.toUpperCase().slice(0, 3))} placeholder="FR" />
+              </FormField>
+            </div>
+            <FormField label={fr ? 'Mobilité' : 'Mobility'} className="md:col-span-2">
+              <Input value={form.mobility} onChange={(e) => set('mobility', e.target.value)} placeholder={fr ? 'Île-de-France, Lyon, télétravail complet…' : 'Paris area, Lyon, full remote…'} />
+            </FormField>
+            <FormField label={fr ? 'Présentation' : 'Summary'} className="md:col-span-2">
+              <Textarea rows={4} value={form.summary} onChange={(e) => set('summary', e.target.value)} placeholder={fr ? 'Quelques lignes pour vous présenter…' : 'A few lines to introduce yourself…'} />
+            </FormField>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            <ReadRow icon={Mail} label="E-mail" value={c.email} />
+            <ReadRow icon={Phone} label={fr ? 'Téléphone' : 'Phone'} value={c.phone} />
+            <ReadRow icon={Linkedin} label="LinkedIn" value={c.linkedin_url} href={c.linkedin_url ?? undefined} />
+            <ReadRow
+              icon={MapPin}
+              label={fr ? 'Adresse' : 'Address'}
+              value={[c.address, [c.postal_code, c.city].filter(Boolean).join(' '), c.country && c.country !== 'FR' ? c.country : null].filter(Boolean).join(', ') || null}
+            />
+            {c.mobility && <ReadRow icon={MapPin} label={fr ? 'Mobilité' : 'Mobility'} value={c.mobility} />}
+            {c.summary && <p className="whitespace-pre-line border-t border-border pt-3 text-[13.5px] leading-relaxed text-foreground/85">{c.summary}</p>}
+          </div>
+        )}
+      </Section>
+
+      {/* Société & facturation : indépendants (et fiche déjà renseignée). */}
+      {showBilling && (
+        <Section
+          title={fr ? 'Société et facturation' : 'Company and billing'}
+          description={fr ? 'Pour vos contrats et le paiement de vos factures.' : 'For your contracts and the payment of your invoices.'}
+        >
+          {editing ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <FormField label={fr ? 'Statut juridique' : 'Legal status'}>
+                <Input value={form.legal_status} onChange={(e) => set('legal_status', e.target.value)} placeholder={fr ? 'EI, EURL, SASU, portage salarial…' : 'Sole trader, Ltd, umbrella…'} />
+              </FormField>
+              <FormField label={fr ? 'Raison sociale' : 'Company name'}>
+                <Input value={form.company_name} onChange={(e) => set('company_name', e.target.value)} placeholder={fr ? 'Ma Société SASU' : 'My Company Ltd'} />
+              </FormField>
+              <FormField label="SIRET">
+                <Input inputMode="numeric" value={form.siret} onChange={(e) => set('siret', e.target.value.replace(/\s/g, ''))} placeholder={fr ? '14 chiffres' : '14 digits'} />
+              </FormField>
+              <FormField label={fr ? 'N° TVA intracommunautaire' : 'Intra-EU VAT number'}>
+                <Input value={form.vat_number} onChange={(e) => set('vat_number', e.target.value)} placeholder="FRXX999999999" />
+              </FormField>
+              <FormField label="IBAN">
+                <Input value={form.iban} onChange={(e) => set('iban', e.target.value.toUpperCase())} placeholder="FR76 …" />
+              </FormField>
+              <FormField label="BIC">
+                <Input value={form.bic} onChange={(e) => set('bic', e.target.value.toUpperCase())} placeholder="AGRIFRPPXXX" />
+              </FormField>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2.5">
+                <ReadRow label={fr ? 'Statut juridique' : 'Legal status'} value={c.legal_status} />
+                <ReadRow label={fr ? 'Raison sociale' : 'Company name'} value={c.company_name} />
+                <ReadRow label="SIRET" value={c.siret} />
+                <ReadRow label={fr ? 'N° TVA' : 'VAT number'} value={c.vat_number} />
+                <ReadRow label="IBAN" value={c.iban} />
+                <ReadRow label="BIC" value={c.bic} />
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                <ReadRow icon={<Mail className="h-4 w-4" />} label="Email" value={c.email} />
-                <ReadRow icon={<Phone className="h-4 w-4" />} label={isEn ? 'Phone' : 'Téléphone'} value={c.phone} />
-                <ReadRow
-                  icon={<Linkedin className="h-4 w-4" />}
-                  label="LinkedIn"
-                  value={c.linkedin_url}
-                  href={c.linkedin_url ?? undefined}
+              {billingMissing && (
+                <p className="mt-3 flex items-start gap-2 rounded-xl border border-warning/30 bg-warning-soft px-3 py-2.5 text-[12.5px]">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                  {fr
+                    ? 'Renseignez votre société et votre IBAN : ils sont nécessaires pour vos contrats et le paiement de vos factures.'
+                    : 'Add your company and IBAN: they are required for your contracts and the payment of your invoices.'}
+                </p>
+              )}
+            </>
+          )}
+        </Section>
+      )}
+
+      {/* Langues */}
+      <Section title={fr ? 'Langues' : 'Languages'} description={editing ? (fr ? 'Ajoutez, modifiez ou retirez vos langues, puis enregistrez.' : 'Add, edit or remove your languages, then save.') : undefined}>
+        {editing ? (
+          <div className="space-y-2">
+            {form.languages.map((l, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <Input
+                  value={l.code}
+                  onChange={(e) => set('languages', form.languages.map((row, j) => (j === i ? { ...row, code: e.target.value.toUpperCase().slice(0, 5) } : row)))}
+                  placeholder="FR"
+                  className="w-20 uppercase"
+                  aria-label={fr ? 'Code langue' : 'Language code'}
                 />
-                <ReadRow
-                  icon={<MapPin className="h-4 w-4" />}
-                  label={isEn ? 'City' : 'Ville'}
-                  value={c.city ? `${c.city}${c.country && c.country !== 'FR' ? `, ${c.country}` : ''}` : null}
-                />
-                {c.mobility && (
-                  <ReadRow icon={<MapPin className="h-4 w-4" />} label={isEn ? 'Mobility' : 'Mobilité'} value={c.mobility} />
-                )}
-                {c.summary && (
-                  <div className="md:col-span-2 mt-2 pt-3 border-t border-hairline">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-primary mb-2">
-                      {isEn ? 'Summary' : 'Résumé'}
-                    </div>
-                    <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
-                      {c.summary}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </AppCardBody>
-        </AppCard>
-      </Reveal>
-
-      {/* ---- Société & facturation ---- */}
-      <Reveal delay={0.12}>
-        <SectionHeader
-          eyebrow={isEn ? 'Billing' : 'Facturation'}
-          title={<>{isEn ? 'Company & ' : 'Société & '}<span className="text-primary font-display ">{isEn ? 'billing.' : 'facturation.'}</span></>}
-          description={isEn ? 'This information feeds your contracts and the payment of your timesheets.' : 'Ces informations alimentent tes contrats et le règlement de tes CRA.'}
-        />
-        <AppCard tone={billingMissing && !editing ? 'amber' : 'none'} className="mb-8">
-          <AppCardBody>
-            {editing ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField label={isEn ? 'Legal status' : 'Statut juridique'}>
-                  <Input
-                    value={form.legal_status}
-                    onChange={(e) => setForm({ ...form, legal_status: e.target.value })}
-                    placeholder="EI, EURL, SASU, portage salarial…"
-                  />
-                </FormField>
-                <FormField label={isEn ? 'Company name' : 'Raison sociale'}>
-                  <Input
-                    value={form.company_name}
-                    onChange={(e) => setForm({ ...form, company_name: e.target.value })}
-                    placeholder="Ma Société SASU"
-                  />
-                </FormField>
-                <FormField label="SIRET">
-                  <Input
-                    value={form.siret}
-                    onChange={(e) => setForm({ ...form, siret: e.target.value.replace(/\s/g, '') })}
-                    placeholder={isEn ? '14 digits' : '14 chiffres'}
-                    inputMode="numeric"
-                  />
-                </FormField>
-                <FormField label={isEn ? 'Intra-EU VAT number' : 'N° TVA intracommunautaire'}>
-                  <Input
-                    value={form.vat_number}
-                    onChange={(e) => setForm({ ...form, vat_number: e.target.value })}
-                    placeholder="FRXX999999999"
-                  />
-                </FormField>
-                <FormField label={isEn ? 'Address' : 'Adresse'}>
-                  <Input
-                    value={form.address}
-                    onChange={(e) => setForm({ ...form, address: e.target.value })}
-                    placeholder={isEn ? '12 Example Street' : '12 rue Exemple'}
-                  />
-                </FormField>
-                <FormField label={isEn ? 'Postal code' : 'Code postal'}>
-                  <Input
-                    value={form.postal_code}
-                    onChange={(e) => setForm({ ...form, postal_code: e.target.value })}
-                    placeholder="75011"
-                  />
-                </FormField>
-                <FormField label="IBAN">
-                  <Input
-                    value={form.iban}
-                    onChange={(e) => setForm({ ...form, iban: e.target.value.toUpperCase() })}
-                    placeholder="FR76 …"
-                  />
-                </FormField>
-                <FormField label="BIC">
-                  <Input
-                    value={form.bic}
-                    onChange={(e) => setForm({ ...form, bic: e.target.value.toUpperCase() })}
-                    placeholder="AGRIFRPPXXX"
-                  />
-                </FormField>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                  <ReadRow icon={<Building2 className="h-4 w-4" />} label={isEn ? 'Legal status' : 'Statut juridique'} value={c.legal_status} />
-                  <ReadRow label={isEn ? 'Company name' : 'Raison sociale'} value={c.company_name} />
-                  <ReadRow label="SIRET" value={c.siret} />
-                  <ReadRow label={isEn ? 'VAT number' : 'N° TVA'} value={c.vat_number} />
-                  <ReadRow
-                    label={isEn ? 'Address' : 'Adresse'}
-                    value={c.address ? `${c.address}${c.postal_code ? `, ${c.postal_code}` : ''}` : null}
-                  />
-                  <ReadRow label="IBAN" value={c.iban} />
-                  <ReadRow label="BIC" value={c.bic} />
-                </div>
-                {billingMissing && (
-                  <div className="mt-4 flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/[0.07] px-4 py-3">
-                    <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-                    <p className="text-xs leading-relaxed text-warning ">
-                      {isEn
-                        ? 'Complete your company and billing information — it is required for your contracts and the payment of your timesheets.'
-                        : 'Complète tes informations de société et de facturation — elles sont nécessaires pour tes contrats et le règlement de tes CRA.'}
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
-          </AppCardBody>
-        </AppCard>
-      </Reveal>
-
-      {/* ---- Langues (ajout / suppression par le consultant) ---- */}
-      <Reveal delay={0.18}>
-        <SectionHeader
-          eyebrow={isEn ? 'Profile' : 'Profil'}
-          title={<>{isEn ? 'My ' : 'Mes '}<span className="text-primary font-display ">{isEn ? 'languages.' : 'langues.'}</span></>}
-          description={editing ? (isEn ? 'Add, edit or remove your languages — remember to save.' : 'Ajoute, modifie ou retire tes langues — pense à enregistrer.') : undefined}
-        />
-        <AppCard className="mb-8">
-          <AppCardBody className="space-y-1">
-            {editing ? (
-              <div className="space-y-2">
-                {form.languages.map((l, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <Input
-                      value={l.code}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          languages: form.languages.map((row, j) =>
-                            j === i ? { ...row, code: e.target.value.toUpperCase().slice(0, 5) } : row,
-                          ),
-                        })
-                      }
-                      placeholder="FR"
-                      className="w-24 uppercase"
-                      aria-label={isEn ? 'Language code' : 'Code langue'}
-                    />
-                    <select
-                      value={l.level}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          languages: form.languages.map((row, j) =>
-                            j === i ? { ...row, level: e.target.value } : row,
-                          ),
-                        })
-                      }
-                      className="flex-1 h-10 rounded-md border border-input bg-transparent px-3 text-sm"
-                      aria-label={isEn ? 'Level' : 'Niveau'}
-                    >
-                      {!LANG_LEVELS.includes(l.level) && l.level && (
-                        <option value={l.level}>{langLevelLabel(l.level)}</option>
-                      )}
-                      {LANG_LEVELS.map((lvl) => (
-                        <option key={lvl} value={lvl}>
-                          {langLevelLabel(lvl)}
-                        </option>
-                      ))}
-                    </select>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() =>
-                        setForm({
-                          ...form,
-                          languages: form.languages.filter((_, j) => j !== i),
-                        })
-                      }
-                      aria-label={isEn ? 'Remove this language' : 'Retirer cette langue'}
-                    >
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
-                  </div>
-                ))}
+                <select
+                  value={l.level}
+                  onChange={(e) => set('languages', form.languages.map((row, j) => (j === i ? { ...row, level: e.target.value } : row)))}
+                  className="h-10 min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 text-sm"
+                  aria-label={fr ? 'Niveau' : 'Level'}
+                >
+                  {!LANG_LEVELS.includes(l.level) && l.level && <option value={l.level}>{levelLabel(l.level)}</option>}
+                  {LANG_LEVELS.map((lvl) => (
+                    <option key={lvl} value={lvl}>
+                      {levelLabel(lvl)}
+                    </option>
+                  ))}
+                </select>
                 <Button
                   type="button"
                   size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    setForm({
-                      ...form,
-                      languages: [...form.languages, { code: '', level: 'Professionnel' }],
-                    })
-                  }
+                  variant="ghost"
+                  onClick={() => set('languages', form.languages.filter((_, j) => j !== i))}
+                  aria-label={fr ? 'Retirer cette langue' : 'Remove this language'}
                 >
-                  <Plus className="h-3.5 w-3.5" />
-                  {isEn ? 'Add a language' : 'Ajouter une langue'}
+                  <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </div>
-            ) : c.languages.length === 0 ? (
-              <p className="text-sm text-muted-foreground/60 italic px-1 py-2">
-                {isEn ? 'No language set — click “Edit” to add one.' : 'Aucune langue renseignée — clique sur « Modifier » pour en ajouter.'}
-              </p>
-            ) : (
-              c.languages.map((l) => (
-                <div
-                  key={l.code}
-                  className="flex items-center justify-between rounded-lg px-3 py-2.5 hover-surface transition-colors"
-                >
-                  <span className="inline-flex items-center gap-2.5">
-                    <Languages className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="uppercase text-xs font-bold tracking-[0.14em] text-foreground/80">
-                      {l.code}
-                    </span>
-                  </span>
-                  <span className="text-sm text-muted-foreground">{langLevelLabel(l.level)}</span>
-                </div>
-              ))
-            )}
-          </AppCardBody>
-        </AppCard>
-      </Reveal>
-
-      {/* ---- Mes documents (CV, certifications…) ---- */}
-      <Reveal delay={0.22}>
-        <SectionHeader
-          eyebrow="Documents"
-          title={<>{isEn ? 'CV & ' : 'CV & '}<span className="text-primary font-display ">certifications.</span></>}
-          description={isEn ? 'Your CV and supporting documents, shared with the team that positions you.' : 'Ton CV et tes justificatifs, partagés avec l\'équipe qui te positionne.'}
-        />
-        <div className="mb-8">
-          <ConsultantSelfDocuments
-            consultantId={consultantId}
-            userId={userId}
-            orgId={activeOrgId}
-            compact
-          />
-        </div>
-      </Reveal>
-
-      {/* ---- Documents légaux & administratifs ---- */}
-      {activeOrgId && (
-        <Reveal delay={0.28}>
-          <div className="mb-8 space-y-4">
-            <ConsultantCompleteness
-              consultantId={consultantId}
-              organizationId={activeOrgId}
-              asConsultant
-            />
-            <KycDocuments
-              consultantId={consultantId}
-              organizationId={activeOrgId}
-              asConsultant
-            />
+            ))}
+            <Button type="button" size="sm" variant="outline" onClick={() => set('languages', [...form.languages, { code: '', level: 'Professionnel' }])}>
+              <Plus className="h-4 w-4" />
+              {fr ? 'Ajouter une langue' : 'Add a language'}
+            </Button>
           </div>
-        </Reveal>
+        ) : c.languages.length === 0 ? (
+          <p className="text-[13px] text-muted-foreground">{fr ? 'Aucune langue renseignée. « Modifier » pour en ajouter.' : 'No language yet. Use “Edit” to add one.'}</p>
+        ) : (
+          <ul className="flex flex-wrap gap-2">
+            {c.languages.map((l) => (
+              <li key={l.code} className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1 text-[13px]">
+                <Languages className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="font-semibold uppercase tracking-wide">{l.code}</span>
+                <span className="text-muted-foreground">{levelLabel(l.level)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+
+      <Link href="/portal/documents" className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 hover:bg-muted/40">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground">
+          <FileText className="h-4 w-4" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">{fr ? 'CV, certifications et pièces' : 'CV, certifications and documents'}</span>
+          <span className="block truncate text-[12.5px] text-muted-foreground">{fr ? 'Dans « Mes documents »' : 'In “My documents”'}</span>
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+      </Link>
+
+      {/* Enregistrement : barre fixe au-dessus des onglets sur mobile. */}
+      {editing && (
+        <div className="fixed inset-x-0 bottom-[calc(3.5rem_+_env(safe-area-inset-bottom))] z-20 grid grid-cols-2 gap-2 border-t border-border bg-background/95 px-4 py-3 backdrop-blur md:hidden">
+          {editActions}
+        </div>
       )}
     </div>
   );
 }
 
-function HeroStat({ label, value }: { label: string; value: string }) {
+function Section({ id, title, description, children }: { id?: string; title: string; description?: string; children: React.ReactNode }) {
   return (
-    <div className="bg-card/70 px-4 py-3">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/80">
-        {label}
-      </div>
-      <div className="mt-0.5 text-sm font-medium text-foreground truncate">{value}</div>
+    <section id={id} className="scroll-mt-20 rounded-2xl border border-border bg-card p-4">
+      <h2 className="text-[14px] font-semibold">{title}</h2>
+      {description && <p className="text-[12.5px] text-muted-foreground">{description}</p>}
+      <div className="mt-3">{children}</div>
+    </section>
+  );
+}
+
+function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-xl bg-muted/50 px-3 py-2">
+      <dt className="text-[11px] text-muted-foreground">{label}</dt>
+      <dd className="truncate text-[13.5px] font-medium">{value}</dd>
     </div>
   );
 }
 
-function FormField({
-  label,
-  icon,
-  children,
-  className,
-}: {
-  label: string;
-  icon?: React.ReactNode;
-  children: React.ReactNode;
-  className?: string;
-}) {
+/** Le libellé enveloppe le champ : association implicite, lisible par les lecteurs d'écran. */
+function FormField({ label, icon, children, className }: { label: string; icon?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <div className={className}>
-      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+    <label className={cn('block', className)}>
+      <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-muted-foreground">
         {icon}
         {label}
-      </Label>
-      <div className="mt-1.5">{children}</div>
-    </div>
+      </span>
+      <span className="mt-1.5 block">{children}</span>
+    </label>
   );
 }
 
-function ReadRow({
-  icon,
-  label,
-  value,
-  href,
-}: {
-  icon?: React.ReactNode;
-  label: string;
-  value: string | null;
-  href?: string;
-}) {
+function ReadRow({ icon: Icon, label, value, href }: { icon?: React.ComponentType<{ className?: string }>; label: string; value: string | null; href?: string }) {
   const { locale } = useLocale();
-  const isEn = locale === 'en';
-  if (!value) {
-    return (
-      <div className="text-muted-foreground/50 italic">
-        <span className="text-[10px] uppercase tracking-wider">{label}</span> {isEn ? '— not provided' : '— non renseigné'}
-      </div>
-    );
-  }
-  const content = (
-    <span className="flex items-center gap-2">
-      <span className="text-muted-foreground">{icon}</span>
-      <span className="text-[10px] uppercase tracking-wider text-muted-foreground w-24 shrink-0">
+  const fr = locale !== 'en';
+  return (
+    <div className="flex items-start gap-3 text-[13.5px]">
+      <span className="flex w-28 shrink-0 items-center gap-1.5 text-[12.5px] text-muted-foreground">
+        {Icon && <Icon className="h-3.5 w-3.5" />}
         {label}
       </span>
-      <span className="truncate">{value}</span>
-    </span>
-  );
-  return href ? (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
-      {content}
-    </a>
-  ) : (
-    <div>{content}</div>
+      {value ? (
+        href ? (
+          <a href={href} target="_blank" rel="noopener noreferrer" className="min-w-0 break-words text-primary-deep hover:underline">
+            {value}
+          </a>
+        ) : (
+          <span className="min-w-0 break-words">{value}</span>
+        )
+      ) : (
+        <span className="text-muted-foreground/70">{fr ? 'Non renseigné' : 'Not provided'}</span>
+      )}
+    </div>
   );
 }

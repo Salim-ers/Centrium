@@ -127,15 +127,15 @@ export default function PortalContractDetailPage() {
     if (!contract) return;
     const signatureData = padRef.current?.toDataURL();
     if (!signatureData) {
-      toast.error(isEn ? 'Draw your signature in the frame before confirming.' : 'Trace ta signature dans le cadre avant de valider.');
+      toast.error(isEn ? 'Draw your signature in the frame before confirming.' : 'Tracez votre signature dans le cadre avant de valider.');
       return;
     }
     if (signedName.trim().length < 3) {
-      toast.error(isEn ? 'Enter your full name.' : 'Saisis ton nom complet.');
+      toast.error(isEn ? 'Enter your full name.' : 'Saisissez votre nom complet.');
       return;
     }
     if (!consent) {
-      toast.error(isEn ? 'Check the consent box to sign.' : 'Coche la case de consentement pour signer.');
+      toast.error(isEn ? 'Check the consent box to sign.' : 'Cochez la case de consentement pour signer.');
       return;
     }
     setSigning(true);
@@ -147,14 +147,14 @@ export default function PortalContractDetailPage() {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(body.message ?? (isEn ? 'Signing failed — please try again.' : 'Signature impossible — réessaie.'));
+        toast.error(body.message ?? (isEn ? 'Signing failed — please try again.' : 'Signature impossible. Réessayez.'));
         return;
       }
       setContract(body.data as Contract);
       setSignOpen(false);
-      toast.success(isEn ? 'Contract signed — your employer has been notified.' : 'Contrat signé — ton employeur a été notifié.');
+      toast.success(isEn ? 'Contract signed — your employer has been notified.' : 'Contrat signé. Votre employeur a été prévenu.');
     } catch {
-      toast.error(isEn ? 'Network error — check your connection.' : 'Erreur réseau — vérifie ta connexion.');
+      toast.error(isEn ? 'Network error — check your connection.' : 'Erreur réseau. Vérifiez votre connexion.');
     } finally {
       setSigning(false);
     }
@@ -224,9 +224,9 @@ export default function PortalContractDetailPage() {
               </>
             ) : (
               <>
-                Ce contrat attend ta signature. Relis-le, puis clique sur «&nbsp;Signer ce
-                contrat&nbsp;» — ta signature manuscrite sera apposée sur le document et ton
-                employeur sera notifié.
+                Ce contrat attend votre signature. Relisez-le, puis touchez «&nbsp;Signer ce
+                contrat&nbsp;» : votre signature manuscrite sera apposée sur le document et votre
+                employeur sera prévenu.
               </>
             )}
           </p>
@@ -246,7 +246,7 @@ export default function PortalContractDetailPage() {
             <DialogDescription>
               {isEn
                 ? 'Draw your signature in the frame below, just like on paper. It will be applied to the document in the name of your company.'
-                : 'Trace ta signature dans le cadre ci-dessous, comme sur papier. Elle sera apposée sur le document au nom de ta société.'}
+                : 'Tracez votre signature dans le cadre ci-dessous, comme sur papier. Elle sera apposée sur le document au nom de votre société.'}
             </DialogDescription>
           </DialogHeader>
 

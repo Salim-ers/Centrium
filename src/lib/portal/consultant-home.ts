@@ -78,3 +78,32 @@ export function availabilityOf<M extends MissionDates>(profile: ProfileAvailabil
   if (from) return { availability: { kind: 'available_from', date: from }, next };
   return { availability: { kind: 'available' }, next };
 }
+
+export type MissionPhase =
+  /** Mission active pas encore démarrée. */
+  | { kind: 'upcoming'; inDays: number }
+  /** En cours ; `daysLeft` null si la mission n'a pas de date de fin. */
+  | { kind: 'running'; daysLeft: number | null }
+  | { kind: 'ended'; on: string | null }
+  /** Proposée, suspendue ou refusée : le statut de l'ESN fait foi. */
+  | { kind: 'other' };
+
+function daysBetween(fromIso: string, toIso: string): number {
+  const [fy, fm, fd] = fromIso.split('-').map(Number);
+  const [ty, tm, td] = toIso.split('-').map(Number);
+  return Math.round((Date.UTC(ty!, tm! - 1, td!) - Date.UTC(fy!, fm! - 1, fd!)) / 86_400_000);
+}
+
+/**
+ * Où en est la mission, vue du consultant. Le statut « active » couvre
+ * aussi une mission signée qui n'a pas démarré : seules les dates disent
+ * si elle est à venir, en cours ou déjà finie.
+ */
+export function missionPhase(m: Pick<MissionDates, 'status' | 'start_date' | 'end_date'>, today: Date): MissionPhase {
+  const t = isoDay(today);
+  if (m.status === 'ended') return { kind: 'ended', on: m.end_date };
+  if (m.status !== 'active') return { kind: 'other' };
+  if (m.start_date > t) return { kind: 'upcoming', inDays: daysBetween(t, m.start_date) };
+  if (m.end_date && m.end_date < t) return { kind: 'ended', on: m.end_date };
+  return { kind: 'running', daysLeft: m.end_date ? daysBetween(t, m.end_date) : null };
+}

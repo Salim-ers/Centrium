@@ -11,7 +11,8 @@ import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useBrandName } from '@/components/brand/BrandingStyles';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { fetchMyMissions, fetchMyProfile, type PortalProfile } from '@/lib/portal/consultant-data';
-import { availabilityOf, craOverview, type Availability } from '@/lib/portal/consultant-home';
+import { availabilityOf, craOverview } from '@/lib/portal/consultant-home';
+import { availabilityDisplay } from '@/lib/portal/mission-phase-label';
 import { REMOTE_POLICY_LABEL, type RemotePolicy } from '@/lib/validators/v2';
 import { CONSULTANT_TIMESHEET_STATUS, periodLabel, statusOf } from '@/lib/status';
 import { fold } from '@/lib/utils/text';
@@ -237,8 +238,8 @@ export default function PortalDashboardPage() {
         {/* Disponibilité */}
         <HomeCard icon={CalendarClock} title={fr ? 'Disponibilité' : 'Availability'} href="/portal/profile" linkLabel={fr ? 'Mon profil' : 'My profile'}>
           <div>
-            <div className="text-[15px] font-semibold leading-snug">{availabilityTitle(availability, lang)}</div>
-            <div className="text-[13px] text-muted-foreground">{availabilityDetail(availability, lang)}</div>
+            <div className="text-[15px] font-semibold leading-snug">{availabilityDisplay(availability, lang).title}</div>
+            <div className="text-[13px] text-muted-foreground">{availabilityDisplay(availability, lang).detail}</div>
           </div>
           {next && availability.kind === 'on_mission' && (
             <p className="text-[12.5px] text-muted-foreground">
@@ -254,38 +255,6 @@ export default function PortalDashboardPage() {
       <PortalNotifications userId={userId} limit={4} />
     </div>
   );
-}
-
-function availabilityTitle(a: Availability, lang: 'fr' | 'en'): string {
-  const fr = lang === 'fr';
-  switch (a.kind) {
-    case 'on_mission':
-      return fr ? 'En mission' : 'On mission';
-    case 'upcoming':
-      return fr ? 'Mission à venir' : 'Upcoming mission';
-    case 'unavailable':
-      return fr ? 'Indisponible' : 'Unavailable';
-    case 'available_from':
-      return fr ? `Disponible à partir du ${formatDate(a.date, lang)}` : `Available from ${formatDate(a.date, lang)}`;
-    case 'available':
-      return fr ? 'Disponible' : 'Available';
-  }
-}
-
-function availabilityDetail(a: Availability, lang: 'fr' | 'en'): string | null {
-  const fr = lang === 'fr';
-  switch (a.kind) {
-    case 'on_mission':
-      return a.until ? (fr ? `jusqu’au ${formatDate(a.until, lang)}` : `until ${formatDate(a.until, lang)}`) : fr ? 'sans date de fin' : 'open-ended';
-    case 'upcoming':
-      return fr ? `démarre le ${formatDate(a.start, lang)}` : `starts on ${formatDate(a.start, lang)}`;
-    case 'unavailable':
-      return a.date ? (fr ? `disponible à partir du ${formatDate(a.date, lang)}` : `available from ${formatDate(a.date, lang)}`) : null;
-    case 'available':
-      return fr ? 'dès maintenant' : 'right now';
-    default:
-      return null;
-  }
 }
 
 function HomeCard({

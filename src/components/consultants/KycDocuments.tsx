@@ -22,6 +22,7 @@ import { createClient } from '@/lib/supabase/client';
 import { formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { useBrandName } from '@/components/brand/BrandingStyles';
 
 const BUCKET = 'consultant-documents';
 
@@ -99,6 +100,19 @@ type Props = {
   asConsultant?: boolean;
   /** Côté admin : userId courant pour identifier ses propres uploads. */
   currentUserId?: string | null;
+  /**
+   * Statut contractuel : seules les pièces utiles à ce statut sont proposées
+   * (pas de Kbis ni de RC Pro pour un salarié). Inconnu : toutes.
+   */
+  contractType?: string | null;
+};
+
+const SLOTS_BY_TYPE: Record<string, KycSlotKind[]> = {
+  freelance: ['id_card', 'kbis', 'rc_pro', 'rib'],
+  portage: ['id_card', 'rib'],
+  cdi: ['id_card', 'rib'],
+  cdd: ['id_card', 'rib'],
+  partner_esn: ['kbis', 'rc_pro', 'rib'],
 };
 
 export function KycDocuments({
@@ -106,9 +120,11 @@ export function KycDocuments({
   organizationId,
   asConsultant = false,
   currentUserId = null,
+  contractType = null,
 }: Props) {
   const { locale } = useLocale();
   const isEn = locale === 'en';
+  const brandName = useBrandName();
   const [docs, setDocs] = useState<DocRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyKind, setBusyKind] = useState<KycSlotKind | null>(null);
@@ -144,7 +160,7 @@ export function KycDocuments({
       const { data: userRes } = await supabase.auth.getUser();
       const userId = userRes.user?.id;
       if (!userId) {
-        toast.error(isEn ? 'Session expired, please sign in again.' : 'Session expirée, reconnecte-toi.');
+        toast.error(isEn ? 'Session expired, please sign in again.' : 'Session expirée : reconnectez-vous.');
         return;
       }
       if (file.size > 10 * 1024 * 1024) {
@@ -245,18 +261,22 @@ export function KycDocuments({
     }
   }
 
+  // Pièces utiles au statut, plus celles déjà déposées (jamais masquées).
+  const relevant = contractType ? SLOTS_BY_TYPE[contractType] : undefined;
+  const slots = relevant ? KYC_SLOTS.filter((sl) => relevant.includes(sl.kind) || docs.some((d) => d.kind === sl.kind)) : KYC_SLOTS;
+
   return (
-    <Card>
+    <Card id="pieces" className="scroll-mt-20">
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-primary" />
-          {isEn ? 'Legal & administrative documents' : 'Documents légaux & administratifs'}
+          {asConsultant ? (isEn ? 'Administrative documents' : 'Pièces administratives') : isEn ? 'Legal & administrative documents' : 'Documents légaux & administratifs'}
         </CardTitle>
         <CardDescription>
           {asConsultant
             ? isEn
-              ? 'Upload your documents here — QuadCore uses them for contracts, payments and compliance.'
-              : 'Dépose ici tes documents — QuadCore les utilise pour les contrats, les paiements et la conformité.'
+              ? `${brandName} uses them for your contracts, your payments and compliance.`
+              : `${brandName} les utilise pour vos contrats, vos paiements et la conformité.`
             : isEn
               ? 'KYC documents uploaded by the consultant. They are synced with their portal.'
               : 'Documents KYC déposés par le consultant. Ils sont synchronisés avec son portail.'}
@@ -265,13 +285,13 @@ export function KycDocuments({
       <CardContent>
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {KYC_SLOTS.map((s) => (
+            {slots.map((s) => (
               <div key={s.kind} className="h-24 rounded-lg bg-card animate-pulse" />
             ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {KYC_SLOTS.map((slot) => {
+            {slots.map((slot) => {
               const doc = latestDocFor(slot.kind);
               const Icon = slot.icon;
               const busy = busyKind === slot.kind;

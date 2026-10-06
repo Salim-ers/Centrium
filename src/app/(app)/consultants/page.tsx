@@ -32,7 +32,7 @@ import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useMatchingPool } from '@/hooks/useMatchingPool';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { consultantService, type ConsultantListItem } from '@/lib/services/consultant.service';
-import { CONSULTANT_STATUS, statusOf } from '@/lib/status';
+import { CONSULTANT_STATUS, CONTRACT_TYPE_LABEL, statusOf } from '@/lib/status';
 import { SENIORITY_LABEL } from '@/constants';
 import {
   DEFAULT_TALENT_FILTERS,
@@ -55,13 +55,7 @@ import { SectionTabs } from '@/components/layout/SectionTabs';
 import { cn } from '@/lib/utils';
 import type { SeniorityLevel } from '@/types';
 
-const CONTRACT_LABEL: Record<string, { fr: string; en: string }> = {
-  freelance: { fr: 'Freelance', en: 'Freelance' },
-  cdi: { fr: 'CDI', en: 'Permanent' },
-  cdd: { fr: 'CDD', en: 'Fixed-term' },
-  portage: { fr: 'Portage', en: 'Umbrella' },
-  partner_esn: { fr: 'ESN partenaire', en: 'Partner firm' },
-};
+const CONTRACT_LABEL = CONTRACT_TYPE_LABEL;
 const SENIORITIES = Object.keys(SENIORITY_LABEL) as SeniorityLevel[];
 const MIN_YEARS = [2, 5, 8, 12];
 

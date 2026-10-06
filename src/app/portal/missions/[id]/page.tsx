@@ -15,7 +15,11 @@ import { useCachedQuery } from '@/hooks/useCachedQuery';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { fetchMyMissions } from '@/lib/portal/consultant-data';
 import { REMOTE_POLICY_LABEL, type RemotePolicy } from '@/lib/validators/v2';
-import { MISSION_STATUS, TIMESHEET_STATUS, periodLabel, statusOf } from '@/lib/status';
+import { CONSULTANT_TIMESHEET_STATUS, periodLabel, statusOf } from '@/lib/status';
+import { missionPhase, runsInMonth } from '@/lib/portal/consultant-home';
+import { phaseDisplay } from '@/lib/portal/mission-phase-label';
+import { fold } from '@/lib/utils/text';
+import { cn } from '@/lib/utils';
 import { formatDate, formatEur } from '@/lib/format';
 import type { PortalMission, Timesheet } from '@/types';
 import { usePortalConsultant } from '../../portal-context';
@@ -65,9 +69,14 @@ export default function PortalMissionDetailPage() {
       />
     );
   }
-  const st = statusOf(MISSION_STATUS, m.status, lang);
   const now = new Date();
-  const hasCurrent = data!.timesheets.some((t) => t.period_month === now.getMonth() + 1 && t.period_year === now.getFullYear());
+  const ph = phaseDisplay(missionPhase(m, now), m, lang);
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+  const hasCurrent = data!.timesheets.some((t) => t.period_month === month && t.period_year === year);
+  const canFill = (m.status === 'active' || m.status === 'ended') && runsInMonth(m, year, month) && !hasCurrent;
+  const sheets = [...data!.timesheets].sort((a, b) => b.period_year - a.period_year || b.period_month - a.period_month);
+  const showCompany = !!m.company_name && !fold(m.title).includes(fold(m.company_name));
 
   return (
     <div className="space-y-5">
@@ -77,8 +86,9 @@ export default function PortalMissionDetailPage() {
         </Link>
         <h1 className="mt-1 text-[22px] font-semibold tracking-tight sm:text-2xl">{m.title}</h1>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
-          <StatusPill tone={st.tone}>{st.label}</StatusPill>
-          {m.company_name && <span>{m.company_name}</span>}
+          <StatusPill tone={ph.tone}>{ph.label}</StatusPill>
+          {showCompany && <span>{m.company_name}</span>}
+          {ph.detail && <span className={cn(ph.soon && 'font-medium text-warning')}>{ph.detail}</span>}
         </div>
       </div>
 
@@ -104,9 +114,9 @@ export default function PortalMissionDetailPage() {
             <ClipboardCheck className="h-4 w-4 text-primary" />
             {fr ? 'Mes CRA' : 'My timesheets'}
           </CardTitle>
-          {m.status === 'active' && !hasCurrent && (
+          {canFill && (
             <Button asChild size="sm">
-              <Link href={`/portal/cra/new?mission=${m.id}`}>
+              <Link href={`/portal/cra/new?mission=${m.id}&month=${month}&year=${year}`}>
                 <Plus />
                 {fr ? 'CRA du mois' : 'This month'}
               </Link>
@@ -114,12 +124,12 @@ export default function PortalMissionDetailPage() {
           )}
         </CardHeader>
         <CardContent className="p-0">
-          {data!.timesheets.length === 0 ? (
+          {sheets.length === 0 ? (
             <p className="px-5 pb-5 text-[13px] text-muted-foreground">{fr ? 'Aucun CRA pour cette mission.' : 'No timesheet for this mission.'}</p>
           ) : (
             <ul className="divide-y divide-border border-t border-border">
-              {data!.timesheets.map((t) => {
-                const ts = statusOf(TIMESHEET_STATUS, t.status, lang);
+              {sheets.map((t) => {
+                const ts = statusOf(CONSULTANT_TIMESHEET_STATUS, t.status, lang);
                 return (
                   <li key={t.id}>
                     <Link href={`/portal/cra/${t.id}`} className="flex items-center gap-3 px-5 py-3 text-[13.5px] hover:bg-muted/50">

@@ -26,8 +26,16 @@ import { cn } from '@/lib/utils';
 type Props = {
   consultantId: string;
   organizationId: string;
-  /** true côté portail : wording « ton profil », CTA locales. */
+  /**
+   * true côté portail : seuls les éléments que le consultant peut fournir
+   * comptent, avec un lien vers ses documents.
+   */
   asConsultant?: boolean;
+  /**
+   * Fiche déjà chargée. Obligatoire côté portail : le consultant ne lit pas
+   * la table consultants (RLS, migration 102), seulement portal_my_profile().
+   */
+  profile?: Omit<ConsultantForCompleteness, 'daily_rate_eur'> & { daily_rate_eur?: number | null };
   className?: string;
 };
 
@@ -47,22 +55,25 @@ export function ConsultantCompleteness({
   consultantId,
   organizationId,
   asConsultant = false,
+  profile,
   className,
 }: Props) {
   const { locale } = useLocale();
   const isEn = locale === 'en';
   const { data } = useCachedQuery<Loaded>(
-    `completeness:${organizationId}:${consultantId}`,
+    `completeness:${organizationId}:${consultantId}:${profile ? 'portal' : 'esn'}`,
     async () => {
       const supabase = createClient();
       const [c, d, r] = await Promise.all([
-        supabase
-          .from('consultants')
-          .select(
-            'first_name, last_name, email, phone, job_title, daily_rate_eur, contract_type, status, city, address, legal_status, company_name, siret, iban, bic',
-          )
-          .eq('id', consultantId)
-          .maybeSingle(),
+        profile
+          ? Promise.resolve({ data: { ...profile, daily_rate_eur: profile.daily_rate_eur ?? null } })
+          : supabase
+              .from('consultants')
+              .select(
+                'first_name, last_name, email, phone, job_title, daily_rate_eur, contract_type, status, city, address, legal_status, company_name, siret, iban, bic',
+              )
+              .eq('id', consultantId)
+              .maybeSingle(),
         supabase
           .from('consultant_documents')
           .select('kind, expires_at')
@@ -87,7 +98,9 @@ export function ConsultantCompleteness({
     (data.consultant.contract_type as ContractType | null) ?? null,
     data.reqs,
   );
-  const res = computeCompleteness(data.consultant, data.docs, reqs);
+  // Fiche fournie (portail) : elle fait foi, y compris après une modification.
+  const consultant = profile ? { ...profile, daily_rate_eur: profile.daily_rate_eur ?? null } : data.consultant;
+  const res = computeCompleteness(consultant, data.docs, reqs, new Date(), { scope: asConsultant ? 'consultant' : 'esn' });
 
   const tone =
     res.percent >= 100 ? 'emerald' : res.percent >= 70 ? 'amber' : 'red';
@@ -123,10 +136,10 @@ export function ConsultantCompleteness({
             <CircleAlert className={cn('h-4 w-4', textColor)} />
           )}
           {asConsultant
-            ? isEn ? 'Your profile completeness' : 'Complétude de ton profil'
+            ? isEn ? 'Your file for missions and payments' : 'Votre dossier pour les missions et les paiements'
             : isEn ? 'Profile completeness' : 'Complétude du profil'}
         </div>
-        <span className={cn('font-display text-xl font-light', textColor)}>{res.percent} %</span>
+        <span className={cn('shrink-0 whitespace-nowrap font-display text-xl font-light', textColor)}>{res.percent} %</span>
       </div>
 
       <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-foreground/10">
@@ -177,8 +190,16 @@ export function ConsultantCompleteness({
       {!res.complete && asConsultant && (
         <p className="mt-3 text-[11px] text-muted-foreground">
           {isEn
-            ? 'Complete the items above (information + documents) to enable your mission staffing and invoicing without blockers.'
-            : 'Complète les éléments ci-dessus (informations + documents) pour permettre ton positionnement en mission et ta facturation sans blocage.'}
+            ? 'Complete these items (information and documents) so your missions and payments are never held up.'
+            : 'Complétez ces éléments (informations et documents) pour que vos missions et vos paiements ne soient jamais bloqués.'}
+          {res.missingDocuments.length > 0 && (
+            <>
+              {' '}
+              <Link href="/portal/documents#pieces" className="font-medium text-primary-deep underline-offset-2 hover:underline">
+                {isEn ? 'Upload documents' : 'Déposer les documents'}
+              </Link>
+            </>
+          )}
         </p>
       )}
       {!res.complete && !asConsultant && (

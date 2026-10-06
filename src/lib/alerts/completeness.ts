@@ -148,20 +148,26 @@ function daysUntil(dateIso: string, today: Date): number {
   return Math.round((d.getTime() - t) / 86_400_000);
 }
 
+/** Champs tenus par l'ESN : le consultant ne peut pas les compléter depuis son portail. */
+const ESN_MANAGED_FIELDS: Array<keyof ConsultantForCompleteness> = ['first_name', 'last_name', 'job_title', 'daily_rate_eur'];
+
 /**
  * Calcule la complétude d'un profil consultant.
  * Un document expiré compte comme MANQUANT (il ne protège plus l'org).
+ * `scope: 'consultant'` (portail) : seuls les éléments que le consultant
+ * peut fournir lui-même comptent.
  */
 export function computeCompleteness(
   consultant: ConsultantForCompleteness,
   documents: ConsultantDocForCompleteness[],
   docRequirements: CompletenessDocRequirement[],
   today: Date = new Date(),
+  opts: { scope?: 'esn' | 'consultant' } = {},
 ): CompletenessResult {
   const fields = [
     ...BASE_FIELDS,
     ...(consultant.contract_type ? (FIELDS_BY_TYPE[consultant.contract_type] ?? []) : []),
-  ];
+  ].filter((f) => opts.scope !== 'consultant' || !ESN_MANAGED_FIELDS.includes(f.key));
 
   const missingFields: MissingField[] = fields
     .filter((f) => {

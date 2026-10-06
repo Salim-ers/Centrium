@@ -16,6 +16,15 @@ export const MISSION_STATUS: Record<string, StatusDef> = {
   rejected: { label: { fr: 'Refusée', en: 'Rejected' }, tone: 'danger' },
 };
 
+/** Statut contractuel d'un consultant. */
+export const CONTRACT_TYPE_LABEL: Record<string, L> = {
+  freelance: { fr: 'Freelance', en: 'Freelance' },
+  cdi: { fr: 'CDI', en: 'Permanent' },
+  cdd: { fr: 'CDD', en: 'Fixed-term' },
+  portage: { fr: 'Portage', en: 'Umbrella' },
+  partner_esn: { fr: 'ESN partenaire', en: 'Partner firm' },
+};
+
 export const RENEWAL_STATUS: Record<string, StatusDef> = {
   unknown: { label: { fr: 'À qualifier', en: 'To qualify' }, tone: 'neutral' },
   likely: { label: { fr: 'Renouvellement probable', en: 'Renewal likely' }, tone: 'info' },

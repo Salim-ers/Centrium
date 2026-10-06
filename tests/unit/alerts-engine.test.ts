@@ -75,6 +75,15 @@ describe('computeCompleteness', () => {
     expect(res.percent).toBeLessThan(100);
   });
 
+  it('côté portail, seuls les éléments que le consultant peut fournir comptent', () => {
+    const reqs = resolveDocRequirements('freelance', null);
+    const noRate = { ...freelance, daily_rate_eur: null, job_title: null };
+    expect(computeCompleteness(noRate, allFreelanceDocs, reqs, TODAY).missingFields.map((f) => f.key)).toEqual(['job_title', 'daily_rate_eur']);
+    const portal = computeCompleteness(noRate, allFreelanceDocs, reqs, TODAY, { scope: 'consultant' });
+    expect(portal.missingFields).toEqual([]);
+    expect(portal.complete).toBe(true);
+  });
+
   it('on ne demande PAS de Kbis à un salarié CDI', () => {
     const reqs = resolveDocRequirements('cdi', null);
     expect(reqs.map((r) => r.kind)).not.toContain('kbis');

@@ -6,14 +6,7 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/Combobox';
-import {
-  SectionHeader,
-  AppCard,
-  AppCardBody,
-  EmptyState,
-  DataRow,
-  StatusBadge,
-} from '@/components/app';
+import { StatusBadge } from '@/components/app';
 import { createClient } from '@/lib/supabase/client';
 import { useBrandName } from '@/components/brand/BrandingStyles';
 import { useCachedQuery } from '@/hooks/useCachedQuery';
@@ -178,97 +171,53 @@ export function ConsultantSelfDocuments({ consultantId, userId, orgId, compact =
   const visibleDocs = compact ? docs.slice(0, 6) : docs;
 
   return (
-    <>
-      <AppCard className="mb-6">
-        <AppCardBody size={compact ? 'sm' : 'md'}>
-          <SectionHeader
-            eyebrow={isEn ? 'Add' : 'Ajouter'}
-            title={
-              isEn ? (
-                <>
-                  Upload a{' '}
-                  <span className="text-primary font-display ">document.</span>
-                </>
-              ) : (
-                <>
-                  Téléverser un{' '}
-                  <span className="text-primary font-display ">document.</span>
-                </>
-              )
-            }
-            description={
-              isEn
-                ? compact
-                  ? 'CV, certification, ID document…'
-                  : 'CV, certification, ID document or other supporting document.'
-                : compact
-                  ? 'CV, certification, pièce d\'identité…'
-                  : 'CV, certification, pièce d\'identité ou autre justificatif.'
-            }
-            className="mb-4"
-          />
-          <div className="flex items-end gap-3 flex-wrap">
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/80 mb-1.5 block">
-                {isEn ? 'Type' : 'Type'}
-              </label>
-              <Combobox
-                value={kind}
-                onChange={(v) => setKind(v)}
-                options={UPLOADABLE_KINDS.map((k) => ({ value: k, label: kindLabel(k) }))}
-              />
-            </div>
-            <Button
-              onClick={() => inputRef.current?.click()}
-              disabled={uploading || !consultantId}
-              className="shrink-0"
-            >
-              {uploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4" />
-              )}
-              {uploading ? (isEn ? 'Uploading…' : 'Upload…') : (isEn ? 'Choose a file' : 'Choisir un fichier')}
-            </Button>
-            <input
-              ref={inputRef}
-              type="file"
-              accept=".pdf,.doc,.docx,.txt,image/png,image/jpeg"
-              className="hidden"
-              onChange={onFile}
+    <section aria-labelledby="my-files" className="space-y-2">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h2 id="my-files" className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {isEn ? 'My files' : 'Mes fichiers'}
+          </h2>
+          <p className="text-[12.5px] text-muted-foreground">
+            {isEn
+              ? `CV, certifications and other files, shared with the ${brandName} team.`
+              : `CV, certifications et autres fichiers, partagés avec l’équipe ${brandName}.`}
+          </p>
+        </div>
+      </div>
+      <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        {/* Ajout : type puis fichier, sur une ligne. */}
+        <div className="flex items-center gap-2 border-b border-border p-3">
+          <div className="min-w-0 flex-1">
+            <Combobox
+              ariaLabel={isEn ? 'Document type' : 'Type de document'}
+              value={kind}
+              onChange={(v) => setKind(v)}
+              options={UPLOADABLE_KINDS.map((k) => ({ value: k, label: kindLabel(k) }))}
             />
           </div>
-        </AppCardBody>
-      </AppCard>
-
-      {loading ? (
-        <div className="h-40 rounded-2xl bg-foreground/[0.03] animate-pulse" />
-      ) : visibleDocs.length === 0 ? (
-        <EmptyState
-          icon={FileText}
-          title={isEn ? 'No document yet' : 'Aucun document pour le moment'}
-          description={
-            isEn
-              ? `Upload your CV, a certification or contact ${brandName}.`
-              : `Téléversez votre CV, une certification ou contactez ${brandName}.`
-          }
-        />
-      ) : (
-        <AppCard>
-          <div>
+          <Button onClick={() => inputRef.current?.click()} disabled={uploading || !consultantId} className="shrink-0">
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {uploading ? (isEn ? 'Uploading…' : 'Envoi…') : isEn ? 'Add' : 'Ajouter'}
+          </Button>
+          <input ref={inputRef} type="file" accept=".pdf,.doc,.docx,.txt,image/png,image/jpeg" className="hidden" onChange={onFile} />
+        </div>
+        {loading ? (
+          <div className="h-24 animate-pulse bg-foreground/[0.03]" />
+        ) : visibleDocs.length === 0 ? (
+          <p className="flex items-center gap-2 px-4 py-4 text-[13px] text-muted-foreground">
+            <FileText className="h-4 w-4 shrink-0" />
+            {isEn ? 'No file yet. Add your CV or a certification.' : 'Aucun fichier pour l’instant. Ajoutez votre CV ou une certification.'}
+          </p>
+        ) : (
+          <ul className="divide-y divide-border">
             {visibleDocs.map((d) => {
               const ownedByMe = userId !== null && d.uploaded_by === userId;
               return (
-                <DataRow
-                  key={d.id}
-                  leading={
-                    <div className="rounded-xl border border-hairline bg-card p-2.5">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  }
-                  primary={
-                    <span className="flex items-center gap-2 truncate">
-                      <span className="truncate">{d.file_name}</span>
+                <li key={d.id} className="flex items-center gap-3 px-4 py-3">
+                  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="truncate text-[13.5px] font-medium">{d.file_name}</span>
                       {!ownedByMe && (
                         <StatusBadge tone="violet" dot={false}>
                           <Lock className="h-2.5 w-2.5" />
@@ -276,37 +225,25 @@ export function ConsultantSelfDocuments({ consultantId, userId, orgId, compact =
                         </StatusBadge>
                       )}
                     </span>
-                  }
-                  secondary={
-                    <>
-                      {kindLabel(d.kind)} · {isEn ? 'Added on' : 'Ajouté le'} {formatDate(d.uploaded_at)}
+                    <span className="block truncate text-[12px] text-muted-foreground">
+                      {kindLabel(d.kind)} · {formatDate(d.uploaded_at)}
                       {d.size_bytes != null && ` · ${(d.size_bytes / 1024).toFixed(0)} ${isEn ? 'KB' : 'Ko'}`}
-                    </>
-                  }
-                  trailing={
-                    <>
-                      <Button size="sm" variant="outline" onClick={() => download(d)}>
-                        <Download className="h-3.5 w-3.5" />
-                        {isEn ? 'Download' : 'Télécharger'}
-                      </Button>
-                      {ownedByMe && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => deleteDoc(d)}
-                          aria-label={isEn ? 'Delete' : 'Supprimer'}
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                        </Button>
-                      )}
-                    </>
-                  }
-                />
+                    </span>
+                  </span>
+                  <Button size="sm" variant="ghost" onClick={() => download(d)} aria-label={isEn ? 'Download' : 'Télécharger'}>
+                    <Download className="h-4 w-4 text-primary-deep" />
+                  </Button>
+                  {ownedByMe && (
+                    <Button size="sm" variant="ghost" onClick={() => deleteDoc(d)} aria-label={isEn ? 'Delete' : 'Supprimer'}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
+                </li>
               );
             })}
-          </div>
-        </AppCard>
-      )}
-    </>
+          </ul>
+        )}
+      </div>
+    </section>
   );
 }

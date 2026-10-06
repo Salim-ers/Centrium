@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { availabilityOf, craOverview, runsInMonth } from '@/lib/portal/consultant-home';
+import { availabilityOf, craOverview, missionPhase, runsInMonth } from '@/lib/portal/consultant-home';
 
 const today = new Date(2026, 9, 5); // 5 octobre 2026
 
@@ -102,5 +102,17 @@ describe('availabilityOf', () => {
     const r = availabilityOf(profile('on_mission'), [mission('now', '2026-06-01', '2026-10-31'), mission('then', '2026-11-02', null)], today);
     expect(r.availability).toEqual({ kind: 'on_mission', until: '2026-10-31' });
     expect(r.next?.id).toBe('then');
+  });
+});
+
+describe('missionPhase', () => {
+  it('should tell upcoming, running and ended missions apart from their dates', () => {
+    expect(missionPhase(mission('m', '2026-10-27', '2027-04-04'), today)).toEqual({ kind: 'upcoming', inDays: 22 });
+    expect(missionPhase(mission('m', '2026-06-01', '2026-10-17'), today)).toEqual({ kind: 'running', daysLeft: 12 });
+    expect(missionPhase(mission('m', '2026-06-01', null), today)).toEqual({ kind: 'running', daysLeft: null });
+    // Encore « active » côté ESN, mais la date de fin est passée.
+    expect(missionPhase(mission('m', '2026-06-01', '2026-09-30'), today)).toEqual({ kind: 'ended', on: '2026-09-30' });
+    expect(missionPhase(mission('m', '2026-03-01', '2026-09-26', 'ended'), today)).toEqual({ kind: 'ended', on: '2026-09-26' });
+    expect(missionPhase(mission('m', '2026-11-01', null, 'proposed'), today)).toEqual({ kind: 'other' });
   });
 });
