@@ -325,6 +325,12 @@ html[data-intro='seen'] .site-intro { display: none; }
 @keyframes site-fade-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 @keyframes site-intro-out { to { transform: translateY(-100%); visibility: hidden; } }
 
+/* Manifeste : les « morceaux » flottent, les liens de friction défilent. */
+.site-float { animation: site-float 7s ease-in-out infinite; animation-delay: var(--float-delay, 0s); }
+.site-dash { stroke-dasharray: 3 5; animation: site-dash 2.4s linear infinite; }
+@keyframes site-float { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, -7px, 0); } }
+@keyframes site-dash { to { stroke-dashoffset: -16; } }
+
 /* Curseur personnalisé (ordinateur) : le curseur natif est masqué, sauf
    dans les champs de saisie. */
 html.site-cursor, html.site-cursor * { cursor: none !important; }
@@ -333,6 +339,7 @@ html.site-cursor input, html.site-cursor textarea, html.site-cursor [contentedit
 @media (prefers-reduced-motion: reduce) {
   .site-intro { display: none; }
   .hero-line > span, .hero-fade { animation: none; }
+  .site-float, .site-dash { animation: none; }
 }
 
 /* Corps des documents légaux. */
