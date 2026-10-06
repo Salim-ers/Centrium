@@ -139,3 +139,33 @@ Limite : la fusion complète de deux clients ou de deux consultants
 transaction en base. Elle demande une fonction SQL dédiée, donc une
 migration à valider explicitement ; en attendant, le doublon est archivé
 sans que rien ne soit déplacé.
+
+## 7. Itération de finalisation (octobre 2026)
+
+| Étape | Livré | Commit |
+|---|---|---|
+| Site vitrine | Page d'accueil « Une ESN ne devrait pas se piloter en morceaux » | fef2cd6 |
+| Navigation | Barre latérale cohérente, onglets de section | 71f3490 |
+| CRM | Cartes lisibles, tiroir d'action, relances (une tâche par affaire), motifs de perte, santé des affaires, tri et filtres | f144788 |
+| Talents | Filtres avancés en tiroir, compétences lisibles, disponibilité réelle | ec7d5d6 |
+| Matching IA | Score expliqué et déterministe (plafonds sur compétences obligatoires, séniorité, disponibilité), dans les deux sens | fd75668 |
+| CV Optimizer | Besoin, score d'adéquation, éditeur par blocs, versions, quatre modèles habillés par l'ESN | 44fb71c |
+| Missions | Santé de chaque mission (CRA, échéance, marge, contrat), relève et renfort par le matching | a35ab71 |
+| CRA | Export CSV, commentaires internes, contrôles du mois (jours sans saisie, hors mission, fériés), pré-remplissage aligné sur la mission, saisie mobile (glissé au doigt, barre d'envoi), parcours de correction | 3025b77 |
+| Portail consultant | Missions (à venir / en cours / passées), documents (à signer, pièces selon le statut, fichiers), profil (disponibilité cohérente, facturation pour les indépendants), vouvoiement, nom de l'ESN partout | aeaabe2 |
+| Rôles | Commercial et Opérations (migrations 105-106 préparées), base alignée sur la matrice, routes par permission, équipe « qui voit quoi », tableau de bord par rôle | 521917b |
+| Mobile | PWA installable (manifeste, icônes, service worker sans données en cache, page hors ligne) | b1d1663 |
+| Démo | « Démo ESN » et « Démo Consultant » sur /demo, seed réaliste rejouable, bandeau de démonstration | 1cd7e0d |
+
+### Décisions en attente
+
+- **Migrations 105-106** (rôles Commercial et Opérations, policies et
+  trigger des CRA par permission) : préparées et testées (PGlite,
+  `supabase/tests/v3_roles.test.sql`), non appliquées. Elles corrigent
+  aussi la Direction, à qui la matrice accorde la validation des CRA que
+  la base lui refuse aujourd'hui.
+- **Démo** : seed et comptes à créer sur le staging, puis `DEMO_ACCESS=on`
+  (voir `docs/runbook/DEMO.md`) ; en production seulement sur décision.
+- **Session et PWA** : la déconnexion à la fermeture du navigateur
+  s'applique aussi à l'application installée (reconnexion à chaque
+  ouverture). À arbitrer si l'usage mobile le justifie.
